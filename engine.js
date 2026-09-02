@@ -23,32 +23,114 @@
   const pieceById=(ps,id)=>ps.find(p=>p.id===id);
   function connectionsForPiece(piece,pieces){const out=[];for(const p of pieces){if(p.id===piece.id||p.z!==piece.z)continue;const r=contactBetweenPieces(piece,p);if(r.ok&&r.touch)for(const c of r.contacts)out.push({toPieceId:p.id,fromHalf:c.aHalf,toHalf:c.bHalf,fromSide:c.side,toSide:c.otherSide,kind:r.kind})}return out}
   const connectionKey=c=>`${c.toPieceId}:${c.toHalf}:${c.fromSide}>${c.toSide}`;
-  const routeKey=(pieceId,entryHalf)=>`${pieceId}:${entryHalf}`;
-  function applyOp(v,isDouble,state){if(v===0)return 0;if(v===2||v===4||v===6){state.lastEven=v;return v*(isDouble?2:1)}if(v===1||v===3||v===5)return(state.lastEven||0)*v*(isDouble?2:1);return 0}
-  function startChoices(newPieceId,pieces){const p=pieceById(pieces,newPieceId);if(!p)return[];return connectionsForPiece(p,pieces).map((c,i)=>({...c,index:i,key:connectionKey(c)}))}
-  function simulateSignal(newPieceId,pieces,opts={}){
-    const newPiece=pieceById(pieces,newPieceId);if(!newPiece)return{gain:0,path:[],events:[],reason:'missing-new-piece'};
-    const starts=startChoices(newPieceId,pieces);if(!starts.length)return{gain:0,path:[],events:[],reason:'no-start'};
-    let first=starts.find(c=>c.key===opts.startKey);if(!first){if(starts.length>1)return{gain:0,path:[],events:[{type:'needs-start',choices:starts}],reason:'needs-start',needs:{type:'start',choices:starts}};first=starts[0]}
-    const routes=opts.routes||{};
-    let curId=first.toPieceId,entryHalf=first.toHalf,prevId=newPieceId,score=0,steps=0,reverse=false,suppressImmediateZero=false;
-    const state={lastEven:null},traversed=new Set(),zeroCharges=new Map(),path=[],events=[],history=[];
-    events.push({type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.toHalf});
-    while(steps++<(opts.maxSteps||200)){
-      const cur=pieceById(pieces,curId);if(!cur){events.push({type:'die',reason:'missing-piece'});break}
-      const inC=cur.cubes.find(c=>c.half===entryHalf)||cur.cubes[0],outC=cur.cubes.find(c=>c.half!==inC.half)||cur.cubes[1];
-      const ik=`I:${cur.id}:${inC.half}>${outC.half}`;if(traversed.has(ik)){events.push({type:'die',reason:'internal-used',piece:cur.id});break}traversed.add(ik);
-      path.push(cubeCenter(inC),cubeCenter(outC));const add=applyOp(outC.v,cur.double,state);score+=add;events.push({type:'op',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,value:outC.v,add,reverse});
-      if(outC.v===0){const cap=cur.double?2:1,used=zeroCharges.get(cur.id)||0;if(suppressImmediateZero){suppressImmediateZero=false;events.push({type:'zero-pass',piece:cur.id})}else if(used<cap){zeroCharges.set(cur.id,used+1);reverse=!reverse;suppressImmediateZero=cur.double;events.push({type:'rebound',piece:cur.id,charge:used+1});entryHalf=outC.half;continue}else{events.push({type:'die',reason:'zero-spent',piece:cur.id});break}}
-      if(reverse){if(!history.length){events.push({type:'die',reason:'back-at-origin'});break}const h=history.pop();const ek=`E:${cur.id}:${outC.half}>${h.fromPiece}:${h.fromHalf}`;if(traversed.has(ek)){events.push({type:'die',reason:'edge-used-reverse'});break}traversed.add(ek);curId=h.fromPiece;entryHalf=h.fromHalf;prevId=cur.id;continue}
-      const conns=connectionsForPiece(cur,pieces).filter(c=>c.fromHalf===outC.half&&c.toPieceId!==prevId).filter(c=>!traversed.has(`E:${cur.id}:${c.fromHalf}>${c.toPieceId}:${c.toHalf}`));
-      if(!conns.length){events.push({type:'die',reason:'no-exit',piece:cur.id});break}
-      let next;if(conns.length===1)next=conns[0];else{const rk=routeKey(cur.id,inC.half),wanted=routes[rk];next=conns.find(c=>connectionKey(c)===wanted);if(!next){const choices=conns.map(c=>({...c,key:connectionKey(c)}));events.push({type:'needs-route',piece:cur.id,entryHalf:inC.half,routeKey:rk,choices});return{gain:score,path,events,state,reason:'needs-route',needs:{type:'route',piece:cur.id,entryHalf:inC.half,routeKey:rk,choices}}}}
-      const ek=`E:${cur.id}:${next.fromHalf}>${next.toPieceId}:${next.toHalf}`;traversed.add(ek);history.push({fromPiece:cur.id,fromHalf:outC.half,toPiece:next.toPieceId,toHalf:next.toHalf});prevId=cur.id;curId=next.toPieceId;entryHalf=next.toHalf;
-    }
-    return{gain:score,path,events,state,zeroCharges,reason:events[events.length-1]?.reason||'ended'}
+  function applyOp(v,isDouble,state){
+    if(v===0)return 0;
+    if(v===2||v===4||v===6){state.lastEven=v;return v*(isDouble?2:1)}
+    if(v===1||v===3||v===5)return(state.lastEven||0)*v*(isDouble?2:1);
+    return 0
   }
+  function startChoices(newPieceId,pieces){
+    const p=pieceById(pieces,newPieceId);if(!p)return[];
+    return connectionsForPiece(p,pieces).map((c,i)=>({...c,index:i,key:connectionKey(c)})).sort((a,b)=>a.key.localeCompare(b.key))
+  }
+  const extKey=(a,ah,b,bh)=>`E:${a}:${ah}>${b}:${bh}`;
+  const cloneMap=m=>new Map(m);
+  const cloneState=s=>({
+    current:{...s.current},mode:s.mode,score:s.score,lastEven:s.lastEven,suppressZeroPiece:s.suppressZeroPiece,
+    usedEdges:new Set(s.usedEdges),zeroCharges:cloneMap(s.zeroCharges),
+    back:s.back.map(x=>({...x})),forward:s.forward.map(x=>({...x})),
+    path:s.path.map(x=>({...x})),segments:s.segments.map(x=>({...x,from:{...x.from},to:{...x.to}})),
+    events:s.events.map(x=>({...x})),traversals:s.traversals,rebounds:s.rebounds
+  });
+  function terminal(s,reason,meta={}){
+    const events=[...s.events,{type:'die',reason}];
+    return{gain:s.score,path:s.path,segments:s.segments,events,state:{lastEven:s.lastEven},zeroCharges:s.zeroCharges,reason,traversals:s.traversals,rebounds:s.rebounds,...meta}
+  }
+  function better(a,b){
+    if(!b)return true;
+    const av=[a.gain||0,a.traversals||0,a.rebounds||0,(a.path||[]).length];
+    const bv=[b.gain||0,b.traversals||0,b.rebounds||0,(b.path||[]).length];
+    for(let i=0;i<av.length;i++){if(av[i]!==bv[i])return av[i]>bv[i]}
+    return false
+  }
+  function bestSignal(newPieceId,pieces,opts={}){
+    const newPiece=pieceById(pieces,newPieceId);
+    if(!newPiece)return{gain:0,path:[],segments:[],events:[],reason:'missing-new-piece',traversals:0,rebounds:0,search:{starts:0,expanded:0,leaves:0,truncated:false}};
+    const starts=startChoices(newPieceId,pieces);
+    if(!starts.length)return{gain:0,path:[],segments:[],events:[],reason:'no-start',traversals:0,rebounds:0,search:{starts:0,expanded:0,leaves:1,truncated:false}};
+    const maxExpanded=opts.maxExpanded||50000;
+    let expanded=0,leaves=0,truncated=false,best=null;
+    function finish(s,reason){leaves++;const r=terminal(s,reason);if(better(r,best))best=r;return r}
+    function walk(s){
+      if(++expanded>maxExpanded){truncated=true;return finish(s,'search-limit')}
+      const cur=pieceById(pieces,s.current.pieceId);if(!cur)return finish(s,'missing-piece');
+      const entryHalf=s.mode===1?s.current.entryHalf:1-s.current.entryHalf;
+      const inC=cur.cubes.find(c=>c.half===entryHalf)||cur.cubes[0];
+      const outC=cur.cubes.find(c=>c.half!==inC.half)||cur.cubes[1];
+      const from=cubeCenter(inC),to=cubeCenter(outC);
+      s.path.push(from,to);s.segments.push({piece:cur.id,from,to,reverse:s.mode===-1,entryHalf:inC.half,exitHalf:outC.half});s.traversals++;
+      const opState={lastEven:s.lastEven};const add=applyOp(outC.v,cur.double,opState);s.lastEven=opState.lastEven;s.score+=add;
+      s.events.push({type:'op',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,value:outC.v,add,reverse:s.mode===-1});
+      if(outC.v===0){
+        const cap=cur.double?2:1,used=s.zeroCharges.get(cur.id)||0;
+        if(s.suppressZeroPiece===cur.id){
+          s.suppressZeroPiece=null;s.events.push({type:'zero-pass',piece:cur.id});
+        }else if(used<cap){
+          s.zeroCharges.set(cur.id,used+1);s.mode*=-1;s.rebounds++;
+          if(cur.double)s.suppressZeroPiece=cur.id;
+          s.events.push({type:'rebound',piece:cur.id,charge:used+1});
+          return walk(s)
+        }else return finish(s,'zero-spent')
+      }
+      if(s.mode===-1){
+        if(!s.back.length)return finish(s,'back-at-origin');
+        const prev=s.back[s.back.length-1];
+        const k=extKey(cur.id,outC.half,prev.pieceId,1-prev.entryHalf);
+        if(s.usedEdges.has(k))return finish(s,'edge-used-reverse');
+        s.usedEdges.add(k);s.forward.push({...s.current});s.current=s.back.pop();
+        s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:1-s.current.entryHalf,reverse:true,key:k});
+        return walk(s)
+      }
+      if(s.forward.length){
+        const nxt=s.forward[s.forward.length-1];
+        const k=extKey(cur.id,outC.half,nxt.pieceId,nxt.entryHalf);
+        if(s.usedEdges.has(k))return finish(s,'edge-used-forward');
+        s.usedEdges.add(k);s.back.push({...s.current});s.current=s.forward.pop();
+        s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:s.current.entryHalf,reverse:false,replay:true,key:k});
+        return walk(s)
+      }
+      const conns=connectionsForPiece(cur,pieces)
+        .filter(c=>c.fromHalf===outC.half&&c.toPieceId!==s.current.fromPieceId)
+        .map(c=>({...c,key:extKey(cur.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)}))
+        .filter(c=>!s.usedEdges.has(c.key))
+        .sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
+      if(!conns.length)return finish(s,'no-exit');
+      let localBest=null;
+      for(const c of conns){
+        if(expanded>=maxExpanded){truncated=true;break}
+        const n=cloneState(s);n.usedEdges.add(c.key);n.back.push({...n.current});
+        n.current={pieceId:c.toPieceId,entryHalf:c.toHalf,fromPieceId:cur.id,fromHalf:c.fromHalf};
+        n.events.push({type:'route',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,toPieceId:c.toPieceId,toHalf:c.toHalf,key:c.choiceKey});
+        const r=walk(n);if(better(r,localBest))localBest=r
+      }
+      return localBest||finish(s,'search-limit')
+    }
+    for(const first of starts){
+      const st={
+        current:{pieceId:first.toPieceId,entryHalf:first.toHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,score:0,lastEven:null,suppressZeroPiece:null,
+        usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),back:[],forward:[],path:[],segments:[],
+        events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.toHalf,fromHalf:first.fromHalf}],traversals:0,rebounds:0
+      };
+      const r=walk(st);if(better(r,best))best=r;
+      if(expanded>=maxExpanded){truncated=true;break}
+    }
+    best=best||{gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};
+    best.search={starts:starts.length,expanded,leaves,truncated};
+    return best
+  }
+  // Compatibility wrapper: v0.8 always resolves the optimal route automatically.
+  function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}
   function exposedPorts(tile,z,pieces){const placements=allPlacements(tile,z,pieces),groups=new Map();for(const pl of placements)for(const group of pl.contacts||[]){if(group.kind==='double-centered'&&group.piece.double){const side=group.relation.sideB,key=`${group.piece.id}:center:${side}`;if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:null,side,value:group.piece.tile.a,centered:true,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl);continue}for(const c of group.contacts||[]){const key=portKey(group.piece.id,c.bHalf,c.otherSide);if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:c.bHalf,side:c.otherSide,value:c.bV,centered:false,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl)}}return[...groups.values()]}
-  return{G,S,DIR,ARROW,axis,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,routeKey,startChoices,simulateSignal,exposedPorts};
+  return{G,S,DIR,ARROW,axis,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,bestSignal,simulateSignal,exposedPorts};
 });
