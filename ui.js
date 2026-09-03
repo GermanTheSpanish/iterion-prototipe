@@ -15,7 +15,7 @@
   function renderHand(){
     const s=GAME.state();handEl.innerHTML='';
     const canGrade=!uiBusy&&!s.running&&!s.cleared&&!s.blocked&&!s.marketOpen&&!s.needsReroll;
-    const mask=canGrade?GAME.legalHandMask():s.hand.map(Boolean);
+    const mask=canGrade?s.hand.map((t,i)=>!!t&&GAME.candidatesForIndex(i).length>0):s.hand.map(Boolean);
     for(let i=0;i<D.HAND_SIZE;i++){
       const t=s.hand[i],slot=document.createElement('div');slot.className='handSlot';
       if(handFx[i]==='hidden'||(drag.active&&drag.index===i)){handEl.appendChild(slot);continue}
