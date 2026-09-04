@@ -6,6 +6,9 @@
   let handFx=Array(D.HAND_SIZE).fill('normal');
   let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
   const px=n=>n/G*100+'%',py=n=>n/H*100+'%',wait=ms=>new Promise(r=>setTimeout(r,ms));
+  document.title=`ITERION v${D.VERSION}`;
+  const versionLabel=document.querySelector('header .sub');if(versionLabel)versionLabel.textContent=`v${D.VERSION} · ${D.TOTAL_ROUNDS} ROUNDS`;
+  const uxStyle=document.createElement('style');uxStyle.textContent=`.boardMessage{position:absolute;left:50%;top:50%;z-index:90;transform:translate(-50%,-50%);width:90%;text-align:center;font-size:28px;font-weight:900;letter-spacing:.08em;pointer-events:none;animation:boardMsg .9s ease-out forwards}.marketIntro{font-size:12px;color:#5e5a53;margin:0 0 10px}.marketDescriptions{display:grid;gap:7px;margin:0 0 14px;text-align:left}.marketDesc{border:1px solid rgba(0,0,0,.1);border-radius:9px;padding:8px;background:rgba(255,255,255,.35)}.marketDesc strong{display:block;font-size:11px;letter-spacing:.04em}.marketDesc span{display:block;font-size:10px;color:#625e57;line-height:1.3;margin-top:3px}@keyframes boardMsg{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}20%,65%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(1.06)}}`;document.head.appendChild(uxStyle);
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function mini(t,fx='normal'){const cls=fx==='back'?' back':fx==='reveal'?' reveal':'';return`<div class="domino${cls}"><div class="half"><div class="spips">${dots(t?.a??0,true)}</div></div><div class="half"><div class="spips">${dots(t?.b??0,true)}</div></div></div>`}
   function ordered(p){return[...p.cubes].sort((a,b)=>p.axis==='H'?a.x-b.x:a.y-b.y)}
