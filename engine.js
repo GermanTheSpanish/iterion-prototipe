@@ -3,8 +3,14 @@
   if(typeof module==='object'&&module.exports) module.exports=api;
   root.IterionEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
-  const G=18,H=24,S=2;
+  let G=18,H=24;
+  const S=2;
   const DIR=[[1,0],[0,1],[-1,0],[0,-1]], ARROW=['→','↓','←','↑'];
+  function setBoardSize(g,h){
+    if(!Number.isInteger(g)||!Number.isInteger(h)||g<6||h<6)throw new Error('Invalid board size');
+    G=g;H=h;return{G,H}
+  }
+  function getBoardSize(){return{G,H}}
   const axis=rr=>rr%2===0?'H':'V';
   function cubesFor(tile,x,y,z=0,rr=0){const [dx,dy]=DIR[rr];return[{x,y,z,v:tile.a,half:0},{x:x+dx*S,y:y+dy*S,z,v:tile.b,half:1}]}
   function rectForCubes(cs){return{minx:Math.min(...cs.map(c=>c.x)),miny:Math.min(...cs.map(c=>c.y)),maxx:Math.max(...cs.map(c=>c.x+S)),maxy:Math.max(...cs.map(c=>c.y+S))}}
@@ -18,7 +24,8 @@
   function validatePlacement(tile,x,y,z,rr,pieces){const cand=pieceFrom(tile,x,y,z,rr,-1);if(cand.rect.minx<0||cand.rect.miny<0||cand.rect.maxx>G||cand.rect.maxy>H)return{ok:false,reason:'bounds'};for(const p of pieces)for(const c of cand.cubes)for(const o of p.cubes)if(overlap(c,o))return{ok:false,reason:'overlap'};if(!pieces.length){const center=cand.cubes.some(c=>Math.abs(c.x+1-G/2)<=4&&Math.abs(c.y+1-H/2)<=4);return center?{ok:true,contacts:[],piece:cand}:{ok:false,reason:'root-zone'}}const contacts=[];for(const p of pieces){const r=contactBetweenPieces(cand,p);if(r.touch&&!r.ok)return{ok:false,reason:r.reason};if(r.touch&&r.ok)contacts.push({piece:p,kind:r.kind,contacts:r.contacts,relation:r.relation})}return contacts.length?{ok:true,contacts,piece:cand}:{ok:false,reason:'no-contact'}}
   function placementKey(tile,p){const cs=cubesFor(tile,p.x,p.y,p.z,p.rr).map(c=>`${c.x},${c.y},${c.v}`).sort().join('|');return`${p.z}|${cs}`}
   function allPlacements(tile,z,pieces){const out=[],seen=new Set();for(let rr=0;rr<4;rr++)for(let y=0;y<=H-S;y++)for(let x=0;x<=G-S;x++){const v=validatePlacement(tile,x,y,z,rr,pieces);if(!v.ok)continue;const p={x,y,z,rr,contacts:v.contacts},k=placementKey(tile,p);if(seen.has(k))continue;seen.add(k);out.push(p)}return out}
-  function hasLegalMove(hand,pieces,levels=[0,1,2,3,4]){for(const t of hand)for(const z of levels)if(allPlacements(t,z,pieces).length)return true;return false}
+  function hasAnyPlacement(tile,z,pieces){for(let rr=0;rr<4;rr++)for(let y=0;y<=H-S;y++)for(let x=0;x<=G-S;x++)if(validatePlacement(tile,x,y,z,rr,pieces).ok)return true;return false}
+  function hasLegalMove(hand,pieces,levels=[0,1,2,3,4]){for(const t of hand)for(const z of levels)if(hasAnyPlacement(t,z,pieces))return true;return false}
   const cubeCenter=c=>({x:c.x+S/2,y:c.y+S/2,z:c.z});
   const pieceById=(ps,id)=>ps.find(p=>p.id===id);
   function connectionsForPiece(piece,pieces){const out=[];for(const p of pieces){if(p.id===piece.id||p.z!==piece.z)continue;const r=contactBetweenPieces(piece,p);if(r.ok&&r.touch)for(const c of r.contacts)out.push({toPieceId:p.id,fromHalf:c.aHalf,toHalf:c.bHalf,fromSide:c.side,toSide:c.otherSide,kind:r.kind})}return out}
@@ -60,5 +67,7 @@
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}
   function exposedPorts(tile,z,pieces){const placements=allPlacements(tile,z,pieces),groups=new Map();for(const pl of placements)for(const group of pl.contacts||[]){if(group.kind==='double-centered'&&group.piece.double){const side=group.relation.sideB,key=`${group.piece.id}:center:${side}`;if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:null,side,value:group.piece.tile.a,centered:true,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl);continue}for(const c of group.contacts||[]){const key=portKey(group.piece.id,c.bHalf,c.otherSide);if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:c.bHalf,side:c.otherSide,value:c.bV,centered:false,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl)}}return[...groups.values()]}
-  return{G,H,S,DIR,ARROW,axis,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,bestSignal,simulateSignal,exposedPorts};
+  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,bestSignal,simulateSignal,exposedPorts};
+  Object.defineProperties(api,{G:{enumerable:true,get:()=>G},H:{enumerable:true,get:()=>H}});
+  return api;
 });
