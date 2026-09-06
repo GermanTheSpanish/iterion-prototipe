@@ -33,8 +33,8 @@
   function applyOp(v,isDouble,state){
     const before=state.output||0;
     if(v===0)return{type:'zero',before,after:before,delta:0};
-    if(v===2||v===4||v===6){const add=v*(isDouble?2:1),after=before+add;state.output=after;return{type:'add',before,after,add,delta:add}}
-    if(v===1||v===3||v===5){const factor=isDouble?v*v:v,after=before*factor;state.output=after;return{type:'multiply',before,after,factor,delta:after-before}}
+    if(v===2||v===4||v===6){const add=v,after=before+add;state.output=after;return{type:'add',before,after,add,delta:add}}
+    if(v===1||v===3||v===5){const factor=v,after=before*factor;state.output=after;return{type:'multiply',before,after,factor,delta:after-before}}
     return{type:'none',before,after:before,delta:0}
   }
   function startChoices(newPieceId,pieces){const p=pieceById(pieces,newPieceId);if(!p)return[];const out=[];for(const c of connectionsForPiece(p,pieces)){out.push({...c,entryHalf:c.toHalf,flipped:false,key:connectionKey(c)+':N'});out.push({...c,entryHalf:1-c.toHalf,flipped:true,key:connectionKey(c)+':F'})}const seen=new Set();return out.filter(c=>{const k=`${c.toPieceId}:${c.entryHalf}:${c.fromHalf}`;if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.key.localeCompare(b.key))}
