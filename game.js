@@ -256,7 +256,7 @@ function createGame(E,opts={}){
     for(const v of x.turns){
       if(v.type==='reroll'){lines.push(`R${v.round} REROLL after move ${v.roundTurn} remaining=${v.remaining}`);continue}
       if(v.type==='consume'){lines.push(`R${v.round} USE ${v.item.toUpperCase()} after move ${v.roundTurn} remaining=${v.remaining}${v.maxPlacements?` maxMoves=${v.maxPlacements}`:''}`);continue}
-      if(v.type==='undo'){lines.push(`R${v.round} UNDO after move ${v.roundTurn} remaining=${v.undone?` reverted=T${v.undone.turn} [${v.undone.tile.a}|${v.undone.tile.b}] output=${v.undone.output}`:''}`);continue}
+      if(v.type==='undo'){lines.push(`R${v.round} UNDO after move ${v.roundTurn} remaining=${v.remaining}${v.undone?` reverted=T${v.undone.turn} [${v.undone.tile.a}|${v.undone.tile.b}] output=${v.undone.output}`:''}`);continue}
       if(v.type==='upgrade-coins'){lines.push(`R${v.round}.${v.roundTurn} UPGRADE COINS +${v.amount} total=${v.coins} tiles=${v.activations.map(a=>`[${a.a}|${a.b}]★${a.tier}`).join(',')}`);continue}
       if(v.type==='coins'){lines.push(`R${v.round} CLEAR COINS +${v.amount} base=${v.breakdown?.base||0} quick=${v.breakdown?.quick||0} exact=${v.breakdown?.exact||0} total=${v.coins}`);continue}
       if(v.type==='tile-upgrade'){lines.push(`R${v.round} UPGRADE [${v.tile.a}|${v.tile.b}] ${v.from}>${v.to} overkill=x${v.ratio}`);continue}
