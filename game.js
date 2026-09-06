@@ -111,17 +111,16 @@ function createGame(E,opts={}){
   }
 
   function upgradeIncomeFor(sim){
-    const already=new Set(s.upgradeCoinsClaimed||[]),seen=new Set(),activations=[];
+    const seen=new Set(),activations=[];
     for(const e of sim.events||[]){
-      if(e.type!=='op'||seen.has(e.piece)||already.has(e.piece))continue;
+      if(e.type!=='op'||seen.has(e.piece))continue;
       seen.add(e.piece);const p=s.pieces.find(x=>x.id===e.piece),tier=p?.tile?.upgrade||0;
       if(tier>0)activations.push({pieceId:e.piece,tileId:p.tile.id,a:p.tile.a,b:p.tile.b,tier,coins:tier})
     }
-    return{activations,total:activations.reduce((n,a)=>n+a.coins,0)}
+    return{activations,total:activations.reduce((best,a)=>Math.max(best,a.tier),0)}
   }
   function awardUpgradeIncome(income){
     if(!income.total)return 0;
-    const claimed=new Set(s.upgradeCoinsClaimed||[]);for(const a of income.activations)claimed.add(a.pieceId);s.upgradeCoinsClaimed=[...claimed];
     s.coins+=income.total;s.roundUpgradeCoins+=income.total;
     s.events.push({type:'upgrade-coins',round:s.round+1,roundTurn:s.roundTurn,amount:income.total,activations:income.activations,coins:s.coins});return income.total
   }
