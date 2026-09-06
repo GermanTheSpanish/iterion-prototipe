@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.19.0',
+    VERSION:'0.20.0',
     ENGINE_VERSION:'0.13.0-double-double',
     TARGETS:[
       20,100,500,2500,10000,
@@ -39,7 +39,6 @@
     SHOP_CHANCE:0.5,
     SHOP_OFFERS:2,
     MARKET_RANDOM_TILE_COST:1,
-    MARKET_EXACT_TILE_COST:10,
     MARKET_RANDOM_STOCK:null,
     MARKET_DOUBLE_DOUBLE_COST:8,
     INFLATION_PER_PURCHASE:1,
