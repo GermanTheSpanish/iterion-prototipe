@@ -4,8 +4,8 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.17.0',
-    ENGINE_VERSION:'0.11.1-longest-route',
+    VERSION:'0.18.0',
+    ENGINE_VERSION:'0.12.0-single-op-doubles',
     TARGETS:[
       20,100,500,2500,10000,
       50000,250000,1000000,5000000,25000000,
