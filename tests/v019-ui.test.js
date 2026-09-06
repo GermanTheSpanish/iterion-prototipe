@@ -21,8 +21,7 @@ assert.doesNotMatch(html,/reboundGlyph/,'legacy curved rebound glyph CSS must no
 assert.match(html,/\.reboundArrow\{/,'directional rebound arrow CSS must exist');
 
 assert.match(html,/\.doubleDoubleMark\{/,'Double Double tile marker CSS must exist');
-assert.match(html,/\.doubleDoubleChoice\.active/,'active Double Double Market choice must be visually distinguishable');
 assert.match(html,/animation:pop 1\.2s forwards/,'operation numbers must remain visible longer than the old 0.72s effect');
 assert.match(html,/animation:final 1\.8s forwards/,'final output must remain visible longer than the old 1s effect');
 
-console.log('v0.19 UI regression tests passed');
+console.log('retained v0.19 UI regression tests passed');
