@@ -92,7 +92,8 @@
   function showFailed(){
     resetOverlay();const s=GAME.state(),noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit';overlayTitle.textContent=noTiles?'NO TILES LEFT':'ROUND FAILED';
     const reason=noTiles?'Your physical set is exhausted. Buy more dominoes in the Market before this happens.':limit?'You used every move for this round.':'No legal continuation remains.';
-    overlayBody.innerHTML=`<p>${reason}</p>${summaryHtml()}`;
+    overlayBody.innerHTML=`<p>${reason}</p>${summaryHtml()}<button id="copyFailedRun" class="shopBuy secondary">COPY RUN DATA</button>`;
+    overlayBody.querySelector('#copyFailedRun').onclick=copyRun;
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
     if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
     if(GAME.canUndo()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
