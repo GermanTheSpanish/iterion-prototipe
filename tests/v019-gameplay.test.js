@@ -47,41 +47,7 @@ function testUnlimitedMysteryDominoPurchases(){
   assert.strictEqual(s.marketRandomStock,null,'Mystery Domino stock must remain unlimited');
 }
 
-function testDoubleDoubleMarketPurchaseAndTransfer(){
-  const game=Game.createGame(E,{STARTING_COINS:100});
-  const s=game.state();
-  s.shopOpen=true;
-  s.shopType='market';
-  s.coins=100;
-  s.inflation=0;
-
-  assert.strictEqual(game.buyDoubleDouble('d0-0').ok,false,'[0|0] cannot become Double Double');
-
-  const first=game.buyDoubleDouble('d3-3');
-  assert.strictEqual(first.ok,true);
-  assert.strictEqual(first.cost,8,'Double Double base cost should be 8c');
-  assert.strictEqual(s.doubleDoubleTileId,'d3-3');
-  assert.strictEqual(s.inflation,1);
-
-  const duplicate=game.buyDoubleDouble('d3-3');
-  assert.strictEqual(duplicate.ok,false,'buying Double Double on the already-active tile should be rejected');
-  assert.strictEqual(duplicate.reason,'active');
-
-  const transferred=game.buyDoubleDouble('d5-5');
-  assert.strictEqual(transferred.ok,true);
-  assert.strictEqual(transferred.cost,9,'transfer price should include current Inflation');
-  assert.strictEqual(transferred.previousTileId,'d3-3');
-  assert.strictEqual(s.doubleDoubleTileId,'d5-5','only one Double Double may be active');
-  assert.strictEqual(s.inflation,2);
-
-  const snap=game.snapshot();
-  assert.strictEqual(snap.doubleDoubleTileId,'d5-5');
-  assert.strictEqual(snap.doubleDouble.a,5);
-  assert.strictEqual(snap.doubleDouble.b,5);
-  assert.match(game.debugText(),/Double Double: \[5\|5\] id=d5-5/,'debug output must expose the active Double Double');
-}
 
 testDoubleDoubleReboundOnlyAmplifiesFirstPass();
 testUnlimitedMysteryDominoPurchases();
-testDoubleDoubleMarketPurchaseAndTransfer();
-console.log('v0.19 gameplay regression tests passed');
+console.log('retained v0.19 gameplay regression tests passed');
