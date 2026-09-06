@@ -7,7 +7,7 @@ const game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 
-assert.match(data,/VERSION:'0\.20\.0'/,'build must identify as v0.20.0');
+assert.match(data,/VERSION:'0\.21\.0'/,'build must identify as v0.21.0');
 assert.doesNotMatch(ui,/EXACT DOMINO/,'Exact Domino must be removed from the Market UI');
 assert.doesNotMatch(ui,/exactGridHtml|exactTile|buyMarketExactTile|marketExactPrice/,'Exact Domino UI handlers must be removed');
 assert.doesNotMatch(game,/buyMarketExactTile|marketExactPrice|MARKET_EXACT_TILE_COST/,'Exact Domino gameplay API must be removed');
