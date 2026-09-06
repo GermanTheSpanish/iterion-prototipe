@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.20.0',
+    VERSION:'0.21.0',
     ENGINE_VERSION:'0.13.0-double-double',
     TARGETS:[
       20,100,500,2500,10000,
@@ -17,6 +17,8 @@
     TOTAL_ROUNDS:15,
     STAGE_SIZE:5,
     DRAG_Y_OFFSET:72,
+    LONG_PRESS_MS:500,
+    LONG_PRESS_MOVE_TOLERANCE_PX:10,
     SHAKE_THRESHOLD:10,
     SHAKE_SWITCHES:2,
     SHAKE_WINDOW_MS:460,
