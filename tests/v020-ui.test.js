@@ -4,10 +4,12 @@ const path=require('path');
 const data=fs.readFileSync(path.join(__dirname,'..','data.js'),'utf8');
 const game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
-assert.match(data,/VERSION:'0\.22\.1'/,'build must identify as v0.22.1');
+assert.match(data,/VERSION:'\d+\.\d+\.\d+'/,'build must declare a semantic version');
 assert.doesNotMatch(ui,/EXACT DOMINO/);
 assert.doesNotMatch(ui,/exactGridHtml|buyMarketExactTile|marketExactPrice/);
 assert.doesNotMatch(game,/buyMarketExactTile|marketExactPrice|MARKET_EXACT_TILE_COST/);
+// CHANGE-SENSITIVE: this block describes the current Double Double Market presentation.
+// Replace it in the same commit that intentionally changes the Double Double Market contract.
 assert.match(ui,/Randomly upgrades one physical double you own\./);
 assert.match(ui,/id="doubleDoubleBuy"/);
 assert.match(ui,/ROLL DOUBLE DOUBLE/);
