@@ -3,7 +3,7 @@
   if(typeof module==='object'&&module.exports) module.exports=factory(require('./data.js'),require('./mods.js'),require('./engine.js'));
   root.IterionHelp=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(D,M,E){
-  const sectionOrder=['goal','placement','rotation','hand','scoring','routing','doubles','zeros','parity','persistence','modifiers'];
+  const sectionOrder=['goal','placement','rotation','hand','scoring','routing','doubles','zeros','parity','persistence','economy','modifiers'];
   const telemetryByRun=new Map();
   let activeRunId='session';
 
@@ -33,7 +33,8 @@
       doubles:{id:'doubles',displayName:'Doubles',visual:'── [3|3] ──  + centred side port',shortDescription:'Doubles have special connection geometry.',rulesDescription:'A double can accept the engine’s centred long-side connection in addition to ordinary matching contacts. A normal double does not automatically strengthen its arithmetic operation; any extra effect must come from an explicit modifier such as Double Double.'},
       zeros:{id:'zeros',displayName:'Zeros',visual:'→ 0 ↩',shortDescription:'Zero changes routing rather than Output arithmetic.',rulesDescription:'When the signal exits through 0, Output is unchanged and the route rebounds. A non-double zero piece has one rebound charge; [0|0] has the double-specific two-charge behaviour implemented by the routing engine.'},
       parity:{id:'parity',displayName:'Odd / Even',visual:'1 · 3 · 5  ×     2 · 4 · 6  +',shortDescription:'Odd and even values use different engine operations.',rulesDescription:`${[1,3,5].map(operationText).join(' ')} ${[2,4,6].map(operationText).join(' ')} Zero is handled separately.`},
-      persistence:{id:'persistence',displayName:'Machine Persistence',visual:'ROUND 1 MACHINE → ROUND 2 MACHINE',shortDescription:'Earlier placements shape later rounds.',rulesDescription:`Machine persistence is currently ${D.PERSIST_MACHINE_BETWEEN_ROUNDS?'ON':'OFF'}. Cleared rounds reset Output and round resources, while placed physical dominoes remain part of the machine. The board expands at later stages according to the configured board sizes.`},
+      persistence:{id:'persistence',displayName:'Machine Persistence',visual:'ROUND 1 MACHINE → ROUND 2 MACHINE',shortDescription:'Earlier placements shape later rounds.',rulesDescription:`Machine persistence is currently ${D.PERSIST_MACHINE_BETWEEN_ROUNDS?'ON':'OFF'}. Cleared rounds reset Output and round resources, while placed physical dominoes remain part of the machine. The board expands at the start of each new stage according to the configured board sizes.`},
+      economy:{id:'economy',displayName:'Shop / Market',visual:`SHOP anytime     MARKET every ${D.STAGE_SIZE} rounds`,shortDescription:'Shop handles survival; Market develops the build.',rulesDescription:`The Shop is available during active rounds and sells random physical dominoes plus stored Move, Reroll and Undo tools. A random domino bought during a round enters the current hand if there is space, otherwise the reserve. The Market appears after each ${D.STAGE_SIZE}-round stage and contains rarer build-changing effects such as Double Double. Every purchase increases global Inflation by 1, making later Shop and Market purchases more expensive.`},
       modifiers:{id:'modifiers',displayName:'Modifiers',visual:'BASE TILE + MODIFIER',shortDescription:'Tools and tile modifications alter specific parts of a run.',rulesDescription:modifierText()||'No modifiers are registered in this build.'}
     };
     return sectionOrder.map(id=>Object.freeze({...sections[id]}));
