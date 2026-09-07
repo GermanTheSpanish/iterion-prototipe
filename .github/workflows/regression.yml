@@ -2,7 +2,8 @@ name: regression
 
 on:
   push:
-    branches: [main]
+    branches: ['**']
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -24,8 +25,9 @@ jobs:
           node --check ui.js
       - name: Regression suite
         run: |
-          set -e
+          status=0
           for test in tests/*.test.js; do
             echo "==> $test"
-            node "$test"
+            node "$test" || status=1
           done
+          exit $status
