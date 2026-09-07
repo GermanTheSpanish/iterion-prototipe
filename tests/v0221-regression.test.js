@@ -2,6 +2,7 @@ const assert=require('assert');
 const fs=require('fs');
 const path=require('path');
 const E=require('../engine.js');
+const D=require('../data.js');
 const Game=require('../game.js');
 
 function testEmergencyShopPurchasesSurviveUndo(){
@@ -44,7 +45,8 @@ function testEmergencyShopPurchasesSurviveUndo(){
 
 function testPatchUxContracts(){
   const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
-  const ui=read('ui.js'),help=read('help.js'),mods=read('mods.js');
+  const data=read('data.js'),ui=read('ui.js'),help=read('help.js'),mods=read('mods.js');
+  assert.match(data,/VERSION:'0\.22\.1'/);
   assert.match(ui,/close\.textContent='CLOSE'/,'Data panel must have an internal close control');
   assert.match(ui,/className='runDataText'/,'Data panel must expose selectable run text');
   assert.match(ui,/board\.style\.backgroundImage='none'/,'visible board grid must be disabled');
@@ -60,4 +62,4 @@ function testPatchUxContracts(){
 
 testEmergencyShopPurchasesSurviveUndo();
 testPatchUxContracts();
-console.log('retained v0.22.1 regression tests passed');
+console.log('v0.22.1 regression tests passed');

@@ -24,9 +24,8 @@ jobs:
           node --check ui.js
       - name: Regression suite
         run: |
-          status=0
+          set -e
           for test in tests/*.test.js; do
             echo "==> $test"
-            node "$test" || status=1
+            node "$test"
           done
-          exit $status

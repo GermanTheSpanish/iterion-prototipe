@@ -4,6 +4,7 @@ const path=require('path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const data=read('data.js'),game=read('game.js'),ui=read('ui.js'),html=read('index.html'),help=read('help.js');
 
+assert.match(data,/VERSION:'0\.22\.1'/);
 assert.match(data,/STAGE_SIZE:3/);
 assert.match(data,/BOARD_SIZES:\[\[18,24\],\[21,28\],\[24,32\],\[27,36\],\[30,40\]\]/);
 assert.doesNotMatch(data,/SHOP_CHANCE/,'inter-round random Shop chance must be removed');
@@ -25,4 +26,4 @@ assert(marketStart>=0&&marketEnd>marketStart);
 assert.doesNotMatch(ui.slice(marketStart,marketEnd),/MYSTERY DOMINO|buyShopRandomTile/,'Market UI must not sell basic random tile supply');
 assert.match(help,/id:'economy',displayName:'Shop \/ Market'/,'Rulebook must explain the Shop / Market split');
 assert.match(help,/SHOP anytime/);
-console.log('retained v0.22 UI regression tests passed');
+console.log('v0.22 UI regression tests passed');
