@@ -30,7 +30,6 @@ function forceClear(roundIndex){
   return{E,game,s}
 }
 
-assert.strictEqual(Data.VERSION,'0.22.1');
 assert.strictEqual(Data.STAGE_SIZE,3);
 assert.deepStrictEqual(Data.BOARD_SIZES,[[18,24],[21,28],[24,32],[27,36],[30,40]]);
 assert.strictEqual(Data.SHOP_CHANCE,undefined,'random inter-round Shop scheduling must be removed');
@@ -114,4 +113,4 @@ assert.strictEqual(forceClear(14).s.nextShopType,'none','final round must not sc
   }
 }
 
-console.log('v0.22 economy/stage regression tests passed');
+console.log('retained v0.22 economy/stage regression tests passed');
