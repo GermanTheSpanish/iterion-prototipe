@@ -182,12 +182,38 @@ function createGame(E,opts={}){
     return{ok:true,maxPlacements:maxPlacements(),remaining:s.consumables.move}
   }
   function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.running&&!s.shopOpen}
+  function preserveShopTransactions(frame,current){
+    const tail=(current.events||[]).slice((frame.events||[]).length);
+    const keptTypes=new Set(['shop-open','shop-buy','tile-buy','shop-close']);
+    const kept=tail.filter(e=>keptTypes.has(e.type)).map(e=>deepClone(e));
+    const purchases=kept.filter(e=>e.type==='shop-buy'||e.type==='tile-buy');
+    let spend=0,inflationDelta=0;
+    for(const e of purchases){
+      spend+=Number(e.cost)||0;
+      inflationDelta+=Math.max(0,(Number(e.inflationAfter)||0)-(Number(e.inflationBefore)||0));
+      if(e.type==='shop-buy'&&e.item)frame.consumables[e.item]=(frame.consumables[e.item]||0)+1;
+      if(e.type==='tile-buy'&&e.tile?.id&&!frame.set.some(t=>t.id===e.tile.id)){
+        const tile=cloneTile(e.tile);frame.set.push(tile);
+        const currentSlot=(current.hand||[]).findIndex(t=>t?.id===tile.id),freeSlot=(frame.hand||[]).findIndex(t=>!t);
+        if(e.delivery==='hand'&&currentSlot>=0&&!frame.hand[currentSlot])frame.hand[currentSlot]=tile;
+        else if(e.delivery==='hand'&&freeSlot>=0)frame.hand[freeSlot]=tile;
+        else frame.reserve.unshift(tile)
+      }
+    }
+    const beforeCoins=Number(frame.coins)||0,shortfall=Math.max(0,spend-beforeCoins);
+    frame.coins=Math.max(0,beforeCoins-spend);
+    frame.inflation=(Number(frame.inflation)||0)+inflationDelta;
+    frame.tileSerial=Math.max(frame.tileSerial||0,current.tileSerial||0);
+    if(purchases.some(e=>e.type==='tile-buy'))frame.rngState=current.rngState;
+    frame.events.push(...kept);
+    return{count:purchases.length,spend,inflationDelta,shortfall}
+  }
   function useUndo(){
     if(!canUndo())return{ok:false,reason:'state'};
-    const current=s,frame=deepClone(s.undoFrame),last=[...s.events].reverse().find(e=>Number.isInteger(e.turn));
+    const current=s,frame=deepClone(s.undoFrame),last=[...s.events].reverse().find(e=>Number.isInteger(e.turn)),preserved=preserveShopTransactions(frame,current);
     s=frame;s.consumables.undo=Math.max(0,(s.consumables?.undo||0)-1);s.undoFrame=null;s.running=false;
-    s.events.push({type:'undo',round:s.round+1,roundTurn:s.roundTurn,item:'undo',remaining:s.consumables.undo,undone:last?{turn:last.turn,tile:cloneTile(last.tile),output:last.output}:null});
-    return{ok:true,remaining:s.consumables.undo,restoredTurn:s.turn,discardedTurn:current.turn}
+    s.events.push({type:'undo',round:s.round+1,roundTurn:s.roundTurn,item:'undo',remaining:s.consumables.undo,undone:last?{turn:last.turn,tile:cloneTile(last.tile),output:last.output}:null,preservedPurchases:preserved.count,preservedSpend:preserved.spend,preservedInflation:preserved.inflationDelta,coinShortfall:preserved.shortfall});
+    return{ok:true,remaining:s.consumables.undo,restoredTurn:s.turn,discardedTurn:current.turn,preservedPurchases:preserved.count,preservedSpend:preserved.spend}
   }
 
   function inflationCost(base){return base+(s.inflation||0)}
@@ -275,7 +301,7 @@ function createGame(E,opts={}){
       if(v.type==='reroll'){lines.push(`R${v.round} REROLL after move ${v.roundTurn} remaining=${v.remaining}`);continue}
       if(v.type==='opening-protection'){lines.push(`R1 OPENING PROTECTION ${v.source} -> [${v.tile.a}|${v.tile.b}]${v.replaced?` swapped=[${v.replaced.a}|${v.replaced.b}]`:''}`);continue}
       if(v.type==='consume'){lines.push(`R${v.round} USE ${v.item.toUpperCase()} after move ${v.roundTurn} remaining=${v.remaining}${v.maxPlacements?` maxMoves=${v.maxPlacements}`:''}`);continue}
-      if(v.type==='undo'){lines.push(`R${v.round} UNDO after move ${v.roundTurn} remaining=${v.remaining}${v.undone?` reverted=T${v.undone.turn} [${v.undone.tile.a}|${v.undone.tile.b}] output=${v.undone.output}`:''}`);continue}
+      if(v.type==='undo'){lines.push(`R${v.round} UNDO after move ${v.roundTurn} remaining=${v.remaining}${v.undone?` reverted=T${v.undone.turn} [${v.undone.tile.a}|${v.undone.tile.b}] output=${v.undone.output}`:''}${v.preservedPurchases?` preservedShop=${v.preservedPurchases} spend=${v.preservedSpend}`:''}${v.coinShortfall?` fundingShortfall=${v.coinShortfall}`:''}`);continue}
       if(v.type==='upgrade-coins'){lines.push(`R${v.round}.${v.roundTurn} UPGRADE COINS +${v.amount} total=${v.coins} tiles=${v.activations.map(a=>`[${a.a}|${a.b}]★${a.tier}`).join(',')}`);continue}
       if(v.type==='coins'){lines.push(`R${v.round} CLEAR COINS +${v.amount} base=${v.breakdown?.base||0} quick=${v.breakdown?.quick||0} exact=${v.breakdown?.exact||0} total=${v.coins}`);continue}
       if(v.type==='tile-upgrade'){lines.push(`R${v.round} UPGRADE [${v.tile.a}|${v.tile.b}] ${v.from}>${v.to} overkill=x${v.ratio}`);continue}
