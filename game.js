@@ -131,12 +131,14 @@ function createGame(E,opts={}){
       seen.add(e.piece);const p=s.pieces.find(x=>x.id===e.piece),tier=p?.tile?.upgrade||0;
       if(tier>0)activations.push({pieceId:e.piece,tileId:p.tile.id,a:p.tile.a,b:p.tile.b,tier,coins:tier})
     }
-    return{activations,total:activations.reduce((best,a)=>Math.max(best,a.tier),0)}
+    const uniquePieces=seen.size,longRunOwned=s.mods.includes('long-run'),longRunActive=longRunOwned&&uniquePieces>=(cfg.LONG_RUN_UNIQUE_THRESHOLD||10);
+    const total=longRunActive?activations.reduce((sum,a)=>sum+a.tier,0):activations.reduce((best,a)=>Math.max(best,a.tier),0);
+    return{activations,total,uniquePieces,longRunOwned,longRunActive}
   }
   function awardUpgradeIncome(income){
     if(!income.total)return 0;
     s.coins+=income.total;s.roundUpgradeCoins+=income.total;
-    s.events.push({type:'upgrade-coins',round:s.round+1,roundTurn:s.roundTurn,amount:income.total,activations:income.activations,coins:s.coins});return income.total
+    s.events.push({type:'upgrade-coins',round:s.round+1,roundTurn:s.roundTurn,amount:income.total,activations:income.activations,uniquePieces:income.uniquePieces,longRunOwned:income.longRunOwned,longRunActive:income.longRunActive,coins:s.coins});return income.total
   }
 
   function overkillTier(output,tgt){const ratio=output/tgt;return ratio>=10?3:ratio>=5?2:ratio>=3?1:0}
@@ -277,7 +279,7 @@ function createGame(E,opts={}){
     if(m.target==='double')return placed.filter(t=>isDouble(t)&&t.a>0&&(id!=='double-double'||t.id!==s.doubleDoubleTileId));
     return[]
   }
-  function marketTargetCount(id){return marketTargetTiles(id).length}
+  function marketTargetCount(id){const m=M.get(id);if(!m)return 0;if(m.target==='machine')return s.mods.includes(id)?0:1;return marketTargetTiles(id).length}
   function marketOfferInfo(id){
     const m=M.get(id),price=marketModPrice(id),targetCount=marketTargetCount(id),offered=s.shopOffers.includes(id),locked=s.marketBuys.length>=(cfg.MARKET_PURCHASE_LIMIT||1);
     return{id,mod:m,price,targetCount,offered,locked,canBuy:!!m&&m.market&&offered&&!locked&&targetCount>0&&s.coins>=price}
@@ -300,13 +302,18 @@ function createGame(E,opts={}){
     if(!s.shopOffers.includes(id))return{ok:false,reason:'offer'};
     if(s.marketBuys.length>=(cfg.MARKET_PURCHASE_LIMIT||1))return{ok:false,reason:'limit'};
     const m=M.get(id);if(!m?.market)return{ok:false,reason:'item'};
-    const candidates=marketTargetTiles(id);if(!candidates.length)return{ok:false,reason:'no-target'};
+    if(marketTargetCount(id)<1)return{ok:false,reason:'no-target'};
     const cost=marketModPrice(id);if(s.coins<cost)return{ok:false,reason:'coins'};
-    const tile=candidates[Math.floor(rnd()*candidates.length)],previousTileId=id==='double-double'?(s.doubleDoubleTileId||null):null,purchase=applyPurchase(cost);
-    if(id==='double-double')s.doubleDoubleTileId=tile.id;else return{ok:false,reason:'unsupported'};
-    const record={mod:id,tile:cloneTile(tile),targetTileId:tile.id,cost,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter};s.marketBuys.push(record);
-    s.events.push({type:'double-double',mod:id,round:s.round+1,shop:'market',tile:cloneTile(tile),targetTileId:tile.id,previousTileId,candidateCount:candidates.length,baseCost:Number(cfg[m.marketCostKey])||0,cost,coins:s.coins,...purchase});
-    return{ok:true,mod:id,tile:cloneTile(tile),targetTileId:tile.id,previousTileId,candidateCount:candidates.length,cost,inflation:s.inflation}
+    let tile=null,previousTileId=null,candidateCount=1;
+    if(m.target==='double'){const candidates=marketTargetTiles(id);candidateCount=candidates.length;tile=candidates[Math.floor(rnd()*candidates.length)];previousTileId=id==='double-double'?(s.doubleDoubleTileId||null):null}
+    if(id!=='double-double'&&id!=='long-run')return{ok:false,reason:'unsupported'};
+    const purchase=applyPurchase(cost);
+    if(id==='double-double')s.doubleDoubleTileId=tile.id;
+    if(id==='long-run'&&!s.mods.includes(id))s.mods.push(id);
+    const record={mod:id,tile:cloneTile(tile),targetTileId:tile?.id||null,cost,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter};s.marketBuys.push(record);
+    const type=id==='double-double'?'double-double':'market-mod-buy';
+    s.events.push({type,mod:id,round:s.round+1,shop:'market',tile:cloneTile(tile),targetTileId:tile?.id||null,previousTileId,candidateCount,baseCost:Number(cfg[m.marketCostKey])||0,cost,coins:s.coins,...purchase});
+    return{ok:true,mod:id,tile:cloneTile(tile),targetTileId:tile?.id||null,previousTileId,candidateCount,cost,inflation:s.inflation}
   }
   function buyDoubleDouble(){return buyMarketMod('double-double')}
   function closeMarket(){return resolveIntermission('continue')}
