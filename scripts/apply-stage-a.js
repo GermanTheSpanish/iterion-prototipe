@@ -145,4 +145,38 @@ assert.strictEqual(D.MARKET_PURCHASE_LIMIT,1);
 console.log('v0.23 Stage A Market / Double Double regression tests passed');
 `;
 fs.writeFileSync('tests/v023-stage-a.test.js',test);
+
+const normalWorkflow=`name: regression
+
+on:
+  push:
+    branches: [main, v023-clean-rebuild]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check data.js
+          node --check mods.js
+          node --check engine.js
+          node --check game.js
+          node --check help.js
+          node --check gesture.js
+          node --check ui.js
+      - name: Regression suite
+        run: |
+          set -e
+          for test in tests/*.test.js; do
+            echo "==> $test"
+            node "$test"
+          done
+`;
+fs.writeFileSync('.github/workflows/regression.yml',normalWorkflow);
 fs.unlinkSync(__filename);
