@@ -5,6 +5,9 @@ on:
     branches: ['**']
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,6 +16,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Apply v0.23 integration patch
+        if: github.ref == 'refs/heads/v023-market-mods'
+        run: node scripts/v023-patch.js
       - name: Syntax check
         run: |
           node --check data.js
@@ -30,3 +36,15 @@ jobs:
             node "$test" || status=1
           done
           exit $status
+      - name: Commit validated generated patch
+        if: github.ref == 'refs/heads/v023-market-mods'
+        run: |
+          if git diff --quiet; then
+            echo "No generated changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game.js ui.js
+          git commit -m "Integrate v0.23 Market UI and target rules"
+          git push
