@@ -8,7 +8,7 @@ These behaviours should continue to pass across unrelated refactors unless an ap
 
 - physical tile identity and uniqueness
 - placement legality and opening protection
-- canonical routing / scoring behaviour
+- canonical route selection order
 - zero / rebound behaviour unless that rule is the explicit subject of the change
 - persistent machine state and board expansion
 - permanent Shop access, rescue flow and shared Inflation
@@ -18,24 +18,26 @@ These behaviours should continue to pass across unrelated refactors unless an ap
 
 Tests for these contracts must not be weakened merely to make CI pass.
 
-## Change-sensitive contracts
+## v0.23 approved gameplay contracts
 
-Some retained tests describe behaviour that is intentionally scheduled to change in v0.23. When the implementation changes, update the old assertion in the same commit and add a focused replacement regression for the new contract.
+The current v0.23 work deliberately replaces the old Market contract:
 
-Current change-sensitive areas:
+- Market presents up to 3 eligible build-changing modifier offers.
+- The player may buy at most 1 Market offer per Market.
+- Double Double targets only eligible non-zero doubles already placed in the machine; [0|0], hand and reserve doubles are excluded.
+- Long Run pays every activated star tier once when the chosen route crosses at least 10 unique physical dominoes; repeated traversals do not repay the same star.
+- Zero Memory may trigger once per Move on its modified zero.
+- Double Echo may start once per Move and cannot recursively create another Echo.
 
-- `tests/v020-gameplay.test.js` — `testDoubleDoubleIsRandomAndTransfers()` currently describes the v0.22.1 Double Double pool. The approved v0.23 design will replace this with board-only targeting of eligible placed doubles.
-- `tests/v020-ui.test.js` — the Double Double Market presentation is the current v0.22.1 UI contract and will be replaced when the new three-offer / one-purchase Market is implemented.
-
-Do not pre-emptively change these expectations before the corresponding gameplay implementation exists.
+The retained v0.20 tests now protect board-only Double Double targeting rather than the superseded whole-set targeting rule.
 
 ## Version assertions
 
-Regression tests must not pin an exact build version such as `0.22.1`. They may verify that a semantic version is declared. Version bumps are release metadata, not gameplay regressions.
+Regression tests must not pin an exact historic build version merely to prove unrelated gameplay. Version-specific tests may verify the version currently under development when they are explicitly release-contract tests. Older retained regressions should prefer checking that a semantic version exists.
 
 ## CI rule
 
-Feature branches run the same syntax and regression suite as `main`. The workflow executes every test even if an earlier test fails so one CI run exposes the full failure set.
+Feature branches run the same syntax and regression suite as `main`. The workflow executes every Node regression even if an earlier test fails so one CI run exposes the full failure set.
 
 A gameplay/system change is ready to merge only when:
 
@@ -43,6 +45,7 @@ A gameplay/system change is ready to merge only when:
 2. intentionally replaced contracts have updated tests;
 3. new gameplay behaviour has focused regression coverage;
 4. syntax checks pass;
-5. the full suite is green.
+5. the full Node suite is green;
+6. the browser smoke layer is green.
 
-Browser/mobile smoke testing is a separate later layer and must never be claimed unless actually run.
+A real iPhone/mobile interaction test remains separate and must never be claimed unless actually performed.
