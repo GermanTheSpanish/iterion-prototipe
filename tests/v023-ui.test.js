@@ -20,5 +20,5 @@ assert.match(ui,/at most one in this Market/);
 assert.match(ui,/tileModMark/);assert.match(ui,/doubleEchoTileId/);assert.match(ui,/zeroMemoryTileId/);
 assert.match(ui,/Long Run: at/,'Inspector must explain Long Run star income when active');
 assert.match(help,/shows up to \$\{D\.MARKET_OFFER_COUNT\|\|3\} build-changing modifier offers/);
-assert.match(help,/every starred domino activated on that route pays its star tier once/i);
+assert.match(mods,/every starred domino activated on that route pays its star tier once/i);
 console.log('v0.23 Market UI regression tests passed');
