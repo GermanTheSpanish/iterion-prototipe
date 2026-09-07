@@ -66,6 +66,21 @@
     }
     return{...result,output,gain:output-initialOutput,events,zeroMemoryActivated:zeroMemoryUsed}
   }
+  function replaySelectedEcho(result,opts={}){
+    if(!opts.doubleEchoPieceId)return result;
+    let echoActive=false,echoOutput=0,echoRebounds=0;const events=[];
+    for(const raw of result.events||[]){
+      events.push({...raw});
+      if(!echoActive&&raw.type==='op'&&raw.piece===opts.doubleEchoPieceId){echoActive=true;echoOutput=raw.after;events.push({type:'double-echo-start',piece:raw.piece,startOutput:echoOutput});continue}
+      if(!echoActive)continue;
+      if(raw.type==='op'){const before=echoOutput,v=raw.value;if(v===2||v===4||v===6)echoOutput+=v;else if(v===1||v===3||v===5)echoOutput*=v;events.push({type:'echo-op',piece:raw.piece,value:v,op:v===0?'zero':v%2===0?'add':'multiply',before,after:echoOutput,add:v!==0&&v%2===0?v:0,factor:v%2===1?v:0,reverse:!!raw.reverse})}
+      else if(raw.type==='rebound'){echoRebounds++;events.push({type:'echo-rebound',piece:raw.piece,charge:raw.charge})}
+    }
+    if(!echoActive)return result;
+    const mainOutput=result.output,output=mainOutput+echoOutput;
+    const die=events.length&&events[events.length-1].type==='die'?events.pop():null;events.push({type:'double-echo-result',piece:opts.doubleEchoPieceId,mainOutput,echoOutput,finalOutput:output,echoRebounds});if(die)events.push(die);
+    return{...result,mainOutput,echoOutput,output,gain:output-(opts.initialOutput||0),events,doubleEchoActivated:true,echoRebounds}
+  }
   function bestSignal(newPieceId,pieces,opts={}){
     const initialOutput=Number.isFinite(opts.initialOutput)?opts.initialOutput:0;
     const newPiece=pieceById(pieces,newPieceId);if(!newPiece)return{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'missing-new-piece',traversals:0,rebounds:0,search:{starts:0,expanded:0,leaves:0,truncated:false}};
@@ -85,12 +100,12 @@
       for(const c of conns){if(expanded>=maxExpanded){truncated=true;break}const n=cloneState(s);n.usedEdges.add(c.key);n.back.push({...n.current});n.current={pieceId:c.toPieceId,entryHalf:c.toHalf,fromPieceId:cur.id,fromHalf:c.fromHalf};n.events.push({type:'route',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,toPieceId:c.toPieceId,toHalf:c.toHalf,key:c.choiceKey});const r=walk(n);if(better(r,localBest))localBest=r}return localBest||finish(s,'search-limit')
     }
     for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:initialOutput,initialOutput,suppressZeroPiece:null,doubleDoubleUsed:false,usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
-    best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};return replaySelectedScoring(best,initialOutput,opts)
+    best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};best=replaySelectedScoring(best,initialOutput,opts);return replaySelectedEcho(best,{...opts,initialOutput})
   }
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}
   function exposedPorts(tile,z,pieces){const placements=allPlacements(tile,z,pieces),groups=new Map();for(const pl of placements)for(const group of pl.contacts||[]){if(group.kind==='double-centered'&&group.piece.double){const side=group.relation.sideB,key=`${group.piece.id}:center:${side}`;if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:null,side,value:group.piece.tile.a,centered:true,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl);continue}for(const c of group.contacts||[]){const key=portKey(group.piece.id,c.bHalf,c.otherSide);if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:c.bHalf,side:c.otherSide,value:c.bV,centered:false,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl)}}return[...groups.values()]}
-  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,bestSignal,simulateSignal,exposedPorts};
+  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,replaySelectedEcho,bestSignal,simulateSignal,exposedPorts};
   Object.defineProperties(api,{G:{enumerable:true,get:()=>G},H:{enumerable:true,get:()=>H}});
   return api;
 });
