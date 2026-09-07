@@ -2,7 +2,7 @@
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,GAME=window.IterionGame.createGame(E),ARROW=E.ARROW;
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
-  const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version');
+  const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version');
   let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null;
   let handFx=Array(D.HAND_SIZE).fill('normal');
   let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
@@ -54,6 +54,7 @@
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();GAME.save();handFx.fill('normal');hideOverlay();toast('Last move undone');render()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();GAME.save();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
+  function openPermanentShop(){if(!GAME.openShop()){toast('Shop unavailable');return}GAME.save();render()}
 
   function escapeHtml(value){return`${value}`.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
   function ruleVisual(section){return section.visual?`<div class="ruleVisual">${escapeHtml(section.visual)}</div>`:''}
@@ -94,13 +95,12 @@
   function runSummary(){
     const x=GAME.snapshot(),turns=x.turns.filter(e=>Number.isInteger(e.turn)),mvp=turns.reduce((b,e)=>!b||e.output>b.output?e:b,null);let addOps=0,multOps=0,rebounds=0;
     for(const e of turns){addOps+=(e.ops.match(/:\+/g)||[]).length;multOps+=(e.ops.match(/:×/g)||[]).length;rebounds+=e.rebounds||0}
-    return{roundsCleared:x.round.clears.length,totalRounds:x.round.total,tilesPlayed:x.turnCount,bestOutput:x.score.best,mvpTile:mvp?{a:mvp.tile.a,b:mvp.tile.b,output:mvp.output,round:mvp.round,placement:mvp.roundTurn}:null,addOps,multOps,rebounds,rerolls:x.turns.filter(e=>e.type==='reroll').length,purchases:x.turns.filter(e=>e.type==='shop-buy'||e.type==='tile-buy').length,coins:x.coins,inflation:x.inflation,consumables:x.consumables,setSize:x.setSize,machine:x.board.length}
+    return{roundsCleared:x.round.clears.length,totalRounds:x.round.total,tilesPlayed:x.turnCount,bestOutput:x.score.best,mvpTile:mvp?{a:mvp.tile.a,b:mvp.tile.b,output:mvp.output,round:mvp.round,placement:mvp.roundTurn}:null,addOps,multOps,rebounds,rerolls:x.turns.filter(e=>e.type==='reroll').length,purchases:x.turns.filter(e=>e.type==='shop-buy'||e.type==='tile-buy'||e.type==='double-double').length,coins:x.coins,inflation:x.inflation,consumables:x.consumables,setSize:x.setSize,machine:x.board.length}
   }
   function summaryHtml(){const r=runSummary(),m=r.mvpTile;return`<div class="summary"><div class="sumCard wide"><div class="sumLabel">MVP TILE</div><div class="sumValue">${m?`[${m.a}|${m.b}] → ${fmt(m.output)}`:'—'}</div><div class="sumSmall">${m?`Best activation · Round ${m.round}, move ${m.placement}`:'No placement yet'}</div></div><div class="sumCard"><div class="sumLabel">PROGRESS</div><div class="sumValue">${r.roundsCleared}/${r.totalRounds}</div><div class="sumSmall">Rounds cleared</div></div><div class="sumCard"><div class="sumLabel">MACHINE</div><div class="sumValue">${r.machine}</div><div class="sumSmall">${r.setSize} tiles in set</div></div><div class="sumCard wide"><div class="sumLabel">SCORE SOURCES</div><div class="sumValue">${r.multOps} multipliers · ${r.addOps} additions</div><div class="sumSmall">${r.rebounds} rebounds · Best ${fmt(r.bestOutput)}</div></div><div class="sumCard wide"><div class="sumLabel">ECONOMY</div><div class="sumValue">${r.coins} coins · Inflation ${r.inflation}</div><div class="sumSmall">Move ${r.consumables.move} · Reroll ${r.consumables.reroll} · Undo ${r.consumables.undo} · ${r.purchases} purchases</div></div></div>`}
 
-  function shopDescriptions(offers){const s=GAME.state();return`<div class="marketIntro"><strong>${s.coins}c</strong> · Inflation ${s.inflation}. Each purchase permanently raises inflation by 1.</div><div class="marketDescriptions">${offers.map(m=>{const cost=GAME.shopItemPrice(m.id);return`<div class="marketDesc"><strong>${m.name} · ${cost}c</strong><span>${m.description}</span></div>`}).join('')}</div>`}
   function advanceRound(){
-    const before=GAME.snapshot().stage.index;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Shop / Market first');return}
+    const before=GAME.snapshot().stage.index;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
     GAME.save();hideOverlay();handFx.fill('normal');render();const after=GAME.snapshot().stage.index;if(after>before)toast(`STAGE ${after} · BOARD ${E.G}×${E.H}`)
   }
   function showClear(){
@@ -108,47 +108,48 @@
     overlayTitle.textContent=complete?'RUN COMPLETE':'ROUND CLEAR';
     overlayBody.innerHTML=complete?`<p>Final output ${fmt(s.score)} · Target ${fmt(GAME.target())}</p>${summaryHtml()}`:`<p>Output ${fmt(s.score)} · Target ${fmt(GAME.target())}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
     if(complete){setNewRunButton(overlayPrimary);overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;return}
-    const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':next==='shop'?'SHOP':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){GAME.save();render()}else toast('Unavailable')};
+    const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){GAME.save();render()}else toast('Unavailable')};
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
   }
   function showShop(){
-    resetOverlay();const s=GAME.state(),offers=s.shopOffers.map(id=>M.get(id)).filter(Boolean);overlayTitle.textContent='SHOP';overlayBody.innerHTML=shopDescriptions(offers);
-    const buttons=[overlayPrimary,overlaySecondary];buttons.forEach((b,i)=>{const m=offers[i];if(!m){b.style.display='none';return}const cost=GAME.shopItemPrice(m.id);b.style.display='inline-block';b.textContent=`${m.name} · ${cost}c`;b.disabled=s.coins<cost;b.onclick=()=>{const r=GAME.buyShopItem(m.id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase failed');return}GAME.save();toast(`${m.name} stored · Inflation ${r.inflation}`);advanceRound()}});
-    overlayTertiary.style.display='inline-block';overlayTertiary.textContent='SKIP';overlayTertiary.onclick=()=>{GAME.skipShop();GAME.save();advanceRound()}
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),randomCost=GAME.shopRandomPrice(),offers=M.all().filter(m=>m.kind==='consumable');overlayTitle.textContent='SHOP';
+    overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Always available</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}</div></div><div class="label">Supply<br>${x.availableTileCount} tiles</div></div><div class="shopSection"><h3>RANDOM DOMINO</h3><p>Add one random new physical domino to this run. If your hand has an empty slot it arrives there; otherwise it becomes the next reserve draw.</p><button id="shopRandomBuy" class="shopBuy">BUY RANDOM TILE · ${randomCost}c</button></div><div class="shopSection"><h3>TOOLS</h3><p>Stored tools remain available until you spend them.</p><div class="marketDescriptions">${offers.map(m=>`<div class="marketDesc"><strong>${m.name} · ${GAME.shopItemPrice(m.id)}c</strong><span>${m.description}</span><button class="shopBuy" data-shop-item="${m.id}">BUY ${m.name}</button></div>`).join('')}</div></div><div class="shopFoot">Every purchase raises global Inflation by 1, including future Market prices.</div></div>`;
+    const random=$('shopRandomBuy');random.disabled=s.coins<randomCost;random.onclick=()=>{const r=GAME.buyShopRandomTile();if(!r.ok){toast('Not enough coins');return}GAME.save();toast(`[${r.tile.a}|${r.tile.b}] → ${r.delivery} · Inflation ${r.inflation}`);render()};
+    overlayBody.querySelectorAll('[data-shop-item]').forEach(b=>{const id=b.dataset.shopItem,cost=GAME.shopItemPrice(id);b.disabled=s.coins<cost;b.onclick=()=>{const r=GAME.buyShopItem(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase failed');return}GAME.save();toast(`${M.get(id).name} stored · Inflation ${r.inflation}`);render()}});
+    overlayPrimary.textContent='CLOSE SHOP';overlayPrimary.onclick=()=>{GAME.closeShop();GAME.save();render()}
   }
   function showMarket(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=D.BOARD_SIZES[Math.min(nextStage-1,D.BOARD_SIZES.length-1)],randomCost=GAME.marketRandomPrice(),doubleDoubleCost=GAME.marketDoubleDoublePrice();
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=D.BOARD_SIZES[Math.min(nextStage-1,D.BOARD_SIZES.length-1)],doubleDoubleCost=GAME.marketDoubleDoublePrice();
     overlayTitle.textContent='MARKET';
-    const bought=s.marketBuys.length?`<div class="purchased">${s.marketBuys.map(t=>`<span class="purchaseChip">[${t.a}|${t.b}]</span>`).join('')}</div>`:'';
-    const supply=x.availableTileCount,nextMarket=x.round.index<D.TOTAL_ROUNDS-(D.STAGE_SIZE||5)?`Next Market in ${D.STAGE_SIZE||5} rounds`:'Final stage · no later Market';
+    const supply=x.availableTileCount,nextMarket=x.round.index<D.TOTAL_ROUNDS-(D.STAGE_SIZE||3)?`Next Market in ${D.STAGE_SIZE||3} rounds`:'Final stage · no later Market';
     const active=x.doubleDouble?`[${x.doubleDouble.a}|${x.doubleDouble.b}]`:'None';
-    overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Stage ${x.stage.index} complete</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}</div><div class="shopSupply">SUPPLY ${supply} · ${nextMarket}</div></div><div class="label">Next board<br>${nextSize[0]} × ${nextSize[1]}</div></div><div class="shopSection"><h3>MYSTERY DOMINO</h3><p>Random new physical tile. No stock limit; coins and Inflation set the limit.</p><button id="mysteryBuy" class="shopBuy">BUY RANDOM TILE · ${randomCost}c</button>${bought}</div><div class="shopSection"><h3>DOUBLE DOUBLE</h3><p>Randomly upgrades one physical double you own. Its first activation each Move is doubled: [3|3] ×9, [5|5] ×25, [4|4] +8. Later passes use the normal operation. Buying again transfers Double Double to a new random double.</p><button id="doubleDoubleBuy" class="shopBuy">ROLL DOUBLE DOUBLE · ${doubleDoubleCost}c</button><div class="shopFoot">Active: ${active}. The result is revealed after purchase. Each purchase raises Inflation.</div></div></div>`;
-    const mystery=$('mysteryBuy');mystery.disabled=s.coins<randomCost;mystery.onclick=()=>{const r=GAME.buyMarketRandomTile();if(!r.ok){toast('Not enough coins');return}GAME.save();toast(`[${r.tile.a}|${r.tile.b}] added · Inflation ${r.inflation}`);render()};
+    overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Stage ${x.stage.index} complete</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}</div><div class="shopSupply">SUPPLY ${supply} · ${nextMarket}</div></div><div class="label">Next board<br>${nextSize[0]} × ${nextSize[1]}</div></div><div class="shopSection"><h3>DOUBLE DOUBLE</h3><p>Randomly upgrades one physical double you own. Its first activation each Move is doubled: [3|3] ×9, [5|5] ×25, [4|4] +8. Later passes use the normal operation. Buying again transfers Double Double to a new random double.</p><button id="doubleDoubleBuy" class="shopBuy">ROLL DOUBLE DOUBLE · ${doubleDoubleCost}c</button><div class="shopFoot">Active: ${active}. The result is revealed after purchase. Each purchase raises global Inflation.</div></div></div>`;
     const dd=$('doubleDoubleBuy');dd.disabled=s.coins<doubleDoubleCost;dd.onclick=()=>{const r=GAME.buyDoubleDouble();if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'No eligible double');return}GAME.save();toast(`DOUBLE DOUBLE → [${r.tile.a}|${r.tile.b}] · Inflation ${r.inflation}`);render()};
     overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();GAME.save();advanceRound()}
   }
 
   function showNoMoves(){
-    resetOverlay();const s=GAME.state();overlayTitle.textContent='NO LEGAL MOVES';overlayBody.innerHTML=`<p>No tile in your hand can continue the machine. Spend a stored Reroll, Undo the last move, or end the run.</p>`;
+    resetOverlay();const s=GAME.state();overlayTitle.textContent='NO LEGAL MOVES';overlayBody.innerHTML=`<p>No tile in your hand can continue the machine. Spend a stored Reroll, buy help in the Shop, Undo the last move, or start a new run.</p>`;
     overlayPrimary.textContent=`REROLL · ${s.consumables.reroll}`;overlayPrimary.disabled=!GAME.canUseReroll();overlayPrimary.onclick=doReroll;
-    if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
-    setNewRunButton(overlayTertiary)
+    overlaySecondary.style.display='inline-block';overlaySecondary.textContent='SHOP';overlaySecondary.onclick=openPermanentShop;
+    if(GAME.canUndo()){overlayTertiary.style.display='inline-block';overlayTertiary.textContent=`UNDO · ${s.consumables.undo}`;overlayTertiary.onclick=useUndo}else setNewRunButton(overlayTertiary)
   }
   function showFailed(){
     resetOverlay();const s=GAME.state(),noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit';overlayTitle.textContent=noTiles?'NO TILES LEFT':'ROUND FAILED';
-    const reason=noTiles?'Your physical set is exhausted. Buy more dominoes in the Market before this happens.':limit?'You used every move for this round.':'No legal continuation remains.';
+    const reason=noTiles?'Your physical set is exhausted. The Shop can still sell you a random physical domino if you can afford one.':limit?'You used every move for this round. The Shop can sell stored Move tools.':'No legal continuation remains.';
     overlayBody.innerHTML=`<p>${reason}</p>${summaryHtml()}<button id="copyFailedRun" class="shopBuy secondary">COPY RUN DATA</button>`;
     overlayBody.querySelector('#copyFailedRun').onclick=copyRun;
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
+    if(GAME.canOpenShop()){const b=buttons[slot++];b.style.display='inline-block';b.textContent='SHOP';b.onclick=openPermanentShop}
     if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
-    if(GAME.canUndo()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
+    if(GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
     const b=buttons[slot++]||overlayTertiary;setNewRunButton(b)
   }
 
   function render(){
     const s=GAME.state(),x=GAME.snapshot();H.bindRun(s.runId);renderBoard();renderHand();scoreEl.textContent=fmt(s.score);targetEl.textContent=fmt(GAME.target());stageEl.textContent=`${x.stage.index}/${x.stage.total}`;roundEl.textContent=`${s.round+1}/${D.TOTAL_ROUNDS}`;movesEl.textContent=`${s.roundTurn}/${GAME.maxPlacements()}`;tilesEl.textContent=x.availableTileCount;coinEl.textContent=s.coins;stageRoundEl.textContent=`STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`;boardSizeEl.textContent=`${E.G} × ${E.H}`;
-    moveBtn.textContent=`Move +1 · ${s.consumables.move}`;moveBtn.disabled=uiBusy||!GAME.canUseMove();rerollBtn.textContent=`Reroll · ${s.consumables.reroll}`;rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.textContent=`Undo · ${s.consumables.undo}`;undoBtn.disabled=uiBusy||!GAME.canUndo();
-    hint.textContent=s.cleared?'Round cleared.':s.needsReroll?'No legal placements. Choose whether to spend a Reroll.':s.blocked?(s.failureReason==='no-tiles'?'No physical tiles remain.':s.failureReason==='placement-limit'?'No moves remain.':'The round is over.'):s.pieces.length===0?'Opening rule: the first tile must be a double.':`Build the machine · ${GAME.maxPlacements()-s.roundTurn} moves remaining.`;renderLog();
+    shopBtn.textContent=`Shop · ${s.coins}c`;shopBtn.disabled=uiBusy||!GAME.canOpenShop();moveBtn.textContent=`Move +1 · ${s.consumables.move}`;moveBtn.disabled=uiBusy||!GAME.canUseMove();rerollBtn.textContent=`Reroll · ${s.consumables.reroll}`;rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.textContent=`Undo · ${s.consumables.undo}`;undoBtn.disabled=uiBusy||!GAME.canUndo();
+    hint.textContent=s.cleared?'Round cleared.':s.needsReroll?'No legal placements. Reroll, Shop or Undo can help.':s.blocked?(s.failureReason==='no-tiles'?'No physical tiles remain. The Shop may rescue the run.':s.failureReason==='placement-limit'?'No moves remain.':'The round is over.'):s.pieces.length===0?'Opening rule: the first tile must be a double.':`Build the machine · ${GAME.maxPlacements()-s.roundTurn} moves remaining.`;renderLog();
     if(auxOverlay){renderAuxOverlay();return}
     if(uiBusy){hideOverlay();return}
     if(s.shopOpen){s.shopType==='market'?showMarket():showShop();return}
@@ -182,6 +183,6 @@
   function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${H.debugTelemetryText()}`}
   function renderLog(){runlog.textContent=fullDebugText();runlog.classList.toggle('show',viewRun)}
   async function copyRun(){const text=fullDebugText();GAME.save();try{await navigator.clipboard.writeText(text);toast('Run data copied')}catch(_){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.left='8px';ta.style.right='8px';ta.style.bottom='70px';ta.style.height='180px';ta.style.zIndex='600';document.body.appendChild(ta);ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}if(ok){ta.remove();toast('Run data copied')}else{toast('Select the run data and copy it');setTimeout(()=>ta.remove(),15000)}}}
-  moveBtn.onclick=useMove;rerollBtn.onclick=doReroll;undoBtn.onclick=useUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=copyRun;viewBtn.onclick=()=>{viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
+  shopBtn.onclick=openPermanentShop;moveBtn.onclick=useMove;rerollBtn.onclick=doReroll;undoBtn.onclick=useUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=copyRun;viewBtn.onclick=()=>{viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
   GAME.save();render();
 })();
