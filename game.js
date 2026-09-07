@@ -91,7 +91,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],marketBuys:[],tileSerial:0,boardStage:0,doubleDoubleTileId:null};
+    s={set:makePersistentSet(),reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],marketBuys:[],tileSerial:0,boardStage:0,doubleDoubleTileId:null,zeroMemoryTileId:null};
     startRound(true);return s
   }
 
@@ -117,8 +117,8 @@ function createGame(E,opts={}){
     const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,++s.idc);p.tile={...cloneTile(tile)};
     s.pieces.push(p);s.placedTileIds.push(tile.id);
     const trigger=tile.a+tile.b;
-    const doubleDoublePieceId=s.pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null;
-    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,{initialOutput:trigger,doubleDoublePieceId});
+    const doubleDoublePieceId=s.pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,zeroMemoryPieceId=s.pieces.find(x=>x.tile.id===s.zeroMemoryTileId)?.id||null;
+    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,{initialOutput:trigger,doubleDoublePieceId,zeroMemoryPieceId});
     if(isZero(tile))s.roundZero.placed++;
     s.hand[i]=drawOne();s.turn++;s.roundTurn++;s.undoFrame=undoFrame;
     return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,handIndex:i}
@@ -277,6 +277,7 @@ function createGame(E,opts={}){
     const seen=new Set(),placed=[];
     for(const p of s.pieces){const tile=s.set.find(t=>t.id===p.tile.id)||p.tile;if(!tile||seen.has(tile.id))continue;seen.add(tile.id);placed.push(tile)}
     if(m.target==='double')return placed.filter(t=>isDouble(t)&&t.a>0&&(id!=='double-double'||t.id!==s.doubleDoubleTileId));
+    if(m.target==='zero')return placed.filter(t=>isZero(t)&&(id!=='zero-memory'||t.id!==s.zeroMemoryTileId));
     return[]
   }
   function marketTargetCount(id){const m=M.get(id);if(!m)return 0;if(m.target==='machine')return s.mods.includes(id)?0:1;return marketTargetTiles(id).length}
@@ -305,10 +306,11 @@ function createGame(E,opts={}){
     if(marketTargetCount(id)<1)return{ok:false,reason:'no-target'};
     const cost=marketModPrice(id);if(s.coins<cost)return{ok:false,reason:'coins'};
     let tile=null,previousTileId=null,candidateCount=1;
-    if(m.target==='double'){const candidates=marketTargetTiles(id);candidateCount=candidates.length;tile=candidates[Math.floor(rnd()*candidates.length)];previousTileId=id==='double-double'?(s.doubleDoubleTileId||null):null}
-    if(id!=='double-double'&&id!=='long-run')return{ok:false,reason:'unsupported'};
+    if(m.target==='double'||m.target==='zero'){const candidates=marketTargetTiles(id);candidateCount=candidates.length;tile=candidates[Math.floor(rnd()*candidates.length)];previousTileId=id==='double-double'?(s.doubleDoubleTileId||null):id==='zero-memory'?(s.zeroMemoryTileId||null):null}
+    if(id!=='double-double'&&id!=='long-run'&&id!=='zero-memory')return{ok:false,reason:'unsupported'};
     const purchase=applyPurchase(cost);
     if(id==='double-double')s.doubleDoubleTileId=tile.id;
+    if(id==='zero-memory')s.zeroMemoryTileId=tile.id;
     if(id==='long-run'&&!s.mods.includes(id))s.mods.push(id);
     const record={mod:id,tile:cloneTile(tile),targetTileId:tile?.id||null,cost,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter};s.marketBuys.push(record);
     const type=id==='double-double'?'double-double':'market-mod-buy';
