@@ -232,11 +232,12 @@ function createGame(E,opts={}){
 
   function availableShopItems(){return M.all().filter(m=>m.kind==='consumable')}
   function marketMods(){return M.all().filter(m=>m.market)}
-  function marketModOwned(id){return s.mods.includes(id)}
+  function marketModOwned(id){const mod=M.get(id);return mod?.target==='machine'&&s.mods.includes(id)}
   function marketTargetTiles(id){
     const placed=s.pieces.map(p=>s.set.find(t=>t.id===p.tile.id)||p.tile);
-    if(id==='double-double'||id==='double-echo')return placed.filter(t=>isDouble(t)&&t.a>0);
-    if(id==='zero-memory')return placed.filter(isZero);
+    const activeId=id==='double-double'?s.doubleDoubleTileId:id==='double-echo'?s.doubleEchoTileId:id==='zero-memory'?s.zeroMemoryTileId:null;
+    if(id==='double-double'||id==='double-echo')return placed.filter(t=>isDouble(t)&&t.a>0&&t.id!==activeId);
+    if(id==='zero-memory')return placed.filter(t=>isZero(t)&&t.id!==activeId);
     return []
   }
   function marketTargetCount(id){const m=M.get(id);return m?.target==='machine'?1:marketTargetTiles(id).length}
