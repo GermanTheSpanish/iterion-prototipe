@@ -21,6 +21,15 @@
   function pieceEl(p,cls='piece'){const d=document.createElement('div');d.className=cls+' '+(p.axis==='H'?'h':'v');d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+doubleDoubleMark(p.tile);return d}
   function toast(t){toastEl.textContent=t;toastEl.classList.add('show');setTimeout(()=>toastEl.classList.remove('show'),1300)}
   function boardMessage(text,ms=900){const d=document.createElement('div');d.className='boardMessage';d.textContent=text;board.appendChild(d);setTimeout(()=>d.remove(),ms)}
+  function addBoardCenterTicks(){
+    const specs=[
+      {left:'50%',top:'0',width:'1px',height:'8px',transform:'translateX(-50%)'},
+      {left:'50%',bottom:'0',width:'1px',height:'8px',transform:'translateX(-50%)'},
+      {left:'0',top:'50%',width:'8px',height:'1px',transform:'translateY(-50%)'},
+      {right:'0',top:'50%',width:'8px',height:'1px',transform:'translateY(-50%)'}
+    ];
+    for(const spec of specs){const tick=document.createElement('i');tick.className='boardCenterTick';tick.setAttribute('aria-hidden','true');Object.assign(tick.style,{position:'absolute',display:'block',background:'rgba(17,17,17,.34)',zIndex:'2',pointerEvents:'none',...spec});board.appendChild(tick)}
+  }
 
   function beginTilePress(e,meta){
     if(auxOverlay||e.button!=null&&e.button!==0)return;
@@ -28,7 +37,7 @@
     press.begin(e,meta)
   }
   function renderBoard(){
-    const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);
+    const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='#fff';addBoardCenterTicks();
     s.pieces.forEach(p=>{const el=pieceEl(p);el.classList.add('inspectable');el.setAttribute('role','button');el.setAttribute('aria-label',`Inspect domino ${p.tile.a}|${p.tile.b}`);el.onpointerdown=e=>beginTilePress(e,{kind:'board',tileId:p.tile.id,allowDrag:false});board.appendChild(el)});
     if(drag.active&&drag.candidate){const c=drag.candidate,p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);p.tile={...drag.tile};board.appendChild(pieceEl(p,'piece dragCandidate'))}
     board.classList.toggle('dragging',drag.active)
@@ -52,7 +61,7 @@
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
   function newRun(){clearOutcomeDelay();auxOverlay=null;press.cancel();GAME.fresh();H.bindRun(GAME.state().runId);GAME.save();handFx.fill('normal');hideOverlay();render()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
-  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();GAME.save();handFx.fill('normal');hideOverlay();toast('Last move undone');render()}
+  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();GAME.save();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} Shop purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();GAME.save();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
   function openPermanentShop(){if(!GAME.openShop()){toast('Shop unavailable');return}GAME.save();render()}
 
@@ -82,8 +91,10 @@
     const properties=[b.isDouble?'Double':'Standard domino',b.containsZero?'Contains zero':null].filter(Boolean).join(' · ');
     const debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(b.id)}</div>`:'';
     const modifierHtml=model.modifiers.length?model.modifiers.map(mod=>`<div class="inspectModifier"><strong>${escapeHtml(mod.displayName)}</strong><span>${escapeHtml(mod.shortDescription)}</span><p>${escapeHtml(mod.rulesDescription)}</p></div>`).join(''):'<p class="inspectEmpty">No modifier is attached to this physical tile.</p>';
-    const machineRows=[`Location: ${m.location}`,`Upgrade tier: ${m.upgradeTier}`,m.placed?`Orientation: ${m.axis} · r${m.rotation}`:null,m.placed?`Connections: ${m.connectionCount} contact${m.connectionCount===1?'':'s'} · ${m.connectedPieceIds.length} neighbouring piece${m.connectedPieceIds.length===1?'':'s'}`:null,m.anchor?'Round-clear anchor: yes':null,m.doubleDoubleActive?'Double Double: active on this physical tile':null].filter(Boolean);
-    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section><section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section><section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${machineRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
+    const starLabel=m.upgradeTier?`★${m.upgradeTier} · can pay +${m.starCoins}c when activated`:'No stars · +0c';
+    const bestLabel=`Best Output when played: ${m.bestOutput==null?'—':fmt(m.bestOutput)}`;
+    const stateRows=[starLabel,bestLabel,m.upgradeTier?'Only the highest star tier activated in a Move pays.':'Round-clearing overkill can add stars to this physical tile.'];
+    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section><section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section><section class="inspectSection"><div class="inspectLabel">Tile Record</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
   }
   function renderAuxOverlay(){
@@ -181,8 +192,22 @@
   async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}GAME.save();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}
 
   function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${H.debugTelemetryText()}`}
-  function renderLog(){runlog.textContent=fullDebugText();runlog.classList.toggle('show',viewRun)}
-  async function copyRun(){const text=fullDebugText();GAME.save();try{await navigator.clipboard.writeText(text);toast('Run data copied')}catch(_){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.left='8px';ta.style.right='8px';ta.style.bottom='70px';ta.style.height='180px';ta.style.zIndex='600';document.body.appendChild(ta);ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}if(ok){ta.remove();toast('Run data copied')}else{toast('Select the run data and copy it');setTimeout(()=>ta.remove(),15000)}}}
+  function renderLog(){
+    runlog.innerHTML='';runlog.classList.toggle('show',viewRun);if(!viewRun)return;
+    runlog.style.zIndex='610';
+    const controls=document.createElement('div');Object.assign(controls.style,{position:'sticky',top:'0',display:'flex',justifyContent:'flex-end',gap:'4px',paddingBottom:'6px',background:'rgba(248,245,237,.98)',zIndex:'2'});
+    const copy=document.createElement('button');copy.className='tool';copy.textContent='COPY';copy.onclick=copyRun;
+    const close=document.createElement('button');close.className='tool';close.textContent='CLOSE';close.onclick=()=>{viewRun=false;renderLog()};
+    const text=document.createElement('textarea');text.className='runDataText';text.readOnly=true;text.value=fullDebugText();Object.assign(text.style,{display:'block',width:'100%',height:'calc(46dvh - 42px)',minHeight:'120px',resize:'none',border:'0',outline:'0',padding:'0',margin:'0',background:'transparent',color:'inherit',font:'inherit',lineHeight:'1.45',whiteSpace:'pre-wrap'});
+    controls.append(copy,close);runlog.append(controls,text)
+  }
+  async function copyRun(){
+    const text=fullDebugText();GAME.save();let ok=false;
+    if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(text);ok=true}catch(_){}}
+    if(!ok){const ta=document.createElement('textarea');ta.value=text;ta.readOnly=true;Object.assign(ta.style,{position:'fixed',left:'0',top:'0',width:'1px',height:'1px',opacity:'0.01',zIndex:'700'});document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,text.length)}catch(_){}try{ok=!!document.execCommand?.('copy')}catch(_){}ta.remove()}
+    if(ok){toast('Run data copied');return true}
+    viewRun=true;renderLog();const ta=runlog.querySelector('.runDataText');if(ta){ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}}toast('Copy blocked · run data selected');return false
+  }
   shopBtn.onclick=openPermanentShop;moveBtn.onclick=useMove;rerollBtn.onclick=doReroll;undoBtn.onclick=useUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=copyRun;viewBtn.onclick=()=>{viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
   GAME.save();render();
 })();
