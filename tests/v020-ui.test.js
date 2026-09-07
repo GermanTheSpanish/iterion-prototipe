@@ -4,7 +4,7 @@ const path=require('path');
 const data=fs.readFileSync(path.join(__dirname,'..','data.js'),'utf8');
 const game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
-assert.match(data,/VERSION:'0\.22\.0'/,'build must identify as v0.22.0');
+assert.match(data,/VERSION:'0\.22\.1'/,'build must identify as v0.22.1');
 assert.doesNotMatch(ui,/EXACT DOMINO/);
 assert.doesNotMatch(ui,/exactGridHtml|buyMarketExactTile|marketExactPrice/);
 assert.doesNotMatch(game,/buyMarketExactTile|marketExactPrice|MARKET_EXACT_TILE_COST/);
