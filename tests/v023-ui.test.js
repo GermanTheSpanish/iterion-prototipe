@@ -1,0 +1,24 @@
+const assert=require('assert');
+const fs=require('fs');
+const path=require('path');
+const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
+const data=read('data.js'),game=read('game.js'),ui=read('ui.js'),help=read('help.js'),mods=read('mods.js');
+
+assert.match(data,/VERSION:'0\.23\.0'/);
+assert.match(data,/MARKET_OFFER_COUNT:3/);
+assert.match(data,/MARKET_PURCHASE_LIMIT:1/);
+assert.match(data,/LONG_RUN_UNIQUE_THRESHOLD:10/);
+assert.match(mods,/id:'double-double'/);assert.match(mods,/id:'double-echo'/);assert.match(mods,/id:'zero-memory'/);assert.match(mods,/id:'long-run'/);
+assert.match(game,/function marketTargetTiles\(id\)/);
+assert.match(game,/s\.pieces\.map\(/,'Market tile targets must come from placed machine pieces');
+assert.match(game,/function buyMarketMod\(id\)/);
+assert.match(ui,/data-market-mod/,'Market UI must render generic modifier choices');
+assert.match(ui,/GAME\.marketOfferInfo\(id\)/);
+assert.match(ui,/GAME\.buyMarketMod\(id\)/);
+assert.match(ui,/CHOOSE ONE MOD/);
+assert.match(ui,/at most one in this Market/);
+assert.match(ui,/tileModMark/);assert.match(ui,/doubleEchoTileId/);assert.match(ui,/zeroMemoryTileId/);
+assert.match(ui,/Long Run: at/,'Inspector must explain Long Run star income when active');
+assert.match(help,/shows up to \$\{D\.MARKET_OFFER_COUNT\|\|3\} build-changing modifier offers/);
+assert.match(mods,/every starred domino activated on that route pays its star tier once/i);
+console.log('v0.23 Market UI regression tests passed');
