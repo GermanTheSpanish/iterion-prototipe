@@ -2,7 +2,7 @@ name: regression
 
 on:
   push:
-    branches: [main, v023-market-mods]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
