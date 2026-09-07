@@ -4,7 +4,7 @@ const D=require('../data.js');
 const Game=require('../game.js');
 
 function makePiece(tile,x,id){
-  const p=E.pieceFrom(tile,x,0,0,0,0,id);p.tile={...tile};return p
+  const p=E.pieceFrom(tile,x,0,0,0,id);p.tile={...tile};return p
 }
 
 function testConfig(){
