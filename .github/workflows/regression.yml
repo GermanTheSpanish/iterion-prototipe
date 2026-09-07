@@ -20,6 +20,7 @@ jobs:
         run: |
           if [ -f scripts/apply-stage-a.js ]; then
             echo "APPLIED_STAGE_PATCH=1" >> "$GITHUB_ENV"
+            if [ -f scripts/update-v020-stage-a.js ]; then node scripts/update-v020-stage-a.js; fi
             node scripts/apply-stage-a.js
           fi
       - name: Syntax check
