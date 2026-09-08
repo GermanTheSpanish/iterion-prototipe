@@ -15,7 +15,7 @@ assert.match(help,/function tileRecord\(/);assert.match(help,/E\.applyOp\(value,
 assert.match(help,/help_open_count/);assert.match(help,/help_section_opened/);assert.match(ui,/fullDebugText\(\)/);
 assert.match(ui,/b\.disabled=uiBusy/);assert.doesNotMatch(ui,/b\.disabled=!mask\[i\]\|\|uiBusy/);assert.match(ui,/onDragStart:\(meta,e\)=>\{if\(meta\.kind==='hand'\)startDrag/);assert.strictEqual((ui.match(/GAME\.beginPlacement/g)||[]).length,1);
 assert.match(ui,/kind:'board',tileId:p\.tile\.id,allowDrag:false/);assert.match(html,/html,body\{[^}]*overflow:hidden/);assert.match(html,/\.app\{[^}]*overflow:hidden/);
-assert.match(ui,/Best Output when played:/,'Inspector must show best output for the physical tile');
+assert.match(ui,/Best Output with this tile:/,'Inspector must show best Output for Moves involving the physical tile');
 assert.match(ui,/can pay \+\$\{m\.starCoins\}c when activated/,'Inspector must show star coin income');
 assert.doesNotMatch(ui,/Location: \$\{m\.location\}|Orientation: \$\{m\.axis\}|Connections: \$\{m\.connectionCount\}/,'Inspector must not expose tile position/orientation/connectivity');
 const inspectorStart=ui.indexOf('function openTileInspector('),inspectorEnd=ui.indexOf('\n  function renderRulebook()',inspectorStart);assert(inspectorStart>=0&&inspectorEnd>inspectorStart);assert.doesNotMatch(ui.slice(inspectorStart,inspectorEnd),/beginPlacement|finishPlacement|bestSignal/);assert(gesture.includes("press.mode='inspect'"));
