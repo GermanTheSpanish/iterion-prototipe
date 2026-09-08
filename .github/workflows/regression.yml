@@ -53,6 +53,12 @@ jobs:
             s=s.replace('assert.strictEqual(record.bestOutput,450);assert.strictEqual(record.plays,2);','assert.strictEqual(record.bestOutput,450);assert.strictEqual(record.activations,2);');
             fs.writeFileSync(path,s);
           }
+          {
+            const path='tests/v0221-regression.test.js';
+            let s=fs.readFileSync(path,'utf8');
+            s=s.replace("assert.match(ui,/Best Output when played:/,'tile inspector must show best output');","assert.match(ui,/Best Output with this tile:/,'tile inspector must show best Output across Moves involving this physical tile');");
+            fs.writeFileSync(path,s);
+          }
           NODE
             node scripts/apply-stage-e.js
           fi
