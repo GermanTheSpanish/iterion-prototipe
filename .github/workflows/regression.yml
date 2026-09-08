@@ -2,27 +2,26 @@ name: regression
 
 on:
   push:
-    branches: [main, v023-clean-rebuild]
+    branches: ['**']
+  pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Syntax check
         run: |
-          node --check data.js
-          node --check mods.js
-          node --check engine.js
-          node --check game.js
-          node --check help.js
-          node --check gesture.js
-          node --check ui.js
-          node --check tests/browser-smoke.spec.js
+          for file in *.js tests/*.js; do node --check "$file"; done
       - name: Regression suite
         run: |
           set -e
@@ -32,7 +31,7 @@ jobs:
           done
       - name: Install browser test dependencies
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
       - name: Browser smoke
         run: |
@@ -50,3 +49,8 @@ jobs:
             exit 1
           fi
           npm run test:browser
+      - name: Verify committed tree is unchanged
+        if: always()
+        run: |
+          git diff --exit-code HEAD
+          test -z "$(git ls-files --others --exclude-standard)"

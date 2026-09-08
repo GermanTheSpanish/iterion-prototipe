@@ -193,7 +193,9 @@ If the existing implementation conflicts with an explicit user requirement, foll
 
 ## Validation
 
-There is currently no formal package/build/test configuration in the repository. Do not pretend that tests or commands exist when they do not.
+The repository has Node regression tests (`tests/*.test.js`) and Playwright browser tests (`tests/browser-smoke.spec.js`). Install the locked dependencies with `npm ci`. Run syntax checks on all root/test JavaScript files, every regression file with Node, and `npm run test:browser` against a local server on port 4173.
+
+CI verifies committed code only. Never patch source, rewrite tests, bump versions, create commits or push from a workflow. Implement locally, test, commit and push; verify CI for that exact SHA. Version bumps are separate normal edits after the implementation SHA is green. Verify the version SHA before merging and then verify main CI and deployment. Keep workflow permissions read-only and do not persist checkout credentials.
 
 For changes that can be checked without a browser, use Node-based smoke checks when practical because the core modules expose CommonJS exports.
 

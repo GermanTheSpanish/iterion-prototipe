@@ -1,0 +1,14 @@
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const root=path.join(__dirname,'..');
+const workflow=fs.readFileSync(path.join(root,'.github/workflows/regression.yml'),'utf8');
+assert.match(workflow,/pull_request:/);
+assert.match(workflow,/branches: \['\*\*'\]/);
+assert.match(workflow,/contents: read/);
+assert.match(workflow,/persist-credentials: false/);
+assert.match(workflow,/npm ci /);
+assert.match(workflow,/git diff --exit-code HEAD/);
+assert.doesNotMatch(workflow,/contents: write|git (?:commit|push|apply)|writeFile|apply-v\d|release-v\d/);
+const lock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json'),'utf8'));
+const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+assert.deepStrictEqual(lock.packages[''].devDependencies,pkg.devDependencies);
+console.log('CI verifies committed source with locked dependencies');
