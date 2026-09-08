@@ -26,7 +26,7 @@ function testTileRecordTracksBestOutputAndStarsWithoutPositionData(){
   const game=Game.createGame(E,{seed:24}),s=game.state(),tile=s.set.find(t=>t.id==='d2-2');tile.upgrade=2;
   s.events.push({turn:1,round:1,roundTurn:1,tile:{...tile},output:120},{turn:2,round:1,roundTurn:2,tile:{...tile},output:450});
   const before=clone(s),model=Help.inspectTile(s,tile.id),record=model.currentMachineState;
-  assert.strictEqual(record.bestOutput,450);assert.strictEqual(record.plays,2);assert.strictEqual(record.upgradeTier,2);assert.strictEqual(record.starCoins,2);
+  assert.strictEqual(record.bestOutput,450);assert.strictEqual(record.activations,2);assert.strictEqual(record.upgradeTier,2);assert.strictEqual(record.starCoins,2);
   assert.strictEqual(record.location,undefined);assert.strictEqual(record.rotation,undefined);assert.strictEqual(record.connectionCount,undefined);assert.deepStrictEqual(clone(s),before);
 }
 function testOperationProfileUsesEngineSemantics(){assert.strictEqual(Help.operationFor(2).type,'add');assert.strictEqual(Help.operationFor(2).add,2);assert.strictEqual(Help.operationFor(3).factor,3);assert.strictEqual(Help.operationFor(0).type,'zero');assert.strictEqual(Help.operationFor(5,true,true).factor,25)}

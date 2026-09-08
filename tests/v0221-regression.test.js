@@ -46,13 +46,13 @@ function testEmergencyShopPurchasesSurviveUndo(){
 function testPatchUxContracts(){
   const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
   const data=read('data.js'),ui=read('ui.js'),help=read('help.js'),mods=read('mods.js');
-  assert.match(data,/VERSION:'0\.22\.1'/);
+  assert.match(data,/VERSION:'0\.23\.0'/);
   assert.match(ui,/close\.textContent='CLOSE'/,'Data panel must have an internal close control');
   assert.match(ui,/className='runDataText'/,'Data panel must expose selectable run text');
   assert.match(ui,/board\.style\.backgroundImage='none'/,'visible board grid must be disabled');
   assert.match(ui,/board\.style\.backgroundColor='#fff'/,'board must render white');
   assert.match(ui,/boardCenterTick/,'board must render four centre-edge guide ticks');
-  assert.match(ui,/Best Output when played:/,'tile inspector must show best output');
+  assert.match(ui,/Best Output with this tile:/,'tile inspector must show best Output across Moves involving this physical tile');
   assert.match(ui,/can pay \+\$\{m\.starCoins\}c when activated/,'tile inspector must show star coin value');
   assert.doesNotMatch(ui,/Location: \$\{m\.location\}|Orientation: \$\{m\.axis\}|Connections: \$\{m\.connectionCount\}/,'tile inspector must not show position metadata');
   assert.match(help,/starCoins:tier/);

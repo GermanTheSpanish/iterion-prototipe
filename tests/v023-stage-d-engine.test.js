@@ -1,0 +1,10 @@
+const assert=require('assert');const fs=require('fs');const E=require('../engine.js');
+E.setBoardSize(18,24);const entry=E.pieceFrom({a:1,b:5},0,0,0,0,3);entry.tile={id:'entry',a:1,b:5};const dbl=E.pieceFrom({a:5,b:5},4,0,0,0,1);dbl.tile={id:'echo',a:5,b:5};const zero=E.pieceFrom({a:5,b:0},8,0,0,0,2);zero.tile={id:'zero',a:5,b:0};const pieces=[entry,dbl,zero];
+const base=E.bestSignal(entry.id,pieces,{initialOutput:6}),echo=E.bestSignal(entry.id,pieces,{initialOutput:6,doubleEchoPieceId:dbl.id});
+assert.strictEqual(base.output,750);assert.strictEqual(echo.mainOutput,750);assert.strictEqual(echo.echoOutput,750);assert.strictEqual(echo.output,1500,'Final Output must equal Main + Echo');
+assert.strictEqual(echo.events.filter(e=>e.type==='double-echo-start').length,1,'exactly one Echo starts per Move');assert.strictEqual(echo.events.filter(e=>e.type==='double-echo-result').length,1);
+assert.strictEqual(echo.events.filter(e=>e.type==='double-echo-start'&&e.piece===dbl.id).length,1,'Echo cannot recursively create another Echo');
+assert.strictEqual(echo.echoRebounds,1,'Echo follows the same downstream rebound path');assert.deepStrictEqual(echo.path,base.path,'Echo must not alter selected main path');assert.deepStrictEqual(echo.segments,base.segments);
+const both=E.bestSignal(entry.id,pieces,{initialOutput:6,doubleEchoPieceId:dbl.id,zeroMemoryPieceId:zero.id});assert.strictEqual(both.mainOutput,3750);assert.strictEqual(both.echoOutput,750);assert.strictEqual(both.output,4500);assert.strictEqual(both.events.filter(e=>e.type==='zero-memory').length,1);
+const source=fs.readFileSync(require.resolve('../engine.js'),'utf8');assert(source.includes('const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length]'));
+console.log('v0.23 Stage D Double Echo isolated engine tests passed');
