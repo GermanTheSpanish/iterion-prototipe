@@ -61,6 +61,13 @@ jobs:
           }
           NODE
             node scripts/apply-stage-e.js
+            node - <<'NODE'
+          const fs=require('fs');
+          const path='tests/v023-stage-e.test.js';
+          let s=fs.readFileSync(path,'utf8');
+          s=s.replace("assert.match(gameSrc,/ECHO(main=/);","assert(gameSrc.includes('ECHO(main='));");
+          fs.writeFileSync(path,s);
+          NODE
           fi
       - name: Syntax check
         run: |
