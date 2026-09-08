@@ -5,6 +5,7 @@ on:
     branches: [main, v023-clean-rebuild]
   workflow_dispatch:
 
+# Stage F permanent gate: syntax + regression suite + real Chromium smoke.
 jobs:
   test:
     runs-on: ubuntu-latest
