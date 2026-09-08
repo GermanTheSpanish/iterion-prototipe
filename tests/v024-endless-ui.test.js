@@ -1,0 +1,4 @@
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8'),game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8'),help=fs.readFileSync(path.join(__dirname,'..','help.js'),'utf8'),engine=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
+assert.match(ui,/CONTINUE · ENDLESS/);assert.match(ui,/ENDLESS ROUND CLEAR/);assert.match(ui,/ENDLESS OVER/);assert.match(ui,/GAME.startEndless()/);assert.match(ui,/∞/);assert.match(help,/continue in Endless/);assert.match(game,/function targetForRound/);assert.match(game,/function canStartEndless/);assert.match(game,/function startEndless/);assert(engine.includes("const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length]"),'route comparator must remain traversals → Output → rebounds → path length');
+console.log('v0.24 Endless UI regression tests passed');
