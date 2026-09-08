@@ -23,10 +23,18 @@ jobs:
             node scripts/apply-v024-endless.js
             node - <<'NODE'
           const fs=require('fs');
-          const path='tests/v024-endless.test.js';
-          let s=fs.readFileSync(path,'utf8');
-          s=s.replace("assert.match(game.debugText(),/Round: 18/∞/);","assert(game.debugText().includes('Round: 18/∞'));");
-          fs.writeFileSync(path,s);
+          {
+            const path='tests/v024-endless.test.js';
+            let s=fs.readFileSync(path,'utf8');
+            s=s.replace("assert.match(game.debugText(),/Round: 18/∞/);","assert(game.debugText().includes('Round: 18/∞'));");
+            fs.writeFileSync(path,s);
+          }
+          {
+            const path='tests/v024-endless-ui.test.js';
+            let s=fs.readFileSync(path,'utf8');
+            s=s.replace("assert.match(engine,/const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length]/,'route comparator must remain traversals → Output → rebounds → path length');","assert(engine.includes(\"const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length]\"),'route comparator must remain traversals → Output → rebounds → path length');");
+            fs.writeFileSync(path,s);
+          }
           NODE
           fi
       - name: Syntax check
