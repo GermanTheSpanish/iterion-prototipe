@@ -22,6 +22,7 @@ jobs:
           node --check help.js
           node --check gesture.js
           node --check ui.js
+          node --check tests/browser-smoke.spec.js
       - name: Regression suite
         run: |
           set -e
@@ -29,3 +30,23 @@ jobs:
             echo "==> $test"
             node "$test"
           done
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Browser smoke
+        run: |
+          set -e
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/iterion-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then ready=1; break; fi
+            sleep 0.25
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/iterion-http.log
+            exit 1
+          fi
+          npm run test:browser
