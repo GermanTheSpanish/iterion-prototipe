@@ -16,10 +16,13 @@ for(const name of fs.readdirSync('tests')){
   if(!name.endsWith('.test.js'))continue;
   const file=path.join('tests',name);
   let src=fs.readFileSync(file,'utf8');
-  const plain=(src.match(/0\.23\.0/g)||[]).length;
-  const escaped=(src.match(/0\\\\\.23\\\\\.0/g)||[]).length;
-  if(plain){src=src.replaceAll('0.23.0','0.24.0');replacements+=plain}
-  if(escaped){src=src.replaceAll('0\\.23\\.0','0\\.24\\.0');replacements+=escaped}
+  const plain='0.23.0';
+  const escaped='0\\.23\\.0';
+  const plainCount=src.split(plain).length-1;
+  const escapedCount=src.split(escaped).length-1;
+  if(plainCount){src=src.replaceAll(plain,'0.24.0');replacements+=plainCount}
+  if(escapedCount){src=src.replaceAll(escaped,'0\\.24\\.0');replacements+=escapedCount}
+  if(src.includes('build must identify as v0.22.1'))src=src.replaceAll('build must identify as v0.22.1','build must identify as v0.24.0');
   fs.writeFileSync(file,src);
 }
 if(replacements<1)throw new Error('Expected at least one current-version test assertion to update');
