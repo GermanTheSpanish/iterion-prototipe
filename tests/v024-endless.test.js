@@ -6,6 +6,7 @@ const Game=require('../game.js');
 function piece(tile,x,y,id){const p=E.pieceFrom(tile,x,y,0,0,id);p.tile={...tile};return p}
 function fakeWin(round){return{round,target:D.TARGETS[Math.min(round-1,D.TARGETS.length-1)],output:1,placements:1,machineSize:2,setSize:28,reward:0,upgradeCoins:0,anchor:{a:6,b:6},upgradeTier:0}}
 
+assert.strictEqual(D.VERSION,'0.24.0');
 assert.strictEqual(D.ENDLESS_TARGET_MULTIPLIER,5);
 assert.deepStrictEqual(D.BOARD_SIZES,[[18,24],[21,28],[24,32],[27,36],[30,40]],'Endless must not change canonical board dimensions');
 E.setBoardSize(18,24);
