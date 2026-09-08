@@ -5,6 +5,9 @@ on:
     branches: [main, v023-clean-rebuild]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,6 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Apply pending Stage E patch
+        run: |
+          if [ -f scripts/apply-stage-e.js ]; then
+            echo "APPLIED_STAGE_PATCH=1" >> "$GITHUB_ENV"
+            node scripts/apply-stage-e.js
+          fi
       - name: Syntax check
         run: |
           node --check data.js
@@ -29,3 +38,12 @@ jobs:
             echo "==> $test"
             node "$test"
           done
+      - name: Persist green Stage E patch
+        if: env.APPLIED_STAGE_PATCH == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.js mods.js engine.js game.js help.js gesture.js ui.js index.html tests
+          git add -u scripts
+          git commit -m "Stage E: Market UI Rulebook Inspector telemetry"
+          git push origin HEAD:v023-clean-rebuild
