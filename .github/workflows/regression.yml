@@ -5,9 +5,6 @@ on:
     branches: [main, v023-clean-rebuild]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -16,59 +13,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply pending Stage E patch
-        run: |
-          if [ -f scripts/apply-stage-e.js ]; then
-            echo "APPLIED_STAGE_PATCH=1" >> "$GITHUB_ENV"
-            node - <<'NODE'
-          const fs=require('fs');
-          {
-            const path='tests/v019-ui.test.js';
-            let s=fs.readFileSync(path,'utf8');
-            s=s.replace("assert.match(ui,/DOUBLE DOUBLE/,'Market UI must expose Double Double by name');","assert.match(ui,/escapeHtml\\(mod\\.displayName\\|\\|mod\\.name\\)/,'Market UI must render offered modifier names from the registry');");
-            s=s.replace("assert.match(ui,/doubleDoubleMark/,'Double Double tiles must have a visual marker');","assert.match(ui,/tileModMarks/,'Physical tile modifiers must have a visual marker renderer');");
-            s=s.replace("assert.match(html,/\\.doubleDoubleMark\\{/);","assert.match(html,/\\.tileModMark\\{/);");
-            fs.writeFileSync(path,s);
-          }
-          {
-            const path='tests/v020-ui.test.js';
-            let s=fs.readFileSync(path,'utf8');
-            s=s.replace("const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');","const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');\nconst mods=fs.readFileSync(path.join(__dirname,'..','mods.js'),'utf8');");
-            s=s.replace("assert.match(ui,/Randomly upgrades one physical double you own\\./);","assert.match(mods,/id:'double-double'/,'Double Double must remain registered');");
-            s=s.replace("assert.match(ui,/id=\"doubleDoubleBuy\"/);","assert.match(ui,/data-market-mod/,'Market must render generic modifier purchase controls');");
-            s=s.replace("assert.match(ui,/ROLL DOUBLE DOUBLE/);","assert.match(ui,/escapeHtml\\(mod\\.displayName\\|\\|mod\\.name\\)/,'Market must render modifier display names from registry metadata');");
-            s=s.replace("assert.match(ui,/GAME\\.buyDoubleDouble\\(\\)/);","assert.match(ui,/GAME\\.buyMarketMod\\(id\\)/,'Market UI must use the generic modifier purchase API');");
-            s=s.replace("assert.match(ui,/DOUBLE DOUBLE → \\[\\$\\{r\\.tile\\.a\\}\\|\\$\\{r\\.tile\\.b\\}\\]/);","assert.match(ui,/mod\\.displayName\\|\\|mod\\.name/,'Market result copy must use modifier metadata');");
-            fs.writeFileSync(path,s);
-          }
-          {
-            const path='tests/v021-ui.test.js';
-            let s=fs.readFileSync(path,'utf8');
-            s=s.replace("assert.match(ui,/Best Output when played:/,'Inspector must show best output for the physical tile');","assert.match(ui,/Best Output with this tile:/,'Inspector must show best Output for Moves involving the physical tile');");
-            fs.writeFileSync(path,s);
-          }
-          {
-            const path='tests/v021-help-inspector.test.js';
-            let s=fs.readFileSync(path,'utf8');
-            s=s.replace('assert.strictEqual(record.bestOutput,450);assert.strictEqual(record.plays,2);','assert.strictEqual(record.bestOutput,450);assert.strictEqual(record.activations,2);');
-            fs.writeFileSync(path,s);
-          }
-          {
-            const path='tests/v0221-regression.test.js';
-            let s=fs.readFileSync(path,'utf8');
-            s=s.replace("assert.match(ui,/Best Output when played:/,'tile inspector must show best output');","assert.match(ui,/Best Output with this tile:/,'tile inspector must show best Output across Moves involving this physical tile');");
-            fs.writeFileSync(path,s);
-          }
-          NODE
-            node scripts/apply-stage-e.js
-            node - <<'NODE'
-          const fs=require('fs');
-          const path='tests/v023-stage-e.test.js';
-          let s=fs.readFileSync(path,'utf8');
-          s=s.replace("assert.match(gameSrc,/ECHO(main=/);","assert(gameSrc.includes('ECHO(main='));");
-          fs.writeFileSync(path,s);
-          NODE
-          fi
       - name: Syntax check
         run: |
           node --check data.js
@@ -85,12 +29,3 @@ jobs:
             echo "==> $test"
             node "$test"
           done
-      - name: Persist green Stage E patch
-        if: env.APPLIED_STAGE_PATCH == '1'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.js mods.js engine.js game.js help.js gesture.js ui.js index.html tests
-          git add -u scripts
-          git commit -m "Stage E: Market UI Rulebook Inspector telemetry"
-          git push origin HEAD:v023-clean-rebuild
