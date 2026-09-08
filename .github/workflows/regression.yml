@@ -21,6 +21,13 @@ jobs:
           if [ -f scripts/apply-v024-endless.js ]; then
             echo "APPLIED_V024=1" >> "$GITHUB_ENV"
             node scripts/apply-v024-endless.js
+            node - <<'NODE'
+          const fs=require('fs');
+          const path='tests/v024-endless.test.js';
+          let s=fs.readFileSync(path,'utf8');
+          s=s.replace("assert.match(game.debugText(),/Round: 18/∞/);","assert(game.debugText().includes('Round: 18/∞'));");
+          fs.writeFileSync(path,s);
+          NODE
           fi
       - name: Syntax check
         run: |
