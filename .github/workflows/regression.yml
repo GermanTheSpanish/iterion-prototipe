@@ -2,8 +2,11 @@ name: regression
 
 on:
   push:
-    branches: [main, v023-clean-rebuild]
+    branches: [main, v023-clean-rebuild, v024-endless]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   test:
@@ -13,6 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Apply pending v0.24 Endless patch
+        run: |
+          if [ -f scripts/apply-v024-endless.js ]; then
+            echo "APPLIED_V024=1" >> "$GITHUB_ENV"
+            node scripts/apply-v024-endless.js
+          fi
       - name: Syntax check
         run: |
           node --check data.js
@@ -23,6 +32,8 @@ jobs:
           node --check gesture.js
           node --check ui.js
           node --check tests/browser-smoke.spec.js
+          if [ -f tests/v024-endless.test.js ]; then node --check tests/v024-endless.test.js; fi
+          if [ -f tests/v024-endless-ui.test.js ]; then node --check tests/v024-endless-ui.test.js; fi
       - name: Regression suite
         run: |
           set -e
@@ -50,3 +61,12 @@ jobs:
             exit 1
           fi
           npm run test:browser
+      - name: Persist green v0.24 Endless patch
+        if: env.APPLIED_V024 == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.js game.js help.js ui.js tests
+          git add -u scripts
+          git commit -m "Add Endless mode after base run completion"
+          git push origin HEAD:v024-endless
