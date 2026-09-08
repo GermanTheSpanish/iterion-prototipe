@@ -15,11 +15,12 @@ let replacements=0;
 for(const name of fs.readdirSync('tests')){
   if(!name.endsWith('.test.js'))continue;
   const file=path.join('tests',name);
-  const src=fs.readFileSync(file,'utf8');
-  const count=(src.match(/0\.23\.0/g)||[]).length;
-  if(!count)continue;
-  fs.writeFileSync(file,src.replaceAll('0.23.0','0.24.0'));
-  replacements+=count;
+  let src=fs.readFileSync(file,'utf8');
+  const plain=(src.match(/0\.23\.0/g)||[]).length;
+  const escaped=(src.match(/0\\\\\.23\\\\\.0/g)||[]).length;
+  if(plain){src=src.replaceAll('0.23.0','0.24.0');replacements+=plain}
+  if(escaped){src=src.replaceAll('0\\.23\\.0','0\\.24\\.0');replacements+=escaped}
+  fs.writeFileSync(file,src);
 }
 if(replacements<1)throw new Error('Expected at least one current-version test assertion to update');
 
