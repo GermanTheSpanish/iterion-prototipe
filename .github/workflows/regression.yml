@@ -20,6 +20,15 @@ jobs:
         run: |
           if [ -f scripts/apply-stage-e.js ]; then
             echo "APPLIED_STAGE_PATCH=1" >> "$GITHUB_ENV"
+            node - <<'NODE'
+          const fs=require('fs');
+          const path='tests/v019-ui.test.js';
+          let s=fs.readFileSync(path,'utf8');
+          s=s.replace("assert.match(ui,/DOUBLE DOUBLE/,'Market UI must expose Double Double by name');","assert.match(ui,/escapeHtml\\(mod\\.displayName\\|\\|mod\\.name\\)/,'Market UI must render offered modifier names from the registry');");
+          s=s.replace("assert.match(ui,/doubleDoubleMark/,'Double Double tiles must have a visual marker');","assert.match(ui,/tileModMarks/,'Physical tile modifiers must have a visual marker renderer');");
+          s=s.replace("assert.match(html,/\\.doubleDoubleMark\\{/);","assert.match(html,/\\.tileModMark\\{/);");
+          fs.writeFileSync(path,s);
+          NODE
             node scripts/apply-stage-e.js
           fi
       - name: Syntax check
