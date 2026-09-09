@@ -18,7 +18,7 @@
     ENDLESS_TARGET_MULTIPLIER:5,
     CIRCUIT_TILE_LIMIT:3,
     CIRCUIT_MAX_RANK:5,
-    CIRCUIT_REWARDS:[{minSize:4,ranks:1},{minSize:7,ranks:2},{minSize:10,ranks:3}],
+    CIRCUIT_REWARDS:[{minSize:4,ranks:2},{minSize:7,ranks:3},{minSize:10,ranks:4}],
     CIRCUIT_RANKS:[
       {roman:'I',color:'white',bonus:0.5},
       {roman:'II',color:'green',bonus:1},
