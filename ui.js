@@ -128,7 +128,7 @@
 
   function advanceRound(){
     const before=GAME.snapshot().stage.index;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
-    GAME.save();hideOverlay();handFx.fill('normal');render();const after=GAME.snapshot().stage.index;if(after>before)toast(`STAGE ${after} · BOARD ${E.G}×${E.H}`)
+    GAME.save();hideOverlay();handFx.fill('normal');render();const after=GAME.snapshot().stage.index;if(after>before)toast(`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`)
   }
   function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}GAME.save();hideOverlay();handFx.fill('normal');render();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
   function showClear(){
@@ -155,8 +155,8 @@
   }
 
   function showNoMoves(){
-    resetOverlay();const s=GAME.state();overlayTitle.textContent='NO LEGAL MOVES';overlayBody.innerHTML=`<p>No tile in your hand can continue the machine. Spend a stored Reroll, buy help in the Shop, Undo the last move, or start a new run.</p>`;
-    overlayPrimary.textContent=`REROLL · ${s.consumables.reroll}`;overlayPrimary.disabled=!GAME.canUseReroll();overlayPrimary.onclick=doReroll;
+    resetOverlay();const s=GAME.state();overlayTitle.textContent='NO LEGAL MOVES';overlayBody.innerHTML=`<p>No tile in your hand can continue the machine. Spend a stored Reroll, use the free Stage Reroll, buy help in the Shop, Undo the last move, or start a new run.</p>`;
+    overlayPrimary.textContent=s.stageReroll?`REROLL · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`REROLL · ${s.consumables.reroll}`;overlayPrimary.disabled=!GAME.canUseReroll();overlayPrimary.onclick=doReroll;
     overlaySecondary.style.display='inline-block';overlaySecondary.textContent='SHOP';overlaySecondary.onclick=openPermanentShop;
     if(GAME.canUndo()){overlayTertiary.style.display='inline-block';overlayTertiary.textContent=`UNDO · ${s.consumables.undo}`;overlayTertiary.onclick=useUndo}else setNewRunButton(overlayTertiary)
   }
@@ -174,7 +174,7 @@
 
   function render(){
     const s=GAME.state(),x=GAME.snapshot();H.bindRun(s.runId);renderBoard();renderHand();scoreEl.textContent=fmt(s.score);targetEl.textContent=fmt(GAME.target());stageEl.textContent=`${x.stage.index}/${x.endless?.active?'∞':x.stage.total}`;roundEl.textContent=`${s.round+1}/${x.endless?.active?'∞':D.TOTAL_ROUNDS}`;movesEl.textContent=`${s.roundTurn}/${GAME.maxPlacements()}`;tilesEl.textContent=x.availableTileCount;coinEl.textContent=s.coins;stageRoundEl.textContent=x.endless?.active?`ENDLESS · STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`:`STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`;boardSizeEl.textContent=`${E.G} × ${E.H}`;
-    shopBtn.textContent=`Shop · ${s.coins}c`;shopBtn.disabled=uiBusy||!GAME.canOpenShop();moveBtn.textContent=`Move +1 · ${s.consumables.move}`;moveBtn.disabled=uiBusy||!GAME.canUseMove();rerollBtn.textContent=`Reroll · ${s.consumables.reroll}`;rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.textContent=`Undo · ${s.consumables.undo}`;undoBtn.disabled=uiBusy||!GAME.canUndo();
+    shopBtn.textContent=`Shop · ${s.coins}c`;shopBtn.disabled=uiBusy||!GAME.canOpenShop();moveBtn.textContent=`Move +1 · ${s.consumables.move}`;moveBtn.disabled=uiBusy||!GAME.canUseMove();rerollBtn.textContent=s.stageReroll?`Reroll · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`Reroll · ${s.consumables.reroll}`;rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.textContent=`Undo · ${s.consumables.undo}`;undoBtn.disabled=uiBusy||!GAME.canUndo();
     hint.textContent=s.cleared?'Round cleared.':s.needsReroll?'No legal placements. Reroll, Shop or Undo can help.':s.blocked?(s.failureReason==='no-tiles'?'No physical tiles remain. The Shop may rescue the run.':s.failureReason==='placement-limit'?'No moves remain.':'The round is over.'):s.pieces.length===0?'Opening rule: the first tile must be a double.':`Build the machine · ${GAME.maxPlacements()-s.roundTurn} moves remaining.`;renderLog();
     const pending=s.pendingCircuit;
     circuitChoice.hidden=!pending;
@@ -188,7 +188,7 @@
 
   function center(c,r){const p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);return{x:(p.rect.minx+p.rect.maxx)/2/E.G*r.width,y:(p.rect.miny+p.rect.maxy)/2/E.H*r.height}}
   function nearest(x,y){const r=board.getBoundingClientRect(),lx=x-r.left,ly=(y-D.DRAG_Y_OFFSET)-r.top;if(lx<0||ly<0||lx>r.width||ly>r.height)return null;let pick=null,d0=1e9;for(const c of drag.candidates){const q=center(c,r),d=Math.hypot(q.x-lx,q.y-ly);if(d<d0){d0=d;pick=c}}return d0<=82?pick:null}
-  function maybeShakeRotate(e){const s=GAME.state();if(s.pieces.length)return;const now=performance.now(),dx=e.clientX-drag.lastX;if(Math.abs(dx)>=D.SHAKE_THRESHOLD){const sign=Math.sign(dx);if(drag.lastSign&&sign!==drag.lastSign){if(!drag.shakeStarted||now-drag.shakeStarted>D.SHAKE_WINDOW_MS){drag.switches=1;drag.shakeStarted=now}else drag.switches++;if(drag.switches>=D.SHAKE_SWITCHES&&now-drag.lastRotate>D.SHAKE_COOLDOWN_MS){GAME.rotateRoot();drag.candidates=GAME.candidatesForIndex(drag.index);drag.candidate=null;drag.lastRotate=now;drag.switches=0;drag.shakeStarted=now;if(navigator.vibrate)navigator.vibrate(12);updateFloatRotation();toast(`Opening tile ${ARROW[GAME.state().rootRR]}`)}}drag.lastSign=sign;drag.lastX=e.clientX}}
+  function maybeShakeRotate(e){const s=GAME.state();if(s.pieces.length)return;const now=performance.now(),dx=e.clientX-drag.lastX;if(Math.abs(dx)>=D.SHAKE_THRESHOLD){const sign=Math.sign(dx);if(drag.lastSign&&sign!==drag.lastSign){if(!drag.shakeStarted||now-drag.shakeStarted>D.SHAKE_WINDOW_MS){drag.switches=1;drag.shakeStarted=now}else drag.switches++;if(drag.switches>=D.SHAKE_SWITCHES&&now-drag.shakeStarted>D.SHAKE_COOLDOWN_MS){GAME.rotateRoot();drag.candidates=GAME.candidatesForIndex(drag.index);drag.candidate=null;drag.lastRotate=now;drag.switches=0;drag.shakeStarted=now;if(navigator.vibrate)navigator.vibrate(12);updateFloatRotation();toast(`Opening tile ${ARROW[GAME.state().rootRR]}`)}}drag.lastSign=sign;drag.lastX=e.clientX}}
   function updateFloatRotation(){if(drag.float)drag.float.style.setProperty('--rr',GAME.state().rootRR)}
   function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=GAME.candidatesForIndex(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
   function moveDrag(e){if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px'}const c=nearest(e.clientX,e.clientY),o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()}
@@ -224,7 +224,7 @@
   async function copyRun(){
     const text=fullDebugText();GAME.save();let ok=false;
     if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(text);ok=true}catch(_){}}
-    if(!ok){const ta=document.createElement('textarea');ta.value=text;ta.readOnly=true;Object.assign(ta.style,{position:'fixed',left:'0',top:'0',width:'1px',height:'1px',opacity:'0.01',zIndex:'700'});document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,text.length)}catch(_){}try{ok=!!document.execCommand?.('copy')}catch(_){}ta.remove()}
+    if(!ok){const ta=document.createElement('textarea');ta.value=text;ta.readOnly=true;Object.assign(ta.style,{position:'fixed',left:'0',top:'0',width:'1px',height:'1px',opacity:'0.01',zIndex:'700'});document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}try{ok=!!document.execCommand?.('copy')}catch(_){}ta.remove()}
     if(ok){toast('Run data copied');return true}
     viewRun=true;renderLog();const ta=runlog.querySelector('.runDataText');if(ta){ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}}toast('Copy blocked · run data selected');return false
   }
