@@ -6,7 +6,7 @@ const help=fs.readFileSync(path.join(__dirname,'..','help.js'),'utf8');
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(data,/VERSION:'0\.25\.2'/);
+assert.match(data,/VERSION:'0\.25\.3'/);
 assert.match(data,/LONG_PRESS_MS:500/);
 assert.match(html,/id="helpButton"[^>]*>\?<\/button>/);
 assert.match(html,/script src="help\.js"/);assert.match(html,/script src="gesture\.js"/);

@@ -4,7 +4,7 @@ const path=require('path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const data=read('data.js'),game=read('game.js'),ui=read('ui.js'),html=read('index.html'),help=read('help.js');
 
-assert.match(data,/VERSION:'0\.25\.2'/);
+assert.match(data,/VERSION:'0\.25\.3'/);
 assert.match(data,/STAGE_SIZE:3/);
 assert.match(data,/BOARD_SIZES:\[\[18,24\],\[21,28\],\[24,32\],\[27,36\],\[30,40\]\]/);
 assert.doesNotMatch(data,/SHOP_CHANCE/,'inter-round random Shop chance must be removed');
