@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+test.use({video:'on'});
 
 async function assertPhoneLayout(page){
   const metrics=await page.evaluate(()=>{
@@ -38,9 +39,7 @@ test('UX large machine, compact scores and exact threshold',async({page},testInf
   await page.locator('#scoreDetail').click();await expect(page.locator('.scoreExact')).toHaveText('249,999,999,999');await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__iterionTestGame.state().score)).toBe(before);
 });
 
-test.describe('Cascade review evidence',()=>{
-  test.use({video:'on'});
-  test('UX real placement cascade, operation contrast and deferred Circuit choice',async({page},testInfo)=>{
+test('UX real placement cascade, operation contrast and deferred Circuit choice',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>{
     let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){
@@ -56,8 +55,6 @@ test.describe('Cascade review evidence',()=>{
   const frames=await page.evaluate(()=>window.__cascadeFrames),adds=frames.filter(f=>f.kind.includes('add')),mults=frames.filter(f=>f.kind.includes('multiply'));expect(adds.length).toBeGreaterThan(0);expect(mults.length).toBeGreaterThan(0);expect(adds[0].color).toBe('rgb(255, 255, 255)');expect(adds[0].stroke).toBe('rgb(21, 21, 21)');expect(mults[0].color).toBe('rgb(21, 21, 21)');
   await testInfo.attach('cascade-timing.json',{body:JSON.stringify(frames,null,2),contentType:'application/json'});
   await page.screenshot({path:testInfo.outputPath('circuit-choice.png')});await assertPhoneLayout(page);
-});
-
 });
 
 test('ITERION browser smoke', async ({ page }) => {
