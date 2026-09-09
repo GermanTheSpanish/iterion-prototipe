@@ -115,10 +115,12 @@ test.describe('Circuit spatial selection',()=>{
           const specs=[['d1-2',2,0,0],['d2-3',6,0,1],['d3-4',6,4,2]];
           s.pieces=specs.map(([id,x,y,rr],i)=>{const tile=s.set.find(t=>t.id===id),p=engine.pieceFrom(tile,x,y,0,rr,i+1);p.tile={...tile};return p});
           s.placedTileIds=specs.map(a=>a[0]);s.turn=3;s.idc=3;s.consumables.undo=2;
-          s.hand=[s.set.find(t=>t.id==='d1-4'),null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&t.id!=='d1-4');
+          // A legal continuation keeps the post-choice Inspector unobstructed.
+          s.hand=[s.set.find(t=>t.id==='d1-4'),s.set.find(t=>t.id==='d2-2'),null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h?.id===t.id));
           // Existing Rank I becomes Rank II; retain the independent Star badge.
           s.circuitRanks={'d1-2':1};s.set.find(t=>t.id==='d1-2').upgrade=2;s.pieces[0].tile.upgrade=2;
           const ctx=game.beginPlacement(0,{x:2,y:2,rr:1});if(!ctx.ok)throw new Error('Invalid Circuit browser fixture');game.finishPlacement(ctx);
+          if(s.blocked||s.needsReroll)throw new Error('Circuit fixture must retain a legal continuation');
           window.__iterionTestGame=game;return game;
         }};
       }});
@@ -128,7 +130,7 @@ test.describe('Circuit spatial selection',()=>{
     await expect(page.locator('#overlay')).not.toHaveClass(/show/);
     await expect(page.locator('.circuitEligible')).toHaveCount(4);
     await expect(page.locator('#shopButton')).toBeDisabled();
-    await expect(page.locator('#hand .tile')).toBeDisabled();
+    for(const handTile of await page.locator('#hand .tile').all())await expect(handTile).toBeDisabled();
     const tile=page.locator('.piece[data-tile-id="d1-2"]');
     const box=await tile.boundingBox(),x=box.x+box.width/2,y=box.y+box.height/2;
     // Holding must not select. Moving must not become placement or selection.
@@ -145,7 +147,8 @@ test.describe('Circuit spatial selection',()=>{
     expect(await tile.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(20, 20, 20)');
     expect(await tile.locator('.pip').first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(101, 219, 135)');
     expect((await page.evaluate(()=>window.__iterionTestGame.snapshot())).score.last).toBe(before.score.last);
-    await page.mouse.move(x,y);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+    const rankedBox=await tile.boundingBox();
+    await page.mouse.move(rankedBox.x+rankedBox.width/2,rankedBox.y+rankedBox.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
     await expect(page.locator('#overlayBody')).toContainText('RANK II · GREEN');
     await expect(page.locator('#overlayBody')).toContainText('Resonance: +100%');
     await page.locator('#overlayPrimary').click();
