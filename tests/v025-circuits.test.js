@@ -1,0 +1,62 @@
+const assert=require('node:assert/strict');
+const C=require('../circuits.js'),D=require('../data.js'),E=require('../engine.js'),G=require('../game.js'),H=require('../help.js');
+const clone=x=>JSON.parse(JSON.stringify(x));
+let count=0;
+function test(name,fn){fn();count++;console.log(`Circuit: ${name}`)}
+function graph(edges){const g=new Map();for(const[a,b]of edges){if(!g.has(a))g.set(a,new Set());if(!g.has(b))g.set(b,new Set());g.get(a).add(b);g.get(b).add(a)}return g}
+function ring(n){const ids=Array.from({length:n},(_,i)=>`physical-${i}`);return graph(ids.map((id,i)=>[id,ids[(i+1)%n]]))}
+test('open chain and triangle do not qualify',()=>{assert.equal(C.primaryCircuit(graph([['a','b'],['b','c']]),'c',D),null);assert.equal(C.primaryCircuit(ring(3),'physical-0',D),null)});
+for(const[size,reward]of [[4,1],[5,1],[6,1],[7,2],[8,2],[9,2],[10,3],[20,3]])test(`${size} unique instances award ${reward} ranks`,()=>{const c=C.primaryCircuit(ring(size),'physical-0',D);assert.equal(c.size,size);assert.equal(c.reward,reward);assert.equal(new Set(c.tileIds).size,size);assert(c.tileIds.includes('physical-0'))});
+test('signature ignores rotation/direction but preserves physical edges',()=>{assert.equal(C.signature(['a','b','c','d']),C.signature(['d','c','b','a']));assert.equal(C.signature(['a','b','c','d']),C.signature(['c','d','a','b']));assert.notEqual(C.signature(['a','b','c','d']),C.signature(['a','c','b','d']))});
+test('multiple cycles choose one deterministic larger primary and allow overlap',()=>{const edges=[['n','a'],['a','b'],['b','c'],['c','n'],['n','d'],['d','e'],['e','f'],['f','g'],['g','c']];const a=C.primaryCircuit(graph(edges),'n',D),b=C.primaryCircuit(graph(edges.reverse().map(e=>e.reverse())),'n',D);assert.deepEqual(a,b);assert.equal(a.size,8);assert.equal(a.reward,2);assert.notEqual(a.signature,C.signature(['n','a','b','c']));assert(a.tileIds.includes('c'))});
+test('sorted shortest path does not search longer detours for rewards',()=>{const g=graph([['n','a'],['n','z'],['a','b'],['b','z'],['a','c'],['c','d'],['d','e'],['e','z']]);assert.deepEqual(C.primaryCircuit(g,'n',D).tileIds,['n','a','b','z'])});
+test('three tile limit allows only nonmax ranked members',()=>{const c={tileIds:['a','b','c','d']};assert.deepEqual(C.eligibleTiles(c,{a:5,b:2,x:1},['a','b','c','d','x'],D),['b']);assert.deepEqual(C.eligibleTiles(c,{x:1,y:2,z:3},['a','b','c','d','x','y','z'],D),[]);assert.deepEqual(C.eligibleTiles(c,{a:5},['a','b','c','d'],D),['b','c','d']);assert.equal(C.upgradedRank(4,3,D),5)});
+const pieces=['a','b','c','d'].map((id,i)=>({id:i+1,tile:{id,a:3,b:3}}));
+for(const[rank,bonus]of [[1,.5],[2,1],[3,2],[4,4],[5,8]])test(`rank ${rank} resonance and floor`,()=>{const r=C.resonance(3,[{type:'op',piece:1}],pieces,{a:rank},D);assert.equal(r.bonus,bonus);assert.equal(r.output,Math.floor(3*(1+bonus)))});
+test('rebound and Echo activation union pays each physical ID once',()=>{const events=[{type:'op',piece:1},{type:'op',piece:1,reverse:true},{type:'echo-op',piece:1},{type:'echo-op',piece:2}];const r=C.resonance(11,events,pieces,{a:3,b:4,c:5},D);assert.equal(r.multiplier,7);assert.equal(r.output,77);assert.deepEqual(r.active.map(a=>a.tileId),['a','b']);assert.equal(C.resonance(11,[],pieces,{a:5},D).output,11)});
+test('three golds are x25, never x729',()=>assert.equal(C.resonance(100,pieces.slice(0,3).map(p=>({type:'op',piece:p.id})),pieces,{a:5,b:5,c:5},D).output,2500));
+test('unsafe integer telemetry is explicit',()=>{assert.equal(C.resonance(Number.MAX_SAFE_INTEGER,[{type:'op',piece:1}],pieces,{a:5},D).safeInteger,false)});
+
+// Real legal windmill contact cycle. Preplaced fixture bypasses only run opening,
+// not the closing placement's canonical geometry, routing or scoring.
+function fixture(options={}){
+  const game=G.createGame(E,{seed:2501,TARGETS:Array(15).fill(1e15),...options}),s=game.state();
+  const specs=[['d1-2',2,0,0],['d2-3',6,0,1],['d3-4',6,4,2]];
+  s.pieces=specs.map(([id,x,y,rr],i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,x,y,0,rr,i+1);p.tile={...t};return p});
+  s.placedTileIds=specs.map(a=>a[0]);s.idc=3;s.turn=3;s.consumables={undo:2,move:2,reroll:2};
+  s.hand=[s.set.find(t=>t.id==='d1-4'),null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&t.id!=='d1-4');
+  return game;
+}
+function close(game){const ctx=game.beginPlacement(0,{x:2,y:2,rr:1});assert.equal(ctx.ok,true);game.finishPlacement(ctx);return ctx}
+test('real physical contact cycle, physical-ID rank, deferred scoring and snapshot',()=>{const g=fixture(),s=g.state();s.set.push({id:'p99-1-2',a:1,b:2,upgrade:0});const ctx=close(g),before=s.score;assert.equal(s.pendingCircuit.size,4);assert.equal(s.score,ctx.sim.output);assert.equal(g.canInteract(),false);assert.equal(g.canUseMove(),false);assert.equal(g.canUseReroll(),false);assert.equal(g.openShop(),false);assert.equal(g.advance(),false);assert.equal(g.chooseCircuitTile('p99-1-2').ok,false);assert.equal(g.chooseCircuitTile('d1-2').ok,true);assert.equal(s.circuitRanks['d1-2'],1);assert.equal(s.circuitRanks['p99-1-2'],undefined);assert.equal(s.score,before);assert.equal(g.moveResonance({output:101,events:[{type:'op',piece:1}]}).output,151);assert.deepEqual(g.snapshot().circuits.ranks,{'d1-2':1});assert.match(g.debugText(),/CIRCUIT CLOSED/);assert.match(g.debugText(),/CIRCUIT UPGRADE/);assert.equal(H.inspectTile(s,'d1-2').circuit.rank,1);assert.equal(H.inspectTile(s,'p99-1-2').circuit,null)});
+for(const chosen of [false,true])test(`Undo restores registry, ranks, pending, resources ${chosen?'after':'before'} selection`,()=>{const g=fixture(),s=g.state();s.circuitRanks={'d1-2':2};s.coins=17;s.inflation=4;const before=clone(s);close(g);if(chosen)g.chooseCircuitTile('d1-2');assert.equal(g.useUndo().ok,true);const after=g.state();for(const key of ['pieces','placedTileIds','set','circuitRanks','circuitSignatures','pendingCircuit','score','coins','inflation','hand','reserve'])assert.deepEqual(after[key],before[key],key);assert.equal(after.consumables.undo,before.consumables.undo-1);close(g);assert(g.state().pendingCircuit)});
+test('duplicate primary is recorded without another reward',()=>{const g=fixture();close(g);const sig=g.state().circuitSignatures[0];g.useUndo();g.state().circuitSignatures=[sig];close(g);assert.equal(g.state().pendingCircuit,null);assert.equal(g.state().events.at(-1).unavailable,'duplicate');assert.equal(g.state().circuitSignatures.length,1)});
+test('unavailable reward remains discovered; max rank never spills',()=>{const g=fixture(),s=g.state();s.circuitRanks={'d1-2':5,'d2-3':5,'d3-4':5};close(g);assert.equal(s.pendingCircuit,null);assert.equal(s.events.at(-1).unavailable,'no-eligible-tile');assert.equal(s.circuitSignatures.length,1);assert.equal(s.circuitRanks['d1-4'],undefined)});
+test('ranked member may develop again at three-tile limit',()=>{const g=fixture(),s=g.state();s.circuitRanks={'d1-2':4,'d2-3':5,'d3-4':5};close(g);assert.deepEqual(s.pendingCircuit.eligibleTileIds,['d1-2']);g.chooseCircuitTile('d1-2');assert.deepEqual(s.circuitRanks,{'d1-2':5,'d2-3':5,'d3-4':5})});
+test('R15 waits for selection; Endless retains rank, signatures, exact board',()=>{const g=fixture({TARGETS:Array(15).fill(1)}),s=g.state();s.round=14;s.boardStage=4;E.setBoardSize(30,40);close(g);assert(s.standardComplete);assert.equal(g.canStartEndless(),false);assert.equal(g.startEndless(),false);g.chooseCircuitTile('d1-2');const before=g.snapshot();assert.equal(g.startEndless(),true);g.openIntermission();g.closeMarket();assert.equal(g.advance(),true);assert.equal(s.round,15);assert.deepEqual(g.snapshot().circuits,before.circuits);assert.deepEqual(g.snapshot().board,before.board)});
+test('normal stage expansion preserves rank and discovery',()=>{const g=fixture({TARGETS:Array(15).fill(1)}),s=g.state();s.round=2;close(g);g.chooseCircuitTile('d1-2');const before=clone(g.snapshot().circuits);g.openIntermission();g.closeMarket();assert(g.advance());assert.deepEqual(g.snapshot().circuits,before);assert.equal(s.boardStage,1)});
+test('canonical route, operations, traversals and rebound unchanged by ranks',()=>{const a=fixture(),ca=a.beginPlacement(0,{x:2,y:2,rr:1}),b=fixture();b.state().circuitRanks={'d1-2':5,'d2-3':4};const cb=b.beginPlacement(0,{x:2,y:2,rr:1});assert.deepEqual(cb.sim,ca.sim);const original=structuredClone(cb.sim);b.finishPlacement(cb);assert.deepEqual(cb.sim,original)});
+test('Rulebook documents circuit power separately from Stars',()=>{const section=H.rulebookSections().find(s=>s.id==='circuits');assert(section);assert.match(section.rulesDescription,/3/);assert.match(section.rulesDescription,/Star/i)});
+for(const options of [{},{doubleDoublePieceId:1},{zeroMemoryPieceId:2},{doubleEchoPieceId:1},{doubleDoublePieceId:1,zeroMemoryPieceId:2,doubleEchoPieceId:1}])test(`resonance follows unchanged DD/ZM/DE resolution ${JSON.stringify(options)}`,()=>{
+  const g=G.createGame(E,{seed:2502,TARGETS:Array(15).fill(1e15)}),s=g.state();
+  const specs=[[3,'entry',1,5,0],[1,'double',5,5,4],[2,'zero',5,0,8]];
+  s.pieces=specs.map(([id,tileId,a,b,x])=>{const p=E.pieceFrom({a,b},x,0,0,0,id);p.tile={id:tileId,a,b,upgrade:2};return p});
+  const sim=E.bestSignal(3,s.pieces,{initialOutput:6,...options}),before=structuredClone(sim);
+  s.circuitRanks={entry:1,double:3,zero:4};
+  const r=g.moveResonance(sim);assert.equal(r.multiplier,7);assert.equal(r.output,Math.floor(sim.output*7));assert.deepEqual(sim,before);
+  // The trigger tile is not scored by this selected route: it must not resonate.
+  assert.deepEqual(r.active.map(a=>a.tileId),['double','zero']);assert(sim.rebounds>0);
+  if(options.doubleDoublePieceId){const ops=sim.events.filter(e=>e.type==='op'&&e.piece===1);assert.equal(ops.filter(e=>e.doubleDouble).length,1);assert.equal(ops[0].factor,25);assert.equal(ops.at(-1).factor,5)}
+  if(options.zeroMemoryPieceId)assert.equal(sim.events.filter(e=>e.type==='zero-memory').length,1);
+  if(options.doubleEchoPieceId){assert.equal(sim.output,sim.mainOutput+sim.echoOutput);assert.equal(sim.events.filter(e=>e.type==='double-echo-start').length,1)}
+});
+test('Long Run and Stars pay unchanged once despite resonance, rebound and Echo',()=>{
+  function run(ranked){const g=G.createGame(E,{seed:2503,TARGETS:Array(15).fill(1e15)}),s=g.state();s.mods=['long-run'];s.pieces=Array.from({length:10},(_,i)=>{const p=E.pieceFrom({a:2,b:2},(i%4)*4,Math.floor(i/4)*4,0,0,i+1);p.tile={id:`star-${i}`,a:2,b:2,upgrade:i<3?i+1:0};return p});s.placedTileIds=s.pieces.map(p=>p.tile.id);s.turn=1;s.roundTurn=1;s.running=true;if(ranked)s.circuitRanks={'star-0':5,'star-1':5,'star-2':5};
+    const events=s.pieces.map(p=>({type:'op',piece:p.id}));events.push({type:'op',piece:1,reverse:true},{type:'echo-op',piece:1});
+    const result=g.finishPlacement({ok:true,tile:{id:'fixture-trigger',a:1,b:2},p:s.pieces[0],trigger:3,sim:{output:10,events,rebounds:1}});return{result,s};}
+  const base=run(false),ranked=run(true);assert.equal(ranked.result.upgradeCoins,6);assert.equal(ranked.s.coins,base.s.coins);assert.equal(ranked.s.score,250);assert.deepEqual(ranked.s.pieces.map(p=>p.tile.upgrade),base.s.pieces.map(p=>p.tile.upgrade));const income=ranked.s.events.find(e=>e.type==='upgrade-coins');assert.equal(income.uniquePieces,10);assert.equal(income.activations.length,3);
+});
+test('physical graph collapses multiple legal half contacts into one neighbour',()=>{const ps=[{tile:{id:'copy-a',a:6,b:6}},{tile:{id:'copy-b',a:6,b:6}}],g=C.adjacency(ps,()=>({touch:true,ok:true,contacts:[{},{}]}));assert.deepEqual([...g.get('copy-a')],['copy-b']);assert.equal(g.size,2)});
+test('entire reward goes to selected instance with cap and no spill',()=>{const g=fixture();close(g);g.state().pendingCircuit.reward=3;g.state().circuitRanks['d1-2']=4;g.chooseCircuitTile('d1-2');assert.deepEqual(g.state().circuitRanks,{'d1-2':5})});
+test('equal shortest paths use canonical physical-ID ordering',()=>{const edges=[['n','a'],['n','z'],['a','c'],['c','z'],['a','b'],['b','z']];assert.deepEqual(C.primaryCircuit(graph(edges),'n',D).tileIds,['n','a','b','z']);assert.deepEqual(C.primaryCircuit(graph(edges.reverse()),'n',D).tileIds,['n','a','b','z'])});
+console.log(`${count} Circuit regression checks passed`);

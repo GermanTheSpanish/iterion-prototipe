@@ -102,3 +102,80 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
     expect(errors).toEqual([]);
   });
 }
+
+test.describe('Circuit spatial selection',()=>{
+  test.use({hasTouch:true,isMobile:true});
+  for(const viewport of [{width:390,height:844},{width:375,height:667}])test(`Circuit touch, Undo and rank rendering ${viewport.width}x${viewport.height}`,async({page})=>{
+    await page.setViewportSize(viewport);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.addInitScript(()=>{
+      let api;
+      Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{
+        api={...value,createGame(engine,options){
+          const game=value.createGame(engine,{...options,seed:2501,TARGETS:Array(15).fill(1e15)}),s=game.state();
+          const specs=[['d1-2',2,0,0],['d2-3',6,0,1],['d3-4',6,4,2]];
+          s.pieces=specs.map(([id,x,y,rr],i)=>{const tile=s.set.find(t=>t.id===id),p=engine.pieceFrom(tile,x,y,0,rr,i+1);p.tile={...tile};return p});
+          s.placedTileIds=specs.map(a=>a[0]);s.turn=3;s.idc=3;s.consumables.undo=2;
+          s.hand=[s.set.find(t=>t.id==='d1-4'),null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&t.id!=='d1-4');
+          // Existing Rank I becomes Rank II; retain the independent Star badge.
+          s.circuitRanks={'d1-2':1};s.set.find(t=>t.id==='d1-2').upgrade=2;s.pieces[0].tile.upgrade=2;
+          const ctx=game.beginPlacement(0,{x:2,y:2,rr:1});if(!ctx.ok)throw new Error('Invalid Circuit browser fixture');game.finishPlacement(ctx);
+          window.__iterionTestGame=game;return game;
+        }};
+      }});
+    });
+    await page.goto('http://127.0.0.1:4173/');
+    await expect(page.locator('#circuitChoice')).toContainText('CIRCUIT CLOSED · 4 TILES · +1 RANK');
+    await expect(page.locator('#overlay')).not.toHaveClass(/show/);
+    await expect(page.locator('.circuitEligible')).toHaveCount(4);
+    await expect(page.locator('#shopButton')).toBeDisabled();
+    await expect(page.locator('#hand .tile')).toBeDisabled();
+    const tile=page.locator('.piece[data-tile-id="d1-2"]');
+    const box=await tile.boundingBox(),x=box.x+box.width/2,y=box.y+box.height/2;
+    // Holding must not select. Moving must not become placement or selection.
+    await page.mouse.move(x,y);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+    await expect(page.locator('#circuitChoice')).toBeVisible();
+    await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+30,y+30);await page.mouse.up();
+    await expect(page.locator('#circuitChoice')).toBeVisible();
+    const before=await page.evaluate(()=>window.__iterionTestGame.snapshot());
+    await page.touchscreen.tap(x,y);
+    await expect(page.locator('#circuitChoice')).toBeHidden();
+    await expect(tile).toHaveClass(/circuitTile circuitRank2/);
+    await expect(tile.locator('.circuitRankMark')).toHaveText('II');
+    await expect(tile.locator('.upgradeDot')).toHaveCount(1);
+    expect(await tile.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(20, 20, 20)');
+    expect(await tile.locator('.pip').first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(101, 219, 135)');
+    expect((await page.evaluate(()=>window.__iterionTestGame.snapshot())).score.last).toBe(before.score.last);
+    await page.mouse.move(x,y);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+    await expect(page.locator('#overlayBody')).toContainText('RANK II · GREEN');
+    await expect(page.locator('#overlayBody')).toContainText('Resonance: +100%');
+    await page.locator('#overlayPrimary').click();
+    await page.locator('#helpButton').click();
+    await expect(page.locator('#overlayBody')).toContainText('Circuits');
+    await page.locator('#overlayPrimary').click();
+    const layout=await page.evaluate(()=>({w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight,vw:innerWidth,vh:innerHeight,boardRight:document.querySelector('#board').getBoundingClientRect().right,handLeft:document.querySelector('#hand').getBoundingClientRect().left}));
+    expect(layout.w).toBeLessThanOrEqual(layout.vw);expect(layout.h).toBeLessThanOrEqual(layout.vh);expect(layout.handLeft).toBeGreaterThanOrEqual(layout.boardRight);
+    await page.locator('#undoTool').click();
+    expect(await page.evaluate(()=>window.__iterionTestGame.snapshot().circuits)).toEqual({ranks:{'d1-2':1},signatures:[],pending:null});
+    await expect(page.locator('.piece')).toHaveCount(3);expect(errors).toEqual([]);
+  });
+});
+
+for(const[rank,roman,color,pip]of [[1,'I','WHITE','255, 255, 255'],[2,'II','GREEN','101, 219, 135'],[3,'III','BLUE','117, 186, 255'],[4,'IV','PURPLE','208, 155, 255'],[5,'V','GOLD','244, 203, 90']]){
+  test(`Circuit rank ${roman} coexists with Stars, DD, DE and ZM`,async({page})=>{
+    await page.setViewportSize({width:375,height:667});
+    await page.addInitScript(rank=>{
+      let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){
+        const game=value.createGame(engine,{...options,seed:2505}),s=game.state();engine.setBoardSize(30,40);s.boardStage=4;
+        s.pieces=[['d5-5',10,10],['d0-5',14,10]].map(([id,x,y],i)=>{const tile=s.set.find(t=>t.id===id);tile.upgrade=2;const p=engine.pieceFrom(tile,x,y,0,i?2:0,i+1);p.tile={...tile};return p});
+        s.placedTileIds=s.pieces.map(p=>p.tile.id);s.hand=s.hand.map(t=>t&&s.placedTileIds.includes(t.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));
+        s.circuitRanks={'d5-5':rank,'d0-5':rank};s.doubleDoubleTileId='d5-5';s.doubleEchoTileId='d5-5';s.zeroMemoryTileId='d0-5';return game;
+      }}}});
+    },rank);
+    await page.goto('http://127.0.0.1:4173/');
+    const double=page.locator('.piece[data-tile-id="d5-5"]'),zero=page.locator('.piece[data-tile-id="d0-5"]');
+    for(const tile of [double,zero]){await expect(tile).toHaveClass(new RegExp(`circuitRank${rank}`));await expect(tile.locator('.circuitRankMark')).toHaveText(roman);await expect(tile.locator('.upgradeDot')).toHaveCount(1);expect(await tile.locator('.pip').first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(`rgb(${pip})`)}
+    await expect(double.locator('.tileModMark')).toHaveText(['DD','DE']);await expect(zero.locator('.tileModMark')).toHaveText(['ZM']);
+    const box=await double.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+    await expect(page.locator('#overlayBody')).toContainText(`RANK ${roman} · ${color}`);
+  });
+}

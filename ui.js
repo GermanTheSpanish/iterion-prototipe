@@ -2,6 +2,7 @@
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,GAME=window.IterionGame.createGame(E),ARROW=E.ARROW;
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
+  const circuitChoice=$('circuitChoice');
   const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version');
   let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null;
   let handFx=Array(D.HAND_SIZE).fill('normal');
@@ -14,11 +15,15 @@
 
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function tierFor(t){if(!t)return 0;if(t.upgrade)return Math.min(3,t.upgrade);const set=GAME.state().set||[],m=t.id?set.find(x=>x.id===t.id):null;return Math.min(3,m?.upgrade||0)}
+  function circuitRank(t){return GAME.state().circuitRanks[t?.id]||0}
+  function circuitClass(t){const rank=circuitRank(t);return rank?` circuitTile circuitRank${rank}`:''}
+  function circuitMark(t){const rank=circuitRank(t);return rank?`<i class="circuitRankMark">${D.CIRCUIT_RANKS[rank-1].roman}</i>`:''}
+  function circuitInspectorHtml(c){return c?`<section class="inspectSection"><div class="inspectLabel">Circuit</div><strong>RANK ${c.roman} · ${c.color.toUpperCase()}</strong><p>Resonance: +${c.bonus*100}%<br>Activates once per Move.</p></section>`:''}
   function upgradeDot(t){const tier=tierFor(t);return tier?`<i class="upgradeDot u${tier}" aria-hidden="true"></i>`:''}
   function tileModMarks(t){if(!t?.id)return'';const s=GAME.state(),marks=[];if(s.doubleDoubleTileId===t.id)marks.push(['DD','dd']);if(s.doubleEchoTileId===t.id)marks.push(['DE','de']);if(s.zeroMemoryTileId===t.id)marks.push(['ZM','zm']);return marks.map(([label,cls],i)=>`<i class="tileModMark ${cls}" style="--mi:${i}" aria-hidden="true">${label}</i>`).join('')}
-  function mini(t,fx='normal'){const cls=fx==='back'?' back':fx==='reveal'?' reveal':'',mark=fx==='back'?'':upgradeDot(t)+tileModMarks(t);return`<div class="domino${cls}"><div class="half"><div class="spips">${dots(t?.a??0,true)}</div></div><div class="half"><div class="spips">${dots(t?.b??0,true)}</div></div>${mark}</div>`}
+  function mini(t,fx='normal'){const cls=fx==='back'?' back':fx==='reveal'?' reveal':'',mark=fx==='back'?'':upgradeDot(t)+tileModMarks(t)+circuitMark(t);return`<div class="domino${cls}${circuitClass(t)}"><div class="half"><div class="spips">${dots(t?.a??0,true)}</div></div><div class="half"><div class="spips">${dots(t?.b??0,true)}</div></div>${mark}</div>`}
   function ordered(p){return[...p.cubes].sort((a,b)=>p.axis==='H'?a.x-b.x:a.y-b.y)}
-  function pieceEl(p,cls='piece'){const d=document.createElement('div');d.className=cls+' '+(p.axis==='H'?'h':'v');d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+tileModMarks(p.tile);return d}
+  function pieceEl(p,cls='piece'){const d=document.createElement('div');d.className=cls+' '+(p.axis==='H'?'h':'v')+circuitClass(p.tile);d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+tileModMarks(p.tile)+circuitMark(p.tile);return d}
   function toast(t){toastEl.textContent=t;toastEl.classList.add('show');setTimeout(()=>toastEl.classList.remove('show'),1300)}
   function boardMessage(text,ms=900){const d=document.createElement('div');d.className='boardMessage';d.textContent=text;board.appendChild(d);setTimeout(()=>d.remove(),ms)}
   function addBoardCenterTicks(){
@@ -32,25 +37,36 @@
   }
 
   function beginTilePress(e,meta){
-    if(auxOverlay||e.button!=null&&e.button!==0)return;
+    if(GAME.state().pendingCircuit||auxOverlay||e.button!=null&&e.button!==0)return;
     e.preventDefault();
     press.begin(e,meta)
   }
   function renderBoard(){
     const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='#fff';addBoardCenterTicks();
-    s.pieces.forEach(p=>{const el=pieceEl(p);el.classList.add('inspectable');el.setAttribute('role','button');el.setAttribute('aria-label',`Inspect domino ${p.tile.a}|${p.tile.b}`);el.onpointerdown=e=>beginTilePress(e,{kind:'board',tileId:p.tile.id,allowDrag:false});board.appendChild(el)});
+    s.pieces.forEach(p=>{
+      const el=pieceEl(p),pending=s.pendingCircuit,eligible=pending?.eligibleTileIds.includes(p.tile.id);
+      el.classList.add('inspectable');el.setAttribute('role','button');
+      el.setAttribute('aria-label',`${pending?'Choose':'Inspect'} domino ${p.tile.a}|${p.tile.b}${circuitRank(p.tile)?` · Circuit rank ${D.CIRCUIT_RANKS[circuitRank(p.tile)-1].roman}`:''}`);
+      if(pending){
+        el.classList.toggle('circuitMember',pending.tileIds.includes(p.tile.id));el.classList.toggle('circuitEligible',!!eligible);el.classList.toggle('circuitDim',!pending.tileIds.includes(p.tile.id));
+        el.tabIndex=eligible?0:-1;el.setAttribute('aria-disabled',eligible?'false':'true');
+        el.onpointerdown=e=>{if(!eligible||auxOverlay||uiBusy||e.button!=null&&e.button!==0)return;e.preventDefault();press.begin(e,{kind:'circuit',tileId:p.tile.id,allowDrag:false})};
+        el.onkeydown=e=>{if(eligible&&!auxOverlay&&!uiBusy&&(e.key==='Enter'||e.key===' ')){e.preventDefault();chooseCircuitTile(p.tile.id)}};
+      }else el.onpointerdown=e=>beginTilePress(e,{kind:'board',tileId:p.tile.id,allowDrag:false});
+      board.appendChild(el)
+    });
     if(drag.active&&drag.candidate){const c=drag.candidate,p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);p.tile={...drag.tile};board.appendChild(pieceEl(p,'piece dragCandidate'))}
     board.classList.toggle('dragging',drag.active)
   }
   function renderHand(){
     const s=GAME.state();handEl.innerHTML='';
-    const canGrade=!uiBusy&&!s.running&&!s.cleared&&!s.blocked&&!s.shopOpen&&!s.needsReroll;
+    const canGrade=!s.pendingCircuit&&!uiBusy&&!s.running&&!s.cleared&&!s.blocked&&!s.shopOpen&&!s.needsReroll;
     const mask=canGrade?GAME.legalHandMask():s.hand.map(Boolean);
     for(let i=0;i<D.HAND_SIZE;i++){
       const t=s.hand[i],slot=document.createElement('div');slot.className='handSlot';
       if(handFx[i]==='hidden'||(drag.active&&drag.index===i)){handEl.appendChild(slot);continue}
       if(handFx[i]==='back'){const shell=document.createElement('div');shell.innerHTML=mini(t||{a:0,b:0},'back');slot.appendChild(shell.firstChild);handEl.appendChild(slot);continue}
-      if(t){const b=document.createElement('button');b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy;b.setAttribute('aria-disabled',mask[i]?'false':'true');b.setAttribute('aria-label',`Domino ${t.a}|${t.b}. Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});slot.appendChild(b)}
+      if(t){const b=document.createElement('button');b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy||!!s.pendingCircuit;b.setAttribute('aria-disabled',mask[i]?'false':'true');b.setAttribute('aria-label',`Domino ${t.a}|${t.b}. Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});slot.appendChild(b)}
       handEl.appendChild(slot)
     }
   }
@@ -94,7 +110,7 @@
     const starLabel=m.upgradeTier?`★${m.upgradeTier} · can pay +${m.starCoins}c when activated`:'No stars · +0c';
     const bestLabel=`Best Output with this tile: ${m.bestOutput==null?'—':fmt(m.bestOutput)}`,longRun=model.machineModifiers.find(mod=>mod.id==='long-run');
     const stateRows=[starLabel,bestLabel,`Recorded Move activations: ${m.activations||0}`,longRun?'LONG RUN · at 10+ unique routed tiles, every activated star pays once.':m.upgradeTier?'Normal star rule · only the highest activated tier pays.':'Round-clearing overkill can add stars to this physical tile.'];
-    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section><section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section><section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
+    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section>${circuitInspectorHtml(model.circuit)}<section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section><section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
   }
   function renderAuxOverlay(){
@@ -160,7 +176,11 @@
     const s=GAME.state(),x=GAME.snapshot();H.bindRun(s.runId);renderBoard();renderHand();scoreEl.textContent=fmt(s.score);targetEl.textContent=fmt(GAME.target());stageEl.textContent=`${x.stage.index}/${x.endless?.active?'∞':x.stage.total}`;roundEl.textContent=`${s.round+1}/${x.endless?.active?'∞':D.TOTAL_ROUNDS}`;movesEl.textContent=`${s.roundTurn}/${GAME.maxPlacements()}`;tilesEl.textContent=x.availableTileCount;coinEl.textContent=s.coins;stageRoundEl.textContent=x.endless?.active?`ENDLESS · STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`:`STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`;boardSizeEl.textContent=`${E.G} × ${E.H}`;
     shopBtn.textContent=`Shop · ${s.coins}c`;shopBtn.disabled=uiBusy||!GAME.canOpenShop();moveBtn.textContent=`Move +1 · ${s.consumables.move}`;moveBtn.disabled=uiBusy||!GAME.canUseMove();rerollBtn.textContent=`Reroll · ${s.consumables.reroll}`;rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.textContent=`Undo · ${s.consumables.undo}`;undoBtn.disabled=uiBusy||!GAME.canUndo();
     hint.textContent=s.cleared?'Round cleared.':s.needsReroll?'No legal placements. Reroll, Shop or Undo can help.':s.blocked?(s.failureReason==='no-tiles'?'No physical tiles remain. The Shop may rescue the run.':s.failureReason==='placement-limit'?'No moves remain.':'The round is over.'):s.pieces.length===0?'Opening rule: the first tile must be a double.':`Build the machine · ${GAME.maxPlacements()-s.roundTurn} moves remaining.`;renderLog();
+    const pending=s.pendingCircuit;
+    circuitChoice.hidden=!pending;
+    if(pending){hint.textContent='Choose one outlined tile to develop.';circuitChoice.textContent=`CIRCUIT CLOSED · ${pending.size} TILES · +${pending.reward} RANK${pending.reward===1?'':'S'} · CHOOSE A TILE`;}
     if(auxOverlay){renderAuxOverlay();return}
+    if(pending){hideOverlay();return}
     if(uiBusy){hideOverlay();return}
     if(s.shopOpen){s.shopType==='market'?showMarket():showShop();return}
     if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.needsReroll)showNoMoves();else if(s.blocked)showFailed();else hideOverlay()}
@@ -173,9 +193,10 @@
   function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=GAME.candidatesForIndex(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
   function moveDrag(e){if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px'}const c=nearest(e.clientX,e.clientY),o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()}
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
-  async function endDrag(e){if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}const ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}const drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim);const result=GAME.finishPlacement(ctx);GAME.save();await drawAnim;if(GAME.state().cleared||GAME.state().blocked)armOutcomeDelay();render();if(GAME.state().cleared)toast(`Round clear · ${fmt(GAME.state().score)}`);else if(result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)}
+  async function endDrag(e){if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}const ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}const drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim,GAME.moveResonance(ctx.sim,ctx.trigger).output);const result=GAME.finishPlacement(ctx);GAME.save();await drawAnim;if(GAME.state().cleared||GAME.state().blocked)armOutcomeDelay();render();if(GAME.state().cleared)toast(`Round clear · ${fmt(GAME.state().score)}`);else if(result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)}
 
-  const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onLongPress:meta=>{if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
+  function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();GAME.save();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
+  const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
   function handlePointerMove(e){press.move(e);if(drag.active)moveDrag(e)}
   async function handlePointerUp(e){press.end(e);if(drag.active)await endDrag(e)}
   function handlePointerCancel(e){press.cancel();if(drag.active)endDrag(e)}
@@ -186,7 +207,7 @@
   function fx(x,y,t,value=0){const d=document.createElement('div'),digits=magnitude(value),duration=(D.CASCADE_FX_BASE_MS||1200)+digits*(D.CASCADE_FX_PER_DIGIT_MS||90),size=Math.min(D.CASCADE_FX_MAX_PX||42,(D.CASCADE_FX_BASE_PX||14)+digits*(D.CASCADE_FX_PER_DIGIT_PX||3.2));d.className='opfx';d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);setTimeout(()=>d.remove(),duration+120)}
   function reboundFx(x,y,angle=180){const d=document.createElement('div'),duration=D.CASCADE_FX_BASE_MS||1200;d.className='opfx reboundFx';d.style.left=px(x);d.style.top=py(y);d.style.animationDuration=`${duration}ms`;d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`;board.appendChild(d);setTimeout(()=>d.remove(),duration+120)}
   function finalFx(v){const d=document.createElement('div'),digits=magnitude(v),duration=(D.CASCADE_FINAL_MS||1800)+Math.min(700,digits*55),size=Math.min(D.CASCADE_FINAL_MAX_PX||68,30+digits*4);d.className='finalfx';d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=fmt(v);board.appendChild(d);setTimeout(()=>d.remove(),duration+120);return duration}
-  async function animate(p,trigger,sim){renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${fmt(trigger)}`,trigger);await wait(260);let lastOp=null;for(const e of sim.events||[]){if(e.type==='op'){lastOp=e;if(e.value!==0){const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===e.exitHalf);if(c){const label=e.op==='multiply'?`×${e.factor}${e.doubleDouble?' DD':''}`:`+${e.add}${e.doubleDouble?' DD':''}`;fx(c.x+1,c.y+1,label,e.after);await wait(180)}}}else if(e.type==='rebound'){const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle);await wait(180)}}}const finalDuration=finalFx(sim.output??trigger);await wait(Math.min(1400,Math.max(900,finalDuration-500)))}
+  async function animate(p,trigger,sim,finalOutput=sim.output??trigger){renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${fmt(trigger)}`,trigger);await wait(260);let lastOp=null;for(const e of sim.events||[]){if(e.type==='op'){lastOp=e;if(e.value!==0){const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===e.exitHalf);if(c){const label=e.op==='multiply'?`×${e.factor}${e.doubleDouble?' DD':''}`:`+${e.add}${e.doubleDouble?' DD':''}`;fx(c.x+1,c.y+1,label,e.after);await wait(180)}}}else if(e.type==='rebound'){const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle);await wait(180)}}}const finalDuration=finalFx(finalOutput);await wait(Math.min(1400,Math.max(900,finalDuration-500)))}
 
   async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}GAME.save();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}
 

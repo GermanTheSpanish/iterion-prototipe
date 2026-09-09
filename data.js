@@ -16,6 +16,16 @@
     HAND_SIZE:5,
     TOTAL_ROUNDS:15,
     ENDLESS_TARGET_MULTIPLIER:5,
+    CIRCUIT_TILE_LIMIT:3,
+    CIRCUIT_MAX_RANK:5,
+    CIRCUIT_REWARDS:[{minSize:4,ranks:1},{minSize:7,ranks:2},{minSize:10,ranks:3}],
+    CIRCUIT_RANKS:[
+      {roman:'I',color:'white',bonus:0.5},
+      {roman:'II',color:'green',bonus:1},
+      {roman:'III',color:'blue',bonus:2},
+      {roman:'IV',color:'purple',bonus:4},
+      {roman:'V',color:'gold',bonus:8}
+    ],
     STAGE_SIZE:3,
     DRAG_Y_OFFSET:72,
     LONG_PRESS_MS:500,

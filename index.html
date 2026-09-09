@@ -30,6 +30,15 @@ body{position:fixed;inset:0}
 @keyframes dealIn{0%{background:#111;border-color:#111;transform:scaleY(.12);opacity:.7}55%{background:#777;border-color:#555;transform:scaleY(1.05)}100%{background:#fbf8f0;border-color:#222;transform:scaleY(1);opacity:1}}@keyframes pipsIn{0%,45%{opacity:0}100%{opacity:1}}@keyframes pop{0%{opacity:0;transform:translate(-50%,-30%) scale(.4)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-100%) scale(1.5)}}@keyframes final{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}25%,75%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0}}@keyframes boardMsg{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}20%,65%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(1.06)}}
 @media(max-height:700px){.handSlot{height:48px}.domino{width:28px}.half{width:25px;height:25px}.app{gap:3px}.scoreCard{padding:5px 8px}.scoreValue{font-size:20px}.bottomBar{min-height:28px}.btn{padding:5px 1px;font-size:7px}.auxModal{padding:12px}.rulebookList{gap:4px}.modal .rulebookItem{min-height:45px;padding:6px}.rulebookItem span{font-size:7.5px}}
 </style>
+<style>
+.circuitTile{background:#141414;border-color:#050505;--circuit-pip:#fff}
+.circuitRank2{--circuit-pip:#65db87}.circuitRank3{--circuit-pip:#75baff}.circuitRank4{--circuit-pip:#d09bff}.circuitRank5{--circuit-pip:#f4cb5a}
+.circuitTile .pip,.circuitTile .spip{background:var(--circuit-pip)}
+.piece.circuitTile.h .cube+.cube,.piece.circuitTile.v .cube+.cube,.circuitTile .half+.half{border-color:#777}
+.circuitRankMark{position:absolute;right:2px;bottom:1px;z-index:10;color:var(--circuit-pip);background:#141414;font:700 6px/1 monospace;pointer-events:none;padding:1px}
+.circuitChoice{flex:0 0 auto;font-size:10px;font-weight:800;line-height:1.3;text-align:center;padding:5px;border-bottom:1px solid var(--line)}
+.circuitChoice[hidden]{display:none}.piece.circuitDim{opacity:.25}.piece.circuitMember{outline:1px solid #777;outline-offset:1px}.piece.circuitEligible{outline:2px solid #111;outline-offset:2px;cursor:pointer;z-index:10}.piece.circuitEligible:focus-visible{outline:3px dashed #111}
+</style>
 </head>
 <body>
 <div class="app">
@@ -49,6 +58,7 @@ body{position:fixed;inset:0}
     <section class="boardShell">
       <div class="boardTop"><strong id="stageRound">STAGE 1 · ROUND 1/3</strong><div class="boardMeta"><span id="boardsize" class="label">18 × 24</span><button id="helpButton" class="helpButton" aria-label="Open Rulebook">?</button></div></div>
       <div class="boardFrame"><div id="board" class="board"></div></div>
+      <div id="circuitChoice" class="circuitChoice" role="status" aria-live="polite" hidden></div>
     </section>
     <aside class="handRail">
       <div class="handHeader"><span class="label">Hand</span></div>
@@ -71,6 +81,6 @@ body{position:fixed;inset:0}
 </div>
 <div id="overlay" class="overlay"><div class="modal"><h2 id="overlayTitle"></h2><div id="overlayBody"></div><div class="modalActions"><button id="overlayPrimary" class="primary"></button><button id="overlaySecondary" class="secondary"></button><button id="overlayTertiary" class="secondary"></button></div></div></div>
 <div id="toast" class="toast"></div>
-<script src="engine.js"></script><script src="data.js"></script><script src="mods.js"></script><script src="game.js"></script><script src="help.js"></script><script src="gesture.js"></script><script src="ui.js"></script>
+<script src="engine.js"></script><script src="data.js"></script><script src="mods.js"></script><script src="circuits.js"></script><script src="game.js"></script><script src="help.js"></script><script src="gesture.js"></script><script src="ui.js"></script>
 </body>
 </html>
