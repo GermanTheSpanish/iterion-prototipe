@@ -49,6 +49,13 @@ jobs:
             exit 1
           fi
           npm run test:browser
+      - name: Upload browser review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-review
+          path: test-results/
+          retention-days: 7
       - name: Verify committed tree is unchanged
         if: always()
         run: |

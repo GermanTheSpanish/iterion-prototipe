@@ -2,6 +2,8 @@
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,GAME=window.IterionGame.createGame(E),ARROW=E.ARROW;
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
+  const V=window.IterionPresentation,gameMenu=$('gameMenu'),menuButton=$('menuButton');
+  let returnFocus=null;
   const circuitChoice=$('circuitChoice');
   const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version');
   let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null;
@@ -10,6 +12,7 @@
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const px=n=>n/E.G*100+'%',py=n=>n/E.H*100+'%';
   const fmt=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-US'):`${n}`;
+  const compact=V.compact;
   document.title=`ITERION v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · ${D.TOTAL_ROUNDS} rounds + Endless`;
   H.bindRun(GAME.state().runId);
 
@@ -66,7 +69,7 @@
       const t=s.hand[i],slot=document.createElement('div');slot.className='handSlot';
       if(handFx[i]==='hidden'||(drag.active&&drag.index===i)){handEl.appendChild(slot);continue}
       if(handFx[i]==='back'){const shell=document.createElement('div');shell.innerHTML=mini(t||{a:0,b:0},'back');slot.appendChild(shell.firstChild);handEl.appendChild(slot);continue}
-      if(t){const b=document.createElement('button');b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy||!!s.pendingCircuit;b.setAttribute('aria-disabled',mask[i]?'false':'true');b.setAttribute('aria-label',`Domino ${t.a}|${t.b}. Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});slot.appendChild(b)}
+      if(t){const b=document.createElement('button');b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy||!!s.pendingCircuit;b.setAttribute('aria-disabled',b.disabled?'true':'false');b.setAttribute('aria-label',`Domino ${t.a}|${t.b}.${mask[i]?'':' No legal placement.'} Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});slot.appendChild(b)}
       handEl.appendChild(slot)
     }
   }
@@ -83,7 +86,9 @@
 
   function escapeHtml(value){return`${value}`.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
   function ruleVisual(section){return section.visual?`<div class="ruleVisual">${escapeHtml(section.visual)}</div>`:''}
-  function closeAuxOverlay(){auxOverlay=null;render()}
+  function closeAuxOverlay(){auxOverlay=null;render();(returnFocus?.isConnected?returnFocus:helpBtn).focus();returnFocus=null}
+  function openScoreDetails(kind){if(GAME.state().running||uiBusy||drag.active)return;returnFocus=document.activeElement;press.cancel();auxOverlay={type:'score',kind};renderAuxOverlay()}
+  function renderScoreDetails(){const s=GAME.state(),isTarget=auxOverlay.kind==='target',value=isTarget?GAME.target():s.score;overlayTitle.textContent=isTarget?'TARGET':'SCORE';overlayBody.innerHTML=`<div class="scoreExact">${escapeHtml(V.exact(value))}</div><p>${isTarget?'Reach or exceed this value to clear the round.':'Result of the last Move, including Echo and Circuit Resonance. It is not a running total.'}</p><p>K = thousand · M = million<br>B = billion · T = trillion</p>`;overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay}
   function openRulebook(){H.bindRun(GAME.state().runId);H.recordRulebookOpen();auxOverlay={type:'rulebook',sectionId:null};renderAuxOverlay()}
   function openRulebookSection(id){H.recordSectionOpen(id);auxOverlay={type:'rulebook',sectionId:id};renderAuxOverlay()}
   function operationLabel(op){if(op.type==='add')return`+${op.add}`;if(op.type==='multiply')return`×${op.factor}`;if(op.type==='zero')return'0 · rebound';return'—'}
@@ -116,7 +121,8 @@
   function renderAuxOverlay(){
     if(!auxOverlay)return;
     resetOverlay();overlay.classList.add('aux');modalEl.classList.add('auxModal');overlay.onclick=e=>{if(e.target===overlay)closeAuxOverlay()};
-    auxOverlay.type==='rulebook'?renderRulebook():renderInspector()
+    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else renderInspector();
+    if(!overlay.contains(document.activeElement)){if(!returnFocus)returnFocus=document.activeElement;overlayPrimary.focus()}
   }
 
   function runSummary(){
@@ -173,8 +179,8 @@
   }
 
   function render(){
-    const s=GAME.state(),x=GAME.snapshot();H.bindRun(s.runId);renderBoard();renderHand();scoreEl.textContent=fmt(s.score);targetEl.textContent=fmt(GAME.target());stageEl.textContent=`${x.stage.index}/${x.endless?.active?'∞':x.stage.total}`;roundEl.textContent=`${s.round+1}/${x.endless?.active?'∞':D.TOTAL_ROUNDS}`;movesEl.textContent=`${s.roundTurn}/${GAME.maxPlacements()}`;tilesEl.textContent=x.availableTileCount;coinEl.textContent=s.coins;stageRoundEl.textContent=x.endless?.active?`ENDLESS · STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`:`STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`;boardSizeEl.textContent=`${E.G} × ${E.H}`;
-    shopBtn.textContent=`Shop · ${s.coins}c`;shopBtn.disabled=uiBusy||!GAME.canOpenShop();moveBtn.textContent=`Move +1 · ${s.consumables.move}`;moveBtn.disabled=uiBusy||!GAME.canUseMove();rerollBtn.textContent=s.stageReroll?`Reroll · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`Reroll · ${s.consumables.reroll}`;rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.textContent=`Undo · ${s.consumables.undo}`;undoBtn.disabled=uiBusy||!GAME.canUndo();
+    const s=GAME.state(),x=GAME.snapshot(),display=V.scoreDisplay(s.score,GAME.target());H.bindRun(s.runId);renderBoard();renderHand();scoreEl.textContent=display.score;targetEl.textContent=display.target;$('scoreNote').textContent=display.note;$('scoreDetail').setAttribute('aria-label',`Score ${V.exact(s.score)}. ${display.note}. Show exact value.`);$('targetDetail').setAttribute('aria-label',`Target ${V.exact(GAME.target())}. Show exact value.`);stageEl.textContent=`${x.stage.index}/${x.endless?.active?'∞':x.stage.total}`;roundEl.textContent=`${s.round+1}/${x.endless?.active?'∞':D.TOTAL_ROUNDS}`;movesEl.textContent=`${s.roundTurn}/${GAME.maxPlacements()}`;$('movesRemaining').textContent=Math.max(0,GAME.maxPlacements()-s.roundTurn);tilesEl.textContent=x.availableTileCount;coinEl.textContent=s.coins;stageRoundEl.textContent=x.endless?.active?`ENDLESS · STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`:`STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`;boardSizeEl.textContent=`${E.G} × ${E.H}`;
+    shopBtn.innerHTML=`Shop<small>${compact(s.coins)} coins</small>`;shopBtn.disabled=uiBusy||!GAME.canOpenShop();moveBtn.innerHTML=`Move<small>+1 · ${s.consumables.move}</small>`;moveBtn.disabled=uiBusy||!GAME.canUseMove();const rerollLabel=s.stageReroll?`Reroll · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`Reroll · ${s.consumables.reroll}`;rerollBtn.innerHTML=`Reroll<small>${rerollLabel.slice(9)}</small>`;rerollBtn.setAttribute('aria-label',rerollLabel);rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.innerHTML=`Undo<small>${s.consumables.undo}</small>`;undoBtn.disabled=uiBusy||!GAME.canUndo();menuButton.disabled=s.running||uiBusy;
     hint.textContent=s.cleared?'Round cleared.':s.needsReroll?'No legal placements. Reroll, Shop or Undo can help.':s.blocked?(s.failureReason==='no-tiles'?'No physical tiles remain. The Shop may rescue the run.':s.failureReason==='placement-limit'?'No moves remain.':'The round is over.'):s.pieces.length===0?'Opening rule: the first tile must be a double.':`Build the machine · ${GAME.maxPlacements()-s.roundTurn} moves remaining.`;renderLog();
     const pending=s.pendingCircuit;
     circuitChoice.hidden=!pending;
@@ -204,10 +210,25 @@
 
   function pc(id){return GAME.state().pieces.find(p=>p.id===id)}
   function magnitude(v){const n=Math.abs(Number(v)||0);return n<1?1:Math.floor(Math.log10(n))+1}
-  function fx(x,y,t,value=0){const d=document.createElement('div'),digits=magnitude(value),duration=(D.CASCADE_FX_BASE_MS||1200)+digits*(D.CASCADE_FX_PER_DIGIT_MS||90),size=Math.min(D.CASCADE_FX_MAX_PX||42,(D.CASCADE_FX_BASE_PX||14)+digits*(D.CASCADE_FX_PER_DIGIT_PX||3.2));d.className='opfx';d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);setTimeout(()=>d.remove(),duration+120)}
-  function reboundFx(x,y,angle=180){const d=document.createElement('div'),duration=D.CASCADE_FX_BASE_MS||1200;d.className='opfx reboundFx';d.style.left=px(x);d.style.top=py(y);d.style.animationDuration=`${duration}ms`;d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`;board.appendChild(d);setTimeout(()=>d.remove(),duration+120)}
-  function finalFx(v){const d=document.createElement('div'),digits=magnitude(v),duration=(D.CASCADE_FINAL_MS||1800)+Math.min(700,digits*55),size=Math.min(D.CASCADE_FINAL_MAX_PX||68,30+digits*4);d.className='finalfx';d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=fmt(v);board.appendChild(d);setTimeout(()=>d.remove(),duration+120);return duration}
-  async function animate(p,trigger,sim,finalOutput=sim.output??trigger){renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${fmt(trigger)}`,trigger);await wait(260);let lastOp=null;for(const e of sim.events||[]){if(e.type==='op'){lastOp=e;if(e.value!==0){const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===e.exitHalf);if(c){const label=e.op==='multiply'?`×${e.factor}${e.doubleDouble?' DD':''}`:`+${e.add}${e.doubleDouble?' DD':''}`;fx(c.x+1,c.y+1,label,e.after);await wait(180)}}}else if(e.type==='rebound'){const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle);await wait(180)}}}const finalDuration=finalFx(finalOutput);await wait(Math.min(1400,Math.max(900,finalDuration-500)))}
+  function fx(x,y,t,value=0,kind='add',index=0){const d=document.createElement('div'),duration=V.effectLifetime(index),size=Math.min(34,24+magnitude(value));d.className=`opfx ${kind}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);while(board.querySelectorAll('.opfx').length>V.CASCADE.maxLabels)board.querySelector('.opfx').remove();setTimeout(()=>d.remove(),duration);return d}
+  function reboundFx(x,y,angle=180,index=0){const d=fx(x,y,'',0,'reboundFx',index);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`}
+  function finalFx(v){board.querySelectorAll('.opfx,.signalActive').forEach(el=>el.classList.contains('opfx')?el.remove():el.classList.remove('signalActive'));const d=document.createElement('div'),duration=V.CASCADE.finalMs;d.className='finalfx';d.textContent=compact(v);board.appendChild(d);setTimeout(()=>d.remove(),duration);return duration}
+  async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
+    renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger);await wait(V.cascadeDelay(0));let lastOp=null,index=0;
+    for(const e of sim.events||[]){
+      if(e.type==='op'||e.type==='echo-op'||e.type==='zero-memory'){
+        if(e.type==='op')lastOp=e;
+        const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===e.exitHalf)||pp?.cubes[0];
+        board.querySelector('.signalActive')?.classList.remove('signalActive');board.querySelector(`[data-tile-id="${pp?.tile.id}"]`)?.classList.add('signalActive');
+        if(c&&e.value!==0){const kind=e.op==='multiply'?'multiply':'add',suffix=e.type==='echo-op'?' E':e.type==='zero-memory'?' ZM':e.doubleDouble?' DD':'';fx(c.x+1,c.y+1,`${kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add)}${suffix}`,e.after,kind,index);await wait(V.cascadeDelay(index))}
+        if(e.type!=='zero-memory')index++;
+      }else if(e.type==='rebound'||e.type==='echo-rebound'){
+        const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
+        if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle,index);await wait(Math.max(160,V.cascadeDelay(index)))}
+      }else if(e.type==='double-echo-start'){const pp=pc(e.piece);if(pp){fx(pp.cubes[0].x+1,pp.cubes[0].y+1,'ECHO',0,'signal',index);await wait(180)}}
+    }
+    await wait(finalFx(finalOutput));
+  }
 
   async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}GAME.save();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}
 
@@ -228,6 +249,11 @@
     if(ok){toast('Run data copied');return true}
     viewRun=true;renderLog();const ta=runlog.querySelector('.runDataText');if(ta){ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}}toast('Copy blocked · run data selected');return false
   }
-  shopBtn.onclick=openPermanentShop;moveBtn.onclick=useMove;rerollBtn.onclick=doReroll;undoBtn.onclick=useUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=copyRun;viewBtn.onclick=()=>{viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
+  function closeMenu(){gameMenu.close();menuButton.setAttribute('aria-expanded','false')}
+  menuButton.onclick=()=>{if(GAME.state().running||uiBusy||drag.active)return;press.cancel();gameMenu.showModal();menuButton.setAttribute('aria-expanded','true')};$('closeMenu').onclick=closeMenu;gameMenu.onclose=()=>menuButton.setAttribute('aria-expanded','false');gameMenu.onclick=e=>{if(e.target===gameMenu){const r=gameMenu.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeMenu()}};
+  $('scoreDetail').onclick=()=>openScoreDetails('score');$('targetDetail').onclick=()=>openScoreDetails('target');
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','overlayTitle');
+  document.addEventListener('keydown',e=>{if(!overlay.classList.contains('show'))return;if(e.key==='Escape'&&auxOverlay){e.preventDefault();closeAuxOverlay();return}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled),[tabindex="0"]')].filter(b=>b.getClientRects().length);if(!buttons.length)return;const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&(document.activeElement===first||!overlay.contains(document.activeElement))){e.preventDefault();last.focus()}else if(!e.shiftKey&&(document.activeElement===last||!overlay.contains(document.activeElement))){e.preventDefault();first.focus()}}});
+  shopBtn.onclick=openPermanentShop;moveBtn.onclick=useMove;rerollBtn.onclick=doReroll;undoBtn.onclick=useUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;closeMenu();newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=()=>{closeMenu();copyRun()};viewBtn.onclick=()=>{closeMenu();viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
   GAME.save();render();
 })();

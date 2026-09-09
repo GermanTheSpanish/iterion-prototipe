@@ -8,9 +8,10 @@ assert.match(ui,/Add one random new physical domino to this run\./,'Shop must ex
 assert.match(ui,/SUPPLY \$\{supply\} · \$\{nextMarket\}/,'Market must show physical tile supply and next Market timing');
 assert.match(ui,/tileModMarks/,'Physical tile modifiers must have a visual marker renderer');
 assert.match(ui,/function magnitude\(v\)/);
-assert.match(ui,/CASCADE_FX_PER_DIGIT_PX/);
-assert.match(ui,/CASCADE_FX_PER_DIGIT_MS/);
-assert.match(ui,/CASCADE_FINAL_MS/);
+// Deliberate UI redesign: pacing/lifetime depend on activation count, not magnitude.
+assert.match(ui,/V\.cascadeDelay\(index\)/);
+assert.match(ui,/V\.effectLifetime\(index\)/);
+assert.match(ui,/V\.CASCADE\.finalMs/);
 assert.match(ui,/reboundArrow/);
 assert.match(ui,/Math\.atan2\(entry\.y-exit\.y,entry\.x-exit\.x\)/);
 assert.doesNotMatch(html,/reboundGlyph/);

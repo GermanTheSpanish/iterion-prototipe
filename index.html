@@ -39,48 +39,34 @@ body{position:fixed;inset:0}
 .circuitChoice{flex:0 0 auto;font-size:10px;font-weight:800;line-height:1.3;text-align:center;padding:5px;border-bottom:1px solid var(--line)}
 .circuitChoice[hidden]{display:none}.piece.circuitDim{opacity:.25}.piece.circuitMember{outline:1px solid #777;outline-offset:1px}.piece.circuitEligible{outline:2px solid #111;outline-offset:2px;cursor:pointer;z-index:10}.piece.circuitEligible:focus-visible{outline:3px dashed #111}
 </style>
+<link rel="stylesheet" href="ui-theme.css">
 </head>
 <body>
 <div class="app">
   <div id="version" hidden></div>
-  <section class="scoreStrip">
-    <div class="scoreCard"><div class="label">Output</div><div id="score" class="scoreValue">0</div></div>
-    <div class="scoreCard targetCard"><div class="label">Target</div><div id="target" class="scoreValue">20</div></div>
+  <header class="gameHeader"><span class="wordmark">ITERION</span><div class="headerActions"><button id="helpButton" class="helpButton" aria-label="Open Rulebook">?</button><button id="menuButton" class="iconButton" aria-label="Open game menu" aria-expanded="false">···</button></div></header>
+  <section class="scoreStrip" aria-label="Round score">
+    <button id="targetDetail" class="scoreCard targetCard" aria-label="Show exact target"><span class="label">Target</span><span id="target" class="scoreValue">20</span><span class="scoreCaption">This round</span></button>
+    <button id="scoreDetail" class="scoreCard" aria-label="Show exact score"><span class="label">Score</span><span id="score" class="scoreValue">0</span><span id="scoreNote" class="scoreCaption">Last move</span></button>
   </section>
-  <section class="metaStrip">
-    <div class="meta"><div class="label">Stage</div><strong id="stagestat">1/5</strong></div>
-    <div class="meta"><div class="label">Round</div><strong id="roundstat">1/15</strong></div>
-    <div class="meta"><div class="label">Moves</div><strong id="moves">0/7</strong></div>
-    <div class="meta"><div class="label">Tiles</div><strong id="tilesleft">28</strong></div>
-    <div class="meta walletMeta"><div class="label">Coins</div><strong id="coins">0</strong></div>
-  </section>
+  <section class="metaStrip"><div class="roundMeta">ROUND <strong id="roundstat">1/15</strong><span class="stageMeta">STAGE <strong id="stagestat">1/5</strong></span></div><div class="movesMeta"><strong id="movesRemaining">7</strong> moves left<span id="moves" hidden>0/7</span></div></section>
   <main class="gameArea">
     <section class="boardShell">
-      <div class="boardTop"><strong id="stageRound">STAGE 1 · ROUND 1/3</strong><div class="boardMeta"><span id="boardsize" class="label">18 × 24</span><button id="helpButton" class="helpButton" aria-label="Open Rulebook">?</button></div></div>
+      <div class="boardTop"><strong id="stageRound">STAGE 1 · ROUND 1/3</strong><span id="boardsize" hidden>18 × 24</span></div>
       <div class="boardFrame"><div id="board" class="board"></div></div>
       <div id="circuitChoice" class="circuitChoice" role="status" aria-live="polite" hidden></div>
     </section>
     <aside class="handRail">
       <div class="handHeader"><span class="label">Hand</span></div>
       <div id="hand" class="hand"></div>
-      <div class="railActions">
-        <button id="shopButton" class="btn shopRailButton">Shop · 0c</button>
-        <div class="label toolsLabel">Tools</div>
-        <button id="moveTool" class="btn">Move +1 · 0</button>
-        <button id="reroll" class="btn">Reroll · 1</button>
-        <button id="undoTool" class="btn">Undo · 0</button>
-        <button id="reset" class="btn secondary">New run</button>
-      </div>
     </aside>
   </main>
-  <footer class="bottomBar">
-    <p id="hint" class="hint"></p>
-    <div class="debugTools"><button id="viewrun" class="tool">Data</button><button id="copyrun" class="tool">Copy</button></div>
-  </footer>
+  <footer class="bottomBar"><p id="hint" class="hint"></p><div class="railActions"><button id="moveTool" class="btn">Move +1 · 0</button><button id="reroll" class="btn">Reroll · 1</button><button id="undoTool" class="btn">Undo · 0</button><button id="shopButton" class="btn shopRailButton">Shop · 0c</button></div></footer>
   <div id="runlog" class="runlog"></div>
 </div>
+<dialog id="gameMenu" class="gameMenu" aria-labelledby="menuTitle"><div class="menuHead"><h2 id="menuTitle">Run menu</h2><button id="closeMenu" class="iconButton" aria-label="Close game menu">×</button></div><div class="menuStats"><span>Coins <strong id="coins">0</strong></span><span>Available tiles <strong id="tilesleft">28</strong></span></div><button id="viewrun" class="menuAction">Run data</button><button id="copyrun" class="menuAction">Copy run data</button><button id="reset" class="menuAction">New run</button><p>Hold a domino to inspect it.</p></dialog>
 <div id="overlay" class="overlay"><div class="modal"><h2 id="overlayTitle"></h2><div id="overlayBody"></div><div class="modalActions"><button id="overlayPrimary" class="primary"></button><button id="overlaySecondary" class="secondary"></button><button id="overlayTertiary" class="secondary"></button></div></div></div>
 <div id="toast" class="toast"></div>
-<script src="engine.js"></script><script src="data.js"></script><script src="mods.js"></script><script src="circuits.js"></script><script src="game.js"></script><script src="help.js"></script><script src="gesture.js"></script><script src="ui.js"></script>
+<script src="engine.js"></script><script src="data.js"></script><script src="mods.js"></script><script src="circuits.js"></script><script src="game.js"></script><script src="help.js"></script><script src="gesture.js"></script><script src="presentation.js"></script><script src="ui.js"></script>
 </body>
 </html>

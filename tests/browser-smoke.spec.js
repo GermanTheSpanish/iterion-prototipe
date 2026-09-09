@@ -1,5 +1,60 @@
 const { test, expect } = require('@playwright/test');
 
+async function assertPhoneLayout(page){
+  const metrics=await page.evaluate(()=>{
+    const rect=id=>{const r=document.getElementById(id).getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}};
+    return{vw:innerWidth,vh:innerHeight,w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight,board:rect('board'),hand:rect('hand'),target:rect('targetDetail'),score:rect('scoreDetail'),controls:['moveTool','reroll','undoTool','shopButton'].map(rect),fonts:[...document.querySelectorAll('.label,.hint,.scoreCaption,.btn')].filter(el=>el.getClientRects().length).map(el=>parseFloat(getComputedStyle(el).fontSize))};
+  });
+  expect(metrics.w).toBeLessThanOrEqual(metrics.vw);expect(metrics.h).toBeLessThanOrEqual(metrics.vh);
+  expect(metrics.board.width).toBeGreaterThan(240);expect(metrics.board.width/metrics.board.height).toBeCloseTo(.75,2);
+  expect(metrics.hand.x).toBeGreaterThanOrEqual(metrics.board.right);expect(metrics.hand.bottom).toBeLessThanOrEqual(metrics.vh);
+  expect(metrics.target.right).toBeLessThanOrEqual(metrics.score.x);expect(Math.min(...metrics.fonts)).toBeGreaterThanOrEqual(11);
+  for(const r of metrics.controls){expect(r.height).toBeGreaterThanOrEqual(44);expect(r.bottom).toBeLessThanOrEqual(metrics.vh)}
+}
+
+for(const viewport of [{width:375,height:667},{width:390,height:844}]){
+  test(`UX opening and exact score on ${viewport.width}x${viewport.height}`,async({page},testInfo)=>{
+    await page.setViewportSize(viewport);await page.goto('http://127.0.0.1:4173/');await assertPhoneLayout(page);
+    await page.screenshot({path:testInfo.outputPath('opening.png')});
+    await page.locator('#targetDetail').click();await expect(page.locator('.scoreExact')).toHaveText('20');
+    await page.keyboard.press('Escape');await expect(page.locator('#overlay')).not.toHaveClass(/show/);await expect(page.locator('#targetDetail')).toBeFocused();
+    await page.locator('#menuButton').click();await expect(page.locator('#gameMenu')).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('#gameMenu')).not.toBeVisible();
+  });
+}
+
+test('UX large machine, compact scores and exact threshold',async({page},testInfo)=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.addInitScript(()=>{
+    let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){
+      const game=value.createGame(engine,{...options,seed:2530}),s=game.state();engine.setBoardSize(30,40);s.boardStage=4;s.round=15;s.endlessMode=true;s.standardComplete=true;
+      const root=s.set.find(t=>t.id==='d2-2'),p=engine.pieceFrom(root,14,18,0,0,1);p.tile={...root};s.pieces=[p];s.placedTileIds=[root.id];
+      // Legal connected geometry, with distinct purchased-instance fixture IDs.
+      for(let i=0;i<35;i++){const tile={id:`fixture-${i}`,a:[2,3,4][i%3],b:[3,4,2][i%3],upgrade:i%11===0?2:0,source:'test-purchase'},cs=engine.allPlacements(tile,0,s.pieces);if(!cs.length)continue;cs.sort((a,b)=>Math.hypot(a.x-14,a.y-18)-Math.hypot(b.x-14,b.y-18));const c=cs[Math.floor(cs.length/5)],piece=engine.pieceFrom(tile,c.x,c.y,0,c.rr,s.pieces.length+1);piece.tile=tile;s.pieces.push(piece);s.set.push(tile);s.placedTileIds.push(tile.id)}
+      s.hand=s.set.filter(t=>!s.placedTileIds.includes(t.id)).slice(0,5);s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.includes(t));s.turn=s.pieces.length;s.idc=s.pieces.length;s.score=game.target()-1;s.circuitRanks={[s.pieces[4].tile.id]:2,[s.pieces[8].tile.id]:3,[s.pieces[12].tile.id]:5};window.__iterionTestGame=game;return game;
+    }}}});
+  });
+  await page.goto('http://127.0.0.1:4173/');await assertPhoneLayout(page);await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('<250B');await expect(page.locator('#scoreNote')).toHaveText('1 to target');
+  await page.screenshot({path:testInfo.outputPath('dense-endless.png')});const before=await page.evaluate(()=>window.__iterionTestGame.state().score);
+  await page.locator('#scoreDetail').click();await expect(page.locator('.scoreExact')).toHaveText('249,999,999,999');await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__iterionTestGame.state().score)).toBe(before);
+});
+
+test('UX real placement cascade, operation contrast and deferred Circuit choice',async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{
+    let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){
+      const g=value.createGame(engine,{...options,seed:2531,TARGETS:Array(15).fill(1e15)}),s=g.state();s.pieces=[['d1-2',2,0,0],['d2-3',6,0,1],['d3-4',6,4,2]].map(([id,x,y,rr],i)=>{const t=s.set.find(t=>t.id===id),p=engine.pieceFrom(t,x,y,0,rr,i+1);p.tile={...t};return p});s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=3;s.turn=3;s.hand=[s.set.find(t=>t.id==='d1-4'),s.set.find(t=>t.id==='d2-2'),null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h?.id===t.id));window.__iterionTestGame=g;return g;
+    }}}});
+  });
+  await page.goto('http://127.0.0.1:4173/');
+  await page.evaluate(()=>{window.__cascadeFrames=[];new MutationObserver(records=>{for(const r of records)for(const el of r.addedNodes)if(el.nodeType===1&&el.classList.contains('opfx'))window.__cascadeFrames.push({kind:el.className,text:el.textContent,time:performance.now(),color:getComputedStyle(el).color,stroke:getComputedStyle(el).webkitTextStrokeColor})}).observe(document.querySelector('#board'),{childList:true})});
+  const hand=await page.locator('#hand .tile').first().boundingBox(),board=await page.locator('#board').boundingBox();
+  await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);await page.mouse.down();await page.mouse.move(hand.x-20,hand.y+hand.height/2);await page.mouse.move(board.x+3/18*board.width,board.y+4/24*board.height+72);await page.mouse.up();
+  await expect(page.locator('.opfx')).not.toHaveCount(0);await page.screenshot({path:testInfo.outputPath('cascade.png')});
+  await expect(page.locator('#circuitChoice')).toBeVisible({timeout:10000});
+  const frames=await page.evaluate(()=>window.__cascadeFrames),adds=frames.filter(f=>f.kind.includes('add')),mults=frames.filter(f=>f.kind.includes('multiply'));expect(adds.length).toBeGreaterThan(0);expect(mults.length).toBeGreaterThan(0);expect(adds[0].color).toBe('rgb(255, 255, 255)');expect(adds[0].stroke).toBe('rgb(21, 21, 21)');expect(mults[0].color).toBe('rgb(21, 21, 21)');
+  await page.screenshot({path:testInfo.outputPath('circuit-choice.png')});await assertPhoneLayout(page);
+});
+
 test('ITERION browser smoke', async ({ page }) => {
   const jsErrors=[];
   page.on('pageerror',error=>jsErrors.push(`pageerror: ${error.message}`));
@@ -15,6 +70,7 @@ test('ITERION browser smoke', async ({ page }) => {
   const firstRunId=await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.latestRun.v9')||'null')?.runId||null);
   expect(firstRunId).toBeTruthy();
   page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#menuButton').click();
   await page.locator('#reset').click();
   await page.waitForFunction(previous=>{
     const saved=JSON.parse(localStorage.getItem('iterion.latestRun.v9')||'null');
@@ -28,6 +84,7 @@ test('ITERION browser smoke', async ({ page }) => {
   await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);
 
+  await page.locator('#menuButton').click();
   await page.locator('#viewrun').click();
   await expect(page.locator('#runlog')).toHaveClass(/show/);
   await page.locator('#runlog button',{hasText:'CLOSE'}).click();
@@ -76,7 +133,8 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
     await page.locator('#overlayPrimary').click();
     await expect(page.locator('#roundstat')).toHaveText('16/∞');
     await expect(page.locator('#stageRound')).toContainText('ENDLESS');
-    await expect(page.locator('#target')).toHaveText('250,000,000,000');
+    await expect(page.locator('#target')).toHaveText('250B');
+    await expect(page.locator('#targetDetail')).toHaveAttribute('aria-label',/250,000,000,000/);
     const after=await page.evaluate(()=>window.__iterionTestGame.snapshot());
     expect(after.board).toEqual(before.board);expect(after.set).toEqual(before.set);
     expect(after.coins).toBe(before.coins);expect(after.inflation).toBe(before.inflation);

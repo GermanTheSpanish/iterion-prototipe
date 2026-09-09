@@ -1,0 +1,92 @@
+/* Presentation layer: layout, type and feedback. Physical board geometry stays in engine.js. */
+:root{--bg:#f7f7f4;--paper:#fff;--ink:#151515;--muted:#61615b;--line:#d6d6cf;--shadow:none}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:default}
+button:focus-visible{outline:2px solid #151515;outline-offset:3px}
+.app{width:min(100%,560px);padding:calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));grid-template-rows:44px auto 34px minmax(0,1fr) auto;gap:5px}
+.gameHeader{display:flex;align-items:center;justify-content:space-between}
+.wordmark{font-size:13px;font-weight:750;letter-spacing:.23em}
+.headerActions{display:flex;gap:2px}
+.iconButton,.helpButton{width:44px;height:44px;appearance:none;border:0;border-radius:0;background:transparent;color:var(--ink);font:500 24px/1 inherit;padding:0;font-size:24px;line-height:1}
+.helpButton{font-size:20px}
+.label{font-size:12px;line-height:1.3;letter-spacing:.12em;color:var(--muted)}
+.scoreStrip{grid-template-columns:1fr 1.15fr;gap:12px;align-items:start}
+.scoreCard{display:block;text-align:right;border:0;border-radius:0;background:none;padding:4px 0;min-height:94px;color:var(--ink)}
+.targetCard{text-align:left;background:none}
+.scoreValue{display:block;font-size:clamp(32px,10vw,52px);line-height:1.08;font-weight:650;letter-spacing:-.055em;margin:4px 0;overflow:visible;text-overflow:clip}
+.targetCard .scoreValue{font-weight:400}
+.scoreCaption{display:block;font-size:12px;line-height:1.4;min-height:17px;color:var(--muted)}
+.metaStrip{display:flex;align-items:center;justify-content:space-between;border-top:0;border-bottom:1px solid var(--line);padding:0;font-size:12px;gap:8px}
+.roundMeta{display:flex;gap:5px;align-items:center;white-space:nowrap}
+.roundMeta>strong,.movesMeta>strong{font-size:14px;font-variant-numeric:tabular-nums}
+.stageMeta{margin-left:8px;color:var(--muted);font-size:12px}
+.stageMeta strong{font-weight:500}
+.movesMeta{white-space:nowrap}
+.gameArea{grid-template-columns:minmax(0,1fr) 56px;gap:10px;overflow:hidden}
+.boardShell{padding:0;border:0;border-radius:0;background:none;position:relative}
+.boardTop{display:none}
+.boardFrame{position:relative;container-type:size;overflow:hidden}
+.board{width:min(100cqw,75cqh);height:min(100cqh,133.333333cqw);max-width:100%;max-height:100%;flex:none;border-radius:0;box-shadow:inset 0 0 0 1px #e5e5df;background:#fff}
+.board.dragging{box-shadow:inset 0 0 0 1px #151515}
+.handRail{padding:0;border:0;border-radius:0;background:none}
+.handHeader{padding:0;height:24px;display:flex;align-items:center;justify-content:center}
+.handHeader .label{font-size:11px}
+.hand{gap:6px;justify-content:center}
+.handSlot{height:82px;flex:0 1 82px;min-height:52px;border-radius:0}
+.tile{width:52px;height:100%;padding:2px;display:flex;align-items:center;justify-content:center}
+.domino{width:38px;max-height:100%;border-radius:3px;border-width:1px;background:#fff;box-shadow:none;flex:none}
+.half{width:36px;height:36px;max-height:calc((100dvh - 290px)/10);flex:1 1 auto}
+.spip{width:4px;height:4px}
+.tile.unplayable{opacity:.5;filter:none}
+.piece{background:#fff;border-radius:2px;box-shadow:none}
+.piece.circuitTile,.domino.circuitTile{background:#141414}
+.dragFloat{filter:none}
+.dragCandidate{box-shadow:none;transform:none}
+.bottomBar{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-height:0}
+.hint{font-size:12px;line-height:1.4;min-height:34px;margin:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted)}
+.railActions{grid-template-columns:1fr 1.2fr 1fr 1.15fr;gap:6px}
+.btn{min-height:48px;padding:5px 3px;font-size:14px;line-height:1.2;border-radius:4px;white-space:normal;background:transparent}
+.btn small{display:block;font-size:12px;font-weight:450;line-height:1.35}
+.btn:disabled{opacity:.45}
+.shopRailButton{background:#151515;color:white;border-color:#151515}
+.tool{min-height:44px;padding:8px 12px;font-size:13px;border-radius:4px}
+.toast{font-size:13px;border-radius:4px;bottom:calc(75px + env(safe-area-inset-bottom));pointer-events:none}
+.circuitChoice{font-size:13px;line-height:1.4;padding:9px 4px;border:0;border-top:1px solid var(--line)}
+.piece.circuitEligible{outline-offset:1px}
+.circuitRankMark{font-size:7px;padding:0 1px}
+.opfx{font-size:26px;letter-spacing:-.04em;font-weight:750;paint-order:stroke fill;text-shadow:none;animation-name:operationRise;white-space:nowrap}
+.opfx.add{color:#fff;-webkit-text-stroke:1.4px #151515}
+.opfx.multiply{color:#151515;-webkit-text-stroke:2px #fff}
+.opfx.signal{font-size:14px!important;color:#151515;background:#fff;padding:3px 5px;letter-spacing:.02em;font-weight:650}
+.opfx.reboundFx{color:#151515;-webkit-text-stroke:2px #fff}
+.finalfx{font-size:clamp(30px,9vw,48px);font-weight:650;letter-spacing:-.04em;background:#fff;padding:8px 12px;max-width:95%;white-space:nowrap;text-shadow:none;animation-name:resultSettle}
+.piece.signalActive{outline:2px solid #151515;outline-offset:2px}
+.piece.circuitTile.signalActive{outline-style:dashed}
+.cascadeCaption{position:absolute;top:8px;left:8px;font-size:12px;color:var(--muted);pointer-events:none}
+.overlay{background:rgba(245,245,241,.88);backdrop-filter:none;padding:12px}
+.modal{border-radius:6px;border:1px solid var(--line);padding:20px;max-height:92dvh;box-shadow:none}
+.modal h2{font-size:22px;letter-spacing:.05em}
+.modal p,.marketIntro,.ruleDetail p{font-size:14px;line-height:1.5;color:var(--muted)}
+.modal button,.shopBuy{font-size:14px;min-height:44px;border-radius:4px}
+.auxModal{padding:18px;max-height:90dvh}
+.rulebookList{grid-template-columns:1fr;gap:0}
+.modal .rulebookItem{min-height:54px;padding:10px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+.rulebookItem strong,.inspectModifier strong,.shopSection h3,.marketOfferHead strong{font-size:14px}
+.rulebookItem span,.rulebookFoot,.inspectHero span,.inspectModifier span,.inspectModifier p,.stateRows span,.opPair span,.shopFoot,.shopSupply,.shopInflation,.marketTarget,.marketOfferHead span,.marketOffer p,.marketDesc span,.sumSmall{font-size:12px!important;line-height:1.45}
+.ruleDetail,.inspectSection,.sumCard,.marketOffer,.marketDesc{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:12px 0}
+.inspectLabel,.sumLabel,.marketChoiceTitle{font-size:12px}
+.inspectEmpty{font-size:13px!important;line-height:1.4}
+.inspectDebug{font-size:12px}
+.ruleVisual,.opPair span,.stateRows span{border-radius:2px;background:#f1f1ec}
+.scoreExact{font-variant-numeric:tabular-nums;font-size:24px;overflow-wrap:anywhere;line-height:1.4;color:var(--ink)}
+.gameMenu{width:min(360px,calc(100% - 24px));padding:20px;border:1px solid var(--line);border-radius:6px;color:var(--ink);background:#fff;max-height:90dvh;overflow:auto}
+.gameMenu::backdrop{background:rgba(245,245,241,.9)}
+.menuHead{display:flex;justify-content:space-between;align-items:center}.menuHead h2{font-size:20px;margin:0}
+.menuStats{display:flex;justify-content:space-between;gap:16px;padding:18px 0;font-size:14px}
+.menuAction{display:block;width:100%;text-align:left;min-height:48px;border:0;border-top:1px solid var(--line);background:none;color:inherit;font-size:16px}
+.gameMenu p{font-size:12px;color:var(--muted)}
+.runlog{font-size:12px;background:#fff;border-radius:4px;max-height:70dvh}
+@keyframes operationRise{0%{opacity:0;transform:translate(-50%,-20%)}15%,60%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
+@keyframes resultSettle{0%{opacity:0;transform:translate(-50%,-45%)}15%,85%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0}}
+@media(max-height:700px){.app{gap:3px;grid-template-rows:36px auto 30px minmax(0,1fr) auto}.gameHeader .iconButton,.gameHeader .helpButton{height:36px}.scoreCard{min-height:82px}.scoreValue{font-size:36px}.handSlot{height:64px;flex-basis:64px}.domino{width:32px}.half{width:30px;height:30px}.hand{gap:4px}.hint{min-height:30px}.bottomBar{gap:5px}.btn{min-height:46px}}
+@media(prefers-reduced-motion:reduce){.opfx,.finalfx{animation-name:none!important;opacity:1;transform:translate(-50%,-50%)}.domino.reveal,.domino.reveal .spips{animation:none}.toast{transition:none}}
