@@ -27,6 +27,7 @@
       {roman:'V',color:'gold',bonus:8}
     ],
     STAGE_SIZE:3,
+    STAGE_REROLL_REWARD:1,
     DRAG_Y_OFFSET:72,
     LONG_PRESS_MS:500,
     LONG_PRESS_MOVE_TOLERANCE_PX:10,
