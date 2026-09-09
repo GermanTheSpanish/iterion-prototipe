@@ -52,7 +52,7 @@ function testPatchUxContracts(){
   assert.match(ui,/board\.style\.backgroundImage='none'/,'visible board grid must be disabled');
   assert.match(ui,/board\.style\.backgroundColor='#fff'/,'board must render white');
   assert.match(ui,/boardCenterTick/,'board must render four centre-edge guide ticks');
-  assert.match(ui,/Best Output with this tile:/,'tile inspector must show best Output across Moves involving this physical tile');
+  assert.match(ui,/Best Score with this tile:/,'tile inspector must show best Output across Moves involving this physical tile');
   assert.match(ui,/can pay \+\$\{m\.starCoins\}c when activated/,'tile inspector must show star coin value');
   assert.doesNotMatch(ui,/Location: \$\{m\.location\}|Orientation: \$\{m\.axis\}|Connections: \$\{m\.connectionCount\}/,'tile inspector must not show position metadata');
   assert.match(help,/starCoins:tier/);

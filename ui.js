@@ -113,7 +113,7 @@
     const debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(b.id)}</div>`:'';
     const modifierHtml=model.modifiers.length?model.modifiers.map(mod=>`<div class="inspectModifier"><strong>${escapeHtml(mod.displayName)}</strong><span>${escapeHtml(mod.shortDescription)}</span><p>${escapeHtml(mod.rulesDescription)}</p></div>`).join(''):'<p class="inspectEmpty">No modifier is attached to this physical tile.</p>';
     const starLabel=m.upgradeTier?`★${m.upgradeTier} · can pay +${m.starCoins}c when activated`:'No stars · +0c';
-    const bestLabel=`Best Output with this tile: ${m.bestOutput==null?'—':fmt(m.bestOutput)}`,longRun=model.machineModifiers.find(mod=>mod.id==='long-run');
+    const bestLabel=`Best Score with this tile: ${m.bestOutput==null?'—':fmt(m.bestOutput)}`,longRun=model.machineModifiers.find(mod=>mod.id==='long-run');
     const stateRows=[starLabel,bestLabel,`Recorded Move activations: ${m.activations||0}`,longRun?'LONG RUN · at 10+ unique routed tiles, every activated star pays once.':m.upgradeTier?'Normal star rule · only the highest activated tier pays.':'Round-clearing overkill can add stars to this physical tile.'];
     overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section>${circuitInspectorHtml(model.circuit)}<section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section><section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
@@ -140,7 +140,7 @@
   function showClear(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1];
     overlayTitle.textContent=complete?'RUN COMPLETE':endless?'ENDLESS ROUND CLEAR':'ROUND CLEAR';
-    overlayBody.innerHTML=complete?`<p>Base run complete · Final output ${fmt(s.score)} · Target ${fmt(GAME.target())}</p>${summaryHtml()}<p class="shopFoot">Continue with the same machine. Endless Targets scale ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round; the completed base run remains recorded.</p>`:`<p>Output ${fmt(s.score)} · Target ${fmt(GAME.target())}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
+    overlayBody.innerHTML=complete?`<p>Base run complete · Final Score ${fmt(s.score)} · Target ${fmt(GAME.target())}</p>${summaryHtml()}<p class="shopFoot">Continue with the same machine. Endless Targets scale ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round; the completed base run remains recorded.</p>`:`<p>Score ${fmt(s.score)} · Target ${fmt(GAME.target())}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
     if(complete){overlayPrimary.textContent='CONTINUE · ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
     const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':endless?'NEXT ENDLESS ROUND':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){GAME.save();render()}else toast('Unavailable')};
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
@@ -218,7 +218,7 @@
     for(const e of sim.events||[]){
       if(e.type==='op'||e.type==='echo-op'||e.type==='zero-memory'){
         if(e.type==='op')lastOp=e;
-        const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===e.exitHalf)||pp?.cubes[0];
+        const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];
         board.querySelector('.signalActive')?.classList.remove('signalActive');board.querySelector(`[data-tile-id="${pp?.tile.id}"]`)?.classList.add('signalActive');
         if(c&&e.value!==0){const kind=e.op==='multiply'?'multiply':'add',suffix=e.type==='echo-op'?' E':e.type==='zero-memory'?' ZM':e.doubleDouble?' DD':'';fx(c.x+1,c.y+1,`${kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add)}${suffix}`,e.after,kind,index);await wait(V.cascadeDelay(index))}
         if(e.type!=='zero-memory')index++;

@@ -19,10 +19,15 @@
   }
   function scoreDisplay(score,target){
     const targetText=compact(target),text=compact(score),below=score<target;
-    return{score:below&&text===targetText?'<'+text:text,target:targetText,
+    // The distance caption disambiguates rounded ties without asserting a false inequality.
+    return{score:text,target:targetText,
       note:below&&score>0&&score/target>=0.95?`${compact(target-score)} to target`:score>=target?'Target reached':'Last move'}
   }
   function cascadeDelay(index){return Math.max(CASCADE.minMs,Math.round(CASCADE.firstMs*CASCADE.decay**Math.max(0,index)))}
   function effectLifetime(index){return cascadeDelay(index)*2+120}
-  return Object.freeze({compact,exact,scoreDisplay,cascadeDelay,effectLifetime,CASCADE});
+  function operationHalf(event,mainOperation){
+    // Echo and Zero Memory inherit the physical half from their corresponding Main event.
+    return event.exitHalf??(mainOperation?.piece===event.piece?mainOperation.exitHalf:undefined)
+  }
+  return Object.freeze({compact,exact,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,CASCADE});
 });

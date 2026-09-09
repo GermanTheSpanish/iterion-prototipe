@@ -7,7 +7,7 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 .gameHeader{display:flex;align-items:center;justify-content:space-between}
 .wordmark{font-size:13px;font-weight:750;letter-spacing:.23em}
 .headerActions{display:flex;gap:2px}
-.iconButton,.helpButton{width:44px;height:44px;appearance:none;border:0;border-radius:0;background:transparent;color:var(--ink);font:500 24px/1 inherit;padding:0;font-size:24px;line-height:1}
+.iconButton,.helpButton{width:44px;height:44px;appearance:none;border:0;border-radius:0;background:transparent;color:var(--ink);font-weight:500;padding:0;font-size:24px;line-height:1}
 .helpButton{font-size:20px}
 .label{font-size:12px;line-height:1.3;letter-spacing:.12em;color:var(--muted)}
 .scoreStrip{grid-template-columns:1fr 1.15fr;gap:12px;align-items:start}
@@ -88,5 +88,5 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 .runlog{font-size:12px;background:#fff;border-radius:4px;max-height:70dvh}
 @keyframes operationRise{0%{opacity:0;transform:translate(-50%,-20%)}15%,60%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
 @keyframes resultSettle{0%{opacity:0;transform:translate(-50%,-45%)}15%,85%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0}}
-@media(max-height:700px){.app{gap:3px;grid-template-rows:36px auto 30px minmax(0,1fr) auto}.gameHeader .iconButton,.gameHeader .helpButton{height:36px}.scoreCard{min-height:82px}.scoreValue{font-size:36px}.handSlot{height:64px;flex-basis:64px}.domino{width:32px}.half{width:30px;height:30px}.hand{gap:4px}.hint{min-height:30px}.bottomBar{gap:5px}.btn{min-height:46px}}
+@media(max-height:700px){.app{gap:3px;grid-template-rows:44px auto 30px minmax(0,1fr) auto}.gameHeader .iconButton,.gameHeader .helpButton{height:44px}.scoreCard{min-height:82px}.scoreValue{font-size:36px}.handSlot{height:64px;flex-basis:64px}.domino{width:32px}.half{width:30px;height:30px}.hand{gap:4px}.hint{min-height:30px}.bottomBar{gap:5px}.btn{min-height:46px}}
 @media(prefers-reduced-motion:reduce){.opfx,.finalfx{animation-name:none!important;opacity:1;transform:translate(-50%,-50%)}.domino.reveal,.domino.reveal .spips{animation:none}.toast{transition:none}}

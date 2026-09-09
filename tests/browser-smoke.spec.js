@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 async function assertPhoneLayout(page){
   const metrics=await page.evaluate(()=>{
     const rect=id=>{const r=document.getElementById(id).getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}};
-    return{vw:innerWidth,vh:innerHeight,w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight,board:rect('board'),hand:rect('hand'),target:rect('targetDetail'),score:rect('scoreDetail'),controls:['moveTool','reroll','undoTool','shopButton'].map(rect),fonts:[...document.querySelectorAll('.label,.hint,.scoreCaption,.btn')].filter(el=>el.getClientRects().length).map(el=>parseFloat(getComputedStyle(el).fontSize))};
+    return{vw:innerWidth,vh:innerHeight,w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight,board:rect('board'),hand:rect('hand'),target:rect('targetDetail'),score:rect('scoreDetail'),controls:['moveTool','reroll','undoTool','shopButton','helpButton','menuButton'].map(rect),fonts:[...document.querySelectorAll('.label,.hint,.scoreCaption,.btn')].filter(el=>el.getClientRects().length).map(el=>parseFloat(getComputedStyle(el).fontSize))};
   });
   expect(metrics.w).toBeLessThanOrEqual(metrics.vw);expect(metrics.h).toBeLessThanOrEqual(metrics.vh);
   expect(metrics.board.width).toBeGreaterThan(240);expect(metrics.board.width/metrics.board.height).toBeCloseTo(.75,2);
@@ -33,12 +33,14 @@ test('UX large machine, compact scores and exact threshold',async({page},testInf
       s.hand=s.set.filter(t=>!s.placedTileIds.includes(t.id)).slice(0,5);s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.includes(t));s.turn=s.pieces.length;s.idc=s.pieces.length;s.score=game.target()-1;s.circuitRanks={[s.pieces[4].tile.id]:2,[s.pieces[8].tile.id]:3,[s.pieces[12].tile.id]:5};window.__iterionTestGame=game;return game;
     }}}});
   });
-  await page.goto('http://127.0.0.1:4173/');await assertPhoneLayout(page);await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('<250B');await expect(page.locator('#scoreNote')).toHaveText('1 to target');
+  await page.goto('http://127.0.0.1:4173/');await assertPhoneLayout(page);await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('250B');await expect(page.locator('#scoreNote')).toHaveText('1 to target');
   await page.screenshot({path:testInfo.outputPath('dense-endless.png')});const before=await page.evaluate(()=>window.__iterionTestGame.state().score);
   await page.locator('#scoreDetail').click();await expect(page.locator('.scoreExact')).toHaveText('249,999,999,999');await page.keyboard.press('Escape');expect(await page.evaluate(()=>window.__iterionTestGame.state().score)).toBe(before);
 });
 
-test('UX real placement cascade, operation contrast and deferred Circuit choice',async({page},testInfo)=>{
+test.describe('Cascade review evidence',()=>{
+  test.use({video:'on'});
+  test('UX real placement cascade, operation contrast and deferred Circuit choice',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>{
     let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){
@@ -52,7 +54,10 @@ test('UX real placement cascade, operation contrast and deferred Circuit choice'
   await expect(page.locator('.opfx')).not.toHaveCount(0);await page.screenshot({path:testInfo.outputPath('cascade.png')});
   await expect(page.locator('#circuitChoice')).toBeVisible({timeout:10000});
   const frames=await page.evaluate(()=>window.__cascadeFrames),adds=frames.filter(f=>f.kind.includes('add')),mults=frames.filter(f=>f.kind.includes('multiply'));expect(adds.length).toBeGreaterThan(0);expect(mults.length).toBeGreaterThan(0);expect(adds[0].color).toBe('rgb(255, 255, 255)');expect(adds[0].stroke).toBe('rgb(21, 21, 21)');expect(mults[0].color).toBe('rgb(21, 21, 21)');
+  await testInfo.attach('cascade-timing.json',{body:JSON.stringify(frames,null,2),contentType:'application/json'});
   await page.screenshot({path:testInfo.outputPath('circuit-choice.png')});await assertPhoneLayout(page);
+});
+
 });
 
 test('ITERION browser smoke', async ({ page }) => {
