@@ -1,7 +1,10 @@
-# ITERION
+# NOMON
 
 Mobile-first domino machine score-builder. `data.js` owns configuration;
 `engine.js` owns placement and scoring; `game.js` owns run state; `ui.js` renders it.
+
+Formerly ITERION. Storage keys and repository URL retain their existing names.
+See [SIGNALS.md](SIGNALS.md) for physical T splitting, L contacts and scoring order.
 
 ## Validation
 

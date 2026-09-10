@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   // Display only. Never feed formatted values or animation timing into the engine.
   const UNITS=['','K','M','B','T'];
-  const CASCADE=Object.freeze({firstMs:300,minMs:100,decay:0.91,maxLabels:3,finalMs:1000});
+  const CASCADE=Object.freeze({firstMs:600,minMs:100,decay:0.91,maxLabels:3,finalMs:1000});
   function exact(value){return Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:20}):String(value)}
   function compact(value){
     if(!Number.isFinite(value))return String(value);
@@ -29,5 +29,8 @@
     // Echo and Zero Memory inherit the physical half from their corresponding Main event.
     return event.exitHalf??(mainOperation?.piece===event.piece?mainOperation.exitHalf:undefined)
   }
-  return Object.freeze({compact,exact,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,CASCADE});
+  function fitFontSize(fontSize,measuredWidth,availableWidth){
+    return measuredWidth>availableWidth?fontSize*Math.max(0,availableWidth)/measuredWidth:fontSize
+  }
+  return Object.freeze({compact,exact,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,fitFontSize,CASCADE});
 });

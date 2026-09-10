@@ -20,7 +20,7 @@
   function pieceEdgeRelation(a,b){if(a.z!==b.z)return null;const A=a.rect,B=b.rect,oy=Math.max(0,Math.min(A.maxy,B.maxy)-Math.max(A.miny,B.miny)),ox=Math.max(0,Math.min(A.maxx,B.maxx)-Math.max(A.minx,B.minx));if(A.maxx===B.minx&&oy>0)return{sideA:'R',sideB:'L',len:oy,start:Math.max(A.miny,B.miny),end:Math.min(A.maxy,B.maxy)};if(B.maxx===A.minx&&oy>0)return{sideA:'L',sideB:'R',len:oy,start:Math.max(A.miny,B.miny),end:Math.min(A.maxy,B.maxy)};if(A.maxy===B.miny&&ox>0)return{sideA:'D',sideB:'U',len:ox,start:Math.max(A.minx,B.minx),end:Math.min(A.maxx,B.maxx)};if(B.maxy===A.miny&&ox>0)return{sideA:'U',sideB:'D',len:ox,start:Math.max(A.minx,B.minx),end:Math.min(A.maxx,B.maxx)};return null}
   function isLongSide(piece,side){return piece.axis==='H'?(side==='U'||side==='D'):(side==='L'||side==='R')}
   function isCenteredOnDouble(p,r,s){if(!p.double||!isLongSide(p,s)||r.len!==S)return false;if(p.axis==='H'){const c=(p.rect.minx+p.rect.maxx)/2;return r.start===c-S/2&&r.end===c+S/2}const c=(p.rect.miny+p.rect.maxy)/2;return r.start===c-S/2&&r.end===c+S/2}
-  function contactBetweenPieces(a,b){const raw=[];for(const ca of a.cubes)for(const cb of b.cubes){const e=edgeContact(ca,cb);if(e)raw.push({...e,aHalf:ca.half,bHalf:cb.half,aV:ca.v,bV:cb.v,aCube:ca,bCube:cb})}if(!raw.length)return{touch:false,ok:true,contacts:[]};if(raw.some(r=>r.aV!==r.bV))return{touch:true,ok:false,reason:'value-mismatch',contacts:raw};const rel=pieceEdgeRelation(a,b);if(!rel)return{touch:true,ok:false,reason:'partial',contacts:raw};const aLong=a.double&&isLongSide(a,rel.sideA),bLong=b.double&&isLongSide(b,rel.sideB);if(aLong||bLong){const as=isCenteredOnDouble(a,rel,rel.sideA),bs=isCenteredOnDouble(b,rel,rel.sideB);if(as!==bs&&rel.len===S)return{touch:true,ok:true,kind:'double-centered',contacts:raw,relation:rel};return{touch:true,ok:false,reason:'off-centre-double-port',contacts:raw,relation:rel}}if(raw.every(r=>r.len===S))return{touch:true,ok:true,kind:'full',contacts:raw,relation:rel};return{touch:true,ok:false,reason:'partial-or-corner',contacts:raw,relation:rel}}
+  function contactBetweenPieces(a,b){const raw=[];for(const ca of a.cubes)for(const cb of b.cubes){const e=edgeContact(ca,cb);if(e)raw.push({...e,aHalf:ca.half,bHalf:cb.half,aV:ca.v,bV:cb.v,aCube:ca,bCube:cb})}if(!raw.length)return{touch:false,ok:true,contacts:[]};if(raw.some(r=>r.aV!==r.bV))return{touch:true,ok:false,reason:'value-mismatch',contacts:raw};const rel=pieceEdgeRelation(a,b);if(!rel)return{touch:true,ok:false,reason:'partial',contacts:raw};const aLong=a.double&&isLongSide(a,rel.sideA),bLong=b.double&&isLongSide(b,rel.sideB);if(aLong||bLong){const as=isCenteredOnDouble(a,rel,rel.sideA),bs=isCenteredOnDouble(b,rel,rel.sideB);if(as!==bs&&rel.len===S)return{touch:true,ok:true,kind:'double-centered',contacts:raw,relation:rel};if(rel.len===S&&raw.every(r=>r.len===S))return{touch:true,ok:true,kind:'double-offset',contacts:raw,relation:rel};return{touch:true,ok:false,reason:'off-centre-double-port',contacts:raw,relation:rel}}if(raw.every(r=>r.len===S))return{touch:true,ok:true,kind:'full',contacts:raw,relation:rel};return{touch:true,ok:false,reason:'partial-or-corner',contacts:raw,relation:rel}}
   function validatePlacement(tile,x,y,z,rr,pieces){const cand=pieceFrom(tile,x,y,z,rr,-1);if(cand.rect.minx<0||cand.rect.miny<0||cand.rect.maxx>G||cand.rect.maxy>H)return{ok:false,reason:'bounds'};for(const p of pieces)for(const c of cand.cubes)for(const o of p.cubes)if(overlap(c,o))return{ok:false,reason:'overlap'};if(!pieces.length){const center=cand.cubes.some(c=>Math.abs(c.x+1-G/2)<=4&&Math.abs(c.y+1-H/2)<=4);return center?{ok:true,contacts:[],piece:cand}:{ok:false,reason:'root-zone'}}const contacts=[];for(const p of pieces){const r=contactBetweenPieces(cand,p);if(r.touch&&!r.ok)return{ok:false,reason:r.reason};if(r.touch&&r.ok)contacts.push({piece:p,kind:r.kind,contacts:r.contacts,relation:r.relation})}return contacts.length?{ok:true,contacts,piece:cand}:{ok:false,reason:'no-contact'}}
   function placementKey(tile,p){const cs=cubesFor(tile,p.x,p.y,p.z,p.rr).map(c=>`${c.x},${c.y},${c.v}`).sort().join('|');return`${p.z}|${cs}`}
   function allPlacements(tile,z,pieces){const out=[],seen=new Set();for(let rr=0;rr<4;rr++)for(let y=0;y<=H-S;y++)for(let x=0;x<=G-S;x++){const v=validatePlacement(tile,x,y,z,rr,pieces);if(!v.ok)continue;const p={x,y,z,rr,contacts:v.contacts},k=placementKey(tile,p);if(seen.has(k))continue;seen.add(k);out.push(p)}return out}
@@ -40,13 +40,17 @@
   function startChoices(newPieceId,pieces){const p=pieceById(pieces,newPieceId);if(!p)return[];const out=[];for(const c of connectionsForPiece(p,pieces)){out.push({...c,entryHalf:c.toHalf,flipped:false,key:connectionKey(c)+':N'});out.push({...c,entryHalf:1-c.toHalf,flipped:true,key:connectionKey(c)+':F'})}const seen=new Set();return out.filter(c=>{const k=`${c.toPieceId}:${c.entryHalf}:${c.fromHalf}`;if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.key.localeCompare(b.key))}
   const extKey=(a,ah,b,bh)=>`E:${a}:${ah}>${b}:${bh}`;
   const cloneMap=m=>new Map(m);
-  const cloneState=s=>({current:{...s.current},mode:s.mode,output:s.output,initialOutput:s.initialOutput,suppressZeroPiece:s.suppressZeroPiece,doubleDoubleUsed:!!s.doubleDoubleUsed,usedEdges:new Set(s.usedEdges),zeroCharges:cloneMap(s.zeroCharges),back:s.back.map(x=>({...x})),forward:s.forward.map(x=>({...x})),path:s.path.map(x=>({...x})),segments:s.segments.map(x=>({...x,from:{...x.from},to:{...x.to}})),events:s.events.map(x=>({...x})),traversals:s.traversals,rebounds:s.rebounds});
+  const cloneState=s=>({current:{...s.current},mode:s.mode,output:s.output,initialOutput:s.initialOutput,suppressZeroPiece:s.suppressZeroPiece,doubleDoubleUsed:!!s.doubleDoubleUsed,splitUsed:new Set(s.splitUsed||[]),usedEdges:new Set(s.usedEdges),zeroCharges:cloneMap(s.zeroCharges),back:s.back.map(x=>({...x})),forward:s.forward.map(x=>({...x})),path:s.path.map(x=>({...x})),segments:s.segments.map(x=>({...x,from:{...x.from},to:{...x.to}})),events:s.events.map(x=>({...x})),traversals:s.traversals,rebounds:s.rebounds});
   function terminal(s,reason,meta={}){const events=[...s.events,{type:'die',reason}],output=s.output||0;return{output,gain:output-(s.initialOutput||0),path:s.path,segments:s.segments,events,zeroCharges:s.zeroCharges,reason,traversals:s.traversals,rebounds:s.rebounds,...meta}}
   function better(a,b){if(!b)return true;const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length],bv=[b.traversals||0,b.output||0,b.rebounds||0,(b.path||[]).length];for(let i=0;i<av.length;i++){if(av[i]!==bv[i])return av[i]>bv[i]}return false}
   function replaySelectedScoring(result,initialOutput,opts={}){
     if(!opts.zeroMemoryPieceId)return result;
-    let output=initialOutput,lastNonZero=null,pendingZero=null,zeroMemoryUsed=false;const events=[];
+    let output=initialOutput,lastNonZero=null,pendingZero=null,zeroMemoryUsed=false;const events=[],forks=new Map();
     for(const raw of result.events||[]){
+      if(raw.type==='signal-fork'){forks.set(raw.piece,{output,lastNonZero,pendingZero,results:[]});events.push({...raw,output});continue}
+      if(raw.type==='signal-start'){const fork=forks.get(raw.fork);({output,lastNonZero,pendingZero}=fork);events.push({...raw,output});continue}
+      if(raw.type==='signal-end'){forks.get(raw.fork).results.push(output);events.push({...raw,output});continue}
+      if(raw.type==='signal-join'){output=forks.get(raw.piece).results.reduce((a,b)=>a+b,0);events.push({...raw,output});forks.delete(raw.piece);continue}
       if(raw.type==='op'){
         const e={...raw,before:output};
         if(e.op==='multiply'){e.after=output*(e.factor||1);e.delta=e.after-output;output=e.after;lastNonZero={piece:e.piece,value:e.value,op:e.op,factor:e.factor||1,add:0,doubleDouble:!!e.doubleDouble}}
@@ -68,11 +72,14 @@
   }
   function replaySelectedEcho(result,opts={}){
     if(!opts.doubleEchoPieceId)return result;
-    let echoActive=false,echoOutput=0,echoRebounds=0;const events=[];
+    let echoActive=false,echoRunning=false,echoOutput=0,echoRebounds=0;const events=[];
     for(const raw of result.events||[]){
       events.push({...raw});
-      if(!echoActive&&raw.type==='op'&&raw.piece===opts.doubleEchoPieceId){echoActive=true;echoOutput=raw.after;events.push({type:'double-echo-start',piece:raw.piece,startOutput:echoOutput});continue}
-      if(!echoActive)continue;
+      // One Echo follows one already-selected downstream path: the first arm
+      // at a new fork. It does not copy itself into a sibling signal.
+      if(raw.type==='signal-end')echoRunning=false;
+      if(!echoActive&&raw.type==='op'&&raw.piece===opts.doubleEchoPieceId){echoActive=true;echoRunning=true;echoOutput=raw.after;events.push({type:'double-echo-start',piece:raw.piece,startOutput:echoOutput});continue}
+      if(!echoRunning)continue;
       if(raw.type==='op'){const before=echoOutput,v=raw.value;if(v===2||v===4||v===6)echoOutput+=v;else if(v===1||v===3||v===5)echoOutput*=v;events.push({type:'echo-op',piece:raw.piece,value:v,op:v===0?'zero':v%2===0?'add':'multiply',before,after:echoOutput,add:v!==0&&v%2===0?v:0,factor:v%2===1?v:0,reverse:!!raw.reverse})}
       else if(raw.type==='rebound'){echoRebounds++;events.push({type:'echo-rebound',piece:raw.piece,charge:raw.charge})}
     }
@@ -86,9 +93,49 @@
     const newPiece=pieceById(pieces,newPieceId);if(!newPiece)return{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'missing-new-piece',traversals:0,rebounds:0,search:{starts:0,expanded:0,leaves:0,truncated:false}};
     const starts=startChoices(newPieceId,pieces);if(!starts.length)return{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-start',traversals:0,rebounds:0,search:{starts:0,expanded:0,leaves:1,truncated:false}};
     const maxExpanded=opts.maxExpanded||50000;let expanded=0,leaves=0,truncated=false,best=null;
-    function finish(s,reason){leaves++;const r=terminal(s,reason);if(better(r,best))best=r;return r}
+    let searchLimit=maxExpanded;
+    function finish(s,reason){leaves++;return{...terminal(s,reason),splitUsed:new Set(s.splitUsed||[]),doubleDoubleUsed:!!s.doubleDoubleUsed}}
+    function follow(s,conns,exitHalf){
+      let selected=null;
+      for(const c of conns){
+        if(expanded>=searchLimit){truncated=true;break}
+        const n=cloneState(s);n.current.entryHalf=1-exitHalf;n.usedEdges.add(c.key);n.back.push({...n.current});
+        n.current={pieceId:c.toPieceId,entryHalf:c.toHalf,fromPieceId:s.current.pieceId,fromHalf:c.fromHalf};
+        n.events.push({type:'route',piece:s.current.pieceId,entryHalf:1-exitHalf,exitHalf,toPieceId:c.toPieceId,toHalf:c.toHalf,key:c.choiceKey});
+        const r=walk(n);if(better(r,selected))selected=r
+      }
+      return selected||finish(s,'search-limit')
+    }
+    function fork(s,cur,connections){
+      if(!opts.bifurcate||!cur.double||cur.tile.a===0||s.splitUsed.has(cur.id))return null;
+      const previous=pieceById(pieces,s.current.fromPieceId),relation=previous&&pieceEdgeRelation(cur,previous);
+      if(!relation||!isCenteredOnDouble(cur,relation,relation.sideA))return null;
+      // Only the two physical short ends distribute. Side contacts are not
+      // extra arms. Half 0 precedes half 1, independent of board-array order.
+      const arms=[0,1].map(half=>connections.filter(c=>c.fromHalf===half&&!isLongSide(cur,c.fromSide)));
+      if(arms.some(cs=>!cs.length))return null;
+      // Never award a copied arm that the search budget could not even enter.
+      if(searchLimit-expanded<2){truncated=true;return null}
+      const seed=cloneState(s);seed.splitUsed.add(cur.id);
+      const results=[],parentLimit=searchLimit;let spent=seed.splitUsed,ddUsed=seed.doubleDoubleUsed;
+      for(let half=0;half<2;half++){
+        searchLimit=parentLimit-(half===0?1:0);
+        const branch=cloneState(seed);branch.splitUsed=new Set(spent);branch.doubleDoubleUsed=ddUsed;
+        branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
+        const r=follow(branch,arms[half],half);results.push(r);spent=r.splitUsed;ddUsed=r.doubleDoubleUsed
+      }
+      searchLimit=parentLimit;
+      const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:cur.id,output:s.output}];
+      results.forEach((r,arm)=>events.push({type:'signal-start',fork:cur.id,arm,output:s.output},...r.events,{type:'signal-end',fork:cur.id,arm,output:r.output}));
+      events.push({type:'signal-join',piece:cur.id,output});
+      return{output,gain:output-s.initialOutput,events,reason:'split-complete',
+        path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],
+        traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),
+        splitUsed:spent,doubleDoubleUsed:ddUsed,zeroCharges:s.zeroCharges}
+    }
     function walk(s){
-      if(++expanded>maxExpanded){truncated=true;return finish(s,'search-limit')}
+      s.splitUsed??=new Set();
+      if(++expanded>searchLimit){truncated=true;return finish(s,'search-limit')}
       const cur=pieceById(pieces,s.current.pieceId);if(!cur)return finish(s,'missing-piece');
       const entryHalf=s.mode===1?s.current.entryHalf:1-s.current.entryHalf,inC=cur.cubes.find(c=>c.half===entryHalf)||cur.cubes[0],outC=cur.cubes.find(c=>c.half!==inC.half)||cur.cubes[1],from=cubeCenter(inC),to=cubeCenter(outC);
       s.path.push(from,to);s.segments.push({piece:cur.id,from,to,reverse:s.mode===-1,entryHalf:inC.half,exitHalf:outC.half});s.traversals++;
@@ -96,8 +143,10 @@
       if(outC.v===0){const cap=cur.double?2:1,used=s.zeroCharges.get(cur.id)||0;if(s.suppressZeroPiece===cur.id){s.suppressZeroPiece=null;s.events.push({type:'zero-pass',piece:cur.id})}else if(used<cap){s.zeroCharges.set(cur.id,used+1);s.mode*=-1;s.rebounds++;if(cur.double)s.suppressZeroPiece=cur.id;s.events.push({type:'rebound',piece:cur.id,charge:used+1});return walk(s)}else return finish(s,'zero-spent')}
       if(s.mode===-1){if(!s.back.length)return finish(s,'back-at-origin');const prev=s.back[s.back.length-1],k=extKey(cur.id,outC.half,prev.pieceId,1-prev.entryHalf);s.forward.push({...s.current});s.current=s.back.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:1-s.current.entryHalf,reverse:true,retrace:true,key:k});return walk(s)}
       if(s.forward.length){const nxt=s.forward[s.forward.length-1],k=extKey(cur.id,outC.half,nxt.pieceId,nxt.entryHalf);s.back.push({...s.current});s.current=s.forward.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:s.current.entryHalf,reverse:false,replay:true,retrace:true,key:k});return walk(s)}
-      const conns=connectionsForPiece(cur,pieces).filter(c=>c.fromHalf===outC.half&&c.toPieceId!==s.current.fromPieceId).map(c=>({...c,key:extKey(cur.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!s.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));if(!conns.length)return finish(s,'no-exit');let localBest=null;
-      for(const c of conns){if(expanded>=maxExpanded){truncated=true;break}const n=cloneState(s);n.usedEdges.add(c.key);n.back.push({...n.current});n.current={pieceId:c.toPieceId,entryHalf:c.toHalf,fromPieceId:cur.id,fromHalf:c.fromHalf};n.events.push({type:'route',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,toPieceId:c.toPieceId,toHalf:c.toHalf,key:c.choiceKey});const r=walk(n);if(better(r,localBest))localBest=r}return localBest||finish(s,'search-limit')
+      const available=connectionsForPiece(cur,pieces).filter(c=>c.toPieceId!==s.current.fromPieceId).map(c=>({...c,key:extKey(cur.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!s.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
+      const split=fork(s,cur,available);if(split)return split;
+      const conns=available.filter(c=>c.fromHalf===outC.half);if(!conns.length)return finish(s,'no-exit');
+      return follow(s,conns,outC.half)
     }
     for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:initialOutput,initialOutput,suppressZeroPiece:null,doubleDoubleUsed:false,usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
     best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};best=replaySelectedScoring(best,initialOutput,opts);return replaySelectedEcho(best,{...opts,initialOutput})

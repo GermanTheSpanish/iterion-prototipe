@@ -13,7 +13,7 @@
   const px=n=>n/E.G*100+'%',py=n=>n/E.H*100+'%';
   const fmt=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-US'):`${n}`;
   const compact=V.compact;
-  document.title=`ITERION v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · ${D.TOTAL_ROUNDS} rounds + Endless`;
+  document.title=`NOMON v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · ${D.TOTAL_ROUNDS} rounds + Endless`;
   H.bindRun(GAME.state().runId);
 
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
@@ -74,8 +74,8 @@
     }
   }
 
-  function hideOverlay(){overlay.className='overlay';modalEl.classList.remove('auxModal');overlay.onclick=null}
-  function resetOverlay(){overlay.className='overlay show';modalEl.classList.remove('auxModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
+  function hideOverlay(){overlay.className='overlay';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null}
+  function resetOverlay(){overlay.className='overlay show';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
   function newRun(){clearOutcomeDelay();auxOverlay=null;press.cancel();GAME.fresh();H.bindRun(GAME.state().runId);GAME.save();handFx.fill('normal');hideOverlay();render()}
@@ -146,14 +146,14 @@
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
   }
   function showShop(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),randomCost=GAME.shopRandomPrice(),offers=M.all().filter(m=>m.kind==='consumable');overlayTitle.textContent='SHOP';
-    overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Always available</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}</div></div><div class="label">Supply<br>${x.availableTileCount} tiles</div></div><div class="shopSection"><h3>RANDOM DOMINO</h3><p>Add one random new physical domino to this run. If your hand has an empty slot it arrives there; otherwise it becomes the next reserve draw.</p><button id="shopRandomBuy" class="shopBuy">BUY RANDOM TILE · ${randomCost}c</button></div><div class="shopSection"><h3>TOOLS</h3><p>Stored tools remain available until you spend them.</p><div class="marketDescriptions">${offers.map(m=>`<div class="marketDesc"><strong>${m.name} · ${GAME.shopItemPrice(m.id)}c</strong><span>${m.description}</span><button class="shopBuy" data-shop-item="${m.id}">BUY ${m.name}</button></div>`).join('')}</div></div><div class="shopFoot">Every purchase raises global Inflation by 1, including future Market prices.</div></div>`;
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),randomCost=GAME.shopRandomPrice(),offers=M.all().filter(m=>m.kind==='consumable');overlayTitle.textContent='SHOP';modalEl.classList.add('commerceModal');
+    overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Always available</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}</div></div><div class="label">Supply<br>${x.availableTileCount} tiles</div></div><div class="shopSection"><div class="randomOffer"><div aria-hidden="true">${mini({a:0,b:0},'back')}</div><div><h3>RANDOM DOMINO</h3><p>Add one random new physical domino to this run. Delivered to an empty hand slot, or your next reserve draw.</p></div><button id="shopRandomBuy" class="shopBuy">BUY RANDOM TILE · ${randomCost}c</button></div></div><div class="shopSection"><h3>TOOLS</h3><p>Stored tools remain available until you spend them.</p><div class="marketDescriptions">${offers.map(m=>`<div class="marketDesc"><strong>${m.name}</strong><span>${m.shortDescription} Owned: ${s.consumables[m.id]||0}</span><button class="shopBuy" data-shop-item="${m.id}" aria-label="Buy ${m.name} for ${GAME.shopItemPrice(m.id)} coins">BUY · ${GAME.shopItemPrice(m.id)}c</button></div>`).join('')}</div></div><div class="shopFoot">Every purchase raises global Inflation by 1, including future Market prices.</div></div>`;
     const random=$('shopRandomBuy');random.disabled=s.coins<randomCost;random.onclick=()=>{const r=GAME.buyShopRandomTile();if(!r.ok){toast('Not enough coins');return}GAME.save();toast(`[${r.tile.a}|${r.tile.b}] → ${r.delivery} · Inflation ${r.inflation}`);render()};
     overlayBody.querySelectorAll('[data-shop-item]').forEach(b=>{const id=b.dataset.shopItem,cost=GAME.shopItemPrice(id);b.disabled=s.coins<cost;b.onclick=()=>{const r=GAME.buyShopItem(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase failed');return}GAME.save();toast(`${M.get(id).name} stored · Inflation ${r.inflation}`);render()}});
     overlayPrimary.textContent='CLOSE SHOP';overlayPrimary.onclick=()=>{GAME.closeShop();GAME.save();render()}
   }
   function showMarket(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=D.BOARD_SIZES[Math.min(nextStage-1,D.BOARD_SIZES.length-1)],bought=s.marketBuys[0]?.mod||null;overlayTitle.textContent='MARKET';
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=D.BOARD_SIZES[Math.min(nextStage-1,D.BOARD_SIZES.length-1)],bought=s.marketBuys[0]?.mod||null;overlayTitle.textContent='MARKET';modalEl.classList.add('commerceModal');
     const supply=x.availableTileCount,nextMarket=x.endless?.active?`Next Market in ${D.STAGE_SIZE||3} rounds`:x.round.index<D.TOTAL_ROUNDS-(D.STAGE_SIZE||3)?`Next Market in ${D.STAGE_SIZE||3} rounds`:'Final stage · no later Market',offers=s.shopOffers.map(id=>GAME.marketOfferInfo(id));
     overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Stage ${x.stage.index} complete</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}</div><div class="shopSupply">SUPPLY ${supply} · ${nextMarket}</div></div><div class="label">Next board<br>${nextSize[0]} × ${nextSize[1]}</div></div><div class="marketChoiceTitle">CHOOSE ONE</div><div class="marketOfferGrid">${offers.length?offers.map(info=>{const mod=info.mod,purchased=bought===info.id,locked=!!bought&&!purchased,noTarget=info.targetCount<1,label=purchased?'PURCHASED':locked?'LOCKED':noTarget?'NO VALID TARGET':`BUY · ${info.price}c`,target=mod.target==='machine'?'Machine modifier':`${info.targetCount} valid physical target${info.targetCount===1?'':'s'}`;return `<section class="marketOffer ${purchased?'purchasedOffer':locked?'lockedOffer':''}"><div class="marketOfferHead"><strong>${escapeHtml(mod.displayName||mod.name)}</strong><span>${info.price}c</span></div><p>${escapeHtml(mod.shortDescription||mod.description)}</p><div class="marketTarget ${noTarget?'invalid':''}">${escapeHtml(target)}</div><button class="shopBuy" data-market-mod="${info.id}" ${purchased||locked||noTarget||s.coins<info.price?'disabled':''}>${label}</button></section>`}).join(''):'<p class="inspectEmpty">No valid Market mods for the current machine.</p>'}</div><div class="shopFoot">You may buy at most one mod in this Market, or continue without buying. Every purchase raises global Inflation by 1.</div></div>`;
     overlayBody.querySelectorAll('[data-market-mod]').forEach(b=>{b.onclick=()=>{const id=b.dataset.marketMod,r=GAME.buyMarketMod(id),mod=M.get(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':r.reason==='no-target'?'No valid target':'Market choice locked');return}GAME.save();toast(r.tile?`${mod.displayName||mod.name} → [${r.tile.a}|${r.tile.b}]`:`${mod.displayName||mod.name} installed`);render()}});
@@ -212,10 +212,20 @@
   function magnitude(v){const n=Math.abs(Number(v)||0);return n<1?1:Math.floor(Math.log10(n))+1}
   function fx(x,y,t,value=0,kind='add',index=0){const d=document.createElement('div'),duration=V.effectLifetime(index),size=Math.min(34,24+magnitude(value));d.className=`opfx ${kind}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);while(board.querySelectorAll('.opfx').length>V.CASCADE.maxLabels)board.querySelector('.opfx').remove();setTimeout(()=>d.remove(),duration);return d}
   function reboundFx(x,y,angle=180,index=0){const d=fx(x,y,'',0,'reboundFx',index);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`}
-  function finalFx(v){board.querySelectorAll('.opfx,.signalActive').forEach(el=>el.classList.contains('opfx')?el.remove():el.classList.remove('signalActive'));const d=document.createElement('div'),duration=V.CASCADE.finalMs;d.className='finalfx';d.textContent=compact(v);board.appendChild(d);setTimeout(()=>d.remove(),duration);return duration}
+  function finalFx(v){
+    board.querySelectorAll('.opfx,.signalActive').forEach(el=>el.classList.contains('opfx')?el.remove():el.classList.remove('signalActive'));
+    const d=document.createElement('div'),duration=V.CASCADE.finalMs;d.className='finalfx';
+    const number=document.createElement('span');number.textContent=compact(v);d.appendChild(number);board.appendChild(d);
+    const fit=()=>{number.style.fontSize='';const style=getComputedStyle(d),space=Math.max(1,board.clientWidth-24-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));number.style.fontSize=V.fitFontSize(parseFloat(style.fontSize),number.getBoundingClientRect().width,space)+'px'};
+    fit();const resize=new ResizeObserver(fit);resize.observe(board);setTimeout(()=>{resize.disconnect();d.remove()},duration);return duration
+  }
   async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
     renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger);await wait(V.cascadeDelay(0));let lastOp=null,index=0;
     for(const e of sim.events||[]){
+      if(e.type==='signal-fork'){const pp=pc(e.piece);if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'SPLIT',0,'signal',index);await wait(V.cascadeDelay(index))}continue}
+      if(e.type==='signal-start'){board.dataset.signal=`${e.fork}.${e.arm+1}`;continue}
+      if(e.type==='signal-end'){continue}
+      if(e.type==='signal-join'){delete board.dataset.signal;continue}
       if(e.type==='op'||e.type==='echo-op'||e.type==='zero-memory'){
         if(e.type==='op')lastOp=e;
         const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];

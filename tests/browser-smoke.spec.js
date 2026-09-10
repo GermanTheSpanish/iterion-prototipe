@@ -1,6 +1,65 @@
 const { test, expect } = require('@playwright/test');
 test.use({video:'on'});
 
+for(const viewport of [{width:375,height:667},{width:390,height:844}]){
+  test(`NOMON Shop and Market surfaces ${viewport.width}x${viewport.height}`,async({page},testInfo)=>{
+    await page.setViewportSize(viewport);
+    await page.addInitScript(()=>{
+      let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const g=value.createGame(engine,{...options,seed:2600});g.state().coins=30;window.__nomonGame=g;return g}}}});
+    });
+    await page.goto('http://127.0.0.1:4173/');await expect(page).toHaveTitle(/NOMON/);
+    await expect(page.locator('.wordmark')).toHaveText('NOMON');await assertPhoneLayout(page);
+    await page.screenshot({path:testInfo.outputPath('nomon-opening.png')});
+    expect(await page.locator('#hand .domino').first().evaluate(el=>getComputedStyle(el).borderRadius)).toBe('6px');
+    await page.locator('#shopButton').click();await expect(page.locator('.commerceModal')).toBeVisible();
+    await page.screenshot({path:testInfo.outputPath('nomon-shop.png')});
+    const supply=await page.evaluate(()=>window.__nomonGame.state().set.length);
+    await page.locator('#shopRandomBuy').click();expect(await page.evaluate(()=>window.__nomonGame.state().set.length)).toBe(supply+1);
+    await page.locator('[data-shop-item="move"]').click();
+    expect(await page.evaluate(()=>window.__nomonGame.state().consumables.move)).toBe(1);
+    const close=await page.locator('#overlayPrimary').boundingBox();expect(close.y+close.height).toBeLessThanOrEqual(viewport.height);
+    await page.locator('#overlayPrimary').click();
+    await page.evaluate(()=>{const g=window.__nomonGame,s=g.state(),E=window.IterionEngine;
+      s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=40;
+      s.pieces=[['d3-3',6,8,0],['d0-3',12,8,2]].map(([id,x,y,rr],i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,x,y,0,rr,i+1);p.tile={...t};return p});
+      s.placedTileIds=s.pieces.map(p=>p.tile.id);s.hand=s.hand.map(t=>s.placedTileIds.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));g.openIntermission();
+      s.shopOffers=['double-double','zero-memory','long-run'];
+    });
+    // Closing a read-only overlay requests a normal UI render of the fixture state.
+    await page.locator('#helpButton').click();await page.locator('#overlayPrimary').click();
+    await expect(page.locator('#overlayTitle')).toHaveText('MARKET');await expect(page.locator('.marketOffer')).toHaveCount(3);
+    await page.screenshot({path:testInfo.outputPath('nomon-market.png')});
+    await page.locator('[data-market-mod="long-run"]').click();
+    await expect(page.locator('.purchasedOffer')).toHaveCount(1);await expect(page.locator('.lockedOffer')).toHaveCount(2);
+    expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    const next=await page.locator('#overlayPrimary').boundingBox();expect(next.y+next.height).toBeLessThanOrEqual(viewport.height);
+  });
+  for(const large of [false,true])test(`NOMON ${large?'oversized final renderer':'physical T split'} ${viewport.width}x${viewport.height}`,async({page},testInfo)=>{
+    await page.setViewportSize(viewport);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.addInitScript(large=>{
+      let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){
+        const g=value.createGame(E,{...options,seed:2601,TARGETS:Array(15).fill(1e15)}),s=g.state();
+        s.pieces=[['d3-3',6,8,0],['d3-5',4,8,2],['d3-4',10,8,0]].map(([id,x,y,rr],i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,x,y,0,rr,i+1);p.tile={...t};return p});
+        s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=3;s.turn=3;s.consumables.undo=1;
+        s.hand=[s.set.find(t=>t.id==='d2-3'),s.set.find(t=>t.id==='d2-2'),null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h?.id===t.id));
+        // Renderer-only stress input; canonical finishPlacement remains untouched.
+        if(large)g.moveResonance=()=>({output:Number.MAX_VALUE});window.__nomonGame=g;return g;
+      }}}});
+    },large);
+    await page.goto('http://127.0.0.1:4173/');
+    await page.evaluate(()=>{window.__finalBounds=null;new MutationObserver(records=>{for(const r of records)for(const el of r.addedNodes)if(el.nodeType===1&&el.classList.contains('finalfx')){const b=el.getBoundingClientRect(),n=el.firstChild.getBoundingClientRect(),board=el.parentElement.getBoundingClientRect();window.__finalBounds={text:el.textContent,left:b.left,right:b.right,numberLeft:n.left,numberRight:n.right,boardLeft:board.left,boardRight:board.right,vw:innerWidth}}}).observe(document.querySelector('#board'),{childList:true})});
+    const hand=await page.locator('#hand .tile').first().boundingBox(),board=await page.locator('#board').boundingBox();
+    await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);await page.mouse.down();await page.mouse.move(hand.x-20,hand.y+hand.height/2);await page.mouse.move(board.x+8/18*board.width,board.y+12/24*board.height+72);await page.mouse.up();
+    await expect(page.locator('.opfx.signal')).toContainText('SPLIT',{timeout:6000});
+    await expect(page.locator('.finalfx')).toBeVisible({timeout:10000});await page.screenshot({path:testInfo.outputPath(large?'nomon-final-large.png':'nomon-split.png')});
+    const bounds=await page.evaluate(()=>window.__finalBounds);expect(bounds.text).toBe(large?'1.8e308':'94');
+    expect(bounds.numberLeft).toBeGreaterThanOrEqual(bounds.boardLeft);expect(bounds.numberRight).toBeLessThanOrEqual(bounds.boardRight);expect(bounds.right).toBeLessThanOrEqual(bounds.vw);
+    await expect(page.locator('#score')).toHaveText('94',{timeout:5000});
+    const snap=await page.evaluate(()=>window.__nomonGame.snapshot());expect(snap.turns.find(e=>e.type==='signal-resolution').splitCount).toBe(1);
+    await page.locator('#undoTool').click();await expect(page.locator('.piece')).toHaveCount(3);expect(errors).toEqual([]);
+  });
+}
+
 async function assertPhoneLayout(page){
   const metrics=await page.evaluate(()=>{
     const rect=id=>{const r=document.getElementById(id).getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}};

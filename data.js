@@ -6,6 +6,7 @@
   return Object.freeze({
     VERSION:'0.25.3',
     ENGINE_VERSION:'0.13.0-double-double',
+    BIFURCATION_ENABLED:true,
     TARGETS:[
       20,100,500,2500,10000,
       50000,250000,1000000,5000000,25000000,

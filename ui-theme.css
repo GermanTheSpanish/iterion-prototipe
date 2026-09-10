@@ -90,3 +90,45 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 @keyframes resultSettle{0%{opacity:0;transform:translate(-50%,-45%)}15%,85%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0}}
 @media(max-height:700px){.app{gap:3px;grid-template-rows:44px auto 30px minmax(0,1fr) auto}.gameHeader .iconButton,.gameHeader .helpButton{height:44px}.scoreCard{min-height:82px}.scoreValue{font-size:36px}.handSlot{height:64px;flex-basis:64px}.domino{width:32px}.half{width:30px;height:30px}.hand{gap:4px}.hint{min-height:30px}.bottomBar{gap:5px}.btn{min-height:46px}}
 @media(prefers-reduced-motion:reduce){.opfx,.finalfx{animation-name:none!important;opacity:1;transform:translate(-50%,-50%)}.domino.reveal,.domino.reveal .spips{animation:none}.toast{transition:none}}
+
+/* NOMON: shallow physical surfaces, lit from the upper left. */
+:root{--tile-shadow:1px 2px 3px rgba(25,23,19,.10);--surface-shadow:3px 5px 16px rgba(25,23,19,.07)}
+.wordmark{letter-spacing:.28em}
+.domino{border-radius:6px;background:#fbf8f0;border-width:1.5px;box-shadow:var(--tile-shadow)}
+.piece{border-radius:5px;background:#fbf8f0;box-shadow:var(--tile-shadow)}
+.domino.circuitTile,.piece.circuitTile{background:#141414}
+.domino.back{background:#161616}
+.half{width:100%}
+.dragCandidate{box-shadow:2px 3px 6px rgba(25,23,19,.14)}
+.modal,.gameMenu{box-shadow:var(--surface-shadow);background:#fbfaf6;border-radius:12px}
+.btn:not(:disabled){box-shadow:1px 2px 3px rgba(25,23,19,.045)}
+.finalfx{width:max-content;max-width:calc(100% - 24px);padding:8px 10px;border-radius:6px;box-shadow:var(--surface-shadow);text-align:center;line-height:1.1}
+.finalfx span{display:inline-block;white-space:nowrap}
+.commerceModal{display:flex;flex-direction:column;max-height:calc(100dvh - 24px);padding:18px;overflow:hidden}
+.commerceModal h2{flex:none;margin:0 0 14px;font-size:24px;font-weight:600;letter-spacing:.12em}
+.commerceModal #overlayBody{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 3px 8px}
+.commerceModal .modalActions{flex:none;padding-top:12px;margin-top:0}
+.shopHero{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:0 0 14px;align-items:center}
+.shopHero strong{font-size:32px;font-weight:550;letter-spacing:-.04em}
+.shopHero .label,.shopInflation,.shopSupply{font-size:12px;line-height:1.5}
+.shopSection{border:0;background:none;padding:12px 0;margin:0}
+.shopSection h3{font-size:12px;letter-spacing:.12em;margin:0 0 10px}
+.shopSection p{margin:0 0 12px;font-size:13px}
+.marketDescriptions,.marketOfferGrid{display:grid;grid-template-columns:1fr;gap:10px}
+.marketDesc,.marketOffer,.randomOffer{padding:14px;background:#fff;border:1px solid #e5e2db;border-radius:9px;box-shadow:var(--tile-shadow)}
+.marketDesc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;align-items:center}
+.marketDesc strong{font-size:14px}.marketDesc span{grid-column:1;font-size:13px!important}
+.marketDesc .shopBuy{grid-column:2;grid-row:1 / span 2;min-width:78px;margin:0;padding:10px}
+.randomOffer{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:center}
+.randomOffer .domino{width:32px}.randomOffer .half{height:30px;max-height:none}
+.randomOffer .shopBuy{grid-column:1 / -1}
+.commerceModal .shopBuy{min-height:44px;font-size:13px;border-radius:6px;box-shadow:none}
+.commerceModal .shopBuy:disabled{opacity:.6;background:#f1f0ec;color:#5f5d56}
+.marketChoiceTitle{margin:16px 0 10px;font-size:12px;letter-spacing:.12em}
+.marketOfferHead strong{font-size:15px;letter-spacing:.03em}.marketOfferHead span{font-size:16px!important;color:var(--ink)}
+.marketOffer p{font-size:13px;margin:8px 0;line-height:1.45}
+.marketTarget{font-size:12px!important;margin-bottom:10px}
+.marketOffer .shopBuy{width:100%;margin:0}
+.marketOffer.purchasedOffer{border-color:#272722;background:#f4f3ed}
+.marketOffer.lockedOffer{opacity:.55;box-shadow:none}
+.shopFoot{margin:12px 0 0;line-height:1.5;font-size:12px!important}
