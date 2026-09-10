@@ -4,7 +4,7 @@ const path=require('path');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 assert.match(ui,/escapeHtml\(mod\.displayName\|\|mod\.name\)/,'Market UI must render offered modifier names from the registry');
-assert.match(ui,/Add one random new physical domino to this run\./,'Shop must explain random physical tile supply');
+assert.match(ui,/Add one random new physical domino to (?:this run|the current set)\./,'Shop must explain random physical tile supply');
 assert.match(ui,/SUPPLY \$\{supply\} · \$\{nextMarket\}/,'Market must show physical tile supply and next Market timing');
 assert.match(ui,/tileModMarks/,'Physical tile modifiers must have a visual marker renderer');
 assert.match(ui,/function magnitude\(v\)/);
