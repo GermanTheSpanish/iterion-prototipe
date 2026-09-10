@@ -30,12 +30,12 @@
   const pieceById=(ps,id)=>ps.find(p=>p.id===id);
   function connectionsForPiece(piece,pieces){const out=[];for(const p of pieces){if(p.id===piece.id||p.z!==piece.z)continue;const r=contactBetweenPieces(piece,p);if(r.ok&&r.touch)for(const c of r.contacts)out.push({toPieceId:p.id,fromHalf:c.aHalf,toHalf:c.bHalf,fromSide:c.side,toSide:c.otherSide,kind:r.kind})}return out}
   const connectionKey=c=>`${c.toPieceId}:${c.toHalf}:${c.fromSide}>${c.toSide}`;
-  function applyOp(v,isDouble,state,doubleDouble=false){
-    const before=state.output||0;
-    if(v===0)return{type:'zero',before,after:before,delta:0,doubleDouble:false};
-    if(v===2||v===4||v===6){const add=v*(doubleDouble&&isDouble?2:1),after=before+add;state.output=after;return{type:'add',before,after,add,delta:add,doubleDouble:!!(doubleDouble&&isDouble)}}
-    if(v===1||v===3||v===5){const factor=doubleDouble&&isDouble?v*v:v,after=before*factor;state.output=after;return{type:'multiply',before,after,factor,delta:after-before,doubleDouble:!!(doubleDouble&&isDouble)}}
-    return{type:'none',before,after:before,delta:0,doubleDouble:false}
+  function applyOp(v,isDouble,state,doubleDouble=false,powerMultiplier=1){
+    const before=state.output||0,power=Math.max(1,Number(powerMultiplier)||1);
+    if(v===0)return{type:'zero',before,after:before,delta:0,doubleDouble:false,powerMultiplier:power};
+    if(v===2||v===4||v===6){const baseAdd=v*(doubleDouble&&isDouble?2:1),add=baseAdd*power,after=before+add;state.output=after;return{type:'add',before,after,add,delta:add,doubleDouble:!!(doubleDouble&&isDouble),powerMultiplier:power}}
+    if(v===1||v===3||v===5){const baseFactor=doubleDouble&&isDouble?v*v:v,factor=baseFactor*power,after=before*factor;state.output=after;return{type:'multiply',before,after,factor,delta:after-before,doubleDouble:!!(doubleDouble&&isDouble),powerMultiplier:power}}
+    return{type:'none',before,after:before,delta:0,doubleDouble:false,powerMultiplier:power}
   }
   function startChoices(newPieceId,pieces){const p=pieceById(pieces,newPieceId);if(!p)return[];const out=[];for(const c of connectionsForPiece(p,pieces)){out.push({...c,entryHalf:c.toHalf,flipped:false,key:connectionKey(c)+':N'});out.push({...c,entryHalf:1-c.toHalf,flipped:true,key:connectionKey(c)+':F'})}const seen=new Set();return out.filter(c=>{const k=`${c.toPieceId}:${c.entryHalf}:${c.fromHalf}`;if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.key.localeCompare(b.key))}
   const extKey=(a,ah,b,bh)=>`E:${a}:${ah}>${b}:${bh}`;
@@ -72,18 +72,49 @@
   }
   function replaySelectedEcho(result,opts={}){
     if(!opts.doubleEchoPieceId)return result;
-    let echoActive=false,echoRunning=false,echoOutput=0,echoRebounds=0;const events=[];
+    const events=[],scope=[],echoForks=new Map();let echoActive=false,echoDone=false,activationScope=[],echoOutput=0,echoRebounds=0;
+    const normalEchoOp=raw=>{
+      const before=echoOutput,v=raw.value,power=Math.max(1,Number(raw.powerMultiplier)||1);let op='zero',add=0,factor=0;
+      if(v===2||v===4||v===6){op='add';add=v*power;echoOutput+=add}
+      else if(v===1||v===3||v===5){op='multiply';factor=v*power;echoOutput*=factor}
+      return{type:'echo-op',piece:raw.piece,entryHalf:raw.entryHalf,exitHalf:raw.exitHalf,value:v,op,before,after:echoOutput,add,factor,powerMultiplier:power,reverse:!!raw.reverse}
+    };
     for(const raw of result.events||[]){
       events.push({...raw});
-      // One Echo follows one already-selected downstream path: the first arm
-      // at a new fork. It does not copy itself into a sibling signal.
-      if(raw.type==='signal-end')echoRunning=false;
-      if(!echoActive&&raw.type==='op'&&raw.piece===opts.doubleEchoPieceId){echoActive=true;echoRunning=true;echoOutput=raw.after;events.push({type:'double-echo-start',piece:raw.piece,startOutput:echoOutput});continue}
-      if(!echoRunning)continue;
-      if(raw.type==='op'){const before=echoOutput,v=raw.value;if(v===2||v===4||v===6)echoOutput+=v;else if(v===1||v===3||v===5)echoOutput*=v;events.push({type:'echo-op',piece:raw.piece,value:v,op:v===0?'zero':v%2===0?'add':'multiply',before,after:echoOutput,add:v!==0&&v%2===0?v:0,factor:v%2===1?v:0,reverse:!!raw.reverse})}
+      if(!echoActive&&!echoDone&&raw.type==='op'&&raw.piece===opts.doubleEchoPieceId){
+        echoActive=true;echoOutput=raw.after;activationScope=scope.map(x=>({...x}));events.push({type:'double-echo-start',piece:raw.piece,startOutput:echoOutput});continue
+      }
+      if(!echoActive){
+        if(raw.type==='signal-start')scope.push({fork:raw.fork,arm:raw.arm});
+        else if(raw.type==='signal-end')scope.pop();
+        continue
+      }
+      if(raw.type==='signal-fork'){
+        echoForks.set(raw.piece,{seed:echoOutput,results:[]});
+        events.push({type:'echo-signal-fork',piece:raw.piece,output:echoOutput});continue
+      }
+      if(raw.type==='signal-start'){
+        scope.push({fork:raw.fork,arm:raw.arm});const fork=echoForks.get(raw.fork);
+        if(fork){echoOutput=fork.seed;events.push({type:'echo-signal-start',fork:raw.fork,arm:raw.arm,output:echoOutput})}
+        continue
+      }
+      if(raw.type==='signal-end'){
+        const top=scope[scope.length-1],fork=echoForks.get(raw.fork);
+        if(fork){fork.results[raw.arm]=echoOutput;events.push({type:'echo-signal-end',fork:raw.fork,arm:raw.arm,output:echoOutput})}
+        const activationTop=activationScope[activationScope.length-1],closesActivation=activationTop&&scope.length===activationScope.length&&top?.fork===activationTop.fork&&top?.arm===activationTop.arm;
+        scope.pop();
+        if(closesActivation&&!fork){echoActive=false;echoDone=true}
+        continue
+      }
+      if(raw.type==='signal-join'){
+        const fork=echoForks.get(raw.piece);if(fork){echoOutput=fork.results.reduce((sum,v)=>sum+(Number(v)||0),0);events.push({type:'echo-signal-join',piece:raw.piece,output:echoOutput});echoForks.delete(raw.piece)}
+        continue
+      }
+      if(raw.type==='op')events.push(normalEchoOp(raw));
       else if(raw.type==='rebound'){echoRebounds++;events.push({type:'echo-rebound',piece:raw.piece,charge:raw.charge})}
     }
-    if(!echoActive)return result;
+    if(!echoActive&&!echoDone&&events.every(e=>e.type!=='double-echo-start'))return result;
+    if(!events.some(e=>e.type==='double-echo-start'))return result;
     const mainOutput=result.output,output=mainOutput+echoOutput;
     const die=events.length&&events[events.length-1].type==='die'?events.pop():null;events.push({type:'double-echo-result',piece:opts.doubleEchoPieceId,mainOutput,echoOutput,finalOutput:output,echoRebounds});if(die)events.push(die);
     return{...result,mainOutput,echoOutput,output,gain:output-(opts.initialOutput||0),events,doubleEchoActivated:true,echoRebounds}
@@ -139,7 +170,7 @@
       const cur=pieceById(pieces,s.current.pieceId);if(!cur)return finish(s,'missing-piece');
       const entryHalf=s.mode===1?s.current.entryHalf:1-s.current.entryHalf,inC=cur.cubes.find(c=>c.half===entryHalf)||cur.cubes[0],outC=cur.cubes.find(c=>c.half!==inC.half)||cur.cubes[1],from=cubeCenter(inC),to=cubeCenter(outC);
       s.path.push(from,to);s.segments.push({piece:cur.id,from,to,reverse:s.mode===-1,entryHalf:inC.half,exitHalf:outC.half});s.traversals++;
-      const doubleDouble=cur.id===opts.doubleDoublePieceId&&!s.doubleDoubleUsed;const op=applyOp(outC.v,cur.double,s,doubleDouble);if(op.doubleDouble)s.doubleDoubleUsed=true;s.events.push({type:'op',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,value:outC.v,op:op.type,before:op.before,after:op.after,add:op.add||0,factor:op.factor||0,delta:op.delta||0,doubleDouble:!!op.doubleDouble,reverse:s.mode===-1});
+      const doubleDouble=cur.id===opts.doubleDoublePieceId&&!s.doubleDoubleUsed,powerMultiplier=Math.max(1,Number(cur.tile?.powerMultiplier)||1);const op=applyOp(outC.v,cur.double,s,doubleDouble,powerMultiplier);if(op.doubleDouble)s.doubleDoubleUsed=true;s.events.push({type:'op',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,value:outC.v,op:op.type,before:op.before,after:op.after,add:op.add||0,factor:op.factor||0,delta:op.delta||0,doubleDouble:!!op.doubleDouble,powerMultiplier,reverse:s.mode===-1});
       if(outC.v===0){const cap=cur.double?2:1,used=s.zeroCharges.get(cur.id)||0;if(s.suppressZeroPiece===cur.id){s.suppressZeroPiece=null;s.events.push({type:'zero-pass',piece:cur.id})}else if(used<cap){s.zeroCharges.set(cur.id,used+1);s.mode*=-1;s.rebounds++;if(cur.double)s.suppressZeroPiece=cur.id;s.events.push({type:'rebound',piece:cur.id,charge:used+1});return walk(s)}else return finish(s,'zero-spent')}
       if(s.mode===-1){if(!s.back.length)return finish(s,'back-at-origin');const prev=s.back[s.back.length-1],k=extKey(cur.id,outC.half,prev.pieceId,1-prev.entryHalf);s.forward.push({...s.current});s.current=s.back.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:1-s.current.entryHalf,reverse:true,retrace:true,key:k});return walk(s)}
       if(s.forward.length){const nxt=s.forward[s.forward.length-1],k=extKey(cur.id,outC.half,nxt.pieceId,nxt.entryHalf);s.back.push({...s.current});s.current=s.forward.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:s.current.entryHalf,reverse:false,replay:true,retrace:true,key:k});return walk(s)}
@@ -148,7 +179,7 @@
       const conns=available.filter(c=>c.fromHalf===outC.half);if(!conns.length)return finish(s,'no-exit');
       return follow(s,conns,outC.half)
     }
-    for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:initialOutput,initialOutput,suppressZeroPiece:null,doubleDoubleUsed:false,usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
+    for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:initialOutput,initialOutput,suppressZeroPiece:null,doubleDoubleUsed:false,splitUsed:new Set(),usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
     best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};best=replaySelectedScoring(best,initialOutput,opts);return replaySelectedEcho(best,{...opts,initialOutput})
   }
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
