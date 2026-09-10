@@ -19,7 +19,7 @@
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function tierFor(t){if(!t)return 0;if(t.upgrade)return Math.min(3,t.upgrade);const set=GAME.state().set||[],m=t.id?set.find(x=>x.id===t.id):null;return Math.min(3,m?.upgrade||0)}
   function powerMultiplier(t){return Math.max(1,Number(t?.powerMultiplier)||1)}
-  function powerClass(t){return powerMultiplier(t)>1?' powerTile':''}
+  function powerClass(t){return powerMultiplier(t)>1?` powerTile power${Math.min(4,powerMultiplier(t))}`:''}
   function powerMark(t){const power=powerMultiplier(t);return power>1?`<i class="powerMark" aria-hidden="true">×${power}</i>`:''}
   function circuitRank(t){return GAME.state().circuitRanks[t?.id]||0}
   function circuitClass(t){const rank=circuitRank(t);return rank?` circuitTile circuitRank${rank}`:''}
@@ -87,7 +87,7 @@
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();GAME.save();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
   function openPermanentShop(){if(!GAME.openShop()){toast('Shop unavailable');return}GAME.save();render()}
 
-  function escapeHtml(value){return`${value}`.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]))}
+  function escapeHtml(value){return`${value}`.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
   function ruleVisual(section){return section.visual?`<div class="ruleVisual">${escapeHtml(section.visual)}</div>`:''}
   function closeAuxOverlay(){auxOverlay=null;render();(returnFocus?.isConnected?returnFocus:helpBtn).focus();returnFocus=null}
   function openScoreDetails(kind){if(GAME.state().running||uiBusy||drag.active)return;returnFocus=document.activeElement;press.cancel();auxOverlay={type:'score',kind};renderAuxOverlay()}
@@ -189,12 +189,12 @@
 
   function center(c,r){const p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);return{x:(p.rect.minx+p.rect.maxx)/2/E.G*r.width,y:(p.rect.miny+p.rect.maxy)/2/E.H*r.height}}
   function nearest(x,y){const r=board.getBoundingClientRect(),lx=x-r.left,ly=(y-D.DRAG_Y_OFFSET)-r.top;if(lx<0||ly<0||lx>r.width||ly>r.height)return null;let pick=null,d0=1e9;for(const c of drag.candidates){const q=center(c,r),d=Math.hypot(q.x-lx,q.y-ly);if(d<d0){d0=d;pick=c}}return d0<=82?pick:null}
-  function maybeShakeRotate(e){const s=GAME.state();if(s.pieces.length)return;const now=performance.now(),dx=e.clientX-drag.lastX;if(Math.abs(dx)>=D.SHAKE_THRESHOLD){const sign=Math.sign(dx);if(drag.lastSign&&sign!==drag.lastSign){if(!drag.shakeStarted||now-drag.shakeStarted>D.SHAKE_WINDOW_MS){drag.switches=1;drag.shakeStarted=now}else drag.switches++;if(drag.switches>=D.SHAKE_SWITCHES&&now-drag.shakeStarted>D.SHAKE_COOLDOWN_MS){GAME.rotateRoot();drag.candidates=GAME.candidatesForIndex(drag.index);drag.candidate=null;drag.lastRotate=now;drag.switches=0;drag.shakeStarted=now;if(navigator.vibrate)navigator.vibrate(12);updateFloatRotation();toast(`Opening tile ${ARROW[GAME.state().rootRR]}`)}}drag.lastSign=sign;drag.lastX=e.clientX}}
+  function maybeShakeRotate(e){const s=GAME.state();if(s.pieces.length)return;const now=performance.now(),dx=e.clientX-drag.lastX;if(Math.abs(dx)>=D.SHAKE_THRESHOLD){const sign=Math.sign(dx);if(drag.lastSign&&sign!==drag.lastSign){if(!drag.shakeStarted||now-drag.shakeStarted>D.SHAKE_WINDOW_MS){drag.switches=1;drag.shakeStarted=now}else drag.switches++;if(drag.switches>=D.SHAKE_SWITCHES&&now-drag.lastRotate>D.SHAKE_COOLDOWN_MS){GAME.rotateRoot();drag.candidates=GAME.candidatesForIndex(drag.index);drag.candidate=null;drag.lastRotate=now;drag.switches=0;drag.shakeStarted=now;if(navigator.vibrate)navigator.vibrate(12);updateFloatRotation();toast(`Opening tile ${ARROW[GAME.state().rootRR]}`)}}drag.lastSign=sign;drag.lastX=e.clientX}}
   function updateFloatRotation(){if(drag.float)drag.float.style.setProperty('--rr',GAME.state().rootRR)}
   function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=GAME.candidatesForIndex(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
   function moveDrag(e){if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px'}const c=nearest(e.clientX,e.clientY),o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()}
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
-  async function endDrag(e){if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}const generationBefore=GAME.state().setGeneration||1,ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}const unlocked=(GAME.state().setGeneration||1)>generationBefore,drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim,GAME.moveResonance(ctx.sim,ctx.trigger).output);const result=GAME.finishPlacement(ctx);GAME.save();await drawAnim;if(GAME.state().cleared||GAME.state().blocked)armOutcomeDelay();render();if(unlocked)toast(`POWER SET ${GAME.state().setGeneration} · ×${D.POWER_SET_MULTIPLIER||2} UNLOCKED`);else if(GAME.state().cleared)toast(`Round clear · ${fmt(GAME.state().score)}`);else if(result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)}
+  async function endDrag(e){if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}const generationBefore=GAME.state().setGeneration||1,ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}const unlocked=(GAME.state().setGeneration||1)>generationBefore,drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim,GAME.moveResonance(ctx.sim,ctx.trigger).output);const result=GAME.finishPlacement(ctx);GAME.save();await drawAnim;if(GAME.state().cleared||GAME.state().blocked)armOutcomeDelay();render();if(unlocked)toast(`POWER SET ${GAME.state().setGeneration} · ×${GAME.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(GAME.state().cleared)toast(`Round clear · ${fmt(GAME.state().score)}`);else if(result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)}
 
   function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();GAME.save();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
   const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
@@ -205,59 +205,78 @@
 
   function pc(id){return GAME.state().pieces.find(p=>p.id===id)}
   function magnitude(v){const n=Math.abs(Number(v)||0);return n<1?1:Math.floor(Math.log10(n))+1}
-  function fx(x,y,t,value=0,kind='add',index=0,lane=''){const d=document.createElement('div'),duration=V.effectLifetime(index),size=Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);while(board.querySelectorAll('.opfx').length>V.CASCADE.maxLabels)board.querySelector('.opfx').remove();setTimeout(()=>d.remove(),duration);return d}
-  function laneName(lane){return lane==='lane1'?'signalLane1':lane==='echoLane'?'signalEcho':'signalLane0'}
-  function pulsePiece(pp,lane,index){if(!pp)return;const el=board.querySelector(`[data-tile-id="${pp.tile.id}"]`),cls=laneName(lane),duration=V.effectLifetime(index);if(!el)return;el.classList.add('signalActive',cls);setTimeout(()=>{el.classList.remove(cls);if(!el.classList.contains('signalLane0')&&!el.classList.contains('signalLane1')&&!el.classList.contains('signalEcho'))el.classList.remove('signalActive')},duration)}
+  function fitBoardLabel(d){
+    const width=Math.max(1,board.clientWidth-16),style=getComputedStyle(d),inner=Math.max(1,width-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));
+    d.style.fontSize=V.fitFontSize(parseFloat(style.fontSize),d.scrollWidth,inner)+'px';
+    const w=d.getBoundingClientRect().width,h=d.getBoundingClientRect().height,x=parseFloat(d.style.left)/100*board.clientWidth,y=parseFloat(d.style.top)/100*board.clientHeight;
+    d.style.left=Math.max(w/2+4,Math.min(board.clientWidth-w/2-4,x))+'px';d.style.top=Math.max(h/2+4,Math.min(board.clientHeight-h/2-4,y))+'px';
+  }
+  function fx(x,y,t,value=0,kind='add',index=0,lane=''){
+    const d=document.createElement('div'),duration=V.effectLifetime(index),size=kind.includes('signal')?14:Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);
+    if(kind.includes('signal'))fitBoardLabel(d);
+    while(board.querySelectorAll('.opfx:not(.signalValue)').length>V.CASCADE.maxLabels)board.querySelector('.opfx:not(.signalValue)').remove();setTimeout(()=>d.remove(),duration);return d
+  }
+  const activePulses=new Map();
+  function pulsePiece(pp,lane,index){
+    if(!pp)return;const el=board.querySelector(`[data-tile-id="${pp.tile.id}"]`);if(!el)return;
+    const cls=lane.family==='echo'?'signalEcho':lane.path.endsWith('B')?'signalLane1':'signalLane0',token={};let owners=activePulses.get(el);if(!owners){owners=new Map();activePulses.set(el,owners)}owners.set(token,cls);el.classList.add('signalActive',cls);
+    setTimeout(()=>{owners.delete(token);if(![...owners.values()].includes(cls))el.classList.remove(cls);if(!owners.size){el.classList.remove('signalActive');activePulses.delete(el)}},V.effectLifetime(index));
+  }
+  function laneId(lane){return lane.family+(lane.path?'.'+lane.path:'')}
+  function laneLabel(lane){return(lane.family==='echo'?'ECHO':'MAIN')+(lane.path?' '+lane.path:'')}
+  function clearLane(lane){board.querySelectorAll('.signalValue').forEach(el=>{if(el.dataset.lane===laneId(lane))el.remove()})}
+  function showOperation(e,lastOp,lane,index){
+    const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,lane,index);if(!c||e.value===0)return;
+    clearLane(lane);const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
+    d.className=`opfx signalValue ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;
+    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.type==='zero-memory'?' ZM':e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);
+    // One readable live number per signal. Prefer the physical activation point,
+    // then nearby free positions, keeping overlapping Main/Echo labels apart.
+    const w=Math.min(d.getBoundingClientRect().width,board.clientWidth-12),h=d.getBoundingClientRect().height;d.style.maxWidth=(board.clientWidth-12)+'px';
+    const bx=(c.x+1)/E.G*board.clientWidth+(lane.family==='echo'?30:-30),by=(c.y+1)/E.H*board.clientHeight;
+    const occupied=[...board.querySelectorAll('.signalValue')].filter(el=>el!==d).map(el=>({x:parseFloat(el.style.left),y:parseFloat(el.style.top),w:el.offsetWidth,h:el.offsetHeight}));
+    let selected=null,best=Infinity;for(let dy=-3;dy<=3;dy++)for(let dx=-2;dx<=2;dx++){
+      const x=Math.max(w/2+4,Math.min(board.clientWidth-w/2-4,bx+dx*(w+6))),y=Math.max(h/2+4,Math.min(board.clientHeight-h/2-4,by+dy*(h+6)));
+      const overlaps=occupied.filter(o=>Math.abs(o.x-x)<(o.w+w)/2+3&&Math.abs(o.y-y)<(o.h+h)/2+3).length,cost=overlaps*100000+Math.hypot(x-bx,y-by);
+      if(cost<best){best=cost;selected={x,y}}
+    }
+    d.style.left=selected.x+'px';d.style.top=selected.y+'px';
+  }
   function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'reboundFx',index,lane);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`;return d}
   function finalFx(v){
-    board.querySelectorAll('.opfx').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));
+    board.querySelectorAll('.opfx').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
     const d=document.createElement('div'),duration=V.CASCADE.finalMs;d.className='finalfx';
     const number=document.createElement('span');number.textContent=compact(v);d.appendChild(number);board.appendChild(d);
     const fit=()=>{number.style.fontSize='';const style=getComputedStyle(d),space=Math.max(1,board.clientWidth-24-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));number.style.fontSize=V.fitFontSize(parseFloat(style.fontSize),number.getBoundingClientRect().width,space)+'px'};
     fit();const resize=new ResizeObserver(fit);resize.observe(board);setTimeout(()=>{resize.disconnect();d.remove()},duration);return duration
   }
-  function forkBlock(events,start){
-    const fork=events[start].piece,branches=[];let i=start+1;
-    while(i<events.length){const e=events[i];
-      if(e.type==='signal-start'&&e.fork===fork){let j=i+1;while(j<events.length&&!(events[j].type==='signal-end'&&events[j].fork===fork&&events[j].arm===e.arm))j++;if(j>=events.length)return null;branches.push({arm:e.arm,events:events.slice(i+1,j),end:events[j]});i=j+1;continue}
-      if(e.type==='signal-join'&&e.piece===fork)return{branches:branches.sort((a,b)=>a.arm-b.arm),join:e,next:i+1};i++
-    }
-    return null
-  }
-  function showOperation(e,lastOp,lane,index){
-    const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,e.type==='echo-op'?'echoLane':lane,index);if(!c||e.value===0)return;
-    const kind=e.op==='multiply'?'multiply':'add',suffix=e.type==='echo-op'?' E':e.type==='zero-memory'?' ZM':e.doubleDouble?' DD':'';
-    fx(c.x+1,c.y+1,`${kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add)}${suffix}`,e.after,kind,index,e.type==='echo-op'?'echoLane':lane)
-  }
-  async function animateSequence(events,lane='lane0',startIndex=0){
+  async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
     let lastOp=null,index=startIndex,i=0;
     while(i<events.length){const e=events[i];
       if(e.type==='signal-fork'){
-        const block=forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
-        if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'SPLIT',0,'signal',index,lane);await wait(Math.max(150,V.cascadeDelay(index)/2))}
-        await Promise.all(block.branches.map((branch,branchIndex)=>animateSequence(branch.events,branchIndex===0?'lane0':'lane1',index+1)));
-        if(pp){const ends=block.branches.map(b=>compact(b.end?.output??0)),label=ends.length>=2?`${ends[0]} + ${ends[1]} = ${compact(block.join.output)}`:`JOIN ${compact(block.join.output)}`;fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,label,block.join.output,'signal joinFx',index+1,lane);await wait(Math.max(180,V.cascadeDelay(index+1)))}
+        const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}clearLane(lane);
+        if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?'ECHO SPLIT':'SPLIT',0,'signal splitFx',index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(150,V.cascadeDelay(index)/2))}
+        await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+(branch.arm===0?'A':'B')},index+1,startEcho)));
+        if(pp){const ends=block.branches.map(b=>compact(b.end.output)),label=`${laneLabel(lane)} JOIN · ${ends.join(' + ')} = ${compact(block.join.output)}`,d=fx(E.G/2,E.H/2,label,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');d.dataset.family=lane.family;d.dataset.output=block.join.output;d.style.top=(lane.family==='echo'?62:42)+'%';await wait(Math.max(300,V.cascadeDelay(index+1)))}
         i=block.next;index+=2;continue
       }
-      if(e.type==='signal-start'||e.type==='signal-end'||e.type==='signal-join'||e.type.startsWith('echo-signal-')){i++;continue}
-      if(e.type==='op'||e.type==='zero-memory'){
-        if(e.type==='op')lastOp=e;const next=events[i+1];showOperation(e,lastOp,lane,index);
-        if(next?.type==='echo-op'&&next.piece===e.piece){showOperation(next,e,'echoLane',index);i++}
-        await wait(V.cascadeDelay(index));if(e.type!=='zero-memory')index++;i++;continue
-      }
-      if(e.type==='echo-op'){showOperation(e,lastOp,'echoLane',index);await wait(V.cascadeDelay(index));index++;i++;continue}
-      if(e.type==='rebound'||e.type==='echo-rebound'){
+      if(e.type==='op'||e.type==='zero-memory'){if(e.type==='op')lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await wait(V.cascadeDelay(index));if(e.type!=='zero-memory')index++;i++;continue}
+      if(e.type==='rebound'){
         const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
-        if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle,index,e.type==='echo-rebound'?'echoLane':lane);await wait(Math.max(160,V.cascadeDelay(index)))}i++;continue
+        if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle,index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(160,V.cascadeDelay(index)))}i++;continue
       }
-      if(e.type==='double-echo-start'){const pp=pc(e.piece);if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal echoStart',index,'echoLane');await wait(180)}i++;continue}
-      if(e.type==='double-echo-result'){fx(E.G/2,E.H/2,`MAIN ${compact(e.mainOutput)} + ECHO ${compact(e.echoOutput)} = ${compact(e.finalOutput)}`,e.finalOutput,'signal echoJoin',index,'echoLane');await wait(Math.max(300,V.cascadeDelay(index)));i++;continue}
-      i++
+      if(e.type==='double-echo-start'){startEcho(e,index);i++;continue}i++
     }
-    return index
+    clearLane(lane);return index
   }
   async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
-    renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger);await wait(V.cascadeDelay(0));await animateSequence(sim.events||[],'lane0',0);await wait(finalFx(finalOutput))
+    renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger);await wait(V.cascadeDelay(0));
+    const plan=V.signalPlan(sim.events||[]);let echoTask=null;
+    const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal echoStart',index,'echoLane');echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await wait(V.cascadeDelay(index));return animateSequence(plan.echo,lane,index+1)})()};
+    await animateSequence(plan.main,{family:'main',path:''},0,startEcho);if(echoTask)await echoTask;
+    if(plan.result){board.querySelectorAll('.opfx').forEach(el=>el.remove());const e=plan.result,d=fx(E.G/2,E.H/2,`MAIN ${compact(e.mainOutput)} + ECHO ${compact(e.echoOutput)} = ${compact(e.finalOutput)}`,e.finalOutput,'signal echoJoin',0);d.dataset.output=e.finalOutput;await wait(650)}
+    if(finalOutput!==(sim.output??trigger)){board.querySelectorAll('.opfx').forEach(el=>el.remove());fx(E.G/2,E.H/2,`CIRCUIT ×${compact(finalOutput/(sim.output||trigger||1))}`,finalOutput,'signal resonanceFx',0);await wait(450)}
+    await wait(finalFx(finalOutput))
   }
 
   async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}GAME.save();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}

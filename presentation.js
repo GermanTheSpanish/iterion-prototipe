@@ -31,5 +31,20 @@
   function fitFontSize(fontSize,measuredWidth,availableWidth){
     return measuredWidth>availableWidth?fontSize*Math.max(0,availableWidth)/measuredWidth:fontSize
   }
-  return Object.freeze({compact,exact,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,fitFontSize,CASCADE});
+  // Presentation consumes engine events only. Echo events already contain their
+  // resolved arithmetic and topology; filtering them never creates a new route.
+  function signalPlan(events){
+    const echo=events.filter(e=>e.type.startsWith('echo-')).map(e=>({...e,type:e.type.slice(5)}));
+    const main=events.filter(e=>!e.type.startsWith('echo-')&&e.type!=='double-echo-result');
+    return{main,echo,result:events.find(e=>e.type==='double-echo-result')||null}
+  }
+  function forkBlock(events,start){
+    const fork=events[start].piece,branches=[];let i=start+1;
+    while(i<events.length){const e=events[i];
+      if(e.type==='signal-start'&&e.fork===fork){let j=i+1;while(j<events.length&&!(events[j].type==='signal-end'&&events[j].fork===fork&&events[j].arm===e.arm))j++;if(j>=events.length)return null;branches.push({arm:e.arm,events:events.slice(i+1,j),end:events[j]});i=j+1;continue}
+      if(e.type==='signal-join'&&e.piece===fork)return{branches:branches.sort((a,b)=>a.arm-b.arm),join:e,next:i+1};i++
+    }
+    return null
+  }
+  return Object.freeze({compact,exact,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,fitFontSize,signalPlan,forkBlock,CASCADE});
 });

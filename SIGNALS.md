@@ -47,13 +47,34 @@ Memory replays after route selection, using the current branch's previous
 operation, at most once across the whole Move. Fork markers restore the
 copied arithmetic state before the sibling begins.
 
-Double Echo still creates exactly one Echo and follows one already-selected
-downstream path. When that path reaches a fork, it follows the first arm;
-it does not duplicate into the sibling. An Echo created in a later arm starts
-there. Echo does not create Echoes, consume extra star rewards or change the
-chosen routes.
+Double Echo creates exactly one Echo and follows the already-selected
+downstream tree. It copies the full Score into both arms of each recorded T,
+then adds their terminal results. An Echo created inside an arm only follows
+that arm's downstream subtree, not its ancestor's sibling. Echo does not
+create Echoes, consume extra star rewards or change the chosen routes.
 
-Final scoring order: selected signal tree with DD and ZM → add the one Echo
+## POWER resolution and supply
+
+Every round, including R1 and Endless, refreshes one free Reroll. It is spent
+before stored Rerolls, never accumulates, and costs no Coins or Inflation.
+There is no separate Stage Reroll resource.
+
+Exhausting the physical supply into the machine introduces exactly 28 new
+double-six instances. Generation IDs are disjoint from original and purchased
+IDs. Set II is POWER x2, III x3, and IV and every later set x4. Purchases inherit
+the current generation, retain it permanently, and delay its exhaustion.
+Undo restores generation, supply, RNG and the unlock event. Canonical paid
+Shop purchase preservation also applies when Undo crosses an unlock.
+
+Search always applies POWER x1, including its Output comparator input. Only
+after selection does `replaySelectedScoring` resolve the recorded operations
+with actual physical POWER. No connection search runs in that pass. Selected
+starts, paths, segments, DD occurrences, T topology and rebound events remain
+identical. DD magnitude scales linearly; Zero Memory repeats the actual scaled
+preceding operation. Printed values and the initial a+b trigger never scale.
+`selectionOutput` exposes the unpowered result when a scoring replay occurs.
+
+Final scoring order: selected signal tree with POWER, DD and ZM → add the one Echo
 if activated → apply the additive Circuit multiplier once → floor. Stars,
 Long Run and Circuit Resonance use the union of exact physical activations.
 No duplicate star payment is introduced by a split.
@@ -79,10 +100,19 @@ and Market have separate product cards, readable prices and a fixed reachable
 close/continue action while their contents may scroll internally. Purchases,
 Inflation, eligible targets and the one-purchase Market limit are unchanged.
 
-The cascade starts at 600ms (previously 300ms), accelerates toward the existing
-100ms minimum and keeps at most three operation labels. Its final compact
-number is measured against the board's available width and resized when the
-board changes size. Numeric formatting never feeds back into scoring.
+The cascade starts at 600ms, accelerates toward the existing 100ms minimum,
+and presents one live number per active signal. Main and Echo have independent
+concurrent timelines and branch identities. Labels avoid occupied rectangles;
+solid/double/dashed treatments and explicit names distinguish signals without
+extra colour. Each JOIN waits for both branches. Main + Echo precedes Circuit
+Resonance and the final display. Compact JOIN and final numbers are measured
+against the board width. Numeric formatting never feeds back into scoring.
+
+POWER bodies are dark blue / purple / mustard for x2 / x3 / x4, with explicit
+multiplier marks. Circuit black overrides those bodies; bright rank pips,
+Roman rank and the POWER mark coexist. Opening shake uses the pre-9afb380
+lastRotate cooldown with threshold 10; desktop logic tests do not establish
+physical phone sensitivity.
 
 ## Numeric scope
 

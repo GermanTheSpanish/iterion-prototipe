@@ -44,7 +44,10 @@
   function terminal(s,reason,meta={}){const events=[...s.events,{type:'die',reason}],output=s.output||0;return{output,gain:output-(s.initialOutput||0),path:s.path,segments:s.segments,events,zeroCharges:s.zeroCharges,reason,traversals:s.traversals,rebounds:s.rebounds,...meta}}
   function better(a,b){if(!b)return true;const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length],bv=[b.traversals||0,b.output||0,b.rebounds||0,(b.path||[]).length];for(let i=0;i<av.length;i++){if(av[i]!==bv[i])return av[i]>bv[i]}return false}
   function replaySelectedScoring(result,initialOutput,opts={}){
-    if(!opts.zeroMemoryPieceId)return result;
+    // This pass consumes the selected event tree. It never searches connections.
+    // Search output is always unpowered; DD occurrence and topology are retained.
+    const powers=opts.powerByPiece||new Map(),powered=[...powers.values()].some(p=>p>1);
+    if(!opts.zeroMemoryPieceId&&!powered)return result;
     let output=initialOutput,lastNonZero=null,pendingZero=null,zeroMemoryUsed=false;const events=[],forks=new Map();
     for(const raw of result.events||[]){
       if(raw.type==='signal-fork'){forks.set(raw.piece,{output,lastNonZero,pendingZero,results:[]});events.push({...raw,output});continue}
@@ -53,6 +56,11 @@
       if(raw.type==='signal-join'){output=forks.get(raw.piece).results.reduce((a,b)=>a+b,0);events.push({...raw,output});forks.delete(raw.piece);continue}
       if(raw.type==='op'){
         const e={...raw,before:output};
+        const power=powers.get(e.piece)||1;
+        if(powered){
+          const op=applyOp(e.value,!!e.doubleDouble,{output},!!e.doubleDouble,power);
+          e.add=op.add||0;e.factor=op.factor||0;e.powerMultiplier=power;
+        }
         if(e.op==='multiply'){e.after=output*(e.factor||1);e.delta=e.after-output;output=e.after;lastNonZero={piece:e.piece,value:e.value,op:e.op,factor:e.factor||1,add:0,doubleDouble:!!e.doubleDouble}}
         else if(e.op==='add'){e.after=output+(e.add||0);e.delta=e.after-output;output=e.after;lastNonZero={piece:e.piece,value:e.value,op:e.op,factor:0,add:e.add||0,doubleDouble:!!e.doubleDouble}}
         else{e.after=output;e.delta=0}
@@ -68,7 +76,7 @@
       }
       events.push({...raw});if(raw.type==='zero-pass'||raw.type==='die')pendingZero=null
     }
-    return{...result,output,gain:output-initialOutput,events,zeroMemoryActivated:zeroMemoryUsed}
+    return{...result,selectionOutput:result.output,output,gain:output-initialOutput,events,zeroMemoryActivated:zeroMemoryUsed}
   }
   function replaySelectedEcho(result,opts={}){
     if(!opts.doubleEchoPieceId)return result;
@@ -170,7 +178,7 @@
       const cur=pieceById(pieces,s.current.pieceId);if(!cur)return finish(s,'missing-piece');
       const entryHalf=s.mode===1?s.current.entryHalf:1-s.current.entryHalf,inC=cur.cubes.find(c=>c.half===entryHalf)||cur.cubes[0],outC=cur.cubes.find(c=>c.half!==inC.half)||cur.cubes[1],from=cubeCenter(inC),to=cubeCenter(outC);
       s.path.push(from,to);s.segments.push({piece:cur.id,from,to,reverse:s.mode===-1,entryHalf:inC.half,exitHalf:outC.half});s.traversals++;
-      const doubleDouble=cur.id===opts.doubleDoublePieceId&&!s.doubleDoubleUsed,powerMultiplier=Math.max(1,Number(cur.tile?.powerMultiplier)||1);const op=applyOp(outC.v,cur.double,s,doubleDouble,powerMultiplier);if(op.doubleDouble)s.doubleDoubleUsed=true;s.events.push({type:'op',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,value:outC.v,op:op.type,before:op.before,after:op.after,add:op.add||0,factor:op.factor||0,delta:op.delta||0,doubleDouble:!!op.doubleDouble,powerMultiplier,reverse:s.mode===-1});
+      const doubleDouble=cur.id===opts.doubleDoublePieceId&&!s.doubleDoubleUsed,powerMultiplier=1;const op=applyOp(outC.v,cur.double,s,doubleDouble,powerMultiplier);if(op.doubleDouble)s.doubleDoubleUsed=true;s.events.push({type:'op',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,value:outC.v,op:op.type,before:op.before,after:op.after,add:op.add||0,factor:op.factor||0,delta:op.delta||0,doubleDouble:!!op.doubleDouble,powerMultiplier,reverse:s.mode===-1});
       if(outC.v===0){const cap=cur.double?2:1,used=s.zeroCharges.get(cur.id)||0;if(s.suppressZeroPiece===cur.id){s.suppressZeroPiece=null;s.events.push({type:'zero-pass',piece:cur.id})}else if(used<cap){s.zeroCharges.set(cur.id,used+1);s.mode*=-1;s.rebounds++;if(cur.double)s.suppressZeroPiece=cur.id;s.events.push({type:'rebound',piece:cur.id,charge:used+1});return walk(s)}else return finish(s,'zero-spent')}
       if(s.mode===-1){if(!s.back.length)return finish(s,'back-at-origin');const prev=s.back[s.back.length-1],k=extKey(cur.id,outC.half,prev.pieceId,1-prev.entryHalf);s.forward.push({...s.current});s.current=s.back.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:1-s.current.entryHalf,reverse:true,retrace:true,key:k});return walk(s)}
       if(s.forward.length){const nxt=s.forward[s.forward.length-1],k=extKey(cur.id,outC.half,nxt.pieceId,nxt.entryHalf);s.back.push({...s.current});s.current=s.forward.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:s.current.entryHalf,reverse:false,replay:true,retrace:true,key:k});return walk(s)}
@@ -180,7 +188,7 @@
       return follow(s,conns,outC.half)
     }
     for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:initialOutput,initialOutput,suppressZeroPiece:null,doubleDoubleUsed:false,splitUsed:new Set(),usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
-    best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};best=replaySelectedScoring(best,initialOutput,opts);return replaySelectedEcho(best,{...opts,initialOutput})
+    best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};best=replaySelectedScoring(best,initialOutput,{...opts,powerByPiece:new Map(pieces.map(p=>[p.id,Math.max(1,Number(p.tile?.powerMultiplier)||1)]))});return replaySelectedEcho(best,{...opts,initialOutput})
   }
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}

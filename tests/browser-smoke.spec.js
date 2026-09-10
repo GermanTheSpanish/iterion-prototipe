@@ -1,4 +1,39 @@
 const { test, expect } = require('@playwright/test');
+
+for(const viewport of [{width:375,height:667},{width:390,height:844}]){
+  for(const echo of [false,true])test(`v027 concurrent ${echo?'Main and Echo':'T branches'} ${viewport.width}`,async({page},testInfo)=>{
+    await page.setViewportSize(viewport);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.addInitScript(echo=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:2701,TARGETS:Array(15).fill(1e15)}),s=g.state();s.pieces=[['d3-3',6,8,0],['d3-5',4,8,2],['d3-4',10,8,0]].map(([id,x,y,rr],i)=>{const t=s.set.find(t=>t.id===id);t.generation=3;t.powerMultiplier=3;const p=E.pieceFrom(t,x,y,0,rr,i+1);p.tile={...t};return p});s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=3;s.turn=3;s.doubleEchoTileId=echo?'d3-3':null;s.circuitRanks={'d3-3':1};s.hand=[s.set.find(t=>t.id==='d2-3'),null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h?.id===t.id));window.__v027Game=g;return g}}}})},echo);
+    await page.goto('http://127.0.0.1:4173/');
+    await page.evaluate(()=>{window.__signalFrames=[];new MutationObserver(()=>{const nodes=[...document.querySelectorAll('.signalValue,.joinFx,.echoJoin,.resonanceFx')];window.__signalFrames.push({time:performance.now(),nodes:nodes.map(el=>{const r=el.getBoundingClientRect();return{lane:el.dataset.lane,family:el.dataset.family,kind:el.className,text:el.textContent,output:el.dataset.output,left:r.left,right:r.right,top:r.top,bottom:r.bottom}})})}).observe(document.querySelector('#board'),{childList:true})});
+    const hand=await page.locator('#hand .tile').first().boundingBox(),board=await page.locator('#board').boundingBox();await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);await page.mouse.down();await page.mouse.move(hand.x-20,hand.y+hand.height/2);await page.mouse.move(board.x+8/18*board.width,board.y+12/24*board.height+72);await page.mouse.up();
+    await expect.poll(()=>page.locator('.signalValue[data-lane="main.A"],.signalValue[data-lane="main.B"]').count()).toBe(2);
+    if(echo)await expect(page.locator('.signalValue[data-lane="echo.A"],.signalValue[data-lane="echo.B"]')).toHaveCount(2);
+    const labels=await page.locator('.signalValue').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return{lane:el.dataset.lane,x:r.left,y:r.top,right:r.right,bottom:r.bottom}}));
+    for(let i=0;i<labels.length;i++){const a=labels[i];expect(a.x).toBeGreaterThanOrEqual(board.x);expect(a.right).toBeLessThanOrEqual(board.x+board.width);for(let j=i+1;j<labels.length;j++){const b=labels[j];expect(a.right<=b.x||b.right<=a.x||a.bottom<=b.y||b.bottom<=a.y,`${a.lane} overlaps ${b.lane}`).toBe(true)}}
+    await page.screenshot({path:testInfo.outputPath(echo?'main-echo-split.png':'t-split.png')});
+    await expect(page.locator('.finalfx')).toBeVisible({timeout:12000});const frames=await page.evaluate(()=>window.__signalFrames);
+    for(const family of echo?['main','echo']:['main']){const both=frames.find(f=>f.nodes.some(n=>n.lane===family+'.A')&&f.nodes.some(n=>n.lane===family+'.B'));expect(both).toBeTruthy();const joined=frames.find(f=>f.nodes.some(n=>n.kind.includes('joinFx')&&n.family===family));expect(joined.time).toBeGreaterThan(both.time);expect(joined.nodes.some(n=>n.lane===family+'.A'||n.lane===family+'.B')).toBe(false);expect(joined.nodes.find(n=>n.kind.includes('joinFx')&&n.family===family).output).toBe('732')}
+    if(echo){const joined=frames.find(f=>f.nodes.some(n=>n.kind.includes('echoJoin'))),resonance=frames.find(f=>f.nodes.some(n=>n.kind.includes('resonanceFx')));expect(joined).toBeTruthy();expect(resonance.time).toBeGreaterThan(joined.time)}
+    await testInfo.attach('signals.json',{body:JSON.stringify(frames,null,2),contentType:'application/json'});expect(errors).toEqual([]);
+  });
+  test(`v027 large JOIN fits ${viewport.width}`,async({page},testInfo)=>{
+    await page.setViewportSize(viewport);
+    // Presentation stress fixture: scaling recorded output fields is not an engine test.
+    await page.addInitScript(()=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:272,TARGETS:Array(15).fill(1e15)}),s=g.state();s.pieces=[['d3-3',6,8,0],['d3-5',4,8,2],['d3-4',10,8,0]].map(([id,x,y,rr],i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,x,y,0,rr,i+1);p.tile={...t};return p});s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=3;s.turn=3;s.doubleEchoTileId='d3-3';s.hand=[s.set.find(t=>t.id==='d2-3'),null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h?.id===t.id));const begin=g.beginPlacement;g.beginPlacement=(...args)=>{const ctx=begin(...args);if(ctx.ok){const scale=1e290;for(const e of ctx.sim.events)for(const key of ['output','before','after','mainOutput','echoOutput','finalOutput','startOutput'])if(typeof e[key]==='number')e[key]*=scale;ctx.sim.output*=scale}return ctx};return g}}}})});
+    await page.goto('http://127.0.0.1:4173/');const hand=await page.locator('#hand .tile').first().boundingBox(),board=await page.locator('#board').boundingBox();await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);await page.mouse.down();await page.mouse.move(hand.x-20,hand.y+hand.height/2);await page.mouse.move(board.x+8/18*board.width,board.y+12/24*board.height+72);await page.mouse.up();
+    await expect(page.locator('.echoJoin')).toBeVisible({timeout:12000});const bounds=await page.locator('.echoJoin').evaluate(el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,scroll:el.scrollWidth,width:el.clientWidth}});expect(bounds.left).toBeGreaterThanOrEqual(board.x);expect(bounds.right).toBeLessThanOrEqual(board.x+board.width);expect(bounds.scroll).toBeLessThanOrEqual(bounds.width+1);await page.screenshot({path:testInfo.outputPath('large-join.png')});await expect(page.locator('.finalfx')).toBeVisible();
+  });
+}
+
+for(const power of [2,3,4])test(`v027 POWER x${power} materials and Circuit visibility`,async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});await page.addInitScript(power=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:273}),s=g.state();s.setGeneration=power;s.coins=50;for(const t of s.set){t.generation=power;t.powerMultiplier=power}s.pieces=[['d3-3',6,8,0],['d3-5',4,8,2]].map(([id,x,y,rr],i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,x,y,0,rr,i+1);p.tile={...t};return p});s.placedTileIds=s.pieces.map(p=>p.tile.id);s.circuitRanks={'d3-3':3};s.hand=s.set.filter(t=>!s.placedTileIds.includes(t.id)).slice(0,5);s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h.id===t.id));return g}}}})},power);
+  await page.goto('http://127.0.0.1:4173/');const regular=page.locator('.piece[data-tile-id="d3-5"]'),circuit=page.locator('.piece[data-tile-id="d3-3"]'),expected={2:'rgb(36, 61, 85)',3:'rgb(69, 48, 79)',4:'rgb(102, 85, 31)'};
+  expect(await regular.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(expected[power]);expect(await circuit.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(20, 20, 20)');await expect(circuit.locator('.circuitRankMark')).toHaveText('III');
+  for(const tile of [regular,circuit,page.locator('#hand .domino').first()]){await expect(tile.locator('.powerMark')).toHaveText('×'+power);const bounds=await tile.locator('.powerMark').evaluate(el=>{const a=el.getBoundingClientRect(),b=el.parentElement.getBoundingClientRect();return{fits:a.left>=b.left&&a.right<=b.right&&a.top>=b.top&&a.bottom<=b.bottom,color:getComputedStyle(el).color}});expect(bounds.fits).toBe(true);expect(bounds.color).toBe('rgb(255, 248, 232)')}
+  await page.screenshot({path:testInfo.outputPath(`power-${power}-circuit.png`)});await page.locator('#shopButton').click();await expect(page.locator('.randomOffer .powerMark')).toHaveText('×'+power);await page.locator('#overlayPrimary').click();
+  const box=await circuit.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await expect(page.locator('.inspector')).toBeVisible();await page.mouse.up();await expect(page.locator('.inspector')).toContainText(`SET ${power} · ×${power}`);await expect(page.locator('.inspector')).toContainText('RANK III');await page.screenshot({path:testInfo.outputPath(`power-${power}-inspector.png`)});
+});
 test.use({video:'on'});
 
 for(const viewport of [{width:375,height:667},{width:390,height:844}]){
@@ -264,7 +299,7 @@ test.describe('Circuit spatial selection',()=>{
     await expect(tile.locator('.circuitRankMark')).toHaveText('III');
     await expect(tile.locator('.upgradeDot')).toHaveCount(1);
     expect(await tile.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(20, 20, 20)');
-    expect(await tile.locator('.pip').first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(117, 186, 255)');
+    expect(await tile.locator('.pip').first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(171, 215, 255)');
     expect((await page.evaluate(()=>window.__iterionTestGame.snapshot())).score.last).toBe(before.score.last);
     const rankedBox=await tile.boundingBox();
     await page.mouse.move(rankedBox.x+rankedBox.width/2,rankedBox.y+rankedBox.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
@@ -282,7 +317,7 @@ test.describe('Circuit spatial selection',()=>{
   });
 });
 
-for(const[rank,roman,color,pip]of [[1,'I','WHITE','255, 255, 255'],[2,'II','GREEN','101, 219, 135'],[3,'III','BLUE','117, 186, 255'],[4,'IV','PURPLE','208, 155, 255'],[5,'V','GOLD','244, 203, 90']]){
+for(const[rank,roman,color,pip]of [[1,'I','WHITE','255, 255, 255'],[2,'II','GREEN','162, 239, 184'],[3,'III','BLUE','171, 215, 255'],[4,'IV','PURPLE','224, 191, 255'],[5,'V','GOLD','255, 229, 154']]){
   test(`Circuit rank ${roman} coexists with Stars, DD, DE and ZM`,async({page})=>{
     await page.setViewportSize({width:375,height:667});
     await page.addInitScript(rank=>{
