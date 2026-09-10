@@ -48,13 +48,17 @@ check('Zero Memory acts on its own arm without altering route selection',()=>{
   assert.deepEqual(b.path,a.path);assert.deepEqual(b.segments,a.segments);assert.equal(b.rebounds,a.rebounds);
   assert.equal(events(b,'zero-memory').length,1);assert.deepEqual(events(b,'signal-end').map(e=>e.output),[405,135]);
 });
-check('Echo follows one downstream arm and never replays the sibling as a continuation',()=>{
-  const r=run(fixture(),{doubleEchoPieceId:1});assert.equal(r.mainOutput,94);assert.equal(r.echoOutput,75);assert.equal(r.output,169);
-  assert.deepEqual(events(r,'echo-op').map(e=>e.piece),[2]);assert.equal(events(r,'double-echo-start').length,1);
+check('Echo copies the full downstream T and rejoins its two arms independently',()=>{
+  const r=run(fixture(),{doubleEchoPieceId:1});assert.equal(r.mainOutput,94);assert.equal(r.echoOutput,94);assert.equal(r.output,188);
+  assert.deepEqual(events(r,'echo-op').map(e=>e.piece),[2,3]);
+  assert.equal(events(r,'double-echo-start').length,1);assert.equal(events(r,'echo-signal-fork').length,1);
+  assert.deepEqual(events(r,'echo-signal-start').map(e=>e.output),[15,15]);
+  assert.deepEqual(events(r,'echo-signal-end').map(e=>e.output),[75,19]);
+  assert.equal(events(r,'echo-signal-join').at(-1).output,94);
 });
-check('Echo, Zero Memory and independent rebound branches coexist',()=>{
-  const r=run(fixture(0,0),{doubleEchoPieceId:1,zeroMemoryPieceId:2});assert.equal(r.mainOutput,540);assert.equal(r.echoOutput,135);assert.equal(r.output,675);
-  assert.equal(events(r,'zero-memory').length,1);assert.equal(r.echoRebounds,1);
+check('Echo, Zero Memory and independent rebound branches coexist without double-consuming Zero Memory',()=>{
+  const r=run(fixture(0,0),{doubleEchoPieceId:1,zeroMemoryPieceId:2});assert.equal(r.mainOutput,540);assert.equal(r.echoOutput,270);assert.equal(r.output,810);
+  assert.equal(events(r,'zero-memory').length,1);assert.equal(r.echoRebounds,2);assert.equal(events(r,'echo-signal-fork').length,1);
 });
 check('nested Ts produce three terminal arms with correct copied histories',()=>{
   const ps=pieces([[3,3,12,14,0],[5,3,8,14,0],[3,4,16,14,0],[5,5,6,13,1],[2,5,6,9,1],[5,4,6,17,1],[3,2,13,16,1]]);
