@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   // Display only. Never feed formatted values or animation timing into the engine.
   const UNITS=['','K','M','B','T'];
-  const CASCADE=Object.freeze({firstMs:600,minMs:100,decay:0.91,maxLabels:3,finalMs:1000});
+  const CASCADE=Object.freeze({firstMs:600,minMs:100,decay:0.91,maxLabels:8,finalMs:1000});
   function exact(value){return Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:20}):String(value)}
   function compact(value){
     if(!Number.isFinite(value))return String(value);
@@ -19,7 +19,6 @@
   }
   function scoreDisplay(score,target){
     const targetText=compact(target),text=compact(score),below=score<target;
-    // The distance caption disambiguates rounded ties without asserting a false inequality.
     return{score:text,target:targetText,
       note:below&&score>0&&score/target>=0.95?`${compact(target-score)} to target`:score>=target?'Target reached':'Last move'}
   }
