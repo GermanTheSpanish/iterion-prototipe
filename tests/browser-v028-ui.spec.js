@@ -17,7 +17,7 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   await expect.poll(()=>page.locator('#score').textContent()).toBe('250');
   await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','target');
   expect(parseFloat(await page.locator('.scoreProgressFill').evaluate(el=>el.style.width))).toBeCloseTo(25,1);
-  await page.evaluate(()=>{document.querySelectorAll('.signalValue').forEach(el=>el.remove());const d=document.createElement('div');d.className='opfx signal joinFx';d.dataset.output='3500';document.querySelector('#board').appendChild(d)});
+  await page.evaluate(()=>{document.querySelectorAll('.signalValue').forEach(el=>el.remove());const d=document.createElement('div');d.className='opfx signalValue multiply lane0';d.dataset.lane='main';d.dataset.output='3500';document.querySelector('#board').appendChild(d)});
   await expect.poll(()=>page.locator('#score').textContent()).toBe('3.5K');
   await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','star1');
   await page.locator('#menuButton').click();await expect(page.locator('#copyrun')).toHaveText('Share debug .txt');await page.locator('#copyrun').click();
