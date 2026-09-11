@@ -7,9 +7,9 @@
   // Display only. Never feed formatted values or animation timing into the engine.
   const BRAND='MONOID';
   const UNITS=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
-  // The first few activations are deliberately slow enough to teach the arithmetic.
-  // After that, the cadence accelerates progressively so large Endless machines remain usable.
-  const CASCADE=Object.freeze({introMs:Object.freeze([760,650,550,475,400]),tailMs:340,minMs:50,decay:0.82,maxLabels:8,finalMs:500,scoreTweenMs:340});
+  // Hold the opening activations long enough to teach the arithmetic, then accelerate.
+  // The tail still reaches the historic 60 ms floor so large Endless machines stay practical.
+  const CASCADE=Object.freeze({introMs:Object.freeze([600,600,560,520,480,440]),tailMs:320,minMs:60,decay:0.70,maxLabels:8,finalMs:500,scoreTweenMs:360});
   function exact(value){return Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:20}):String(value)}
   function compact(value){if(!Number.isFinite(value))return String(value);const sign=value<0?'-':'',n=Math.abs(value);if(n<1000)return exact(value);let tier=Math.floor(Math.log10(n)/3);if(tier>=UNITS.length)return value.toExponential(2).replace(/\.00e/,'e').replace(/(\.\d)0e/,'$1e').replace('e+','e');let scaled=n/1000**tier,rounded=Number(scaled.toPrecision(3));if(rounded>=1000&&tier<UNITS.length-1){tier++;scaled=n/1000**tier;rounded=Number(scaled.toPrecision(3))}return sign+String(rounded).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1')+UNITS[tier]}
   function scoreDisplay(score,target){const targetText=compact(target),text=compact(score),below=score<target;return{score:text,target:targetText,note:below&&score>0&&score/target>=0.95?`${compact(target-score)} to target`:score>=target?'Target reached':'Last move'}}
