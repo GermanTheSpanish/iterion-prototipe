@@ -11,6 +11,7 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   expect(await page.evaluate(()=>window.IterionPresentation.compact(4.88e17))).toBe('488Qa');
   expect(await page.evaluate(()=>window.IterionPresentation.compact(6.058e19))).toBe('60.6Qi');
   await page.evaluate(()=>{
+    document.querySelector('#target').textContent='1K';
     document.querySelector('#targetDetail').setAttribute('aria-label','Target 1,000. Show exact value.');
     const d=document.createElement('div');d.className='opfx signalValue add lane0';d.dataset.lane='main';d.dataset.output='250';document.querySelector('#board').appendChild(d);
   });
