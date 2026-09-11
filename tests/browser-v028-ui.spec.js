@@ -52,8 +52,8 @@ test('v028 POWER reads as pale material, Overkills colour the physical divider a
   expect(await tile.locator('.powerMark').evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
   expect(await tile.locator('.circuitRankMark').evaluate(el=>getComputedStyle(el).display)).toBe('none');
   expect(await tile.locator('.upgradeDot').evaluate(el=>getComputedStyle(el).display)).toBe('none');
-  const handDivider=await tile.locator('.half').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(handDivider.color).toBe('rgb(154, 112, 181)');expect(parseFloat(handDivider.width)).toBeGreaterThanOrEqual(2.4);
-  const horizontal=await page.locator('#board .piece.h').last().locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderLeftColor,width:s.borderLeftWidth}});expect(horizontal.color).toBe('rgb(211, 154, 47)');expect(parseFloat(horizontal.width)).toBeGreaterThanOrEqual(2.4);
-  const vertical=await page.locator('#board .piece.v').last().locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(vertical.color).toBe('rgb(79, 134, 183)');expect(parseFloat(vertical.width)).toBeGreaterThanOrEqual(2.4);
+  const handDivider=await tile.locator('.half').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(handDivider.color).toBe('rgb(154, 112, 181)');expect(parseFloat(handDivider.width)).toBeGreaterThanOrEqual(2);
+  const horizontal=await page.locator('#board .piece.h').last().locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderLeftColor,width:s.borderLeftWidth}});expect(horizontal.color).toBe('rgb(211, 154, 47)');expect(parseFloat(horizontal.width)).toBeGreaterThanOrEqual(2);
+  const vertical=await page.locator('#board .piece.v').last().locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(vertical.color).toBe('rgb(79, 134, 183)');expect(parseFloat(vertical.width)).toBeGreaterThanOrEqual(2);
   await page.screenshot({path:testInfo.outputPath('power-pale-overkill-dividers.png')});
 });
