@@ -13,120 +13,25 @@ check('complete two-arm T copies the full post-operation Score',()=>{
   assert.deepEqual(events(r,'signal-end').map(e=>e.output),[75,19]);
   assert.equal(events(r,'signal-fork').length,1);assert.equal(events(r,'op').filter(e=>e.piece===1).length,1);
 });
-check('input is not halved and branches are added, not sequentially multiplied',()=>{
-  const r=run(fixture(5,5));assert.equal(r.output,150);
-  assert.notEqual(r.output,75);assert.notEqual(r.output,375);
-});
-check('board-array order does not affect the signal tree',()=>{
-  const ps=fixture(),r=run(ps),reverse=E.bestSignal(4,[...ps].reverse(),{initialOutput:5,bifurcate:true});
-  assert.deepEqual(reverse,r);
-});
-check('missing arm keeps the original single-route behaviour',()=>{
-  const ps=fixture().filter(p=>p.id!==2);
-  const a=E.bestSignal(4,ps,{initialOutput:5,bifurcate:true}),b=E.bestSignal(4,ps,{initialOutput:5});
-  assert.equal(events(a,'signal-fork').length,0);assert.deepEqual(a,b);
-});
-check('short-end entry never bifurcates',()=>{
-  const ps=fixture();const a=E.bestSignal(2,ps,{initialOutput:8,bifurcate:true}),b=E.bestSignal(2,ps,{initialOutput:8});assert.deepEqual(a,b);
-});
-check('zero double retains canonical rebounds even with two connected ends',()=>{
-  const ps=fixture(3,5,0),a=run(ps),b=run(ps,{bifurcate:false});
-  assert.deepEqual(a,b);assert.equal(events(a,'signal-fork').length,0);assert(a.rebounds>0);
-});
-check('both arms retain their own rebound history; the splitter cannot split twice',()=>{
-  // Each arm: 15 → zero rebound → ×3 on the zero tile's return half → ×3 on the splitter.
-  const r=run(fixture(0,0));assert.equal(r.output,270);assert.equal(r.rebounds,2);
-  assert.equal(events(r,'signal-fork').length,1);assert(events(r,'op').filter(e=>e.piece===1).length>1);
-});
-check('Double Double is consumed once before copying and normal on return',()=>{
-  const r=run(fixture(0,0),{doubleDoublePieceId:1});assert.equal(r.output,810);
-  assert.equal(events(r,'op').filter(e=>e.doubleDouble).length,1);
-  assert(events(r,'op').filter(e=>e.piece===1&&!e.doubleDouble).every(e=>e.factor===3));
-});
-check('Zero Memory acts on its own arm without altering route selection',()=>{
-  const ps=fixture(0,0),a=run(ps),b=run(ps,{zeroMemoryPieceId:2});assert.equal(b.output,540);
-  assert.deepEqual(b.path,a.path);assert.deepEqual(b.segments,a.segments);assert.equal(b.rebounds,a.rebounds);
-  assert.equal(events(b,'zero-memory').length,1);assert.deepEqual(events(b,'signal-end').map(e=>e.output),[405,135]);
-});
-check('Echo copies the full downstream T and rejoins its two arms independently',()=>{
-  const r=run(fixture(),{doubleEchoPieceId:1});assert.equal(r.mainOutput,94);assert.equal(r.echoOutput,94);assert.equal(r.output,188);
-  assert.deepEqual(events(r,'echo-op').map(e=>e.piece),[2,3]);
-  assert.equal(events(r,'double-echo-start').length,1);assert.equal(events(r,'echo-signal-fork').length,1);
-  assert.deepEqual(events(r,'echo-signal-start').map(e=>e.output),[15,15]);
-  assert.deepEqual(events(r,'echo-signal-end').map(e=>e.output),[75,19]);
-  assert.equal(events(r,'echo-signal-join').at(-1).output,94);
-});
-check('Echo, Zero Memory and independent rebound branches coexist without double-consuming Zero Memory',()=>{
-  const r=run(fixture(0,0),{doubleEchoPieceId:1,zeroMemoryPieceId:2});assert.equal(r.mainOutput,540);assert.equal(r.echoOutput,270);assert.equal(r.output,810);
-  assert.equal(events(r,'zero-memory').length,1);assert.equal(r.echoRebounds,2);assert.equal(events(r,'echo-signal-fork').length,1);
-});
-check('nested Ts produce three terminal arms with correct copied histories',()=>{
-  const ps=pieces([[3,3,12,14,0],[5,3,8,14,0],[3,4,16,14,0],[5,5,6,13,1],[2,5,6,9,1],[5,4,6,17,1],[3,2,13,16,1]]);
-  for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++)assert(E.contactBetweenPieces(ps[i],ps[j]).ok);
-  const r=run(ps);assert.equal(r.output,775);assert.equal(events(r,'signal-fork').length,2);
-  assert.equal(new Set(events(r,'signal-fork').map(e=>e.piece)).size,2);
-  const zm=run(ps,{zeroMemoryPieceId:999});assert.equal(zm.output,r.output,'tree replay without an activation must be transparent');
-});
-check('Circuit Resonance is additive and physical-once across signals and Echo',()=>{
-  const ps=fixture(0,0),r=run(ps,{doubleEchoPieceId:1}),ranks=Object.fromEntries(ps.slice(0,3).map(p=>[p.tile.id,5]));
-  const bonus=C.resonance(r.output,r.events,ps,ranks,D);assert.equal(bonus.multiplier,25);assert.equal(bonus.active.length,3);assert.equal(bonus.output,Math.floor(r.output*25));
-});
-check('full-half L contacts are symmetric and do not create centred ports',()=>{
-  const d=E.pieceFrom({a:3,b:3},6,8,0,0,1),n=E.pieceFrom({a:3,b:2},6,10,0,1,2);
-  assert.equal(E.contactBetweenPieces(d,n).kind,'double-offset');assert.equal(E.contactBetweenPieces(n,d).kind,'double-offset');
-  assert(E.validatePlacement(n.tile,6,10,0,1,[d]).ok);assert(E.validatePlacement(d.tile,6,8,0,0,[n]).ok);
-  assert.equal(E.contactBetweenPieces(d,E.pieceFrom({a:4,b:2},6,10,0,1,3)).reason,'value-mismatch');
-  assert.equal(E.validatePlacement(n.tile,6,8,0,1,[d]).reason,'overlap');
-  assert.equal(E.validatePlacement(n.tile,-1,10,0,1,[d]).reason,'bounds');
-});
-check('off-centre entry with both ends connected does not split',()=>{
-  const ps=fixture();ps[3]=E.pieceFrom({a:3,b:2},6,10,0,1,4);assert.equal(events(run(ps),'signal-fork').length,0);
-});
-check('numeric formatting starts twice as slowly and fits measured available width',()=>{
-  assert.equal(V.cascadeDelay(0),600);assert.equal(V.cascadeDelay(100),100);
-  assert.equal(V.fitFontSize(48,400,200),24);assert.equal(V.fitFontSize(48,100,200),48);
-  assert.equal(V.compact(Number.MAX_VALUE),'1.8e308');
-});
-function gameFixture(){
-  const g=G.createGame(E,{seed:2600,TARGETS:Array(15).fill(1e15)}),s=g.state();E.setBoardSize(18,24);
-  s.pieces=[['d3-3',6,8,0],['d3-5',4,8,2],['d3-4',10,8,0]].map(([id,x,y,rr],i)=>{const tile=s.set.find(t=>t.id===id),p=E.pieceFrom(tile,x,y,0,rr,i+1);p.tile={...tile};return p});
-  s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=3;s.turn=3;s.coins=7;s.inflation=2;s.consumables.undo=1;
-  s.hand=[s.set.find(t=>t.id==='d2-3'),s.set.find(t=>t.id==='d2-2'),null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h?.id===t.id));
-  s.circuitRanks={'d3-3':1};s.pieces[0].tile.upgrade=2;s.set.find(t=>t.id==='d3-3').upgrade=2;return g;
-}
-check('game orchestration, exact-instance rewards, debug and Undo restore the full Move',()=>{
-  const g=gameFixture(),before=g.snapshot(),s=g.state(),ctx=g.beginPlacement(0,{x:7,y:12,rr:3});assert(ctx.ok);
-  assert.equal(ctx.sim.output,94);g.finishPlacement(ctx);assert.equal(s.score,141);
-  assert.equal(s.coins,9,'one Rank II star pays once');assert.equal(g.snapshot().turns.find(e=>e.type==='signal-resolution').splitCount,1);
-  assert.match(g.debugText(),/NOMON DEBUG/);assert.match(g.debugText(),/SIGNAL TREE/);
-  const ids=[...s.placedTileIds];assert.equal(ids.length,new Set(ids).size);assert(g.useUndo().ok);
-  const after=g.snapshot();for(const key of ['board','placedTileIds','set','hand','reserve','coins','inflation','circuits','score'])assert.deepEqual(after[key],before[key],key);
-  assert(!after.turns.some(e=>e.type==='signal-resolution'));
-});
-check('Long Run uses a union of physical activations, not a count of signals',()=>{
-  const g=gameFixture(),s=g.state();s.mods=['long-run'];
-  const p=s.pieces[0],sim={output:10,events:Array(12).fill({type:'op',piece:p.id}),rebounds:0};
-  const ctx=g.beginPlacement(0,{x:7,y:12,rr:3});assert(ctx.ok);ctx.sim=sim;g.finishPlacement(ctx);
-  const income=s.events.find(e=>e.type==='upgrade-coins');assert.equal(income.uniquePieces,1);assert.equal(income.longRunActive,false);assert.equal(income.total,undefined);assert.equal(income.amount,2);
-});
-check('bounded search never awards an arm without entering a physical tile',()=>{
-  for(let limit=1;limit<=15;limit++){
-    const r=run(fixture(),{maxExpanded:limit});assert(r.search.expanded<=limit);
-    let active=false,count=0;
-    for(const e of r.events){if(e.type==='signal-start'){active=true;count=0}if(active&&e.type==='op')count++;if(e.type==='signal-end'){assert(count>0);active=false}}
-  }
-});
-check('rotating the entire machine preserves full-score splitting',()=>{
-  let ps=fixture();E.setBoardSize(30,30);
-  for(let i=0;i<4;i++){
-    assert.equal(run(ps).output,94);
-    ps=ps.map(p=>{const c=p.cubes[0],q=E.pieceFrom(p.tile,c.y,30-c.x-2,0,(p.rr+3)%4,p.id);q.tile={...p.tile};return q});
-  }
-});
-check('legacy straight routes retain arithmetic, zeros and modifier ordering with splitting enabled',()=>{
-  const ps=pieces([[1,5,0,0,0],[5,5,4,0,0],[5,0,8,0,0]]);
-  for(const opts of [{},{doubleDoublePieceId:2},{zeroMemoryPieceId:3},{doubleEchoPieceId:2},{zeroMemoryPieceId:3,doubleEchoPieceId:2}]){
-    const base=E.bestSignal(1,ps,{initialOutput:6,...opts}),split=E.bestSignal(1,ps,{initialOutput:6,bifurcate:true,...opts});assert.deepEqual(split,base);
-  }
-});
+check('input is not halved and branches are added, not sequentially multiplied',()=>{const r=run(fixture(5,5));assert.equal(r.output,150);assert.notEqual(r.output,75);assert.notEqual(r.output,375)});
+check('board-array order does not affect the signal tree',()=>{const ps=fixture(),r=run(ps),reverse=E.bestSignal(4,[...ps].reverse(),{initialOutput:5,bifurcate:true});assert.deepEqual(reverse,r)});
+check('missing arm keeps the original single-route behaviour',()=>{const ps=fixture().filter(p=>p.id!==2);const a=E.bestSignal(4,ps,{initialOutput:5,bifurcate:true}),b=E.bestSignal(4,ps,{initialOutput:5});assert.equal(events(a,'signal-fork').length,0);assert.deepEqual(a,b)});
+check('short-end entry never bifurcates',()=>{const ps=fixture();const a=E.bestSignal(2,ps,{initialOutput:8,bifurcate:true}),b=E.bestSignal(2,ps,{initialOutput:8});assert.deepEqual(a,b)});
+check('zero double retains canonical rebounds even with two connected ends',()=>{const ps=fixture(3,5,0),a=run(ps),b=run(ps,{bifurcate:false});assert.deepEqual(a,b);assert.equal(events(a,'signal-fork').length,0);assert(a.rebounds>0)});
+check('both arms retain their own rebound history; the splitter cannot split twice',()=>{const r=run(fixture(0,0));assert.equal(r.output,270);assert.equal(r.rebounds,2);assert.equal(events(r,'signal-fork').length,1);assert(events(r,'op').filter(e=>e.piece===1).length>1)});
+check('Double Double is consumed once before copying and normal on return',()=>{const r=run(fixture(0,0),{doubleDoublePieceId:1});assert.equal(r.output,810);assert.equal(events(r,'op').filter(e=>e.doubleDouble).length,1);assert(events(r,'op').filter(e=>e.piece===1&&!e.doubleDouble).every(e=>e.factor===3))});
+check('Zero Memory acts on its own arm without altering route selection',()=>{const ps=fixture(0,0),a=run(ps),b=run(ps,{zeroMemoryPieceId:2});assert.equal(b.output,540);assert.deepEqual(b.path,a.path);assert.deepEqual(b.segments,a.segments);assert.equal(b.rebounds,a.rebounds);assert.equal(events(b,'zero-memory').length,1);assert.deepEqual(events(b,'signal-end').map(e=>e.output),[405,135])});
+check('Echo copies the full downstream T and rejoins its two arms independently',()=>{const r=run(fixture(),{doubleEchoPieceId:1});assert.equal(r.mainOutput,94);assert.equal(r.echoOutput,94);assert.equal(r.output,188);assert.deepEqual(events(r,'echo-op').map(e=>e.piece),[2,3]);assert.equal(events(r,'double-echo-start').length,1);assert.equal(events(r,'echo-signal-fork').length,1);assert.deepEqual(events(r,'echo-signal-start').map(e=>e.output),[15,15]);assert.deepEqual(events(r,'echo-signal-end').map(e=>e.output),[75,19]);assert.equal(events(r,'echo-signal-join').at(-1).output,94)});
+check('Echo, Zero Memory and independent rebound branches coexist without double-consuming Zero Memory',()=>{const r=run(fixture(0,0),{doubleEchoPieceId:1,zeroMemoryPieceId:2});assert.equal(r.mainOutput,540);assert.equal(r.echoOutput,270);assert.equal(r.output,810);assert.equal(events(r,'zero-memory').length,1);assert.equal(r.echoRebounds,2);assert.equal(events(r,'echo-signal-fork').length,1)});
+check('nested Ts produce three terminal arms with correct copied histories',()=>{const ps=pieces([[3,3,12,14,0],[5,3,8,14,0],[3,4,16,14,0],[5,5,6,13,1],[2,5,6,9,1],[5,4,6,17,1],[3,2,13,16,1]]);for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++)assert(E.contactBetweenPieces(ps[i],ps[j]).ok);const r=run(ps);assert.equal(r.output,775);assert.equal(events(r,'signal-fork').length,2);assert.equal(new Set(events(r,'signal-fork').map(e=>e.piece)).size,2);const zm=run(ps,{zeroMemoryPieceId:999});assert.equal(zm.output,r.output)});
+check('Circuit Resonance is additive and physical-once across signals and Echo',()=>{const ps=fixture(0,0),r=run(ps,{doubleEchoPieceId:1}),ranks=Object.fromEntries(ps.slice(0,3).map(p=>[p.tile.id,5]));const bonus=C.resonance(r.output,r.events,ps,ranks,D);assert.equal(bonus.multiplier,25);assert.equal(bonus.active.length,3);assert.equal(bonus.output,Math.floor(r.output*25))});
+check('full-half L contacts are symmetric and do not create centred ports',()=>{const d=E.pieceFrom({a:3,b:3},6,8,0,0,1),n=E.pieceFrom({a:3,b:2},6,10,0,1,2);assert.equal(E.contactBetweenPieces(d,n).kind,'double-offset');assert.equal(E.contactBetweenPieces(n,d).kind,'double-offset');assert(E.validatePlacement(n.tile,6,10,0,1,[d]).ok);assert(E.validatePlacement(d.tile,6,8,0,0,[n]).ok);assert.equal(E.contactBetweenPieces(d,E.pieceFrom({a:4,b:2},6,10,0,1,3)).reason,'value-mismatch');assert.equal(E.validatePlacement(n.tile,6,8,0,1,[d]).reason,'overlap');assert.equal(E.validatePlacement(n.tile,-1,10,0,1,[d]).reason,'bounds')});
+check('off-centre entry with both ends connected does not split',()=>{const ps=fixture();ps[3]=E.pieceFrom({a:3,b:2},6,10,0,1,4);assert.equal(events(run(ps),'signal-fork').length,0)});
+check('numeric formatting uses adaptive timing and fits measured available width',()=>{assert.equal(V.cascadeDelay(0),125);assert.equal(V.cascadeDelay(100),28);assert.equal(V.fitFontSize(48,400,200),24);assert.equal(V.fitFontSize(48,100,200),48);assert.equal(V.compact(Number.MAX_VALUE),'1.8e308')});
+function gameFixture(){const g=G.createGame(E,{seed:2600,TARGETS:Array(15).fill(1e15)}),s=g.state();E.setBoardSize(18,24);s.pieces=[['d3-3',6,8,0],['d3-5',4,8,2],['d3-4',10,8,0]].map(([id,x,y,rr],i)=>{const tile=s.set.find(t=>t.id===id),p=E.pieceFrom(tile,x,y,0,rr,i+1);p.tile={...tile};return p});s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=3;s.turn=3;s.coins=7;s.inflation=2;s.consumables.undo=1;s.hand=[s.set.find(t=>t.id==='d2-3'),s.set.find(t=>t.id==='d2-2'),null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&!s.hand.some(h=>h?.id===t.id));s.circuitRanks={'d3-3':1};s.pieces[0].tile.upgrade=2;s.set.find(t=>t.id==='d3-3').upgrade=2;return g}
+check('game orchestration, exact-instance rewards, debug and Undo restore the full Move',()=>{const g=gameFixture(),before=g.snapshot(),s=g.state(),ctx=g.beginPlacement(0,{x:7,y:12,rr:3});assert(ctx.ok);assert.equal(ctx.sim.output,94);g.finishPlacement(ctx);assert.equal(s.score,141);assert.equal(s.coins,9);assert.equal(g.snapshot().turns.find(e=>e.type==='signal-resolution').splitCount,1);assert.match(g.debugText(),/NOMON DEBUG/);assert.match(g.debugText(),/SIGNAL TREE/);const ids=[...s.placedTileIds];assert.equal(ids.length,new Set(ids).size);assert(g.useUndo().ok);const after=g.snapshot();for(const key of ['board','placedTileIds','set','hand','reserve','coins','inflation','circuits','score'])assert.deepEqual(after[key],before[key],key);assert(!after.turns.some(e=>e.type==='signal-resolution'))});
+check('Long Run uses a union of physical activations, not a count of signals',()=>{const g=gameFixture(),s=g.state();s.mods=['long-run'];const p=s.pieces[0],sim={output:10,events:Array(12).fill({type:'op',piece:p.id}),rebounds:0};const ctx=g.beginPlacement(0,{x:7,y:12,rr:3});assert(ctx.ok);ctx.sim=sim;g.finishPlacement(ctx);const income=s.events.find(e=>e.type==='upgrade-coins');assert.equal(income.uniquePieces,1);assert.equal(income.longRunActive,false);assert.equal(income.amount,2)});
+check('bounded search never awards an arm without entering a physical tile',()=>{for(let limit=1;limit<=15;limit++){const r=run(fixture(),{maxExpanded:limit});assert(r.search.expanded<=limit);let active=false,count=0;for(const e of r.events){if(e.type==='signal-start'){active=true;count=0}if(active&&e.type==='op')count++;if(e.type==='signal-end'){assert(count>0);active=false}}}});
+check('rotating the entire machine preserves full-score splitting',()=>{let ps=fixture();E.setBoardSize(30,30);for(let i=0;i<4;i++){assert.equal(run(ps).output,94);ps=ps.map(p=>{const c=p.cubes[0],q=E.pieceFrom(p.tile,c.y,30-c.x-2,0,(p.rr+3)%4,p.id);q.tile={...p.tile};return q})}});
+check('legacy straight routes retain arithmetic, zeros and modifier ordering with splitting enabled',()=>{const ps=pieces([[1,5,0,0,0],[5,5,4,0,0],[5,0,8,0,0]]);for(const opts of [{},{doubleDoublePieceId:2},{zeroMemoryPieceId:3},{doubleEchoPieceId:2},{zeroMemoryPieceId:3,doubleEchoPieceId:2}]){const base=E.bestSignal(1,ps,{initialOutput:6,...opts}),split=E.bestSignal(1,ps,{initialOutput:6,bifurcate:true,...opts});assert.deepEqual(split,base)}});
 console.log(`${checks} NOMON split checks passed`);
