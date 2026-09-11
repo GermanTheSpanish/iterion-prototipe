@@ -9,8 +9,8 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.locator('.wordmark')).toHaveText('MONOID');
   await expect(page).toHaveTitle('MONOID v0.28.1');
-  expect(await page.evaluate(()=>[window.IterionPresentation.cascadeDelay(0),window.IterionPresentation.cascadeDelay(1),window.IterionPresentation.cascadeDelay(2),window.IterionPresentation.cascadeDelay(1000)])).toEqual([760,650,550,50]);
-  expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(340);
+  expect(await page.evaluate(()=>[window.IterionPresentation.cascadeDelay(0),window.IterionPresentation.cascadeDelay(1),window.IterionPresentation.cascadeDelay(2),window.IterionPresentation.cascadeDelay(1000)])).toEqual([600,600,560,60]);
+  expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(360);
   await expect(page.locator('#scoreDetail .scoreProgress')).toBeVisible();
   expect(await page.evaluate(()=>window.IterionPresentation.compact(4.88e17))).toBe('488Qa');
   expect(await page.evaluate(()=>window.IterionPresentation.compact(6.058e19))).toBe('60.6Qi');
