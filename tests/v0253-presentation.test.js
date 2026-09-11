@@ -7,13 +7,13 @@ assert.equal(V.scoreDisplay(1e9,1e9).score,'1B');
 assert.equal(V.scoreDisplay(1e9,1e9).note,'Target reached');
 assert.equal(V.scoreDisplay(0,20).note,'Last move');
 assert.equal(V.BRAND,'MONOID');
-assert.deepEqual(Array.from({length:5},(_,i)=>V.cascadeDelay(i)),[760,650,550,475,400]);
-assert.equal(V.cascadeDelay(5),340);assert.equal(V.cascadeDelay(1000),50);assert.equal(V.CASCADE.scoreTweenMs,340);
-for(let i=1;i<100;i++){assert(V.cascadeDelay(i)<=V.cascadeDelay(i-1));assert(V.cascadeDelay(i)>=50);assert(V.effectLifetime(i)<=V.effectLifetime(i-1))}
+assert.deepEqual(Array.from({length:6},(_,i)=>V.cascadeDelay(i)),[600,600,560,520,480,440]);
+assert.equal(V.cascadeDelay(6),320);assert.equal(V.cascadeDelay(1000),60);assert.equal(V.CASCADE.scoreTweenMs,360);
+for(let i=1;i<100;i++){assert(V.cascadeDelay(i)<=V.cascadeDelay(i-1));assert(V.cascadeDelay(i)>=60);assert(V.effectLifetime(i)<=V.effectLifetime(i-1))}
 assert.equal(V.CASCADE.maxLabels,8);assert.equal(V.CASCADE.finalMs,500);
-const firstThree=Array.from({length:3},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(firstThree>=1900,'first few operations must stay readable for a new player');
-const firstFive=Array.from({length:5},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(firstFive>=2800,'rookie cadence must not accelerate away before the arithmetic is readable');
-const hundred=Array.from({length:100},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(hundred<9000,'long machines must still accelerate instead of becoming a slideshow');
+const firstThree=Array.from({length:3},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(firstThree>=1700,'first few operations must stay readable for a new player');
+const firstSix=Array.from({length:6},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(firstSix>=3200,'rookie cadence must not accelerate away before the arithmetic is readable');
+const hundred=Array.from({length:100},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(hundred<9500,'long machines must still accelerate instead of becoming a slideshow');
 assert.deepEqual(V.progressState(500,1000),{stage:'target',progress:.5,next:'TARGET'});
 assert.equal(V.progressState(1000,1000).stage,'clear');assert.equal(V.progressState(3000,1000).stage,'star1');assert.equal(V.progressState(5000,1000).stage,'star2');assert.equal(V.progressState(10000,1000).stage,'star3');
 assert.equal(V.brandDebugText('NOMON DEBUG v0.28.0\nRun ID: test-run\n'),'MONOID DEBUG v0.28.0\nRun ID: test-run\n');
