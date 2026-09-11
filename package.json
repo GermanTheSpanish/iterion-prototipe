@@ -2,7 +2,7 @@
   "name": "iterion-prototype",
   "private": true,
   "scripts": {
-    "test:browser": "playwright test tests/browser-smoke.spec.js --reporter=line"
+    "test:browser": "playwright test tests/browser-smoke.spec.js tests/browser-v028-ui.spec.js --reporter=line"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0"
