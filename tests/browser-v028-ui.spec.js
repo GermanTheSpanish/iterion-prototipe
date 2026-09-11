@@ -21,8 +21,8 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   await expect.poll(()=>page.locator('#score').textContent()).toBe('3.5K');
   await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','star1');
   await page.locator('#menuButton').click();await expect(page.locator('#copyrun')).toHaveText('Share debug .txt');await page.locator('#copyrun').click();
-  await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^NOMON_DEBUG_v0\.27\.0_.+\.txt$/);
-  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.text).toContain('NOMON DEBUG v0.27.0');expect(shared.text).toContain('Run ID:');
+  await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^NOMON_DEBUG_v0\.28\.0_.+\.txt$/);
+  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.text).toContain('NOMON DEBUG v0.28.0');expect(shared.text).toContain('Run ID:');
   await page.screenshot({path:testInfo.outputPath('score-progress-share.png'),fullPage:true});
 });
 
@@ -31,7 +31,7 @@ test('v028 debug export falls back to a downloadable txt file',async({page})=>{
   await page.addInitScript(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false})});
   await page.goto('http://127.0.0.1:4173/');await page.locator('#menuButton').click();
   const downloadPromise=page.waitForEvent('download');await page.locator('#copyrun').click();const download=await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^NOMON_DEBUG_v0\.27\.0_.+\.txt$/);
+  expect(download.suggestedFilename()).toMatch(/^NOMON_DEBUG_v0\.28\.0_.+\.txt$/);
 });
 
 test('v028 POWER reads as pale material and Stars use the divider',async({page},testInfo)=>{
