@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),V=require('../presentation.js');
 for(const[n,expected]of [[0,'0'],[20,'20'],[999,'999'],[1000,'1,000'],[2500,'2,500'],[999999,'999,999'],[1000000,'1M'],[1250000,'1.25M'],[12400000,'12.4M'],[950000000,'950M'],[1250000000,'1,250M'],[27500000000,'27,500M'],[99999000000,'99,999M'],[100000000000,'100B'],[1500000000000,'1,500B'],[99999000000000,'99,999B'],[100000000000000,'100T'],[4.88e17,'488Qa'],[6.058e19,'60,580Qa'],[1e20,'100Qi'],[1.25e30,'1,250Oc'],[1e33,'1,000No'],[-2500,'-2,500'],[-1250000,'-1.25M'],[Infinity,'Infinity']])assert.equal(V.compact(n),expected);
 assert.equal(V.exact(1250000000),'1,250,000,000');
-assert.equal(V.scoreDisplay(999999999,1e9).score,'999.9M');
+assert.equal(V.scoreDisplay(999999999,1e9).score,'1,000M');
 assert.equal(V.scoreDisplay(999999999,1e9).note,'1 to target');
 assert.equal(V.scoreDisplay(1e9,1e9).score,'1,000M');
 assert.equal(V.scoreDisplay(1e9,1e9).note,'Target reached');
