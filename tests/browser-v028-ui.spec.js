@@ -13,19 +13,19 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(360);
   await expect(page.locator('#scoreDetail .scoreProgress')).toBeVisible();
   expect(await page.evaluate(()=>window.IterionPresentation.compact(4.88e17))).toBe('488Qa');
-  expect(await page.evaluate(()=>window.IterionPresentation.compact(6.058e19))).toBe('60.6Qi');
+  expect(await page.evaluate(()=>window.IterionPresentation.compact(6.058e19))).toBe('60,580Qa');
   await page.evaluate(()=>{
     document.querySelector('#target').textContent='1K';
     document.querySelector('#targetDetail').setAttribute('aria-label','Target 1,000. Show exact value.');
     const d=document.createElement('div');d.className='opfx signalValue add lane0';d.dataset.lane='main';d.dataset.output='250';document.querySelector('#board').appendChild(d);
   });
-  await page.waitForTimeout(80);expect(await page.locator('#score').textContent()).not.toBe('250');
+  await page.waitForTimeout(80);expect(await page.locator('#score').textContent()).not.toBe('250');expect(await page.locator('#score').textContent()).toMatch(/^[0-9,]+$/);
   await expect.poll(()=>page.locator('#score').textContent()).toBe('250');
   await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','target');
   expect(parseFloat(await page.locator('.scoreProgressFill').evaluate(el=>el.style.width))).toBeCloseTo(25,1);
   await page.evaluate(()=>{document.querySelectorAll('.signalValue').forEach(el=>el.remove());const d=document.createElement('div');d.className='opfx signalValue multiply lane0';d.dataset.lane='main';d.dataset.output='3500';document.querySelector('#board').appendChild(d)});
-  await page.waitForTimeout(80);expect(await page.locator('#score').textContent()).not.toBe('3.5K');
-  await expect.poll(()=>page.locator('#score').textContent()).toBe('3.5K');
+  await page.waitForTimeout(80);expect(await page.locator('#score').textContent()).not.toBe('3,500');expect(await page.locator('#score').textContent()).toMatch(/^[0-9,]+$/);
+  await expect.poll(()=>page.locator('#score').textContent()).toBe('3,500');
   await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','star1');
   await page.locator('#menuButton').click();await expect(page.locator('#copyrun')).toHaveText('Share debug .txt');await page.locator('#copyrun').click();
   await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^MONOID_DEBUG_v0\.28\.3_.+\.txt$/);
