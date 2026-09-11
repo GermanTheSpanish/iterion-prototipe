@@ -7,14 +7,14 @@
   // Display only. Never feed formatted values or animation timing into the engine.
   const BRAND='MONOID';
   const UNITS=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
-  // Early operations are intentionally readable for new players, then the cascade
-  // accelerates hard enough that long late-game machines do not become sluggish.
-  const CASCADE=Object.freeze({firstMs:600,minMs:60,decay:0.72,maxLabels:8,finalMs:450});
+  // The first few activations are deliberately slow enough to teach the arithmetic.
+  // After that, the cadence accelerates progressively so large Endless machines remain usable.
+  const CASCADE=Object.freeze({introMs:Object.freeze([760,650,550,475,400]),tailMs:340,minMs:50,decay:0.82,maxLabels:8,finalMs:500,scoreTweenMs:340});
   function exact(value){return Number.isFinite(value)?value.toLocaleString('en-US',{maximumFractionDigits:20}):String(value)}
   function compact(value){if(!Number.isFinite(value))return String(value);const sign=value<0?'-':'',n=Math.abs(value);if(n<1000)return exact(value);let tier=Math.floor(Math.log10(n)/3);if(tier>=UNITS.length)return value.toExponential(2).replace(/\.00e/,'e').replace(/(\.\d)0e/,'$1e').replace('e+','e');let scaled=n/1000**tier,rounded=Number(scaled.toPrecision(3));if(rounded>=1000&&tier<UNITS.length-1){tier++;scaled=n/1000**tier;rounded=Number(scaled.toPrecision(3))}return sign+String(rounded).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1')+UNITS[tier]}
   function scoreDisplay(score,target){const targetText=compact(target),text=compact(score),below=score<target;return{score:text,target:targetText,note:below&&score>0&&score/target>=0.95?`${compact(target-score)} to target`:score>=target?'Target reached':'Last move'}}
-  function cascadeDelay(index){return Math.max(CASCADE.minMs,Math.round(CASCADE.firstMs*CASCADE.decay**Math.max(0,index)))}
-  function effectLifetime(index){return Math.max(400,cascadeDelay(index)*2+40)}
+  function cascadeDelay(index){index=Math.max(0,Math.floor(Number(index)||0));if(index<CASCADE.introMs.length)return CASCADE.introMs[index];return Math.max(CASCADE.minMs,Math.round(CASCADE.tailMs*CASCADE.decay**(index-CASCADE.introMs.length)))}
+  function effectLifetime(index){return Math.max(480,cascadeDelay(index)+280)}
   function operationHalf(event,mainOperation){return event.exitHalf??(mainOperation?.piece===event.piece?mainOperation.exitHalf:undefined)}
   function fitFontSize(fontSize,measuredWidth,availableWidth){return measuredWidth>availableWidth?fontSize*Math.max(0,availableWidth)/measuredWidth:fontSize}
   function signalPlan(events){const echo=events.filter(e=>e.type.startsWith('echo-')).map(e=>({...e,type:e.type.slice(5)}));const main=events.filter(e=>!e.type.startsWith('echo-')&&e.type!=='double-echo-result');return{main,echo,result:events.find(e=>e.type==='double-echo-result')||null}}
@@ -34,17 +34,22 @@
       .powerTile:not(.circuitTile) .half+.half,.piece.powerTile:not(.circuitTile).h .cube+.cube,.piece.powerTile:not(.circuitTile).v .cube+.cube{border-color:#4b4a45}
       .powerMark{opacity:0!important}
       .circuitRankMark{display:none!important}
-      .upgradeDot{right:auto!important;top:50%!important;left:50%!important;border-radius:0!important;box-shadow:none!important;pointer-events:none;z-index:12}
-      .domino>.upgradeDot{width:calc(100% - 6px)!important;height:2px!important;transform:translate(-50%,-50%)}
-      .piece.h>.upgradeDot{width:2px!important;height:calc(100% - 4px)!important;transform:translate(-50%,-50%)}
-      .piece.v>.upgradeDot{width:calc(100% - 4px)!important;height:2px!important;transform:translate(-50%,-50%)}
-      .upgradeDot.u1{background:#4f86b7!important}.upgradeDot.u2{background:#9a70b5!important}.upgradeDot.u3{background:#d39a2f!important}
+      .upgradeDot{display:none!important}
+      .domino:has(>.upgradeDot.u1) .half+.half{border-top-color:#4f86b7!important;border-top-width:2.5px!important}
+      .domino:has(>.upgradeDot.u2) .half+.half{border-top-color:#9a70b5!important;border-top-width:2.5px!important}
+      .domino:has(>.upgradeDot.u3) .half+.half{border-top-color:#d39a2f!important;border-top-width:2.5px!important}
+      .piece.h:has(>.upgradeDot.u1) .cube+.cube{border-left-color:#4f86b7!important;border-left-width:2.5px!important}
+      .piece.h:has(>.upgradeDot.u2) .cube+.cube{border-left-color:#9a70b5!important;border-left-width:2.5px!important}
+      .piece.h:has(>.upgradeDot.u3) .cube+.cube{border-left-color:#d39a2f!important;border-left-width:2.5px!important}
+      .piece.v:has(>.upgradeDot.u1) .cube+.cube{border-top-color:#4f86b7!important;border-top-width:2.5px!important}
+      .piece.v:has(>.upgradeDot.u2) .cube+.cube{border-top-color:#9a70b5!important;border-top-width:2.5px!important}
+      .piece.v:has(>.upgradeDot.u3) .cube+.cube{border-top-color:#d39a2f!important;border-top-width:2.5px!important}
       .signalValue{min-width:0!important;padding:1px 3px!important;border:0!important;background:transparent!important;box-shadow:none!important;display:flex!important;gap:3px!important;align-items:center!important}
       .signalValue small,.signalValue strong{display:none!important}.signalValue span{font-size:11px!important;font-weight:750!important;padding:2px 4px!important;border:1px solid rgba(21,21,21,.22)!important;border-radius:3px!important;background:rgba(251,250,246,.92)!important;color:#20201d!important}
       .signalValue[data-lane*="."]{display:grid!important;grid-template-columns:auto auto!important;gap:0 5px!important;padding:3px 4px!important;border:1px solid rgba(21,21,21,.2)!important;background:rgba(251,250,246,.92)!important}
       .signalValue[data-lane*="."] small{display:block!important;grid-column:1/-1!important;font-size:7px!important}.signalValue[data-lane*="."] strong{display:inline!important;font-size:11px!important}.signalValue[data-lane*="."] span{border:0!important;background:transparent!important;padding:0!important;font-size:9px!important}
       .signalValue.echoLane{border-style:dashed!important;opacity:.78}.joinFx,.echoJoin,.resonanceFx{font-size:11px!important;background:rgba(251,250,246,.94)!important;box-shadow:none!important;padding:4px 6px!important}
-      .scoreProgress{display:block;margin-top:2px;height:11px;position:relative}.scoreProgressTrack{display:block;height:3px;background:#dddcd6;overflow:hidden}.scoreProgressFill{display:block;height:100%;width:0;background:#393934;transition:width .09s linear,background-color .18s ease}.scoreProgressNext{display:block;margin-top:1px;text-align:right;font:650 7px/1.1 ui-monospace,monospace;letter-spacing:.05em;color:#858078}
+      .scoreProgress{display:block;margin-top:2px;height:11px;position:relative}.scoreProgressTrack{display:block;height:3px;background:#dddcd6;overflow:hidden}.scoreProgressFill{display:block;height:100%;width:0;background:#393934;transition:width .22s linear,background-color .22s ease}.scoreProgressNext{display:block;margin-top:1px;text-align:right;font:650 7px/1.1 ui-monospace,monospace;letter-spacing:.05em;color:#858078}
       .scoreProgress[data-stage="clear"] .scoreProgressFill{background:#6e6b63}.scoreProgress[data-stage="star1"] .scoreProgressFill{background:#4f86b7}.scoreProgress[data-stage="star2"] .scoreProgressFill{background:#9a70b5}.scoreProgress[data-stage="star3"] .scoreProgressFill{background:#d39a2f}
       .scoreCard.scoreLive .scoreValue{font-variant-numeric:tabular-nums}
     `;doc.head.appendChild(style);
@@ -52,7 +57,7 @@
     const bar=doc.createElement('span');bar.className='scoreProgress';bar.setAttribute('aria-hidden','true');bar.innerHTML='<i class="scoreProgressTrack"><i class="scoreProgressFill"></i></i><i class="scoreProgressNext">TARGET</i>';scoreDetail.insertBefore(bar,scoreNote||null);const fill=bar.querySelector('.scoreProgressFill'),next=bar.querySelector('.scoreProgressNext');
     const ariaNumber=(el,prefix)=>{const label=el?.getAttribute('aria-label')||'',m=label.match(new RegExp(`${prefix}\\s+([-+0-9,.eE]+)`,'i'));return m?Number(m[1].replace(/,/g,'')):NaN};let targetValue=()=>ariaNumber(targetDetail,'Target'),displayed=ariaNumber(scoreDetail,'Score'),raf=0,animating=false;
     const paintProgress=value=>{const state=progressState(value,targetValue());bar.dataset.stage=state.stage;fill.style.width=`${Math.round(state.progress*10000)/100}%`;next.textContent=state.next};if(!Number.isFinite(displayed))displayed=0;paintProgress(displayed);
-    const tweenScore=value=>{value=Number(value);if(!Number.isFinite(value))return;if(raf)root.cancelAnimationFrame(raf);const from=Number.isFinite(displayed)?displayed:value,start=root.performance.now(),duration=95;animating=true;scoreDetail.classList.add('scoreLive');const step=now=>{const t=Math.min(1,(now-start)/duration),eased=1-Math.pow(1-t,3),v=from+(value-from)*eased;score.textContent=compact(v);paintProgress(v);if(t<1)raf=root.requestAnimationFrame(step);else{displayed=value;score.textContent=compact(value);paintProgress(value);animating=false;scoreDetail.classList.remove('scoreLive');raf=0}};raf=root.requestAnimationFrame(step)};
+    const tweenScore=value=>{value=Number(value);if(!Number.isFinite(value))return;if(raf)root.cancelAnimationFrame(raf);const from=Number.isFinite(displayed)?displayed:value,start=root.performance.now(),duration=CASCADE.scoreTweenMs;animating=true;scoreDetail.classList.add('scoreLive');const step=now=>{const t=Math.min(1,(now-start)/duration),eased=1-Math.pow(1-t,3),v=from+(value-from)*eased;displayed=v;score.textContent=compact(v);paintProgress(v);if(t<1)raf=root.requestAnimationFrame(step);else{displayed=value;score.textContent=compact(value);paintProgress(value);animating=false;scoreDetail.classList.remove('scoreLive');raf=0}};raf=root.requestAnimationFrame(step)};
     const syncFromUi=()=>{const v=ariaNumber(scoreDetail,'Score');if(Number.isFinite(v)&&!animating){displayed=v;score.textContent=compact(v);paintProgress(v)}else paintProgress(displayed)};new MutationObserver(syncFromUi).observe(scoreDetail,{attributes:true,attributeFilter:['aria-label']});new MutationObserver(()=>paintProgress(displayed)).observe(targetDetail,{attributes:true,attributeFilter:['aria-label']});
     // Keep SCORE live while a single signal is traversing. During T/Echo fan-out it
     // intentionally freezes until the canonical render() commits the joined result;
