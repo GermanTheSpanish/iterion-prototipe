@@ -41,19 +41,33 @@ test('v028 debug export falls back to a downloadable txt file',async({page})=>{
   expect(download.suggestedFilename()).toMatch(/^MONOID_DEBUG_v0\.28\.2_.+\.txt$/);
 });
 
-test('v028 POWER reads as pale material, Overkills colour the physical divider and Circuit rank text stays hidden',async({page},testInfo)=>{
+test('v028 POWER reads as pale material and Overkills use explicit physical centre dividers',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
   await page.evaluate(()=>{
     const d=document.querySelector('#hand .domino');d.classList.add('powerTile','power2','circuitTile','circuitRank3');const p=document.createElement('i');p.className='powerMark';p.textContent='×2';d.appendChild(p);const u=document.createElement('i');u.className='upgradeDot u2';d.appendChild(u);const c=document.createElement('i');c.className='circuitRankMark';c.textContent='III';d.appendChild(c);
     const h=document.createElement('div');h.className='piece h circuitTile';h.innerHTML='<div class="cube"></div><div class="cube"></div><i class="upgradeDot u3"></i>';h.style.cssText='position:absolute;left:10px;top:10px;width:80px;height:30px';document.querySelector('#board').appendChild(h);
     const v=document.createElement('div');v.className='piece v';v.innerHTML='<div class="cube"></div><div class="cube"></div><i class="upgradeDot u1"></i>';v.style.cssText='position:absolute;left:100px;top:10px;width:30px;height:80px';document.querySelector('#board').appendChild(v);
+    window.NomonUiPolish.syncOverkillTiles(document);
   });
-  const tile=page.locator('#hand .domino').first();
+  const tile=page.locator('#hand .domino').first(),horizontalPiece=page.locator('#board .piece.h').last(),verticalPiece=page.locator('#board .piece.v').last();
+  await expect(tile).toHaveClass(/overkillTier2/);await expect(horizontalPiece).toHaveClass(/overkillTier3/);await expect(verticalPiece).toHaveClass(/overkillTier1/);
   expect(await tile.locator('.powerMark').evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
   expect(await tile.locator('.circuitRankMark').evaluate(el=>getComputedStyle(el).display)).toBe('none');
   expect(await tile.locator('.upgradeDot').evaluate(el=>getComputedStyle(el).display)).toBe('none');
-  const handDivider=await tile.locator('.half').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(handDivider.color).toBe('rgb(154, 112, 181)');expect(parseFloat(handDivider.width)).toBeGreaterThanOrEqual(2);
-  const horizontal=await page.locator('#board .piece.h').last().locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderLeftColor,width:s.borderLeftWidth}});expect(horizontal.color).toBe('rgb(211, 154, 47)');expect(parseFloat(horizontal.width)).toBeGreaterThanOrEqual(2);
-  const vertical=await page.locator('#board .piece.v').last().locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(vertical.color).toBe('rgb(79, 134, 183)');expect(parseFloat(vertical.width)).toBeGreaterThanOrEqual(2);
+  const handDivider=await tile.locator('.half').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(handDivider.color).toBe('rgb(154, 112, 181)');expect(parseFloat(handDivider.width)).toBeGreaterThanOrEqual(3);
+  const horizontal=await horizontalPiece.locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderLeftColor,width:s.borderLeftWidth}});expect(horizontal.color).toBe('rgb(211, 154, 47)');expect(parseFloat(horizontal.width)).toBeGreaterThanOrEqual(3);
+  const vertical=await verticalPiece.locator('.cube').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(vertical.color).toBe('rgb(79, 134, 183)');expect(parseFloat(vertical.width)).toBeGreaterThanOrEqual(3);
   await page.screenshot({path:testInfo.outputPath('power-pale-overkill-dividers.png')});
+});
+
+test('v028 inspector mirrors the current Overkill tier as the same centre line',async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
+  await page.evaluate(()=>{
+    document.querySelector('#overlayTitle').textContent='[3|5]';
+    document.querySelector('#overlayBody').innerHTML='<div class="inspector"><section class="inspectSection"><div class="inspectHero"><strong>[3|5]</strong><span>Standard domino</span></div></section><section class="inspectSection"><div class="stateRows"><span>★2 · can pay +2c when activated</span></div></section></div>';
+    window.NomonUiPolish.syncInspectorPreview();
+  });
+  const preview=page.locator('.inspectOverkillPreview'),domino=preview.locator('.inspectOverkillDomino');await expect(preview).toBeVisible();await expect(domino).toHaveClass(/overkillTier2/);await expect(preview.locator('.inspectOverkillLegend')).toContainText('OVERKILL 2');
+  const divider=await preview.locator('.inspectOverkillHalf').nth(1).evaluate(el=>{const s=getComputedStyle(el);return{color:s.borderTopColor,width:s.borderTopWidth}});expect(divider.color).toBe('rgb(154, 112, 181)');expect(parseFloat(divider.width)).toBeGreaterThanOrEqual(3);
+  await page.screenshot({path:testInfo.outputPath('inspector-overkill-divider.png')});
 });
