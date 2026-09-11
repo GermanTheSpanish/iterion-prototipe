@@ -5,7 +5,7 @@ const data=fs.readFileSync(path.join(__dirname,'..','data.js'),'utf8');
 const game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 const mods=fs.readFileSync(path.join(__dirname,'..','mods.js'),'utf8');
-assert.match(data,/VERSION:'0\.28\.0'/,'build must identify as the current release');
+assert.match(data,/VERSION:'0\.28\.1'/,'build must identify as the current release');
 assert.doesNotMatch(ui,/EXACT DOMINO/);
 assert.doesNotMatch(ui,/exactGridHtml|buyMarketExactTile|marketExactPrice/);
 assert.doesNotMatch(game,/buyMarketExactTile|marketExactPrice|MARKET_EXACT_TILE_COST/);
