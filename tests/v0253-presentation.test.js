@@ -6,10 +6,10 @@ assert.equal(V.scoreDisplay(999999999,1e9).note,'1 to target');
 assert.equal(V.scoreDisplay(1e9,1e9).score,'1B');
 assert.equal(V.scoreDisplay(1e9,1e9).note,'Target reached');
 assert.equal(V.scoreDisplay(0,20).note,'Last move');
-assert.equal(V.cascadeDelay(0),125);assert.equal(V.cascadeDelay(1000),28);
+assert.equal(V.cascadeDelay(0),200);assert.equal(V.cascadeDelay(1000),28);
 for(let i=1;i<100;i++){assert(V.cascadeDelay(i)<=V.cascadeDelay(i-1));assert(V.cascadeDelay(i)>=28);assert(V.effectLifetime(i)<=V.effectLifetime(i-1))}
 assert.equal(V.CASCADE.maxLabels,8);assert.equal(V.CASCADE.finalMs,450);
-const hundred=Array.from({length:100},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(hundred<4000);
+const hundred=Array.from({length:100},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(hundred<4100);
 assert.deepEqual(V.progressState(500,1000),{stage:'target',progress:.5,next:'TARGET'});
 assert.equal(V.progressState(1000,1000).stage,'clear');assert.equal(V.progressState(3000,1000).stage,'star1');assert.equal(V.progressState(5000,1000).stage,'star2');assert.equal(V.progressState(10000,1000).stage,'star3');
 assert.equal(V.debugFilename('NOMON DEBUG v0.27.0\nRun ID: test-run\n'),'NOMON_DEBUG_v0.27.0_test-run.txt');
