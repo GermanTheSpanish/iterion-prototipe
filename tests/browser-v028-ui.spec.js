@@ -63,6 +63,7 @@ test('v028 POWER reads as pale material and Overkills use explicit physical cent
 test('v028 inspector mirrors the current Overkill tier as the same centre line',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
   await page.evaluate(()=>{
+    const overlay=document.querySelector('#overlay');overlay.className='overlay show aux';overlay.querySelector('.modal').classList.add('auxModal');
     document.querySelector('#overlayTitle').textContent='[3|5]';
     document.querySelector('#overlayBody').innerHTML='<div class="inspector"><section class="inspectSection"><div class="inspectHero"><strong>[3|5]</strong><span>Standard domino</span></div></section><section class="inspectSection"><div class="stateRows"><span>★2 · can pay +2c when activated</span></div></section></div>';
     window.NomonUiPolish.syncInspectorPreview();
