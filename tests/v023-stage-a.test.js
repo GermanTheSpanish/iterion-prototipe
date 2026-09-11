@@ -6,7 +6,7 @@ const Game=require('../game.js');
 function piece(tile,x,id){const p=E.pieceFrom(tile,x,0,0,0,id);p.tile={...tile};return p}
 function prepareMarket(game,round=2){const s=game.state();s.cleared=true;s.round=round;s.nextShopType='market';s.intermissionResolved=false;s.shopOpen=false;s.shopType=null;s.shopOffers=[];return s}
 
-assert.strictEqual(D.VERSION,'0.27.0','build must identify as the current release');
+assert.strictEqual(D.VERSION,'0.28.0','build must identify as the current release');
 assert.strictEqual(D.ENGINE_VERSION,'0.14.0-split','build must identify the current engine release');
 assert.strictEqual(D.MARKET_OFFER_COUNT,3);
 assert.strictEqual(D.MARKET_PURCHASE_LIMIT,1);
