@@ -167,12 +167,13 @@
     if(GAME.canUndo()){overlayTertiary.style.display='inline-block';overlayTertiary.textContent=`UNDO · ${s.consumables.undo}`;overlayTertiary.onclick=useUndo}else setNewRunButton(overlayTertiary)
   }
   function showFailed(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit';overlayTitle.textContent=endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
-    const reason=noTiles?'The automatic POWER set could not be generated. Copy the run data so this can be diagnosed.':limit?'You used every move for this round. The Shop can sell stored Move tools.':'No legal continuation remains.';
-    overlayBody.innerHTML=`<p>${endless?`Base run complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="copyFailedRun" class="shopBuy secondary">COPY RUN DATA</button>`;
-    overlayBody.querySelector('#copyFailedRun').onclick=copyRun;
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
+    overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
+    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or Shop Move can continue this round.':'You used every move for this round.'):(stalled?'No tile in your hand can continue the machine, but the Shop can sell a stored Reroll.':'No legal continuation remains.');
+    overlayBody.innerHTML=`<p>${endless?`Base run complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
+    overlayBody.querySelector('#downloadFailedRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
-    if(GAME.canOpenShop()){const b=buttons[slot++];b.style.display='inline-block';b.textContent='SHOP';b.onclick=openPermanentShop}
+    if(GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='SHOP';b.onclick=openPermanentShop}
     if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
     if(GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
     const b=buttons[slot++]||overlayTertiary;setNewRunButton(b)
