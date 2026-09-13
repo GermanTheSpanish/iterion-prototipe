@@ -40,9 +40,9 @@
     }
     return best
   }
-  function eligibleTiles(circuit,ranks,placedIds,cfg){
+  function eligibleTiles(circuit,ranks,placedIds,cfg,tileLimit=cfg.CIRCUIT_TILE_LIMIT){
     const count=placedIds.filter(id=>(ranks[id]||0)>0).length;
-    return circuit.tileIds.filter(id=>(ranks[id]||0)<cfg.CIRCUIT_MAX_RANK&&(count<cfg.CIRCUIT_TILE_LIMIT||(ranks[id]||0)>0)).sort(compare)
+    return circuit.tileIds.filter(id=>(ranks[id]||0)<cfg.CIRCUIT_MAX_RANK&&(count<tileLimit||(ranks[id]||0)>0)).sort(compare)
   }
   function upgradedRank(before,reward,cfg){return Math.min(cfg.CIRCUIT_MAX_RANK,before+reward)}
   function rankInfo(rank,cfg){return rank>0?cfg.CIRCUIT_RANKS[rank-1]||null:null}
