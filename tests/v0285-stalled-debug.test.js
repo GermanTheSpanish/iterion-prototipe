@@ -26,4 +26,4 @@ assert.match(debug,/FAIL no-legal-moves after move 1 hand=\[0\|0\] id=blocked-0-
 
 s.coins=0;
 assert.equal(g.recoveryOptions().recoverable,false,'a stalled machine is final when no recovery can be afforded or owned');
-console.log('v0.28.5 stalled-state debug regression: ok');
+console.log('v0.29.0 stalled-state debug regression: ok');
