@@ -71,11 +71,15 @@ function createGame(E,opts={}){
   }
   function fail(reason){s.blocked=true;s.needsReroll=false;s.failureReason=reason;s.roundZero.endHand=countZero(s.hand.filter(Boolean));s.events.push({type:'failure',round:s.round+1,roundTurn:s.roundTurn,reason,hand:s.hand.filter(Boolean).map(cloneTile)})}
   function assessContinuation(){
-    s.needsReroll=false;if(s.cleared)return;
+    const alreadyWaiting=!!s.needsReroll;s.needsReroll=false;if(s.cleared)return;
     if(s.roundTurn>=maxPlacements()){fail('placement-limit');return}
     if(!s.hand.some(Boolean)&&!s.reserve.length){if(replenishPowerSet('continuation')){s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne())}else{fail('no-tiles');return}}
     if(hasLegal()){s.blocked=false;s.failureReason=null;return}
-    if((s.freeReroll||0)+(s.consumables?.reroll||0)>0){s.blocked=false;s.failureReason=null;s.needsReroll=true;return}
+    if((s.freeReroll||0)+(s.consumables?.reroll||0)>0){
+      s.blocked=false;s.failureReason=null;s.needsReroll=true;
+      if(!alreadyWaiting)s.events.push({type:'recovery-needed',round:s.round+1,roundTurn:s.roundTurn,reason:'no-legal-moves',hand:s.hand.filter(Boolean).map(cloneTile)});
+      return
+    }
     fail('no-legal-moves')
   }
 
@@ -393,7 +397,7 @@ function createGame(E,opts={}){
   function status(){if(s.pendingCircuit)return'CIRCUIT CHOICE';if(s.endlessMode)return s.blocked?'ENDLESS FAILED':s.cleared?'ENDLESS CLEAR':'ENDLESS';return s.standardComplete&&s.cleared&&s.round===cfg.TOTAL_ROUNDS-1?'COMPLETE':s.blocked?'ROUND FAILED':'IN PROGRESS'}
 
   function recoveryOptions(){
-    const failure=s.failureReason,shopAvailable=canOpenShop(),undo=canUndo();
+    const failure=s.needsReroll?'no-legal-moves':s.failureReason,shopAvailable=canOpenShop(),undo=canUndo();
     const ownedReroll=canUseReroll(),ownedMove=failure==='placement-limit'&&canUseMove();
     const shopReroll=shopAvailable&&s.coins>=shopItemPrice('reroll'),shopMove=shopAvailable&&s.coins>=shopItemPrice('move'),shopTile=shopAvailable&&s.coins>=shopRandomPrice();
     const shopRescue=failure==='no-legal-moves'?shopReroll:failure==='placement-limit'?shopMove:failure==='no-tiles'?shopTile:false;
@@ -408,7 +412,8 @@ function createGame(E,opts={}){
 
   function debugText(){
     const x=snapshot(),up=x.set.filter(t=>t.upgrade).map(t=>`[${t.a}|${t.b}]★${t.upgrade}`).join(', ')||'-';
-    const lines=[`NOMON DEBUG v${x.gameVersion}`,`Run ID: ${x.runId}`,`Seed: ${x.seed}`,`Result: ${x.status}${x.failureReason?` · ${x.failureReason}`:''}`,`Stage: ${x.stage.index}/${x.endless.active?'∞':x.stage.total} · round ${x.stage.round}/${x.stage.size}`,`Round: ${x.round.index}/${x.endless.active?'∞':x.round.total} · target=${x.round.target} · moves=${x.round.placements}/${x.round.maxPlacements}`,`Board: ${x.boardSize.width}x${x.boardSize.height} · Machine: ${x.board.length} pieces · unique=${new Set(x.placedTileIds).size}/${x.placedTileIds.length}`,`Set: ${x.setSize} tiles · available=${x.availableTileCount} · generation=${x.powerSets.generation} · power=x${x.powerSets.powerMultiplier}`,`Last output: ${x.score.last}`,`Best output: ${x.score.best}`,`Coins: ${x.coins} · Inflation: ${x.inflation} · Tools: move=${x.consumables.move}, reroll=${x.consumables.reroll}, freeReroll=${x.freeReroll}, undo=${x.consumables.undo}`,`Anchor: ${s.anchorId||'-'} · Upgraded tiles: ${up}`,`Tile Mods: DD=${x.doubleDouble?x.doubleDouble.id:'-'} · DE=${x.doubleEcho?x.doubleEcho.id:'-'} · ZM=${x.zeroMemory?x.zeroMemory.id:'-'}`,`Machine Mods: ${x.longRun?'LONG RUN':'-'}`,`Endless: ${x.endless.active?`active · baseComplete=${x.endless.baseComplete?'yes':'no'} · clears=${x.endless.roundsCleared}`:x.endless.baseComplete?'available · baseComplete=yes':'off'}`,`Next: ${x.shop.nextType} · open=${x.shop.open?'yes':'no'}${x.shop.open?` (${x.shop.type})`:''}`,`Round clears: ${x.round.clears.map(w=>`R${w.round} target=${w.target} output=${w.output} moves=${w.placements} machine=${w.machineSize} set=${w.setSize} gen=${w.setGeneration||1} reward=${w.reward} upgradeCoins=${w.upgradeCoins||0} anchor=[${w.anchor.a}|${w.anchor.b}]★${w.upgradeTier}`).join(' | ')||'-'}`,''];
+    const activeIssue=s.needsReroll?'no-legal-moves':x.failureReason;
+    const lines=[`NOMON DEBUG v${x.gameVersion}`,`Run ID: ${x.runId}`,`Seed: ${x.seed}`,`Result: ${x.status}${activeIssue?` · ${activeIssue}`:''}`,`Stage: ${x.stage.index}/${x.endless.active?'∞':x.stage.total} · round ${x.stage.round}/${x.stage.size}`,`Round: ${x.round.index}/${x.endless.active?'∞':x.round.total} · target=${x.round.target} · moves=${x.round.placements}/${x.round.maxPlacements}`,`Board: ${x.boardSize.width}x${x.boardSize.height} · Machine: ${x.board.length} pieces · unique=${new Set(x.placedTileIds).size}/${x.placedTileIds.length}`,`Set: ${x.setSize} tiles · available=${x.availableTileCount} · generation=${x.powerSets.generation} · power=x${x.powerSets.powerMultiplier}`,`Last output: ${x.score.last}`,`Best output: ${x.score.best}`,`Coins: ${x.coins} · Inflation: ${x.inflation} · Tools: move=${x.consumables.move}, reroll=${x.consumables.reroll}, freeReroll=${x.freeReroll}, undo=${x.consumables.undo}`,`Anchor: ${s.anchorId||'-'} · Upgraded tiles: ${up}`,`Tile Mods: DD=${x.doubleDouble?x.doubleDouble.id:'-'} · DE=${x.doubleEcho?x.doubleEcho.id:'-'} · ZM=${x.zeroMemory?x.zeroMemory.id:'-'}`,`Machine Mods: ${x.longRun?'LONG RUN':'-'}`,`Endless: ${x.endless.active?`active · baseComplete=${x.endless.baseComplete?'yes':'no'} · clears=${x.endless.roundsCleared}`:x.endless.baseComplete?'available · baseComplete=yes':'off'}`,`Next: ${x.shop.nextType} · open=${x.shop.open?'yes':'no'}${x.shop.open?` (${x.shop.type})`:''}`,`Round clears: ${x.round.clears.map(w=>`R${w.round} target=${w.target} output=${w.output} moves=${w.placements} machine=${w.machineSize} set=${w.setSize} gen=${w.setGeneration||1} reward=${w.reward} upgradeCoins=${w.upgradeCoins||0} anchor=[${w.anchor.a}|${w.anchor.b}]★${w.upgradeTier}`).join(' | ')||'-'}`,''];
     const tileText=t=>`[${t.a}|${t.b}]${t.powerMultiplier>1?`×${t.powerMultiplier}`:''} id=${t.id}`;
     const hand=handPlacementDiagnostics();
     lines.push(`Current hand: ${hand.map(h=>`#${h.index+1} ${tileText(h.tile)} legal=${h.legalPlacements}`).join(' | ')||'-'}`);
@@ -442,6 +447,7 @@ function createGame(E,opts={}){
       if(v.type==='double-double'){lines.push(`R${v.round} MARKET DOUBLE DOUBLE [${v.tile.a}|${v.tile.b}] id=${v.tile.id} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
       if(v.type==='market-mod-buy'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()}${v.tile?` [${v.tile.a}|${v.tile.b}] id=${v.tile.id}`:' machine'} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
       if(v.type==='shop-close'){lines.push(`R${v.round} ${v.shop.toUpperCase()} CLOSE ${v.reason} coins=${v.coins} inflation=${v.inflation} available=${v.available}`);continue}
+      if(v.type==='recovery-needed'){lines.push(`R${v.round} NO LEGAL MOVES after move ${v.roundTurn} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
       if(v.type==='failure'){lines.push(`R${v.round} FAIL ${v.reason} after move ${v.roundTurn} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
       if(Number.isInteger(v.turn))lines.push(`T${v.turn} R${v.round}.${v.roundTurn} [${v.tile.a}|${v.tile.b}]${v.tile.powerMultiplier>1?`×${v.tile.powerMultiplier}`:''}${v.tile.upgrade?`★${v.tile.upgrade}`:''} ${v.dir} @${v.placement.x},${v.placement.y},r${v.placement.rr} trigger=${v.trigger} output=${v.output} selection=${v.selectionOutput??v.output}${v.upgradeCoins?` coins=+${v.upgradeCoins}`:''} rebounds=${v.rebounds} start=${v.start}${v.flipped?' FLIPPED':''} reason=${v.reason} ops=${v.ops||'-'} routes=${v.routes||'-'} search=${v.search}${v.longRunActivated?` LR(unique=${v.uniquePieces},stars=+${v.starCoins})`:''}${v.zeroMemoryActivation?` ZM(${v.zeroMemoryActivation.op}${v.zeroMemoryActivation.factor?`×${v.zeroMemoryActivation.factor}`:`+${v.zeroMemoryActivation.add}`})`:''}${v.echo?` ECHO(main=${v.echo.mainOutput},echo=${v.echo.echoOutput},final=${v.echo.finalOutput})`:''}${v.clear?' CLEAR':''}`)
     }

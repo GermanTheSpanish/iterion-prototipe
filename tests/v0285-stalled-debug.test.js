@@ -11,17 +11,25 @@ s.hand=[
   {id:'blocked-1-1',a:1,b:1,upgrade:0,source:'base'},
   null,null,null
 ];
-s.reserve=[];s.freeReroll=0;s.consumables={move:0,reroll:0,undo:0};s.coins=20;s.inflation=0;s.roundTurn=1;s.turn=1;s.undoFrame=null;
+s.reserve=[];s.freeReroll=0;s.consumables={move:0,reroll:1,undo:0};s.coins=20;s.inflation=0;s.roundTurn=1;s.turn=1;s.undoFrame=null;
 g.assessContinuation();
 
-assert.equal(s.failureReason,'no-legal-moves');
+assert.equal(s.needsReroll,true);
+assert.equal(s.failureReason,null);
 assert.equal(g.recoveryOptions().recoverable,true,'an affordable Shop Reroll makes the failure recoverable');
+assert.equal(g.recoveryOptions().ownedReroll,true);
 assert.equal(g.recoveryOptions().shopReroll,true);
 assert.equal(g.snapshot().recovery.recoverable,true);
 assert.deepEqual(g.handPlacementDiagnostics().map(x=>x.legalPlacements),[0,0]);
-const debug=g.debugText();
+let debug=g.debugText();
 assert.match(debug,/Current hand: #1 \[0\|0\] id=blocked-0-0 legal=0 \| #2 \[1\|1\] id=blocked-1-1 legal=0/);
 assert.match(debug,/Recovery: recoverable=yes .* shopReroll=yes@3c/);
+assert.match(debug,/Result: IN PROGRESS · no-legal-moves/);
+assert.match(debug,/R1 NO LEGAL MOVES after move 1 hand=\[0\|0\] id=blocked-0-0,\[1\|1\] id=blocked-1-1/);
+
+assert.equal(g.reroll().ok,true);
+assert.equal(s.failureReason,'no-legal-moves');
+debug=g.debugText();
 assert.match(debug,/FAIL no-legal-moves after move 1 hand=\[0\|0\] id=blocked-0-0,\[1\|1\] id=blocked-1-1/);
 
 s.coins=0;
