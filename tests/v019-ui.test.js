@@ -22,6 +22,7 @@ assert.match(ui,/<span>\$\{label\[0\]\}<\/span><span>\$\{label\[1\]\}<\/span>/,'
 assert.match(html,/\.piece\.h>\.tileModMark\{grid-template-columns:1fr 1fr/,'Horizontal modifiers must read left to right');
 assert.match(html,/\.piece\.v>\.tileModMark\{grid-template-rows:1fr 1fr/,'Vertical modifiers must read top to bottom');
 assert.match(html,/background:transparent;color:rgba\(21,21,21,\.3\)/,'Modifier lettering must remain a soft print, not a badge');
+assert.doesNotMatch(ui,/board\.style\.backgroundColor='#fff'/,'Board colour must remain theme-controlled in Endless');
 assert.match(html,/animation:pop 1\.2s forwards/);
 assert.match(html,/animation:final 1\.8s forwards/);
 console.log('retained v0.19 UI regression tests passed');

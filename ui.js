@@ -48,7 +48,7 @@
     e.preventDefault();press.begin(e,meta)
   }
   function renderBoard(){
-    const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='#fff';addBoardCenterTicks();
+    const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
     s.pieces.forEach(p=>{
       const el=pieceEl(p),pending=s.pendingCircuit,eligible=pending?.eligibleTileIds.includes(p.tile.id),power=powerMultiplier(p.tile);
       el.classList.add('inspectable');el.setAttribute('role','button');

@@ -50,7 +50,7 @@ function testPatchUxContracts(){
   assert.match(ui,/close\.textContent='CLOSE'/,'Data panel must have an internal close control');
   assert.match(ui,/className='runDataText'/,'Data panel must expose selectable run text');
   assert.match(ui,/board\.style\.backgroundImage='none'/,'visible board grid must be disabled');
-  assert.match(ui,/board\.style\.backgroundColor='#fff'/,'board must render white');
+  assert.match(ui,/board\.style\.backgroundColor=''/,'board colour must come from the active visual theme');
   assert.match(ui,/boardCenterTick/,'board must render four centre-edge guide ticks');
   assert.match(ui,/Best Score with this tile:/,'tile inspector must show best Output across Moves involving this physical tile');
   assert.match(ui,/can pay \+\$\{m\.starCoins\}c when activated/,'tile inspector must show star coin value');
