@@ -106,8 +106,9 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
 test('Stage palette darkens without changing the board or hand tiles',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const game=value.createGame(engine,{...options,seed:2923}),s=game.state();s.round=2;window.__iterionTestGame=game;return game}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect(page.locator('body')).toHaveAttribute('data-stage-round','3');await expect(page.locator('body')).not.toHaveClass(/endlessPalette/);
-  const colors=await page.evaluate(()=>({body:getComputedStyle(document.body).backgroundColor,board:getComputedStyle(document.querySelector('#board')).backgroundColor,handTile:getComputedStyle(document.querySelector('#hand .domino')).backgroundColor}));
-  expect(colors).toEqual({body:'rgb(227, 227, 222)',board:'rgb(255, 255, 255)',handTile:'rgb(251, 248, 240)'});
+  await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe('rgb(227, 227, 222)');
+  const surfaces=await page.evaluate(()=>({board:getComputedStyle(document.querySelector('#board')).backgroundColor,handTile:getComputedStyle(document.querySelector('#hand .domino')).backgroundColor}));
+  expect(surfaces).toEqual({board:'rgb(255, 255, 255)',handTile:'rgb(251, 248, 240)'});
 });
 
 test('Endless palette preserves play surfaces and exposes System Strain prices',async({page})=>{
