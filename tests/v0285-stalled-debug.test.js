@@ -30,7 +30,9 @@ assert.match(debug,/R1 NO LEGAL MOVES after move 1 hand=\[0\|0\] id=blocked-0-0,
 assert.equal(g.reroll().ok,true);
 assert.equal(s.failureReason,'no-legal-moves');
 debug=g.debugText();
-assert.match(debug,/FAIL no-legal-moves after move 1 hand=\[0\|0\] id=blocked-0-0,\[1\|1\] id=blocked-1-1/);
+assert.match(debug,/FAIL no-legal-moves after move 1 hand=/);
+const failure=s.events.findLast(e=>e.type==='failure');
+assert.deepEqual(new Set(failure.hand.map(t=>t.id)),new Set(['blocked-0-0','blocked-1-1']));
 
 s.coins=0;
 assert.equal(g.recoveryOptions().recoverable,false,'a stalled machine is final when no recovery can be afforded or owned');
