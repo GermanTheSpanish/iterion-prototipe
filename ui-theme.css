@@ -91,6 +91,27 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 @media(max-height:700px){.app{gap:3px;grid-template-rows:44px auto 30px minmax(0,1fr) auto}.gameHeader .iconButton,.gameHeader .helpButton{height:44px}.scoreCard{min-height:82px}.scoreValue{font-size:36px}.handSlot{height:64px;flex-basis:64px}.domino{width:32px}.half{width:30px;height:30px}.hand{gap:4px}.hint{min-height:30px}.bottomBar{gap:5px}.btn{min-height:46px}}
 @media(prefers-reduced-motion:reduce){.opfx,.finalfx{animation-name:none!important;opacity:1;transform:translate(-50%,-50%)}.domino.reveal,.domino.reveal .spips{animation:none}.toast{transition:none}}
 
+/* Stage pressure changes the interface palette only. Board and physical hand tiles stay literal. */
+body[data-stage-round="2"]:not(.endlessPalette){--bg:#eeeeea;--paper:#fafaf6;--paper2:#f0f0eb}
+body[data-stage-round="3"]:not(.endlessPalette){--bg:#e3e3de;--paper:#f5f5f0;--paper2:#e9e9e3}
+body.endlessPalette{--bg:#171716;--paper:#20201e;--paper2:#292926;--ink:#f4f4ee;--muted:#aaa9a1;--line:#41413c;color-scheme:dark}
+body.endlessPalette[data-stage-round="2"]{--bg:#0f0f0e;--paper:#191918;--paper2:#222220}
+body.endlessPalette[data-stage-round="3"]{--bg:#080808;--paper:#121211;--paper2:#1b1b19}
+html,body,.app{transition:background-color .35s ease,color .35s ease}
+body.endlessPalette .modal,body.endlessPalette .gameMenu,body.endlessPalette .runlog{background:var(--paper);color:var(--ink);border-color:var(--line)}
+body.endlessPalette .overlay,body.endlessPalette .gameMenu::backdrop{background:rgba(8,8,8,.9)}
+body.endlessPalette .marketDesc,body.endlessPalette .marketOffer,body.endlessPalette .randomOffer{background:var(--paper2);border-color:var(--line)}
+body.endlessPalette .marketOffer.purchasedOffer{background:#2a2a27;border-color:#d7d7cf}
+body.endlessPalette .ruleVisual,body.endlessPalette .opPair span,body.endlessPalette .stateRows span{background:var(--paper2)}
+body.endlessPalette .shopRailButton,body.endlessPalette .modal button.primary{background:#f4f4ee;color:#151515;border-color:#f4f4ee}
+body.endlessPalette .toast{background:#f4f4ee;color:#151515}
+body.endlessPalette button:focus-visible{outline-color:#f4f4ee}
+body.endlessPalette .board{background:#fff;box-shadow:inset 0 0 0 1px #e5e5df}
+body.endlessPalette .hand .domino{background:#fbf8f0;color:#151515;border-color:#1d1d1d}
+body.endlessPalette .hand .domino.powerTile{background:var(--power-body);color:#fff8e8}
+body.endlessPalette .hand .domino.circuitTile{background:#141414}
+@media(prefers-reduced-motion:reduce){html,body,.app{transition:none}}
+
 /* NOMON: shallow physical surfaces, lit from the upper left. */
 :root{--tile-shadow:1px 2px 3px rgba(25,23,19,.10);--surface-shadow:3px 5px 16px rgba(25,23,19,.07)}
 .wordmark{letter-spacing:.28em}
