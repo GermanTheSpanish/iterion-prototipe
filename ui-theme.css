@@ -91,7 +91,7 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 @media(max-height:700px){.app{gap:3px;grid-template-rows:44px auto 30px minmax(0,1fr) auto}.gameHeader .iconButton,.gameHeader .helpButton{height:44px}.scoreCard{min-height:82px}.scoreValue{font-size:36px}.handSlot{height:64px;flex-basis:64px}.domino{width:32px}.half{width:30px;height:30px}.hand{gap:4px}.hint{min-height:30px}.bottomBar{gap:5px}.btn{min-height:46px}}
 @media(prefers-reduced-motion:reduce){.opfx,.finalfx{animation-name:none!important;opacity:1;transform:translate(-50%,-50%)}.domino.reveal,.domino.reveal .spips{animation:none}.toast{transition:none}}
 
-/* Stage pressure changes the interface palette only. Board and physical hand tiles stay literal. */
+/* Stage pressure darkens the interface one step per round. */
 body[data-stage-round="2"]:not(.endlessPalette){--bg:#eeeeea;--paper:#fafaf6;--paper2:#f0f0eb}
 body[data-stage-round="3"]:not(.endlessPalette){--bg:#e3e3de;--paper:#f5f5f0;--paper2:#e9e9e3}
 body.endlessPalette{--bg:#171716;--paper:#20201e;--paper2:#292926;--ink:#f4f4ee;--muted:#aaa9a1;--line:#41413c;color-scheme:dark}
@@ -106,9 +106,11 @@ body.endlessPalette .ruleVisual,body.endlessPalette .opPair span,body.endlessPal
 body.endlessPalette .shopRailButton,body.endlessPalette .modal button.primary{background:#f4f4ee;color:#151515;border-color:#f4f4ee}
 body.endlessPalette .toast{background:#f4f4ee;color:#151515}
 body.endlessPalette button:focus-visible{outline-color:#f4f4ee}
-body.endlessPalette .board{background:#fff;box-shadow:inset 0 0 0 1px #e5e5df}
-body.endlessPalette .hand .domino{background:#fbf8f0;color:#151515;border-color:#1d1d1d}
-body.endlessPalette .hand .domino.powerTile{background:var(--power-body);color:#fff8e8}
+body.endlessPalette .board{background:#e9e7e1;box-shadow:inset 0 0 0 1px #cfcdc6}
+body.endlessPalette .board .piece:not(.circuitTile):not(.powerTile),body.endlessPalette .hand .domino:not(.circuitTile):not(.powerTile){background:#e1ded5;color:#20201e;border-color:#34332f}
+body.endlessPalette .powerTile.power2{--power-pale:#c8d3d8}
+body.endlessPalette .powerTile.power3{--power-pale:#d1c8d6}
+body.endlessPalette .powerTile.power4{--power-pale:#d4c99f}
 body.endlessPalette .hand .domino.circuitTile{background:#141414}
 @media(prefers-reduced-motion:reduce){html,body,.app{transition:none}}
 

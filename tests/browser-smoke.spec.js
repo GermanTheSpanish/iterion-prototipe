@@ -111,12 +111,12 @@ test('Stage palette darkens without changing the board or hand tiles',async({pag
   expect(surfaces).toEqual({board:'rgb(255, 255, 255)',handTile:'rgb(251, 248, 240)'});
 });
 
-test('Endless palette preserves play surfaces and exposes System Strain prices',async({page})=>{
+test('Endless palette softens play surfaces and exposes System Strain prices',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const game=value.createGame(engine,{...options,seed:2924,STARTING_COINS:100}),s=game.state();s.round=16;s.endlessMode=true;s.standardComplete=true;s.inflation=2;s.systemStrain=3;window.__iterionTestGame=game;return game}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect(page.locator('body')).toHaveAttribute('data-stage-round','2');await expect(page.locator('body')).toHaveClass(/endlessPalette/);await expect(page.locator('#stageRound')).toContainText('STRAIN 3');
   await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe('rgb(15, 15, 14)');
   const surfaces=await page.evaluate(()=>({board:getComputedStyle(document.querySelector('#board')).backgroundColor,handTile:getComputedStyle(document.querySelector('#hand .domino')).backgroundColor}));
-  expect(surfaces).toEqual({board:'rgb(255, 255, 255)',handTile:'rgb(251, 248, 240)'});
+  expect(surfaces).toEqual({board:'rgb(233, 231, 225)',handTile:'rgb(225, 222, 213)'});
   await page.locator('#shopButton').click();await expect(page.locator('.shopInflation')).toHaveText('Inflation 2 · System Strain 3');await expect(page.locator('#shopRandomBuy')).toContainText('6c');await expect(page.locator('[data-shop-item="move"]')).toHaveAttribute('aria-label','Buy +1 MOVE for 8 coins');await expect(page.locator('.shopFoot')).toContainText('Undo removes');
 });
 
