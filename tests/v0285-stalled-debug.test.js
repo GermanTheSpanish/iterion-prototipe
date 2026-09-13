@@ -36,4 +36,4 @@ assert.deepEqual(new Set(failure.hand.map(t=>t.id)),new Set(['blocked-0-0','bloc
 
 s.coins=0;
 assert.equal(g.recoveryOptions().recoverable,false,'a stalled machine is final when no recovery can be afforded or owned');
-console.log('v0.29.1 stalled-state debug regression: ok');
+console.log('v0.29.2 stalled-state debug regression: ok');
