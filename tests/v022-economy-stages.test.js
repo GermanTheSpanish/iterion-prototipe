@@ -59,7 +59,7 @@ assert.strictEqual(forceClear(14).s.nextShopType,'none','final round must not sc
   assert.strictEqual(buy.ok,true);
   assert.strictEqual(buy.cost,1);
   assert.strictEqual(s.set.length,setBefore+1,'Shop random purchase creates a new physical tile');
-  assert.strictEqual(game.availableTileCount(),availableBefore+1);
+  assert.strictEqual(game.availableTileCount(),availableBefore,'RANDOM DOMINO must not extend the current generation');
   assert.strictEqual(s.inflation,1);
   assert.strictEqual(s.shopOpen,true,'Shop remains open after a purchase');
   const tool=game.buyShopItem('move');
