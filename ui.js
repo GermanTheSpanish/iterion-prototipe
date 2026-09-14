@@ -23,9 +23,9 @@
 
   function storedState(){try{return JSON.parse(localStorage.getItem('iterion.activeRun.v1')||'null')}catch(_){return null}}
   function persistGame(){if(tutorial)return GAME.snapshot();const snap=GAME.save();try{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(GAME.exportState()))}catch(_){}return snap}
-  function showGame(){entryFlow.hidden=true;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render()}
+  function showGame(){entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render()}
   function showSelection(){
-    press?.cancel?.();if(gameMenu.open)gameMenu.close();entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
+    press?.cancel?.();if(gameMenu.open)gameMenu.close();hideOverlay();app.hidden=true;entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
     const saved=storedState(),choiceMade=localStorage.getItem('iterion.tutorialChoice.v1')==='made';continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
   function startNormal(continueSaved=false){

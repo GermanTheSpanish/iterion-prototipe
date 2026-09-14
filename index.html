@@ -39,14 +39,22 @@ body{position:fixed;inset:0}
 .circuitChoice{flex:0 0 auto;font-size:10px;font-weight:800;line-height:1.3;text-align:center;padding:5px;border-bottom:1px solid var(--line)}
 .circuitChoice[hidden]{display:none}.piece.circuitDim{opacity:.25}.piece.circuitMember{outline:1px solid #777;outline-offset:1px}.piece.circuitEligible{outline:2px solid #111;outline-offset:2px;cursor:pointer;z-index:10}.piece.circuitEligible:focus-visible{outline:3px dashed #111}
 </style>
-<link rel="stylesheet" href="ui-theme.css">
+<style>
+/* Critical screen boundaries also work while the presentation stylesheet loads. */
+.app[hidden],.entryFlow[hidden],.entryScreen[hidden]{display:none!important}
+.entryFlow{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:#f7f7f4;overflow:hidden}
+.entryFlow:has(.titleCard:not([hidden])){padding:0}
+.titleCard{display:grid;place-items:center;place-content:center;width:100%;height:100%;min-height:0;text-align:center;cursor:pointer;touch-action:manipulation}
+.titleCard h1{margin:0;color:#151515;font-size:clamp(38px,14vw,68px);font-weight:650;letter-spacing:.24em;text-indent:.24em}
+</style>
+<link rel="stylesheet" href="ui-theme.css?v=entry-0311">
 </head>
 <body>
 <div id="entryFlow" class="entryFlow" aria-live="polite">
-  <section id="titleCard" class="entryScreen titleCard" role="button" tabindex="0" aria-label="Enter MONOID"><h1>MONOID</h1><p>Tap to enter</p></section>
+  <section id="titleCard" class="entryScreen titleCard" role="button" tabindex="0" aria-label="Enter MONOID"><h1>MONOID</h1></section>
   <section id="gameSelection" class="entryScreen gameSelection" hidden aria-labelledby="selectionTitle"><p class="entryKicker">GAME SELECTION</p><h1 id="selectionTitle">MONOID</h1><button id="modeClassic" class="modeCard"><span class="selectionDouble" aria-hidden="true"><i></i><i></i></span><strong>CLASSIC</strong><small>The original machine</small></button><div id="firstRunChoice" class="firstRunChoice"><button id="learnMonoid" class="entryPrimary">LEARN MONOID · 2 MIN</button></div><button id="startRun" class="entrySecondary">SKIP · START RUN</button><button id="continueRun" class="entryPrimary" hidden>CONTINUE RUN</button><button id="replayTutorial" class="entrySecondary">TUTORIAL</button></section>
 </div>
-<div class="app" aria-hidden="true">
+<div class="app" hidden inert aria-hidden="true">
   <div id="version" hidden></div>
   <header class="gameHeader"><span class="wordmark">NOMON</span><div class="headerActions"><button id="helpButton" class="helpButton" aria-label="Open Rulebook">?</button><button id="menuButton" class="iconButton" aria-label="Open game menu" aria-expanded="false">···</button></div></header>
   <section class="scoreStrip" aria-label="Round score">
@@ -72,6 +80,6 @@ body{position:fixed;inset:0}
 <dialog id="gameMenu" class="gameMenu" aria-labelledby="menuTitle"><div class="menuHead"><h2 id="menuTitle">Run menu</h2><button id="closeMenu" class="iconButton" aria-label="Close game menu">×</button></div><div class="menuStats"><span>Coins <strong id="coins">0</strong></span><span>Available tiles <strong id="tilesleft">28</strong></span></div><button id="gameSelectionButton" class="menuAction">Game selection</button><button id="viewrun" class="menuAction">Run data</button><button id="copyrun" class="menuAction">Copy run data</button><button id="reset" class="menuAction">New run</button><p>Hold a domino to inspect it.</p></dialog>
 <div id="overlay" class="overlay"><div class="modal"><h2 id="overlayTitle"></h2><div id="overlayBody"></div><div class="modalActions"><button id="overlayPrimary" class="primary"></button><button id="overlaySecondary" class="secondary"></button><button id="overlayTertiary" class="secondary"></button></div></div></div>
 <div id="toast" class="toast"></div>
-<script src="engine.js"></script><script src="data.js"></script><script src="mods.js"></script><script src="circuits.js"></script><script src="game.js"></script><script src="help.js"></script><script src="gesture.js"></script><script src="presentation.js"></script><script src="ui.js"></script>
+<script src="engine.js?v=entry-0311"></script><script src="data.js?v=entry-0311"></script><script src="mods.js?v=entry-0311"></script><script src="circuits.js?v=entry-0311"></script><script src="game.js?v=entry-0311"></script><script src="help.js?v=entry-0311"></script><script src="gesture.js?v=entry-0311"></script><script src="presentation.js?v=entry-0311"></script><script src="ui.js?v=entry-0311"></script>
 </body>
 </html>

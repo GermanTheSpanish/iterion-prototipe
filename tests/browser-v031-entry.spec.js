@@ -70,3 +70,55 @@ test('leaving during drag or an in-flight placement never replaces the normal ru
   await page.locator('#replayTutorial').click();await expect(page.locator('#reroll')).toBeDisabled();await placeTutorialTile(page,null);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible({timeout:12000});
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
 });
+
+for(const viewport of [{width:375,height:667},{width:390,height:844}]){
+  test(`three exclusive screens and centered title ${viewport.width}`,async({page},testInfo)=>{
+    await page.setViewportSize(viewport);
+    await page.goto('http://127.0.0.1:4173/');
+    await expect(page.locator('#titleCard')).toHaveText('MONOID');
+    await expect(page.locator('.app')).toBeHidden();
+    await expect(page.locator('#gameSelection')).toBeHidden();
+    const title=await page.locator('#titleCard h1').boundingBox();
+    expect(Math.abs(title.x+title.width/2-viewport.width/2)).toBeLessThan(2);
+    expect(Math.abs(title.y+title.height/2-viewport.height/2)).toBeLessThan(2);
+    await page.screenshot({path:testInfo.outputPath('title-only.png')});
+    // A tap in blank space must enter selection without starting a run.
+    await page.mouse.click(12,12);
+    await expect(page.locator('#gameSelection')).toBeVisible();
+    await expect(page.locator('#titleCard')).toBeHidden();
+    await expect(page.locator('.app')).toBeHidden();
+    expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBeNull();
+    await page.screenshot({path:testInfo.outputPath('selection-only.png')});
+    await page.locator('#startRun').click();
+    await expect(page.locator('.app')).toBeVisible();
+    await expect(page.locator('#entryFlow')).toBeHidden();
+    await expect(page.locator('#titleCard')).toBeHidden();
+    await expect(page.locator('#gameSelection')).toBeHidden();
+    const run=await page.evaluate(()=>window.__monoidGame.exportState());
+    await page.reload();
+    await expect(page.locator('.app')).toBeHidden();
+    await expect(page.locator('#titleCard')).toHaveText('MONOID');
+    await page.locator('#titleCard').click();
+    await page.locator('#continueRun').click();
+    expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(run);
+    await page.screenshot({path:testInfo.outputPath('game-only.png')});
+  });
+}
+
+test('critical title and screen isolation survive a missing presentation stylesheet',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.route('**/ui-theme.css*',route=>route.abort());
+  await page.goto('http://127.0.0.1:4173/');
+  await expect(page.locator('.app')).toBeHidden();
+  await expect(page.locator('#titleCard')).toHaveText('MONOID');
+  const title=await page.locator('#titleCard h1').boundingBox();
+  expect(Math.abs(title.x+title.width/2-195)).toBeLessThan(2);
+  expect(Math.abs(title.y+title.height/2-422)).toBeLessThan(2);
+  const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
+  expect(assets.length).toBeGreaterThan(1);
+  expect(assets.every(url=>url.includes('?v=entry-0311'))).toBe(true);
+  await page.mouse.click(12,12);
+  await expect(page.locator('#titleCard')).toBeHidden();
+  await expect(page.locator('#gameSelection')).toBeVisible();
+  await expect(page.locator('.app')).toBeHidden();
+});
