@@ -84,7 +84,7 @@ test('v029 tile modifiers print softly into physical halves in reading order',as
   const boxes=await horizontal.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el.parentElement);return{x:r.x,y:r.y,w:r.width,h:r.height,color:s.color,background:s.backgroundColor,border:s.borderTopWidth}}));
   expect(boxes[0].x).toBeLessThan(boxes[1].x);expect(boxes[0].w).toBeCloseTo(boxes[1].w,0);expect(boxes[0].background).toBe('rgba(0, 0, 0, 0)');expect(boxes[0].border).toBe('0px');expect(boxes[0].color).toBe('rgba(21, 21, 21, 0.3)');
   const verticalBoxes=await vertical.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height,color:getComputedStyle(el.parentElement).color}}));
-  expect(verticalBoxes[0].y).toBeLessThan(verticalBoxes[1].y);expect(verticalBoxes[0].h).toBeCloseTo(verticalBoxes[1].h,0);expect(verticalBoxes[0].color).toBe('rgba(255, 255, 255, 0.34)');
+  expect(verticalBoxes[0].y).toBeLessThan(verticalBoxes[1].y);expect(verticalBoxes[0].h).toBeCloseTo(verticalBoxes[1].h,0);expect(verticalBoxes[0].color).toBe('rgba(255, 255, 255, 0.56)');
   await expect(horizontal.locator('.tileModMark')).toHaveText(['DD','DE']);await expect(vertical.locator('.tileModMark')).toHaveText(['DD','DE']);
   await page.screenshot({path:testInfo.outputPath('tile-modifiers-by-half.png')});
 });
