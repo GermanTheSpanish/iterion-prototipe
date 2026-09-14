@@ -21,7 +21,8 @@ assert.match(ui,/--mod-shift:\$\{marks\.length===1\?0:i\?3:-3\}px/,'Coexisting m
 assert.match(ui,/<span>\$\{label\[0\]\}<\/span><span>\$\{label\[1\]\}<\/span>/,'Each modifier letter must occupy one physical half');
 assert.match(html,/\.piece\.h>\.tileModMark\{grid-template-columns:1fr 1fr/,'Horizontal modifiers must read left to right');
 assert.match(html,/\.piece\.v>\.tileModMark\{grid-template-rows:1fr 1fr/,'Vertical modifiers must read top to bottom');
-assert.match(html,/background:transparent;color:rgba\(21,21,21,\.3\)/,'Modifier lettering must remain a soft print, not a badge');
+assert.match(html,/background:transparent;color:rgba\(21,21,21,\.68\);font:900 8px/,'Modifier lettering must remain a bold direct print, not a badge');
+assert.match(html,/<div class="boardTop">[^\n]*id="machineModStatus"/,'Long Chain status belongs above the board, not in the header');
 assert.doesNotMatch(ui,/board\.style\.backgroundColor='#fff'/,'Board colour must remain theme-controlled in Endless');
 assert.match(html,/animation:pop 1\.2s forwards/);
 assert.match(html,/animation:final 1\.8s forwards/);

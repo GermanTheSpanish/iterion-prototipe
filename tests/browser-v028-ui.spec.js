@@ -73,7 +73,7 @@ test('v028 inspector mirrors the current Overkill tier as the same centre line',
   await page.screenshot({path:testInfo.outputPath('inspector-overkill-divider.png')});
 });
 
-test('v029 tile modifiers print softly into physical halves in reading order',async({page},testInfo)=>{
+test('v029 tile modifiers print boldly into physical halves in reading order',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
   await page.evaluate(()=>{
     const board=document.querySelector('#board');
@@ -82,9 +82,17 @@ test('v029 tile modifiers print softly into physical halves in reading order',as
   });
   const horizontal=page.locator('#board .piece.h').last(),vertical=page.locator('#board .piece.v').last();
   const boxes=await horizontal.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el.parentElement);return{x:r.x,y:r.y,w:r.width,h:r.height,color:s.color,background:s.backgroundColor,border:s.borderTopWidth}}));
-  expect(boxes[0].x).toBeLessThan(boxes[1].x);expect(boxes[0].w).toBeCloseTo(boxes[1].w,0);expect(boxes[0].background).toBe('rgba(0, 0, 0, 0)');expect(boxes[0].border).toBe('0px');expect(boxes[0].color).toBe('rgba(21, 21, 21, 0.3)');
+  expect(boxes[0].x).toBeLessThan(boxes[1].x);expect(boxes[0].w).toBeCloseTo(boxes[1].w,0);expect(boxes[0].background).toBe('rgba(0, 0, 0, 0)');expect(boxes[0].border).toBe('0px');expect(boxes[0].color).toBe('rgba(21, 21, 21, 0.68)');expect(await horizontal.locator('.tileModMark.dd').evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),weight:Number(getComputedStyle(el).fontWeight)}))).toEqual({size:8,weight:900});
   const verticalBoxes=await vertical.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height,color:getComputedStyle(el.parentElement).color}}));
-  expect(verticalBoxes[0].y).toBeLessThan(verticalBoxes[1].y);expect(verticalBoxes[0].h).toBeCloseTo(verticalBoxes[1].h,0);expect(verticalBoxes[0].color).toBe('rgba(255, 255, 255, 0.56)');
+  expect(verticalBoxes[0].y).toBeLessThan(verticalBoxes[1].y);expect(verticalBoxes[0].h).toBeCloseTo(verticalBoxes[1].h,0);expect(verticalBoxes[0].color).toBe('rgba(255, 255, 255, 0.82)');
   await expect(horizontal.locator('.tileModMark')).toHaveText(['DD','DE']);await expect(vertical.locator('.tileModMark')).toHaveText(['DD','DE']);
   await page.screenshot({path:testInfo.outputPath('tile-modifiers-by-half.png')});
+});
+
+test('v029 Endless commerce keeps black tiles legible on light controls',async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
+  await page.evaluate(()=>{document.body.classList.add('endlessPalette');const host=document.createElement('div');host.className='commerceModal';host.innerHTML='<button class="shopBuy">BUY</button><span class="marketTile"><span class="domino circuitTile"><span class="half"></span><span class="half"></span></span><small>DD</small></span>';document.body.appendChild(host)});
+  const button=page.locator('.commerceModal .shopBuy').last(),well=page.locator('.commerceModal .marketTile').last(),tile=well.locator('.domino');
+  expect(await button.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(229, 227, 220)');expect(await well.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(216, 213, 204)');expect(await tile.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(20, 20, 20)');
+  await page.screenshot({path:testInfo.outputPath('endless-market-contrast.png')});
 });
