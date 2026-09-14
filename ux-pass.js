@@ -94,17 +94,20 @@
     if(ux.mode==='tour')advanceTour()
   });
 
-  function wrapTutorialTrigger(button){
+  function wrapTutorialTrigger(button,{tourOnFirst=false}={}){
     if(!button||button.__monoidUxWrapped)return;const original=button.onclick;if(typeof original!=='function')return;
-    button.__monoidUxWrapped=true;button.onclick=function(e){const needsTour=localStorage.getItem(TOUR_KEY)!=='seen';const value=original.call(this,e);requestAnimationFrame(()=>{if(gameFlow().screen!=='tutorial')return;if(needsTour)startTour();else{ux.mode='tutorial';renderTutorialCoach()}});return value}
+    button.__monoidUxWrapped=true;button.onclick=function(e){const needsTour=tourOnFirst&&localStorage.getItem(TOUR_KEY)!=='seen';const value=original.call(this,e);requestAnimationFrame(()=>{if(gameFlow().screen!=='tutorial')return;if(needsTour)startTour();else{ux.mode='tutorial';renderTutorialCoach()}});return value}
   }
   function wrapNewRunTrigger(button,{skipWhenSaved=false}={}){
     if(!button||button.__monoidBriefWrapped)return;const original=button.onclick;if(typeof original!=='function')return;
     button.__monoidBriefWrapped=true;button.onclick=function(e){const hadSaved=!!localStorage.getItem('iterion.activeRun.v1');const value=original.call(this,e);setTimeout(()=>{if(app.hidden||gameFlow().screen!=='game')return;if(skipWhenSaved&&hadSaved)return;showFirstBrief()},0);return value}
   }
-  wrapTutorialTrigger(learn);wrapTutorialTrigger(replay);wrapNewRunTrigger(startRun);wrapNewRunTrigger(modeClassic,{skipWhenSaved:true});
+  wrapTutorialTrigger(learn,{tourOnFirst:true});wrapTutorialTrigger(replay);wrapNewRunTrigger(startRun);wrapNewRunTrigger(modeClassic,{skipWhenSaved:true});
 
-  app.addEventListener('pointerdown',e=>{if(ux.mode==='firstBrief'&&!coach.contains(e.target))acknowledgeFirstBrief()},true);
+  app.addEventListener('pointerdown',e=>{
+    if(ux.mode==='firstBrief'&&!coach.contains(e.target)){acknowledgeFirstBrief();return}
+    if(ux.mode==='tour'&&handRail.contains(e.target))finishTour()
+  },true);
 
   function wrapEndlessButton(){
     if(!overlay.classList.contains('show')||overlayTitle?.textContent.trim()!=='RUN COMPLETE'||!overlayPrimary?.textContent.includes('ENDLESS'))return;
@@ -117,7 +120,7 @@
     if(title==='SHOP'){
       setText(document.querySelector('.randomOffer p'),'Adds one new physical domino to your set.');
       const sections=[...document.querySelectorAll('.shopSection')],toolsIntro=sections[1]?.querySelector(':scope > p');setText(toolsIntro,'Stored until you use them. Each round already gives one free Reroll.');
-      const intro=document.querySelector('.marketIntro');if(intro)intro.innerHTML='<strong>This is the real Shop.</strong> Supplies for this run. Market appears only between stages.';
+      const intro=document.querySelector('.marketIntro'),introText='This is the real Shop. Supplies for this run. Market appears only between stages.';if(intro&&intro.textContent.trim()!==introText)intro.innerHTML='<strong>This is the real Shop.</strong> Supplies for this run. Market appears only between stages.';
       const foot=document.querySelector('.shopFoot');if(foot){const endless=document.body.classList.contains('endlessPalette');setText(foot,endless?'Each purchase raises Inflation. Endless Strain also raises prices.':'Each purchase raises Inflation by 1.')}
     }
     if(title==='MARKET'){
