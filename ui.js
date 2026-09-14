@@ -1,12 +1,15 @@
 (function(){
-  const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,GAME=window.IterionGame.createGame(E),ARROW=E.ARROW;
+  const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
+  let GAME=window.IterionGame.createGame(E);
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
   const V=window.IterionPresentation,gameMenu=$('gameMenu'),menuButton=$('menuButton');
+  const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
   const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version'),machineModStatusEl=$('machineModStatus');
   let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null;
+  let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal');
   let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -15,6 +18,47 @@
   const compact=V.compact;
   document.title=`NOMON v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · ${D.TOTAL_ROUNDS} rounds + Endless`;
   H.bindRun(GAME.state().runId);
+  Object.defineProperty(window,'__monoidGame',{configurable:true,get:()=>GAME});
+  Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
+
+  function storedState(){try{return JSON.parse(localStorage.getItem('iterion.activeRun.v1')||'null')}catch(_){return null}}
+  function persistGame(){if(tutorial)return GAME.snapshot();const snap=GAME.save();try{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(GAME.exportState()))}catch(_){}return snap}
+  function showGame(){entryFlow.hidden=true;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render()}
+  function showSelection(){
+    press?.cancel?.();if(gameMenu.open)gameMenu.close();entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
+    const saved=storedState();continueRun.hidden=!saved;firstRunChoice.hidden=localStorage.getItem('iterion.tutorialChoice.v1')==='made';$('replayTutorial').hidden=!firstRunChoice.hidden
+  }
+  function startNormal(continueSaved=false){
+    tutorial=null;tutorialPanel.hidden=true;const next=window.IterionGame.createGame(E);if(continueSaved&&!next.restoreState(storedState()))return;
+    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');persistGame();handFx.fill('normal');showGame()
+  }
+  const tutorialCopy=[
+    'Place the double. Every machine opens with one.',
+    'Connect the 2 to a matching 2.',
+    'Connect the 3. Even values add; the odd branch multiplies on the next signal.',
+    'Connect the 4 side of the zero tile. It becomes a return point.',
+    'Route back through zero: watch multiplication, rebound, then clear.',
+    'Shop sells supplies during a round. Market offers lasting changes between stages.'
+  ];
+  function prepareTutorialHand(tileId){const s=GAME.state(),tile=s.set.find(t=>t.id===tileId);s.hand=Array(D.HAND_SIZE).fill(null);s.hand[0]=tile;s.reserve=s.reserve.filter(t=>t.id!==tileId);s.blocked=false;s.needsReroll=false;s.cleared=false;s.running=false}
+  function placementCandidates(i){
+    const candidates=GAME.candidatesForIndex(i);if(!tutorial||tutorial.step!==4)return candidates;
+    const s=GAME.state(),tile=s.hand[i];return candidates.filter((c,n)=>{const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,100000+n);p.tile={...tile};return E.bestSignal(p.id,[...s.pieces,p],{initialOutput:tile.a+tile.b,bifurcate:D.BIFURCATION_ENABLED}).rebounds>0})
+  }
+  function updateTutorial(){if(!tutorial)return;tutorialStep.textContent=`LEARN MONOID · ${tutorial.step+1}/6`;tutorialInstruction.textContent=tutorialCopy[tutorial.step];tutorialPanel.hidden=false;renderHand();renderBoard()}
+  function startTutorial(){
+    if(!tutorial)activeRun=GAME;tutorial={step:0,exitPending:false};GAME=window.IterionGame.createGame(E,{seed:3100,TARGETS:[1e9],STARTING_COINS:30});prepareTutorialHand('d2-2');H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');handFx.fill('normal');showGame();updateTutorial()
+  }
+  function leaveTutorial(completed=false){
+    tutorial=null;tutorialPanel.hidden=true;GAME=activeRun||window.IterionGame.createGame(E);activeRun=null;H.bindRun(GAME.state().runId);showSelection();if(completed)toast('Tutorial complete')
+  }
+  function advanceTutorial(result){
+    if(!tutorial)return;const sequence=['d2-3','d3-4','d0-4','d0-0'];
+    if(tutorial.step<4){tutorial.step++;if(tutorial.step===4)GAME.config.TARGETS[0]=0;prepareTutorialHand(tutorial.step===4?'d4-4':sequence[tutorial.step-1]);updateTutorial();return}
+    if(tutorial.step===4&&result.cleared){tutorial.step=5;tutorialInstruction.textContent=tutorialCopy[5];tutorialStep.textContent='LEARN MONOID · 6/6';tutorialPanel.hidden=false;GAME.state().cleared=false;GAME.openShop()}
+  }
+  function cancelTutorialDrag(){if(!drag.active)return;press.cancel();drag.float?.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();renderHand()}
+  function requestTutorialExit(){if(!tutorial)return;if(drag.active)cancelTutorialDrag();if(uiBusy||GAME.state().running){tutorial.exitPending=true;$('leaveTutorial').disabled=true;return}leaveTutorial(false)}
 
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function tierFor(t){if(!t)return 0;if(t.upgrade)return Math.min(3,t.upgrade);const set=GAME.state().set||[],m=t.id?set.find(x=>x.id===t.id):null;return Math.min(3,m?.upgrade||0)}
@@ -83,11 +127,11 @@
   function resetOverlay(){overlay.className='overlay show';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
-  function newRun(){clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();GAME.fresh();H.bindRun(GAME.state().runId);GAME.save();handFx.fill('normal');hideOverlay();render()}
+  function newRun(){clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();GAME.fresh();H.bindRun(GAME.state().runId);persistGame();handFx.fill('normal');hideOverlay();render()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
-  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();GAME.save();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} Shop purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render()}
-  function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();GAME.save();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
-  function openPermanentShop(){shopRevealTile=null;if(!GAME.openShop()){toast('Shop unavailable');return}GAME.save();render()}
+  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} Shop purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render()}
+  function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
+  function openPermanentShop(){shopRevealTile=null;if(!GAME.openShop()){toast('Shop unavailable');return}persistGame();render()}
 
   function escapeHtml(value){return`${value}`.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
   function ruleVisual(section){return section.visual?`<div class="ruleVisual">${escapeHtml(section.visual)}</div>`:''}
@@ -137,24 +181,28 @@
 
   function advanceRound(){
     const before=GAME.snapshot().stage.index;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
-    GAME.save();hideOverlay();handFx.fill('normal');render();const after=GAME.snapshot().stage.index;toast(after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
+    persistGame();hideOverlay();handFx.fill('normal');render();const after=GAME.snapshot().stage.index;toast(after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
   }
-  function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}GAME.save();hideOverlay();handFx.fill('normal');render();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
+  function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}persistGame();hideOverlay();handFx.fill('normal');render();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
   function showClear(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1];
     overlayTitle.textContent=complete?'RUN COMPLETE':endless?'ENDLESS ROUND CLEAR':'ROUND CLEAR';
     overlayBody.innerHTML=complete?`<p>Base run complete · Final Score ${fmt(s.score)} · Target ${fmt(GAME.target())}</p>${summaryHtml()}<p class="shopFoot">Continue with the same machine. Endless Targets scale ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round; the completed base run remains recorded.</p>`:`<p>Score ${fmt(s.score)} · Target ${fmt(GAME.target())}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
     if(complete){overlayPrimary.textContent='CONTINUE · ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
-    const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':endless?'NEXT ENDLESS ROUND':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){GAME.save();render()}else toast('Unavailable')};
+    const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':endless?'NEXT ENDLESS ROUND':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){persistGame();render()}else toast('Unavailable')};
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
   }
   function showShop(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),randomCost=GAME.shopRandomPrice(),offers=M.all().filter(m=>m.kind==='consumable'),power=x.powerSets?.powerMultiplier||1,strain=s.systemStrain||0;overlayTitle.textContent='SHOP';modalEl.classList.add('commerceModal');
     const randomPreview=shopRevealTile?mini(shopRevealTile,'reveal'):mini({a:0,b:0},'back');
     overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Always available</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}${x.endless?.active?` · System Strain ${strain}`:''}</div></div><div class="label">Supply<br>${x.availableTileCount} tiles</div></div><div class="shopSection"><div class="randomOffer"><div class="randomTilePreview" aria-label="${shopRevealTile?`Revealed domino ${shopRevealTile.a}|${shopRevealTile.b}`:'Hidden random domino'}">${randomPreview}</div><div><h3>RANDOM DOMINO${power>1?` · POWER ×${power}`:''}</h3><p>Add one random new physical domino to the current set. Delivered to an empty hand slot, or your next reserve draw.</p></div><button id="shopRandomBuy" class="shopBuy">BUY RANDOM TILE · ${randomCost}c</button></div></div><div class="shopSection"><h3>TOOLS</h3><p>Stored tools remain available until you spend them. Every round already includes one free Reroll.</p><div class="marketDescriptions">${offers.map(m=>`<div class="marketDesc"><strong>${m.name}</strong><span>${m.shortDescription} Owned: ${s.consumables[m.id]||0}</span><button class="shopBuy" data-shop-item="${m.id}" aria-label="Buy ${m.name} for ${GAME.shopItemPrice(m.id)} coins">BUY · ${GAME.shopItemPrice(m.id)}c</button></div>`).join('')}</div></div><div class="shopFoot">Every purchase raises global Inflation by 1, including future Market prices.${x.endless?.active?' Every Endless placement adds +1 System Strain to all prices; Undo removes that placement’s Strain.':''}</div></div>`;
-    const random=$('shopRandomBuy');random.disabled=s.coins<randomCost;random.onclick=()=>{const r=GAME.buyShopRandomTile();if(!r.ok){toast('Not enough coins');return}shopRevealTile=r.tile;GAME.save();toast(`[${r.tile.a}|${r.tile.b}]${r.tile.powerMultiplier>1?` ×${r.tile.powerMultiplier}`:''} → ${r.delivery} · Inflation ${r.inflation}`);render()};
-    overlayBody.querySelectorAll('[data-shop-item]').forEach(b=>{const id=b.dataset.shopItem,cost=GAME.shopItemPrice(id);b.disabled=s.coins<cost;b.onclick=()=>{const r=GAME.buyShopItem(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase failed');return}GAME.save();toast(`${M.get(id).name} stored · Inflation ${r.inflation}`);render()}});
-    overlayPrimary.textContent='CLOSE SHOP';overlayPrimary.onclick=()=>{shopRevealTile=null;GAME.closeShop();GAME.save();render()}
+    const random=$('shopRandomBuy');random.disabled=s.coins<randomCost;random.onclick=()=>{const r=GAME.buyShopRandomTile();if(!r.ok){toast('Not enough coins');return}shopRevealTile=r.tile;persistGame();toast(`[${r.tile.a}|${r.tile.b}]${r.tile.powerMultiplier>1?` ×${r.tile.powerMultiplier}`:''} → ${r.delivery} · Inflation ${r.inflation}`);render()};
+    overlayBody.querySelectorAll('[data-shop-item]').forEach(b=>{const id=b.dataset.shopItem,cost=GAME.shopItemPrice(id);b.disabled=s.coins<cost;b.onclick=()=>{const r=GAME.buyShopItem(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase failed');return}persistGame();toast(`${M.get(id).name} stored · Inflation ${r.inflation}`);render()}});
+    if(tutorial?.step===5){
+      const intro=document.createElement('p');intro.className='marketIntro';intro.innerHTML='<strong>This is the real Shop.</strong> It sells supplies during a round. Market appears only between stages and offers lasting machine changes.';overlayBody.prepend(intro);
+      overlayPrimary.textContent='FINISH';overlayPrimary.onclick=()=>{GAME.closeShop();hideOverlay();leaveTutorial(true)};overlaySecondary.style.display='inline-block';overlaySecondary.textContent='TRY AGAIN';overlaySecondary.onclick=()=>{GAME.closeShop();hideOverlay();startTutorial()};return
+    }
+    overlayPrimary.textContent='CLOSE SHOP';overlayPrimary.onclick=()=>{shopRevealTile=null;GAME.closeShop();persistGame();render()}
   }
   function showMarket(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=D.BOARD_SIZES[Math.min(nextStage-1,D.BOARD_SIZES.length-1)],bought=s.marketBuys[0]?.mod||null,strain=s.systemStrain||0;overlayTitle.textContent='MARKET';modalEl.classList.add('commerceModal');
@@ -162,8 +210,8 @@
     const assignments=[['DD',x.doubleDouble],['DE',x.doubleEcho],['ZM',x.zeroMemory]].filter(([,tile])=>tile),assignedMods=new Set(assignments.map(([label])=>label==='DD'?'double-double':label==='DE'?'double-echo':'zero-memory'));
     const assignedHtml=assignments.length?`<div class="marketAssignments"><div class="marketChoiceTitle">ASSIGNED</div><div class="marketTileList">${assignments.map(([label,tile])=>marketTileHtml(tile,label)).join('')}</div></div>`:'';
     overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Stage ${x.stage.index} complete</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}${x.endless?.active?` · System Strain ${strain}`:''}</div><div class="shopSupply">SUPPLY ${supply} · ${nextMarket}</div></div><div class="label">Next board<br>${nextSize[0]} × ${nextSize[1]}</div></div>${assignedHtml}<div class="marketChoiceTitle">CHOOSE ONE</div><div class="marketOfferGrid">${offers.length?offers.map(info=>{const mod=info.mod,purchased=bought===info.id,locked=!!bought&&!purchased,noTarget=info.targetCount<1,reassign=assignedMods.has(info.id),label=purchased?'PURCHASED':locked?'LOCKED':noTarget?'NO VALID TARGET':`${reassign?'REASSIGN':'BUY'} · ${info.price}c`,target=mod.target==='machine'?'Machine modifier':`${info.targetCount} available physical target${info.targetCount===1?'':'s'}`,tiles=info.targetTiles?.length?`<div class="marketTileList" aria-label="Available targets for ${escapeHtml(mod.displayName||mod.name)}">${info.targetTiles.map(t=>marketTileHtml(t)).join('')}</div>`:'';return `<section class="marketOffer ${purchased?'purchasedOffer':locked?'lockedOffer':''}" data-market-offer="${info.id}"><div class="marketOfferHead"><strong>${escapeHtml(mod.displayName||mod.name)}</strong><span>${info.price}c</span></div><p>${escapeHtml(mod.shortDescription||mod.description)}</p><div class="marketTarget ${noTarget?'invalid':''}">${escapeHtml(target)}</div>${tiles}<button class="shopBuy" data-market-mod="${info.id}" ${purchased||locked||noTarget||s.coins<info.price?'disabled':''}>${label}</button></section>`}).join(''):'<p class="inspectEmpty">No valid Market mods for the current machine.</p>'}</div><div class="shopFoot">You may buy at most one mod in this Market, or continue without buying. DD and DE cannot share one physical double. Every purchase raises global Inflation by 1.${x.endless?.active?' Endless System Strain also applies to Market prices.':''}</div></div>`;
-    overlayBody.querySelectorAll('[data-market-mod]').forEach(b=>{b.onclick=()=>{const id=b.dataset.marketMod,r=GAME.buyMarketMod(id),mod=M.get(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':r.reason==='no-target'?'No valid target':'Market choice locked');return}GAME.save();toast(r.tile?`${mod.displayName||mod.name} → [${r.tile.a}|${r.tile.b}]`:`${mod.displayName||mod.name} installed`);render()}});
-    overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();GAME.save();advanceRound()}
+    overlayBody.querySelectorAll('[data-market-mod]').forEach(b=>{b.onclick=()=>{const id=b.dataset.marketMod,r=GAME.buyMarketMod(id),mod=M.get(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':r.reason==='no-target'?'No valid target':'Market choice locked');return}persistGame();toast(r.tile?`${mod.displayName||mod.name} → [${r.tile.a}|${r.tile.b}]`:`${mod.displayName||mod.name} installed`);render()}});
+    overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();persistGame();advanceRound()}
   }
 
   function showNoMoves(){
@@ -188,10 +236,10 @@
 
   function render(){
     const s=GAME.state(),x=GAME.snapshot(),display=V.scoreDisplay(s.score,GAME.target());document.body.dataset.stageRound=String(x.stage.round);document.body.classList.toggle('endlessPalette',!!x.endless?.active);H.bindRun(s.runId);renderMachineModStatus(s);renderBoard();renderHand();scoreEl.textContent=display.score;targetEl.textContent=display.target;$('scoreNote').textContent=display.note;$('scoreDetail').setAttribute('aria-label',`Score ${V.exact(s.score)}. ${display.note}. Show exact value.`);$('targetDetail').setAttribute('aria-label',`Target ${V.exact(GAME.target())}. Show exact value.`);stageEl.textContent=`${x.stage.index}/${x.endless?.active?'∞':x.stage.total}`;roundEl.textContent=`${s.round+1}/${x.endless?.active?'∞':D.TOTAL_ROUNDS}`;movesEl.textContent=`${s.roundTurn}/${GAME.maxPlacements()}`;$('movesRemaining').textContent=Math.max(0,GAME.maxPlacements()-s.roundTurn);tilesEl.textContent=x.availableTileCount;coinEl.textContent=s.coins;stageRoundEl.textContent=(x.endless?.active?`ENDLESS · STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size} · STRAIN ${s.systemStrain||0}`:`STAGE ${x.stage.index} · ROUND ${x.stage.round}/${x.stage.size}`)+(x.powerSets?.generation>1?` · POWER ×${x.powerSets.powerMultiplier}`:'');boardSizeEl.textContent=`${E.G} × ${E.H}`;
-    shopBtn.innerHTML=`Shop<small>${compact(s.coins)} coins</small>`;shopBtn.disabled=uiBusy||!GAME.canOpenShop();moveBtn.innerHTML=`Move<small>+1 · ${s.consumables.move}</small>`;moveBtn.disabled=uiBusy||!GAME.canUseMove();const rerollLabel=s.freeReroll?`Reroll · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`Reroll · ${s.consumables.reroll}`;rerollBtn.innerHTML=`Reroll<small>${rerollLabel.slice(9)}</small>`;rerollBtn.setAttribute('aria-label',rerollLabel);rerollBtn.disabled=uiBusy||!GAME.canUseReroll();undoBtn.innerHTML=`Undo<small>${s.consumables.undo}</small>`;undoBtn.disabled=uiBusy||!GAME.canUndo();menuButton.disabled=s.running||uiBusy;
+    shopBtn.innerHTML=`Shop<small>${compact(s.coins)} coins</small>`;shopBtn.disabled=!!tutorial||uiBusy||!GAME.canOpenShop();moveBtn.innerHTML=`Move<small>+1 · ${s.consumables.move}</small>`;moveBtn.disabled=!!tutorial||uiBusy||!GAME.canUseMove();const rerollLabel=s.freeReroll?`Reroll · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`Reroll · ${s.consumables.reroll}`;rerollBtn.innerHTML=`Reroll<small>${rerollLabel.slice(9)}</small>`;rerollBtn.setAttribute('aria-label',rerollLabel);rerollBtn.disabled=!!tutorial||uiBusy||!GAME.canUseReroll();undoBtn.innerHTML=`Undo<small>${s.consumables.undo}</small>`;undoBtn.disabled=!!tutorial||uiBusy||!GAME.canUndo();menuButton.disabled=!!tutorial||s.running||uiBusy;$('leaveTutorial').disabled=!!tutorial&&(uiBusy||s.running);
     hint.textContent=s.cleared?'Round cleared.':s.needsReroll?'No legal placements. Reroll, Shop or Undo can help.':s.blocked?(s.failureReason==='placement-limit'?'No moves remain.':'The round is over.'):s.pieces.length===0?'Opening rule: the first tile must be a double.':`Build the machine · ${GAME.maxPlacements()-s.roundTurn} moves remaining.`;renderLog();
     const pending=s.pendingCircuit;circuitChoice.hidden=!pending;if(pending){hint.textContent='Choose one outlined tile to develop.';circuitChoice.textContent=`CIRCUIT CLOSED · ${pending.size} TILES · +${pending.reward} RANK${pending.reward===1?'':'S'} · CHOOSE A TILE`}
-    if(auxOverlay){renderAuxOverlay();return}if(pending){hideOverlay();return}if(uiBusy){hideOverlay();return}if(s.shopOpen){s.shopType==='market'?showMarket():showShop();return}
+    if(auxOverlay){renderAuxOverlay();return}if(pending){hideOverlay();return}if(uiBusy){hideOverlay();return}if(s.shopOpen){s.shopType==='market'?showMarket():showShop();return}if(tutorial)return;
     if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.needsReroll)showNoMoves();else if(s.blocked)showFailed();else hideOverlay()}
   }
 
@@ -199,12 +247,19 @@
   function nearest(x,y){const r=board.getBoundingClientRect(),lx=x-r.left,ly=(y-D.DRAG_Y_OFFSET)-r.top;if(lx<0||ly<0||lx>r.width||ly>r.height)return null;let pick=null,d0=1e9;for(const c of drag.candidates){const q=center(c,r),d=Math.hypot(q.x-lx,q.y-ly);if(d<d0){d0=d;pick=c}}return d0<=82?pick:null}
   function maybeShakeRotate(e){const s=GAME.state();if(s.pieces.length)return;const now=performance.now(),dx=e.clientX-drag.lastX;if(Math.abs(dx)>=D.SHAKE_THRESHOLD){const sign=Math.sign(dx);if(drag.lastSign&&sign!==drag.lastSign){if(!drag.shakeStarted||now-drag.shakeStarted>D.SHAKE_WINDOW_MS){drag.switches=1;drag.shakeStarted=now}else drag.switches++;if(drag.switches>=D.SHAKE_SWITCHES&&now-drag.lastRotate>D.SHAKE_COOLDOWN_MS){GAME.rotateRoot();drag.candidates=GAME.candidatesForIndex(drag.index);drag.candidate=null;drag.lastRotate=now;drag.switches=0;drag.shakeStarted=now;if(navigator.vibrate)navigator.vibrate(12);updateFloatRotation();toast(`Opening tile ${ARROW[GAME.state().rootRR]}`)}}drag.lastSign=sign;drag.lastX=e.clientX}}
   function updateFloatRotation(){if(drag.float)drag.float.style.setProperty('--rr',GAME.state().rootRR)}
-  function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=GAME.candidatesForIndex(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
+  function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=placementCandidates(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
   function moveDrag(e){if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px'}const c=nearest(e.clientX,e.clientY),o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()}
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
-  async function endDrag(e){if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}const generationBefore=GAME.state().setGeneration||1,ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}const unlocked=(GAME.state().setGeneration||1)>generationBefore,drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim,GAME.moveResonance(ctx.sim,ctx.trigger).output);const result=GAME.finishPlacement(ctx);GAME.save();await drawAnim;if(GAME.state().cleared||GAME.state().blocked)armOutcomeDelay();render();if(unlocked)toast(`POWER SET ${GAME.state().setGeneration} · ×${GAME.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(GAME.state().cleared)toast(`Round clear · ${fmt(GAME.state().score)}`);else if(result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)}
+  async function endDrag(e){
+    if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}
+    const game=GAME,generationBefore=game.state().setGeneration||1,ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}
+    uiBusy=true;const drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output);const result=game.finishPlacement(ctx);persistGame();
+    const exitPending=!!tutorial?.exitPending;if(!exitPending)advanceTutorial(result);await drawAnim;uiBusy=false;
+    if(exitPending){leaveTutorial(false);return}if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay();render();
+    if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
+  }
 
-  function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();GAME.save();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
+  function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
   const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
   function handlePointerMove(e){press.move(e);if(drag.active)moveDrag(e)}
   async function handlePointerUp(e){press.end(e);if(drag.active)await endDrag(e)}
@@ -287,7 +342,7 @@
     await wait(finalFx(finalOutput))
   }
 
-  async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}GAME.save();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}
+  async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}persistGame();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}
 
   function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${H.debugTelemetryText()}`}
   function renderLog(){
@@ -299,7 +354,7 @@
     controls.append(copy,close);runlog.append(controls,text)
   }
   async function copyRun(){
-    const text=fullDebugText();GAME.save();let ok=false;
+    const text=fullDebugText();persistGame();let ok=false;
     if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(text);ok=true}catch(_){}}
     if(!ok){const ta=document.createElement('textarea');ta.value=text;ta.readOnly=true;Object.assign(ta.style,{position:'fixed',left:'0',top:'0',width:'1px',height:'1px',opacity:'0.01',zIndex:'700'});document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}try{ok=!!document.execCommand?.('copy')}catch(_){}ta.remove()}
     if(ok){toast('Run data copied');return true}
@@ -311,5 +366,8 @@
   overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','overlayTitle');
   document.addEventListener('keydown',e=>{if(!overlay.classList.contains('show'))return;if(e.key==='Escape'&&auxOverlay){e.preventDefault();closeAuxOverlay();return}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled),[tabindex="0"]')].filter(b=>b.getClientRects().length);if(!buttons.length)return;const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&(document.activeElement===first||!overlay.contains(document.activeElement))){e.preventDefault();last.focus()}else if(!e.shiftKey&&(document.activeElement===last||!overlay.contains(document.activeElement))){e.preventDefault();first.focus()}}});
   shopBtn.onclick=openPermanentShop;moveBtn.onclick=useMove;rerollBtn.onclick=doReroll;undoBtn.onclick=useUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;closeMenu();newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=()=>{closeMenu();copyRun()};viewBtn.onclick=()=>{closeMenu();viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
-  GAME.save();render();
+  titleCard.onclick=e=>{e.preventDefault();e.stopPropagation();showSelection()};
+  titleCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showSelection()}};
+  $('learnMonoid').onclick=startTutorial;$('replayTutorial').onclick=startTutorial;$('startRun').onclick=()=>startNormal(false);continueRun.onclick=()=>startNormal(true);$('modeClassic').onclick=()=>storedState()?startNormal(true):startNormal(false);$('leaveTutorial').onclick=requestTutorialExit;$('gameSelectionButton').onclick=()=>{closeMenu();showSelection()};
+  if(localStorage.getItem('iterion.entryBypass.v1')==='true')startNormal(false);else{app.inert=true;render()}
 })();
