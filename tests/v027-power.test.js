@@ -62,11 +62,11 @@ check('complete sets I through VII, capped POWER, unique IDs and deterministic d
     assert.equal(a.snapshot().powerSets.powerMultiplier,Math.min(4,generation));assert.match(a.debugText(),new RegExp(`POWER SET ${generation} UNLOCKED size=28 power=x${Math.min(4,generation)}`));
   }
 });
-check('purchases inherit each generation, retain identity and delay exhaustion',()=>{
+check('purchases claim the next generation, retain identity and do not delay exhaustion',()=>{
   const g=stateGame();for(let generation=1;generation<=5;generation++){
-    const s=g.state();s.coins=100;s.cleared=false;assert(g.openShop());const buy=g.buyShopRandomTile();assert(buy.ok);g.closeShop();assert.equal(buy.tile.generation||1,generation);assert.equal(buy.tile.powerMultiplier||1,Math.min(4,generation));
-    const before=clone(buy.tile);s.placedTileIds=s.set.filter(t=>t.id!==buy.tile.id).map(t=>t.id);s.hand=[s.set.find(t=>t.id===buy.tile.id),null,null,null,null];s.reserve=[];s.roundTurn=0;g.assessContinuation();assert.equal(s.setGeneration,generation);uniqueLocations(s);
-    consumeSupply(g);assert.deepEqual(g.state().set.find(t=>t.id===buy.tile.id),before);
+    const s=g.state();s.coins=100;s.cleared=false;assert(g.openShop());const buy=g.buyShopRandomTile();assert(buy.ok);g.closeShop();assert.equal(buy.tile.generation,generation+1);assert.equal(buy.tile.powerMultiplier,Math.min(4,generation+1));
+    const before=clone(buy.tile),available=g.availableTileCount();assert.equal(available,s.set.filter(t=>(t.generation||1)<=generation&&!s.placedTileIds.includes(t.id)).length);
+    consumeSupply(g);assert.equal(g.state().setGeneration,generation+1);assert.deepEqual(g.state().set.find(t=>t.id===buy.tile.id),before);assert.equal(g.state().set.filter(t=>t.id===buy.tile.id).length,1);assert.equal(g.state().set.filter(t=>t.generation===generation+1).length,28);
   }
 });
 function lastTileGame(){const g=G.createGame(E,{seed:2707,TARGETS:Array(15).fill(1e12)}),s=g.state(),root=s.set.find(t=>t.id==='d2-2'),last=s.set.find(t=>t.id==='d2-4');s.set=[root,last];s.pieces=[E.pieceFrom(root,6,8,0,0,1)];s.pieces[0].tile={...root};s.placedTileIds=[root.id];s.hand=[last,null,null,null,null];s.reserve=[];s.idc=1;s.turn=1;s.roundTurn=1;s.consumables.undo=2;s.coins=100;return g}
