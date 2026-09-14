@@ -53,6 +53,22 @@ assert.strictEqual(D.MARKET_PURCHASE_LIMIT,1);
 
 {
   E.setBoardSize(18,24);
+  const game=Game.createGame(E,{seed:2302,STARTING_COINS:100}),s=game.state(),by=id=>s.set.find(t=>t.id===id);
+  const dd=by('d3-3'),free=by('d5-5');
+  s.pieces=[piece(dd,0,201),piece(free,8,202)];s.placedTileIds=[dd.id,free.id];s.doubleDoubleTileId=dd.id;
+  s.hand=[null,null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id));s.coins=100;prepareMarket(game);
+  assert.strictEqual(game.openIntermission(),true);s.shopOffers=['double-echo'];
+  const info=game.marketOfferInfo('double-echo');
+  assert.deepStrictEqual(info.targetTiles.map(t=>t.id),[free.id],'a DD double must be absent from the DE target rail');
+  const buy=game.buyMarketMod('double-echo');assert.strictEqual(buy.ok,true);assert.strictEqual(buy.tile.id,free.id);
+  assert.notStrictEqual(s.doubleDoubleTileId,s.doubleEchoTileId,'DD and DE must never be assigned to the same physical double');
+  game.closeMarket();s.coins=100;prepareMarket(game,5);assert.strictEqual(game.openIntermission(),true);
+  assert.strictEqual(game.marketTargetCount('double-double'),0,'both assigned doubles must be excluded from later DD assignment');
+  assert.strictEqual(game.marketTargetCount('double-echo'),0,'both assigned doubles must be excluded from later DE assignment');
+}
+
+{
+  E.setBoardSize(18,24);
   const entry=E.pieceFrom({a:1,b:5},0,0,0,0,3);entry.tile={id:'entry',a:1,b:5,upgrade:0,source:'test'};
   const dd=E.pieceFrom({a:5,b:5},4,0,0,0,1);dd.tile={id:'dd',a:5,b:5,upgrade:0,source:'test'};
   const zero=E.pieceFrom({a:5,b:0},8,0,0,0,2);zero.tile={id:'zero',a:5,b:0,upgrade:0,source:'test'};

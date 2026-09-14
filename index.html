@@ -44,7 +44,7 @@ body{position:fixed;inset:0}
 <body>
 <div class="app">
   <div id="version" hidden></div>
-  <header class="gameHeader"><span class="wordmark">NOMON</span><div class="headerActions"><button id="helpButton" class="helpButton" aria-label="Open Rulebook">?</button><button id="menuButton" class="iconButton" aria-label="Open game menu" aria-expanded="false">···</button></div></header>
+  <header class="gameHeader"><div class="brandStack"><span class="wordmark">NOMON</span><div id="machineModStatus" class="machineModStatus" hidden></div></div><div class="headerActions"><button id="helpButton" class="helpButton" aria-label="Open Rulebook">?</button><button id="menuButton" class="iconButton" aria-label="Open game menu" aria-expanded="false">···</button></div></header>
   <section class="scoreStrip" aria-label="Round score">
     <button id="targetDetail" class="scoreCard targetCard" aria-label="Show exact target"><span class="label">Target</span><span id="target" class="scoreValue">20</span><span class="scoreCaption">This round</span></button>
     <button id="scoreDetail" class="scoreCard" aria-label="Show exact score"><span class="label">Score</span><span id="score" class="scoreValue">0</span><span id="scoreNote" class="scoreCaption">Last move</span></button>
