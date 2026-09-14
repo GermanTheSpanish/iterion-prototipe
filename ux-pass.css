@@ -15,7 +15,7 @@ body.monoidTourActive .tutorialPanel{display:none!important}
 .boardCoachCard h2{margin:0;font-size:clamp(20px,6.2vw,27px);line-height:1.02;letter-spacing:.035em}
 .boardCoachCard p{margin:10px 0 0;font-size:clamp(16px,4.4vw,20px);line-height:1.32;white-space:pre-line}
 .boardCoachActions{display:grid;gap:7px;margin-top:16px}
-.boardCoachActions button{appearance:none;min-height:44px;padding:9px 12px;border:1px solid var(--ink);border-radius:4px;background:transparent;color:var(--ink);font:750 12px/1 inherit;letter-spacing:.06em}
+.boardCoachActions button{appearance:none;min-height:44px;padding:9px 12px;border:1px solid var(--ink);border-radius:4px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;font-weight:750;line-height:1;letter-spacing:.06em}
 .boardCoachActions button.primary{background:var(--ink);color:var(--paper)}
 .boardCoachActions span,.boardCoachActions small{display:block;color:var(--muted);font-size:10px;line-height:1.35;text-align:center;letter-spacing:.04em}
 .boardCoachLayer.tour,.boardCoachLayer.firstBrief,.boardCoachLayer.endlessBrief{align-items:center;padding:14px;background:rgba(247,247,244,.94);pointer-events:auto;touch-action:manipulation}
@@ -27,7 +27,7 @@ body.monoidTourActive .tutorialPanel{display:none!important}
 .boardCoachLayer.tutorial .boardCoachCard h2{font-size:clamp(17px,5vw,22px)}
 .boardCoachLayer.tutorial .boardCoachCard p{font-size:clamp(15px,4vw,18px);line-height:1.25}
 .monoidTourHighlight{position:relative!important;z-index:505!important;outline:2px solid var(--ink)!important;outline-offset:3px!important;box-shadow:0 0 0 5px rgba(247,247,244,.72)!important}
-body.monoidTourActive .gameHeader,body.monoidTourActive .scoreStrip,body.monoidTourActive .metaStrip,body.monoidTourActive .handRail,body.monoidTourActive .bottomBar{pointer-events:none}
+body.monoidTourActive .gameHeader,body.monoidTourActive .scoreStrip,body.monoidTourActive .metaStrip,body.monoidTourActive .bottomBar{pointer-events:none}
 
 /* Shop and Market occupy the machine surface rather than covering the whole phone. */
 body.monoidCommerceActive .overlay.show{display:block!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;pointer-events:none}
