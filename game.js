@@ -18,12 +18,16 @@ function createGame(E,opts={}){
   const deepClone=x=>JSON.parse(JSON.stringify(x));
   const stageSize=()=>cfg.STAGE_SIZE||3;
 
-  function availableTileCount(){return s.set.length-(s.placedTileIds?.length||0)}
+  function availableTileCount(){
+    const generation=s.setGeneration||1,placed=new Set(s.placedTileIds||[]);
+    return s.set.filter(t=>(t.generation||1)<=generation&&!placed.has(t.id)).length
+  }
   function replenishPowerSet(source='draw'){
-    if(s.reserve.length||availableTileCount()>0)return false;
-    const generation=Math.max(2,(s.setGeneration||1)+1),tiles=makePowerSet(generation),power=tiles[0]?.powerMultiplier||2;
-    s.set.push(...tiles);s.setGeneration=generation;s.reserve=sh(tiles.slice());
-    s.events.push({type:'power-set',round:s.round+1,roundTurn:s.roundTurn+1,generation,powerMultiplier:power,size:tiles.length,source});
+    const currentGeneration=s.setGeneration||1;
+    if(s.reserve.some(t=>(t.generation||1)<=currentGeneration)||availableTileCount()>0)return false;
+    const generation=Math.max(2,currentGeneration+1),fullSet=makePowerSet(generation),existing=new Set(s.set.map(t=>t.id)),tiles=fullSet.filter(t=>!existing.has(t.id)),power=fullSet[0]?.powerMultiplier||2;
+    s.set.push(...tiles);s.setGeneration=generation;s.reserve.push(...sh(tiles.slice()));
+    s.events.push({type:'power-set',round:s.round+1,roundTurn:s.roundTurn+1,generation,powerMultiplier:power,size:fullSet.length,source});
     return true
   }
   function drawOne(){if(!s.reserve.length)replenishPowerSet('draw');if(!s.reserve.length)return null;const t=s.reserve.shift();if(isZero(t))s.roundZero.drawn++;return t}
@@ -314,10 +318,10 @@ function createGame(E,opts={}){
     return{ok:true,item:id,cost,inflation:s.inflation}
   }
 
-  function addPurchasedTile(a,b,source){
-    a=Math.max(0,Math.min(6,Math.trunc(a)));b=Math.max(0,Math.min(6,Math.trunc(b)));if(a>b)[a,b]=[b,a];
-    const generation=s.setGeneration||1,power=generationPower(generation);
-    const tile={id:`p${++s.tileSerial}-${a}-${b}`,a,b,upgrade:0,source};if(generation>1){tile.generation=generation;tile.powerMultiplier=power}s.set.push(tile);return tile
+  function claimNextGenerationTile(){
+    const generation=Math.max(2,(s.setGeneration||1)+1),existing=new Set(s.set.map(t=>t.id)),candidates=makePowerSet(generation).filter(t=>!existing.has(t.id));
+    if(!candidates.length)return null;
+    const tile=candidates[Math.floor(rnd()*candidates.length)];s.set.push(tile);return tile
   }
   function deliverPurchasedTile(tile){
     const slot=s.hand.findIndex(t=>!t);
@@ -327,7 +331,8 @@ function createGame(E,opts={}){
   function buyShopRandomTile(){
     if(!s.shopOpen||s.shopType!=='shop')return{ok:false,reason:'shop'};
     const cost=shopRandomPrice();if(s.coins<cost)return{ok:false,reason:'coins'};
-    const pairs=pairList(),[a,b]=pairs[Math.floor(rnd()*pairs.length)],tile=addPurchasedTile(a,b,'shop-random'),delivery=deliverPurchasedTile(tile),purchase=applyPurchase(cost);
+    const tile=claimNextGenerationTile();if(!tile)return{ok:false,reason:'no-tiles'};
+    const delivery=deliverPurchasedTile(tile),purchase=applyPurchase(cost);
     if(s.blocked&&s.failureReason==='no-tiles'){s.blocked=false;s.failureReason=null;s.needsReroll=false}
     s.events.push({type:'tile-buy',round:s.round+1,shop:'shop',mode:'random',tile:cloneTile(tile),delivery:delivery.location,baseCost:cfg.SHOP_RANDOM_TILE_COST||1,cost,coins:s.coins,...purchase});
     return{ok:true,tile:cloneTile(tile),delivery:delivery.location,cost,inflation:s.inflation}
