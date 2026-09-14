@@ -110,6 +110,7 @@
   },true);
 
   function wrapEndlessButton(){
+    if(localStorage.getItem('iterion.entryBypass.v1')==='true')return;
     if(!overlay.classList.contains('show')||overlayTitle?.textContent.trim()!=='RUN COMPLETE'||!overlayPrimary?.textContent.includes('ENDLESS'))return;
     const current=overlayPrimary.onclick;if(typeof current!=='function'||current.__monoidEndlessWrapper)return;
     const wrapper=function(e){e?.preventDefault?.();e?.stopPropagation?.();showEndlessBrief(()=>current.call(overlayPrimary,e))};wrapper.__monoidEndlessWrapper=true;overlayPrimary.onclick=wrapper
@@ -121,7 +122,7 @@
       setText(document.querySelector('.randomOffer p'),'Adds one new physical domino to your set.');
       const sections=[...document.querySelectorAll('.shopSection')],toolsIntro=sections[1]?.querySelector(':scope > p');setText(toolsIntro,'Stored until you use them. Each round already gives one free Reroll.');
       const intro=document.querySelector('.marketIntro'),introText='This is the real Shop. Supplies for this run. Market appears only between stages.';if(intro&&intro.textContent.trim()!==introText)intro.innerHTML='<strong>This is the real Shop.</strong> Supplies for this run. Market appears only between stages.';
-      const foot=document.querySelector('.shopFoot');if(foot){const endless=document.body.classList.contains('endlessPalette');setText(foot,endless?'Each purchase raises Inflation. Endless Strain also raises prices.':'Each purchase raises Inflation by 1.')}
+      const foot=document.querySelector('.shopFoot');if(foot){const endless=document.body.classList.contains('endlessPalette');setText(foot,endless?'Each purchase raises Inflation. Endless Strain raises prices; Undo removes that placement’s Strain.':'Each purchase raises Inflation by 1.')}
     }
     if(title==='MARKET'){
       const foot=document.querySelector('.shopFoot');if(foot){const endless=document.body.classList.contains('endlessPalette');setText(foot,endless?'Buy one mod, or leave it. Inflation and Endless Strain raise prices.':'Buy one mod, or leave it. Each purchase raises Inflation by 1.')}
