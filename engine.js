@@ -148,7 +148,8 @@
     function fork(s,cur,connections){
       if(!opts.bifurcate||!cur.double||cur.tile.a===0||s.splitUsed.has(cur.id))return null;
       const previous=pieceById(pieces,s.current.fromPieceId),relation=previous&&pieceEdgeRelation(cur,previous);
-      if(!relation||!isCenteredOnDouble(cur,relation,relation.sideA))return null;
+      if(!relation||!isLongSide(cur,relation.sideA)||relation.len!==S)return null;
+      const splitKind=isCenteredOnDouble(cur,relation,relation.sideA)?'centered':'offset-L';
       // Only the two physical short ends distribute. Side contacts are not
       // extra arms. Half 0 precedes half 1, independent of board-array order.
       const arms=[0,1].map(half=>connections.filter(c=>c.fromHalf===half&&!isLongSide(cur,c.fromSide)));
@@ -164,7 +165,7 @@
         const r=follow(branch,arms[half],half);results.push(r);spent=r.splitUsed;ddUsed=r.doubleDoubleUsed
       }
       searchLimit=parentLimit;
-      const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:cur.id,output:s.output}];
+      const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:cur.id,output:s.output,splitKind}];
       results.forEach((r,arm)=>events.push({type:'signal-start',fork:cur.id,arm,output:s.output},...r.events,{type:'signal-end',fork:cur.id,arm,output:r.output}));
       events.push({type:'signal-join',piece:cur.id,output});
       return{output,gain:output-s.initialOutput,events,reason:'split-complete',
