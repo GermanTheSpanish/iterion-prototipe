@@ -463,8 +463,17 @@ function createGame(E,opts={}){
   }
 
   function save(){try{const x=snapshot();localStorage.setItem('iterion.latestRun.v9',JSON.stringify(x));return x}catch(_){return snapshot()}}
+  function exportState(){
+    const raw=deepClone(s);raw.pieces=s.pieces.map(p=>({id:p.id,tile:cloneTile(p.tile),x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr}));
+    return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:raw}
+  }
+  function restoreState(saved){
+    const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
+    s=deepClone(raw);const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
+    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});return true
+  }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,shopItemPrice,shopRandomPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,openIntermission,buyMarketMod,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,shopItemPrice,shopRandomPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,openIntermission,buyMarketMod,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
