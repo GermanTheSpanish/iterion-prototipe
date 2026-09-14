@@ -47,7 +47,7 @@ test('Shop and Market occupy the board surface and keep the machine intact',asyn
 });
 
 test('Endless briefing appears before canonical Endless state changes',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));await page.goto('http://127.0.0.1:4173/');
+  await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{localStorage.setItem('iterion.tutorialChoice.v1','made');localStorage.setItem('monoid.firstRunBriefing.v1','seen')});await enterSelection(page);await page.locator('#startRun').click();
   await page.evaluate(()=>{const s=window.__monoidGame.state();s.round=14;s.cleared=true;s.standardComplete=true;s.running=false;s.shopOpen=false;s.pendingCircuit=null});await page.locator('#helpButton').click();await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('RUN COMPLETE');
   expect(await page.evaluate(()=>window.__monoidGame.state().endlessMode)).toBe(false);await page.locator('#overlayPrimary').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('endlessBrief');await expect(page.locator('#monoidBoardCoach')).toContainText('THE MACHINE CONTINUES.');expect(await page.evaluate(()=>window.__monoidGame.state().endlessMode)).toBe(false);
   await page.locator('[data-ux-action="enter-endless"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().endlessMode)).toBe(true);await assertNoPageScroll(page)
