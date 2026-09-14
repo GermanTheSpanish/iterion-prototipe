@@ -19,6 +19,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Record tested revision
+        run: |
+          echo "event=${{ github.event_name }} github_sha=${{ github.sha }} head_sha=${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "checkout_sha=$(git rev-parse HEAD)"
       - name: Syntax check
         run: |
           for file in *.js tests/*.js; do node --check "$file"; done
