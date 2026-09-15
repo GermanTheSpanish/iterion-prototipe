@@ -18,7 +18,8 @@
   style.textContent=`
     #devBuildStamp{position:absolute;right:14px;bottom:max(8px,env(safe-area-inset-bottom));z-index:3;color:var(--muted);font:600 9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;opacity:.62;pointer-events:none}
     .menuBuildStamp{margin:12px 0 0!important;color:var(--muted)!important;font:600 10px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace!important;letter-spacing:.04em}
-    .titleCard h1{white-space:nowrap}
+    #replayTutorial,#systemsTutorial{display:none!important}
+    .titleCard h1{white-space:nowrap;transform:translateX(-.6vw)}
     .titleCard h1 .titleLetter{display:inline-block;opacity:0;filter:blur(4px);animation:monoidLetterReveal .24s ease-out forwards}
     .titleCard h1 .titleLetter:nth-child(1){animation-delay:.36s}
     .titleCard h1 .titleLetter:nth-child(2){animation-delay:.18s}
