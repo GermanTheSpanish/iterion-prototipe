@@ -8,6 +8,8 @@
 body.monoidTourActive .tutorialPanel{display:none!important}
 #monoidCoachLeave{display:none!important}
 
+/* During the UI tour the whole phone is suppressed except the instruction card and current framed target. */
+body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;background:rgba(13,13,12,.70);pointer-events:none}
 .boardCoachLayer{position:fixed;z-index:510;display:flex;align-items:flex-start;justify-content:center;padding:10px;pointer-events:none;color:var(--ink);overflow:hidden}
 .boardCoachLayer[hidden]{display:none!important}
 .boardCoachCard{width:min(92%,360px);padding:16px 16px 15px;border:1px solid var(--line);background:rgba(247,247,244,.96);text-align:left}
@@ -18,16 +20,21 @@ body.monoidTourActive .tutorialPanel{display:none!important}
 .boardCoachActions button{appearance:none;min-height:44px;padding:9px 12px;border:1px solid var(--ink);border-radius:4px;background:transparent;color:var(--ink);font-family:inherit;font-size:12px;font-weight:750;line-height:1;letter-spacing:.06em}
 .boardCoachActions button.primary{background:var(--ink);color:var(--paper)}
 .boardCoachActions span,.boardCoachActions small{display:block;color:var(--muted);font-size:10px;line-height:1.35;text-align:center;letter-spacing:.04em}
-.boardCoachLayer.tour,.boardCoachLayer.firstBrief,.boardCoachLayer.endlessBrief{align-items:center;padding:14px;background:rgba(247,247,244,.94);pointer-events:auto;touch-action:manipulation}
-.boardCoachLayer.tour .boardCoachCard,.boardCoachLayer.firstBrief .boardCoachCard,.boardCoachLayer.endlessBrief .boardCoachCard{background:transparent;border:0;padding:10px}
+.boardCoachLayer.tour{align-items:center;padding:14px;background:transparent;pointer-events:auto;touch-action:manipulation}
+.boardCoachLayer.firstBrief,.boardCoachLayer.endlessBrief{align-items:center;padding:14px;background:rgba(247,247,244,.94);pointer-events:auto;touch-action:manipulation}
+.boardCoachLayer.tour .boardCoachCard{background:var(--paper);border:1px solid var(--line);padding:12px}
+.boardCoachLayer.firstBrief .boardCoachCard,.boardCoachLayer.endlessBrief .boardCoachCard{background:transparent;border:0;padding:10px}
 .boardCoachLayer.tour .boardCoachActions{grid-template-columns:auto 1fr;align-items:center}
 .boardCoachLayer.tour .boardCoachActions span{text-align:right}
 .boardCoachLayer.tutorial{padding:8px;background:transparent}
+.boardCoachLayer.tutorial.coachBottom{align-items:flex-end}
 .boardCoachLayer.tutorial .boardCoachCard{padding:11px 12px;background:rgba(247,247,244,.92);backdrop-filter:blur(3px)}
 .boardCoachLayer.tutorial .boardCoachCard h2{font-size:clamp(17px,5vw,22px)}
 .boardCoachLayer.tutorial .boardCoachCard p{font-size:clamp(15px,4vw,18px);line-height:1.25}
-.monoidTourHighlight{position:relative!important;z-index:505!important;outline:2px solid var(--ink)!important;outline-offset:3px!important;box-shadow:0 0 0 5px rgba(247,247,244,.72)!important}
+.monoidTourHighlight{position:relative!important;z-index:505!important;outline:2px solid #fff!important;outline-offset:3px!important;background:var(--paper)!important;box-shadow:0 0 0 5px rgba(255,255,255,.22)!important}
 body.monoidTourActive .gameHeader,body.monoidTourActive .scoreStrip,body.monoidTourActive .metaStrip,body.monoidTourActive .bottomBar{pointer-events:none}
+.tile.tutorialLocked{opacity:.34!important;filter:none!important;cursor:default!important}
+.tile.tutorialLocked .domino{box-shadow:none!important}
 
 /* Shop and Market occupy the machine surface rather than covering the whole phone. */
 body.monoidCommerceActive .overlay.show{display:block!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;pointer-events:none}
