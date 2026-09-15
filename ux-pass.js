@@ -33,7 +33,7 @@
     {title:'EXTEND THE ARM',body:'Keep building from the rebound end.\nMake the machine longer.'},
     {title:'T-SPLIT',body:'Now enter the Double from the side.\nWith both ends connected, the signal splits in two.'}
   ];
-  const tutorialTileIds=new Set(['d2-2','d2-3','d3-4','d0-4','d2-5','d5-6','d2-6']);
+  const tutorialPips={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
 
   function gameFlow(){return root.__monoidFlow||{screen:null,tutorialStep:null}}
   function currentGame(){return root.__monoidGame||null}
@@ -54,14 +54,8 @@
   }
   function prepareTutorialHand(game,tileId){
     const D=root.IterionData,s=game.state(),tile=s.set.find(t=>t.id===tileId);if(!tile)return;
-    const placed=new Set((s.pieces||[]).map(p=>p.tile?.id).filter(Boolean));
-    const primaryPool=s.set.filter(t=>!placed.has(t.id)&&t.id!==tileId&&!tutorialTileIds.has(t.id));
-    const fallbackPool=s.set.filter(t=>!placed.has(t.id)&&t.id!==tileId&&tutorialTileIds.has(t.id));
-    const decoys=[...primaryPool,...fallbackPool].slice(0,Math.max(0,D.HAND_SIZE-1));
-    s.hand=[tile,...decoys];while(s.hand.length<D.HAND_SIZE)s.hand.push(null);
-    const inHand=new Set(s.hand.filter(Boolean).map(t=>t.id));
-    s.reserve=s.set.filter(t=>!placed.has(t.id)&&!inHand.has(t.id));
-    s.blocked=false;s.needsReroll=false;s.cleared=false;s.running=false
+    s.hand=Array(D.HAND_SIZE).fill(null);s.hand[0]=tile;s.reserve=s.reserve.filter(t=>t.id!==tileId);
+    s.blocked=false;s.needsReroll=false;s.cleared=false;s.running=false;scheduleSync()
   }
   function restoreTutorialPatch(){
     if(!tutorialPatch)return;const{game,candidates,openShop,finishPlacement}=tutorialPatch;
@@ -81,7 +75,7 @@
       if(spec&&tile.id===spec.tileId)return list.filter(c=>c.x===spec.x&&c.y===spec.y&&c.rr===spec.rr);
       if(step===5&&s.turn<6&&tile.id==='d5-6'){
         const rebound=s.pieces.find(p=>p.tile?.id==='d2-5');if(!rebound)return[];
-        return list.filter(c=>E.axis(c.rr)===rebound.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rebound.id&&contact.kind==='full')&&!(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece?.id))
+        return list.filter(c=>(c.contacts||[]).some(contact=>contact.piece?.id===rebound.id)&&!(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece?.id))
       }
       if(step===5&&s.turn>=6&&tile.id==='d2-6'){
         return list.filter((c,n)=>{
@@ -135,6 +129,23 @@
     }else drawTrack.stable=ids.slice();
     drawTrack.running=running
   }
+  function tutorialDots(n){return(tutorialPips[n]||[]).map(([x,y])=>`<i class="spip" style="left:${x}%;top:${y}%"></i>`).join('')}
+  function tutorialDomino(tile){return`<div class="domino"><div class="half"><div class="spips">${tutorialDots(tile?.a??0)}</div></div><div class="half"><div class="spips">${tutorialDots(tile?.b??0)}</div></div></div>`}
+  function syncTutorialHandVisuals(){
+    const active=gameFlow().screen==='tutorial',game=currentGame();
+    if(!active||!game){document.querySelectorAll('.tutorialVisualDecoy').forEach(el=>el.remove());return}
+    const s=game.state(),slots=[...document.querySelectorAll('#hand .handSlot')],primary=slots[0]?.querySelector('.tile');
+    if(primary&&s.hand[0]&&primary.dataset.tutorialVisualId!==s.hand[0].id){primary.innerHTML=tutorialDomino(s.hand[0]);primary.dataset.tutorialVisualId=s.hand[0].id}
+    const used=new Set((s.pieces||[]).map(p=>p.tile?.id).filter(Boolean));if(s.hand[0]?.id)used.add(s.hand[0].id);
+    const decoys=(s.reserve||[]).filter(t=>!used.has(t.id)).slice(0,Math.max(0,(root.IterionData?.HAND_SIZE||5)-1));
+    for(let i=1;i<slots.length;i++){
+      if(slots[i].querySelector('.tile:not(.tutorialVisualDecoy)'))continue;
+      let button=slots[i].querySelector('.tutorialVisualDecoy'),tile=decoys[i-1];
+      if(!tile){button?.remove();continue}
+      if(!button){button=document.createElement('button');button.type='button';button.className='tile tutorialLocked tutorialVisualDecoy';button.disabled=true;button.setAttribute('aria-disabled','true');slots[i].appendChild(button)}
+      if(button.dataset.tileId!==tile.id){button.dataset.tileId=tile.id;button.innerHTML=tutorialDomino(tile);button.setAttribute('aria-label',`Domino ${tile.a}|${tile.b}. Tutorial: use the highlighted tile.`)}
+    }
+  }
   function clearHighlights(){document.querySelectorAll('.monoidTourHighlight').forEach(el=>el.classList.remove('monoidTourHighlight'))}
   function highlight(el){clearHighlights();if(el)el.classList.add('monoidTourHighlight')}
   function syncCoachRect(){
@@ -166,7 +177,7 @@
     const active=gameFlow().screen==='tutorial';
     document.querySelectorAll('#hand .tile').forEach((button,index)=>{
       const locked=active&&index!==0;button.classList.toggle('tutorialLocked',locked);
-      if(locked){button.disabled=true;button.setAttribute('aria-disabled','true');button.setAttribute('aria-label',(button.getAttribute('aria-label')||'Domino')+' Tutorial: use the highlighted tile.')}
+      if(locked){if(!button.disabled)button.disabled=true;if(button.getAttribute('aria-disabled')!=='true')button.setAttribute('aria-disabled','true');if(!button.getAttribute('aria-label')?.includes('Tutorial: use the highlighted tile.'))button.setAttribute('aria-label',(button.getAttribute('aria-label')||'Domino')+' Tutorial: use the highlighted tile.')}
     })
   }
   function positionTutorialCoach(game){
@@ -180,7 +191,7 @@
     if(ux.mode==='tour')return;
     const commerce=overlay.classList.contains('show')&&modal.classList.contains('commerceModal');if(commerce){if(ux.mode==='tutorial')coach.hidden=true;return}
     const game=currentGame(),step=Math.max(0,Math.min(5,Number(flow.tutorialStep)||0)),turn=game?.state?.().turn||0,copyIndex=step===5?(turn<6?5:6):step,copy=tutorialCopy[copyIndex];
-    ux.mode='tutorial';syncTutorialHandLocks();highlight(document.querySelector('#hand .tile:not(.tutorialLocked)')||document.querySelector('#hand .tile'));
+    ux.mode='tutorial';syncTutorialHandVisuals();syncTutorialHandLocks();highlight(document.querySelector('#hand .tile:not(.tutorialLocked)')||document.querySelector('#hand .tile'));
     showCoach('tutorial',copyIndex,`LEARN MONOID · ${copyIndex+1}/${tutorialCopy.length}`,copy.title,copy.body,'<button id="monoidCoachLeave" data-ux-action="leave">LEAVE</button>');
     positionTutorialCoach(game)
   }
@@ -256,7 +267,7 @@
     if(flow.screen==='tutorial'&&game&&game!==lastTutorialGame){lastTutorialGame=game;ensureTutorialPatch();prepareTutorialHand(game,'d2-2');startTour()}
     else if(flow.screen!=='tutorial'&&lastTutorialGame){lastTutorialGame=null;restoreTutorialPatch()}
     if(app.hidden&&ux.mode!=='idle'&&ux.mode!=='endlessBrief')hideCoach();
-    ensureTutorialPatch();syncPendingDraw();syncTutorialHandLocks();wrapEndlessButton();syncCommerce();
+    ensureTutorialPatch();syncPendingDraw();syncTutorialHandVisuals();syncTutorialHandLocks();wrapEndlessButton();syncCommerce();
     if(flow.screen==='tutorial'&&ux.mode!=='tour')renderTutorialCoach();else if(flow.screen!=='tutorial'&&ux.mode==='tutorial')hideCoach();
     if(!coach.hidden)syncCoachRect()
   }
