@@ -31,7 +31,7 @@ test('entry card uses keyboard, has no click-through and starts the real opening
   expect(await page.evaluate(()=>window.__monoidGame.snapshot().turnCount)).toBe(0);
   await page.locator('#startRun').click();
   await expect(page.locator('#board')).toBeVisible();
-  expect(await page.evaluate(()=>{const g=window.__monoidGame;return g.state().hand[0].a===g.state().hand[0].b&&g.candidatesForIndex(1).length===0})).toBe(true);
+  expect(await page.evaluate(()=>{const g=window.__monoidGame,hand=g.state().hand;return hand[0].a===hand[0].b&&hand.every((tile,i)=>!tile||((tile.a===tile.b)===(g.candidatesForIndex(i).length>0)))})).toBe(true);
   expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
