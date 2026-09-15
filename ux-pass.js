@@ -40,9 +40,16 @@
     const E=root.IterionEngine,D=root.IterionData,s=game.state(),p=E.pieceFrom(tile,c.x,c.y,0,c.rr,100000+n);p.tile={...tile};
     return E.bestSignal(p.id,[...s.pieces,p],{initialOutput:tile.a+tile.b,bifurcate:D.BIFURCATION_ENABLED})
   }
-  function isShortEnd(axis,side){return axis==='H'?(side==='L'||side==='R'):(side==='U'||side==='D')}
-  function touchesShortEnd(candidate,piece){
-    return(candidate.contacts||[]).some(contact=>contact.piece?.id===piece.id&&contact.kind==='full'&&contact.relation&&isShortEnd(piece.axis,contact.relation.sideB))
+  function tutorialPlacement(step,E){
+    const x=Math.floor(E.G/2)-1;
+    return[
+      {tileId:'d2-2',x,y:4,rr:1},
+      {tileId:'d2-3',x,y:8,rr:1},
+      {tileId:'d3-4',x,y:12,rr:1},
+      {tileId:'d0-4',x,y:18,rr:3},
+      {tileId:'d2-5',x,y:2,rr:3},
+      {tileId:'d2-6',x:x+2,y:5,rr:0}
+    ][step]||null
   }
   function prepareTutorialHand(game,tileId){
     const D=root.IterionData,s=game.state(),tile=s.set.find(t=>t.id===tileId);if(!tile)return;
@@ -59,33 +66,11 @@
     const candidates=game.candidatesForIndex,openShop=game.openShop,finishPlacement=game.finishPlacement;
     tutorialPatch={game,candidates,openShop,finishPlacement};
     game.candidatesForIndex=function(i){
-      const E=root.IterionEngine,list=candidates(i),step=gameFlow().tutorialStep,s=game.state(),tile=s.hand[i],rootPiece=tutorialRoot(game);
-      if(step===0&&!rootPiece&&tile){
-        const centred=list.filter(c=>{const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1),cx=(p.rect.minx+p.rect.maxx)/2,cy=(p.rect.miny+p.rect.maxy)/2;return Math.abs(cx-E.G/2)<.01&&Math.abs(cy-E.H/2)<.01});
-        return centred.length?centred:list
-      }
-      if(!tile||!rootPiece)return list;
-      if(step===1){
-        return list.filter(c=>E.axis(c.rr)===rootPiece.axis&&touchesShortEnd(c,rootPiece))
-      }
-      if(step===2||step===3){
-        const previousId=step===2?'d2-3':'d3-4',previous=s.pieces.find(p=>p.tile?.id===previousId);if(!previous)return list;
-        return list.filter(c=>E.axis(c.rr)===previous.axis&&touchesShortEnd(c,previous))
-      }
-      if(step===4){
-        return list.filter((c,n)=>{
-          const oppositeEnd=E.axis(c.rr)===rootPiece.axis&&touchesShortEnd(c,rootPiece);
-          return oppositeEnd&&tutorialSim(game,tile,c,n).rebounds>0
-        })
-      }
-      if(step===5&&s.turn<6){
-        return list.filter((c,n)=>{
-          const sideEntry=E.axis(c.rr)!==rootPiece.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&String(contact.kind||'').startsWith('double-'));
-          const sim=sideEntry?tutorialSim(game,tile,c,n):null;
-          return sideEntry&&!!sim?.events?.some(e=>e.type==='signal-fork'&&e.piece===rootPiece.id)
-        })
-      }
-      return list
+      const E=root.IterionEngine,step=gameFlow().tutorialStep,s=game.state(),tile=s.hand[i],rootPiece=tutorialRoot(game);
+      if(step===0&&!rootPiece&&tile&&s.rootRR!==1)game.setRootRotation(1);
+      const list=candidates(i),spec=tutorialPlacement(step,E);
+      if(!tile||!spec||tile.id!==spec.tileId)return list;
+      return list.filter(c=>c.x===spec.x&&c.y===spec.y&&c.rr===spec.rr)
     };
     game.openShop=function(...args){
       if(gameFlow().screen==='tutorial'&&gameFlow().tutorialStep===5&&game.state().turn<6)return true;
