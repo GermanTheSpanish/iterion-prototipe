@@ -1,0 +1,14 @@
+const assert=require('assert');
+const fs=require('fs');
+const path=require('path');
+const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
+const manifest=JSON.parse(read('manifest.webmanifest')),pwa=read('pwa.js'),sw=read('sw.js'),gesture=read('gesture.js');
+assert.strictEqual(manifest.name,'MONOID');
+assert.strictEqual(manifest.display,'standalone');
+assert.deepStrictEqual(manifest.display_override.slice(0,2),['fullscreen','standalone']);
+assert.strictEqual(manifest.start_url,'./');assert.strictEqual(manifest.scope,'./');
+const sizes=new Set(manifest.icons.map(i=>i.sizes));assert(sizes.has('192x192'));assert(sizes.has('512x512'));
+assert.match(pwa,/beforeinstallprompt/);assert.match(pwa,/display-mode: fullscreen/);assert.match(pwa,/display-mode: standalone/);assert.match(pwa,/popstate/);assert.match(pwa,/menuButton/);assert.match(pwa,/serviceWorker\.register\('sw\.js'/);
+assert.match(sw,/cache:'no-store'/);assert.doesNotMatch(sw,/caches\.open|addAll/,'development PWA must not pin stale application assets');
+assert.match(gesture,/pwa\.js\?v=entry-0311/);
+console.log('MONOID PWA manifest, network-fresh updates and installed back guard regression: ok');

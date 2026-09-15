@@ -40,3 +40,13 @@
   }
   return{createPressGesture};
 });
+
+// Browser-only platform shell. Kept out of engine/game state so install/fullscreen
+// behaviour cannot alter deterministic gameplay or saved runs.
+if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pwa]')){
+  const script=document.createElement('script');
+  script.src='pwa.js?v=entry-0311';
+  script.async=false;
+  script.dataset.monoidPwa='true';
+  document.head.appendChild(script)
+}
