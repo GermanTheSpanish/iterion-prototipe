@@ -6,7 +6,8 @@ async function finishTutorialTour(page){
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tutorial')
 }
 
-async function startTutorialFromHub(page,kind){await page.locator('#tutorialHubButton').click();await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
+async function openTutorialHub(page){const persistent=page.locator('#tutorialHubButton');if(await persistent.isVisible())await persistent.click();else await page.locator('#learnMonoid').click();await expect(page.locator('#tutorialHub')).toBeVisible()}
+async function startTutorialFromHub(page,kind){await openTutorialHub(page);await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
 
 async function placeTutorialTile(page,nextStep){
   const from=await page.locator('#hand .tile').first().boundingBox();expect(from).toBeTruthy();
@@ -25,7 +26,7 @@ test('entry card uses keyboard, has no click-through and starts the real opening
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();
   await expect(page.locator('#modeClassic .selectionDouble')).toBeVisible();
-  await expect(page.locator('#firstRunChoice')).toBeVisible();await expect(page.locator('#startRun')).toHaveText('SKIP · START RUN');await expect(page.locator('#tutorialHubButton')).toBeVisible();
+  await expect(page.locator('#firstRunChoice')).toBeVisible();await expect(page.locator('#startRun')).toHaveText('SKIP · START RUN');await expect(page.locator('#learnMonoid')).toBeVisible();await expect(page.locator('#learnMonoid')).toHaveText('TUTORIALS');await expect(page.locator('#tutorialHubButton')).toBeHidden();
   const controls=page.locator('#gameSelection button:visible');for(const control of await controls.all()){const box=await control.boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.y).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(375);expect(box.y+box.height).toBeLessThanOrEqual(667);expect(await control.getAttribute('aria-label')||await control.textContent()).not.toBe('')}
   expect(await page.evaluate(()=>window.__monoidGame.snapshot().turnCount)).toBe(0);
   await page.locator('#startRun').click();
@@ -70,14 +71,14 @@ test('Basics tutorial completes seven real legal placements and can retry',async
 });
 
 test('Basics tutorial FINISH exits after the seventh real placement',async({page})=>{
-  await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#learnMonoid').click();await finishTutorialTour(page);
+  await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await startTutorialFromHub(page,'basics');await finishTutorialTour(page);
   for(const step of ['2/6','3/6','4/6','5/6','6/6'])await placeTutorialTile(page,step);await placeTutorialTile(page,null);await placeTutorialTile(page,null);
   await expect(page.locator('#overlayPrimary')).toHaveText('FINISH');await expect(page.locator('#nextGameMechanics')).toBeVisible();await page.locator('#overlayPrimary').click();await expect(page.locator('#gameSelection')).toBeVisible();
 });
 
 test('leaving during drag or an in-flight Basics placement never replaces the normal run',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'basics');await finishTutorialTour(page);
-  const tile=await page.locator('#hand .tile').first().boundingBox();await page.mouse.move(tile.x+tile.width/2,tile.y+tile.height/2);await page.mouse.down();await page.mouse.move(tile.x-20,tile.y+tile.height/2);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible();
+  const tile=await page.locator('#hand .tile').first().boundingBox();await page.mouse.move(tile.x+tile.width/2,tile.y+tile.height/2);await page.mouse.down();await page.mouse.move(tile.x-20,from.y+tile.height/2);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible();
   await startTutorialFromHub(page,'basics');await finishTutorialTour(page);await expect(page.locator('#reroll')).toBeDisabled();await placeTutorialTile(page,null);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible({timeout:12000});
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
 });
