@@ -7,7 +7,7 @@
   const nav=root.navigator||{},ua=nav.userAgent||'';
   const ios=/iPad|iPhone|iPod/i.test(ua)||(nav.platform==='MacIntel'&&(nav.maxTouchPoints||0)>1);
   const android=/Android/i.test(ua),mobile=ios||android;
-  const GUARD_KEY='monoidBackGuardV1';
+  const GUARD_KEY='monoidBackGuardV1',SHELL_BUILD='20260915.3';
   const state={deferredPrompt:null,installOutcome:null,swRegistered:false,swScope:null,backIntercepts:0,mobile,ios,android};
   const inDisplayMode=()=>!!(nav.standalone===true||root.matchMedia?.('(display-mode: fullscreen)').matches||root.matchMedia?.('(display-mode: standalone)').matches);
   Object.defineProperty(root,'__monoidPwa',{configurable:true,get:()=>({...state,installed:inDisplayMode()})});
@@ -77,13 +77,13 @@
   async function registerServiceWorker(){
     if(!('serviceWorker'in nav))return;
     const local=/^(localhost|127\.0\.0\.1)$/.test(root.location.hostname);if(root.location.protocol!=='https:'&&!local)return;
-    try{const reg=await nav.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'});state.swRegistered=true;state.swScope=reg.scope;reg.update().catch(()=>{})}catch(error){state.swRegistered=false;state.swScope=null;console.warn('MONOID PWA service worker registration failed',error)}
+    try{const reg=await nav.serviceWorker.register(`sw.js?v=${SHELL_BUILD}`,{scope:'./',updateViaCache:'none'});state.swRegistered=true;state.swScope=reg.scope;reg.update().catch(()=>{})}catch(error){state.swRegistered=false;state.swScope=null;console.warn('MONOID PWA service worker registration failed',error)}
   }
   if(doc.readyState==='complete')registerServiceWorker();else root.addEventListener('load',registerServiceWorker,{once:true});
 
   function loadUiExtras(){
     if(doc.querySelector('script[data-monoid-ui-extras]'))return;
-    const script=doc.createElement('script');script.src='ui-extras.js?v=20260915.1';script.async=false;script.dataset.monoidUiExtras='true';doc.body.appendChild(script)
+    const script=doc.createElement('script');script.src=`ui-extras.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiExtras='true';doc.body.appendChild(script)
   }
   if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',loadUiExtras,{once:true});else loadUiExtras()
 })(window);
