@@ -55,20 +55,24 @@
     const candidates=game.candidatesForIndex,openShop=game.openShop,finishPlacement=game.finishPlacement;
     tutorialPatch={game,candidates,openShop,finishPlacement};
     game.candidatesForIndex=function(i){
-      const list=candidates(i),step=gameFlow().tutorialStep,s=game.state(),tile=s.hand[i],rootPiece=tutorialRoot(game);
+      const E=root.IterionEngine,list=candidates(i),step=gameFlow().tutorialStep,s=game.state(),tile=s.hand[i],rootPiece=tutorialRoot(game);
       if(!tile||!rootPiece)return list;
       if(step===1){
-        return list.filter(c=>(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full'))
+        return list.filter(c=>E.axis(c.rr)===rootPiece.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full'))
+      }
+      if(step===2||step===3){
+        const previousId=step===2?'d2-3':'d3-4',previous=s.pieces.find(p=>p.tile?.id===previousId);if(!previous)return list;
+        return list.filter(c=>E.axis(c.rr)===previous.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===previous.id&&contact.kind==='full'))
       }
       if(step===4){
         return list.filter((c,n)=>{
-          const oppositeEnd=(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full');
+          const oppositeEnd=E.axis(c.rr)===rootPiece.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full');
           return oppositeEnd&&tutorialSim(game,tile,c,n).rebounds>0
         })
       }
       if(step===5&&s.turn<6){
         return list.filter((c,n)=>{
-          const sideEntry=(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&String(contact.kind||'').startsWith('double-'));
+          const sideEntry=E.axis(c.rr)!==rootPiece.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&String(contact.kind||'').startsWith('double-'));
           const sim=sideEntry?tutorialSim(game,tile,c,n):null;
           return sideEntry&&!!sim?.events?.some(e=>e.type==='signal-fork'&&e.piece===rootPiece.id)
         })
@@ -83,7 +87,7 @@
       const step=gameFlow().tutorialStep,result=finishPlacement(ctx);
       if(gameFlow().screen!=='tutorial'||!result?.ok)return result;
       if(step===3)queueMicrotask(()=>{if(gameFlow().tutorialStep===4&&currentGame()===game)prepareTutorialHand(game,'d2-5')});
-      if(step===4)queueMicrotask(()=>{if(gameFlow().tutorialStep===5&&currentGame()===game)prepareTutorialHand(game,'d2-6')});
+      if(step===4)queueMicrotask(()=>{if(gameFlow().tutorialStep===5&&currentGame()===game){game.config.TARGETS[0]=1e9;prepareTutorialHand(game,'d2-6')}});
       if(step===5){
         const rootPiece=tutorialRoot(game),split=ctx?.sim?.events?.some(e=>e.type==='signal-fork'&&e.piece===rootPiece?.id);
         if(split){const state=game.state();state.cleared=false;openShop()}
