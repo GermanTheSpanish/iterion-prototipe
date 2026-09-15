@@ -30,22 +30,39 @@ test('installed mode intercepts Android-style Back and opens the run menu instea
   expect(await page.evaluate(()=>window.__monoidPwa.backIntercepts)).toBeGreaterThan(0)
 });
 
-test('title reveal follows DOMINO order, build is visible and tutorials are grouped',async({page})=>{
+test('title reveal follows DOMINO order without a pre-animation flash',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260915.3');
-  await expect(page.locator('#devBuildStamp')).toContainText('v0.31.1 · build 20260915.3');
-  const letters=page.locator('#titleCard .titleLetter');await expect(letters).toHaveCount(6);await expect(page.locator('#titleCard h1')).toHaveAttribute('aria-label','MONOID');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260915.4');
+  await expect(page.locator('#devBuildStamp')).toContainText('v0.31.1 · build 20260915.4');
+  const letters=page.locator('#titleCard .titleLetter');await expect(letters).toHaveCount(6);const title=page.locator('#titleCard h1');await expect(title).toHaveAttribute('aria-label','MONOID');
+  expect(await title.evaluate(el=>getComputedStyle(el).visibility)).toBe('visible');
   const delays=await letters.evaluateAll(nodes=>nodes.map(n=>parseFloat(getComputedStyle(n).animationDelay)||0));
+  const duration=await letters.first().evaluate(n=>parseFloat(getComputedStyle(n).animationDuration)||0);
   expect(delays[5]).toBeLessThan(delays[1]);expect(delays[1]).toBeLessThan(delays[0]);expect(delays[0]).toBeLessThan(delays[4]);expect(delays[4]).toBeLessThan(delays[2]);expect(delays[2]).toBeLessThan(delays[3]);
+  expect(Math.max(...delays)+duration).toBeGreaterThanOrEqual(1.55);
+  const box=await title.boundingBox();expect(box).toBeTruthy();expect(box.y+box.height/2).toBeGreaterThan(844*.40);expect(box.y+box.height/2).toBeLessThan(844*.48);
   await page.locator('#titleCard').click();await expect(page.locator('#learnMonoid')).toBeVisible();await expect(page.locator('#learnMonoid')).toHaveText('TUTORIALS');await expect(page.locator('#tutorialHubButton')).toBeHidden();await expect(page.locator('#replayTutorial')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();
   await openTutorialHub(page);await expect(page.locator('#tutorialHub')).toContainText('BASICS · 2 MIN');await expect(page.locator('#tutorialHub')).toContainText('GAME MECHANICS · 3 MIN');await expect(page.locator('#tutorialHub')).toContainText('MODIFIERS · 2 MIN')
 });
 
-test('modifier mini tutorial covers DD, DE, ZM and Long Chain',async({page})=>{
+test('modifier mini tutorial uses game domino language and a clean full-screen hierarchy',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await openTutorialHub(page);await page.locator('[data-tutorial="modifiers"]').click();
-  await expect(page.locator('#modifierTutorialDialog')).toBeVisible();
-  for(const title of ['DOUBLE DOUBLE','DOUBLE ECHO','ZERO MEMORY','LONG CHAIN']){await expect(page.locator('.modifierTutorTitle')).toHaveText(title);if(title!=='LONG CHAIN')await page.locator('.modifierNext').click()}
-  await expect(page.locator('.modifierTutorBody')).toContainText('10+ unique routed tiles');await page.locator('.modifierNext').click();await expect(page.locator('#modifierTutorialDialog')).toBeHidden()
+  const dialog=page.locator('#modifierTutorialDialog');await expect(dialog).toBeVisible();const dialogBox=await dialog.boundingBox();expect(dialogBox.width).toBeGreaterThanOrEqual(389);expect(dialogBox.height).toBeGreaterThanOrEqual(843);
+  for(const title of ['DOUBLE DOUBLE','DOUBLE ECHO','ZERO MEMORY']){
+    await expect(page.locator('.modifierTutorTitle')).toHaveText(title);await expect(page.locator('.modifierTutorGameTile .domino')).toBeVisible();await expect(page.locator('.modifierTutorGameTile .tileModMark')).toBeVisible();
+    const mark=await page.locator('.modifierTutorGameTile .tileModMark span').allTextContents();expect(mark.join('')).toHaveLength(2);await page.locator('.modifierNext').click()
+  }
+  await expect(page.locator('.modifierTutorTitle')).toHaveText('LONG CHAIN');await expect(page.locator('.modifierTutorMachine .domino')).toHaveCount(4);await expect(page.locator('.modifierTutorBody')).toContainText('10+ unique tiles');await expect(page.locator('.modifierTutorNote')).toContainText('machine');await page.locator('.modifierNext').click();await expect(dialog).toBeHidden()
+});
+
+test('board-led mobile layout centers MONOID, exposes MENU and gives the board more room',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await expect(page.locator('#menuButton')).toHaveText('MENU');await expect(page.locator('#helpButton')).toBeVisible();
+  const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-195)).toBeLessThan(2);
+  const board=await page.locator('#board').boundingBox();expect(board.width).toBeGreaterThan(300);
+  const handDomino=await page.locator('#hand .domino').first().boundingBox();expect(handDomino.width).toBeGreaterThanOrEqual(39);
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 });
 
 test('tutorial tour prioritises TAP TO CONTINUE over Leave',async({page})=>{
@@ -57,16 +74,16 @@ test('manual update check confirms the current build',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();await page.locator('#menuButton').click();
   await expect(page.locator('#checkForUpdates')).toBeVisible();await page.locator('#checkForUpdates').click();
-  await expect(page.locator('#checkForUpdates')).toContainText('UP TO DATE · 20260915.3')
+  await expect(page.locator('#checkForUpdates')).toContainText('UP TO DATE · 20260915.4')
 });
 
 test('silent update detection offers reload and preserves the active run before refresh',async({page})=>{
-  await page.route('**/build.json*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({version:'0.31.1',build:'20260915.4'})}));
+  await page.route('**/build.json*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({version:'0.31.1',build:'20260915.5'})}));
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUpdate?.updateAvailable),{timeout:5000}).toBe(true);
   const before=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));expect(before).toBeTruthy();
   await page.locator('#menuButton').click();await expect(page.locator('#checkForUpdates')).toContainText('UPDATE AVAILABLE');await expect(page.locator('#applyMonoidUpdate')).toBeVisible();
-  await page.locator('#applyMonoidUpdate').click();await page.waitForURL(/_monoidUpdate=20260915\.4/,{timeout:10000});
+  await page.locator('#applyMonoidUpdate').click();await page.waitForURL(/_monoidUpdate=20260915\.5/,{timeout:10000});
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(before)
 });

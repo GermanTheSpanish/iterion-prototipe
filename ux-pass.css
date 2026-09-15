@@ -91,3 +91,43 @@ body.monoidCommerceActive .commerceModal .marketTile{transform:scale(.82);transf
   body.monoidCommerceActive .commerceModal .shopBuy,body.monoidCommerceActive .commerceModal .modalActions button{min-height:34px!important;padding:4px 6px!important}
   body.monoidCommerceActive .commerceModal .shopFoot{font-size:9.5px!important}
 }
+
+/* 20260915.4 — board-led mobile hierarchy and title preflight. */
+.titleCard h1{visibility:hidden}
+.titleCard h1[data-monoid-animated="true"]{visibility:visible}
+.app{padding:calc(6px + env(safe-area-inset-top)) 9px calc(7px + env(safe-area-inset-bottom));grid-template-rows:36px minmax(80px,auto) 30px minmax(0,1fr) auto;gap:4px}
+.gameHeader{position:relative;min-height:36px;justify-content:flex-end}
+.wordmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:760;letter-spacing:.25em;white-space:nowrap}
+.headerActions{width:100%;height:36px;display:flex;align-items:center;justify-content:space-between;gap:0}
+.gameHeader .helpButton{width:32px;height:32px;font-size:17px;font-weight:650;color:var(--muted)}
+#menuButton{width:auto;height:32px;padding:0 1px;font-size:12px;font-weight:780;line-height:1;letter-spacing:.07em}
+.scoreStrip{gap:8px;align-items:stretch}
+.scoreCard{min-height:80px;padding:0}
+.scoreValue{font-size:clamp(36px,11.7vw,54px);line-height:.98;margin:5px 0 3px}
+.scoreCaption{min-height:15px;font-size:12px;line-height:1.25}
+.label{font-size:11px;line-height:1.2}
+.metaStrip{min-height:30px}
+.roundMeta>strong,.movesMeta>strong{font-size:14px}
+.gameArea{grid-template-columns:minmax(0,1fr) 54px;gap:8px}
+.handHeader{height:22px;padding:0}
+.handHeader .label{font-size:11px}
+.hand{gap:5px}
+.handSlot{height:78px;flex-basis:78px}
+.tile{width:50px}
+.domino{width:40px}
+.half{width:38px;height:38px;max-height:calc((100dvh - 270px)/10)}
+.bottomBar{gap:5px}
+.hint{min-height:28px;font-size:12px;line-height:1.3}
+.btn{min-height:46px}
+.tileModMark{font-weight:950!important;color:rgba(21,21,21,.86)!important;line-height:.84!important}
+.domino>.tileModMark{font-size:13px!important}
+.piece>.tileModMark{font-size:10px!important}
+.circuitTile>.tileModMark{color:rgba(255,255,255,.88)!important}
+
+@media(max-height:700px){
+  .app{padding-top:calc(4px + env(safe-area-inset-top));padding-bottom:calc(5px + env(safe-area-inset-bottom));grid-template-rows:34px minmax(70px,auto) 28px minmax(0,1fr) auto;gap:3px}
+  .gameHeader{min-height:34px}.headerActions{height:34px}.gameHeader .helpButton,#menuButton{height:30px}
+  .scoreCard{min-height:70px}.scoreValue{font-size:34px;margin:3px 0 2px}.scoreCaption{font-size:11px}.label{font-size:10px}
+  .gameArea{grid-template-columns:minmax(0,1fr) 50px;gap:6px}.handHeader{height:20px}.hand{gap:3px}.handSlot{height:58px;flex-basis:58px}.tile{width:44px}.domino{width:34px}.half{width:32px;height:32px;max-height:30px}
+  .hint{min-height:24px;font-size:11px}.btn{min-height:42px;font-size:12px}.domino>.tileModMark{font-size:12px!important}.piece>.tileModMark{font-size:9px!important}
+}

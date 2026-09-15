@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUiExtrasInstalled)return;
   root.__monoidUiExtrasInstalled=true;
 
-  const BUILD_ID='20260915.3';
+  const BUILD_ID='20260915.4';
   const $=id=>doc.getElementById(id);
   const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
@@ -19,35 +19,52 @@
     #devBuildStamp{position:absolute;right:14px;bottom:max(8px,env(safe-area-inset-bottom));z-index:3;color:var(--muted);font:600 9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;opacity:.62;pointer-events:none}
     .menuBuildStamp{margin:12px 0 0!important;color:var(--muted)!important;font:600 10px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace!important;letter-spacing:.04em}
     #replayTutorial,#systemsTutorial{display:none!important}
-    .titleCard h1{white-space:nowrap;transform:translateX(-.6vw)}
-    .titleCard h1 .titleLetter{display:inline-block;opacity:0;filter:blur(4px);animation:monoidLetterReveal .24s ease-out forwards}
-    .titleCard h1 .titleLetter:nth-child(1){animation-delay:.36s}
-    .titleCard h1 .titleLetter:nth-child(2){animation-delay:.18s}
-    .titleCard h1 .titleLetter:nth-child(3){animation-delay:.72s}
-    .titleCard h1 .titleLetter:nth-child(4){animation-delay:.90s}
-    .titleCard h1 .titleLetter:nth-child(5){animation-delay:.54s}
+    .titleCard h1{white-space:nowrap;transform:translate(-.6vw,-5.5dvh)}
+    .titleCard h1 .titleLetter{display:inline-block;opacity:0;filter:blur(3px);animation:monoidLetterReveal .32s ease-out forwards}
+    .titleCard h1 .titleLetter:nth-child(1){animation-delay:.52s}
+    .titleCard h1 .titleLetter:nth-child(2){animation-delay:.26s}
+    .titleCard h1 .titleLetter:nth-child(3){animation-delay:1.04s}
+    .titleCard h1 .titleLetter:nth-child(4){animation-delay:1.30s}
+    .titleCard h1 .titleLetter:nth-child(5){animation-delay:.78s}
     .titleCard h1 .titleLetter:nth-child(6){animation-delay:0s}
     @keyframes monoidLetterReveal{to{opacity:1;filter:blur(0)}}
     .tutorialHub .tutorialHubIntro{margin:10px 0 12px;color:var(--muted);font-size:13px;line-height:1.45}
     .tutorialHub .tutorialChoice{display:block;width:100%;padding:13px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;text-align:left}
     .tutorialHub .tutorialChoice strong{display:block;font-size:15px;letter-spacing:.05em}
     .tutorialHub .tutorialChoice small{display:block;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
-    #modifierTutorialDialog{width:min(390px,calc(100% - 24px));padding:20px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
-    #modifierTutorialDialog::backdrop{background:rgba(245,245,241,.92)}
-    .modifierTutorKicker{display:block;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
-    .modifierTutorTitle{margin:7px 0 0;font-size:26px;line-height:1;letter-spacing:.05em}
-    .modifierTutorVisual{display:flex;align-items:center;justify-content:center;min-height:146px;margin:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-    .modifierTutorDomino{position:relative;display:flex;flex-direction:column;width:62px;height:122px;border:2px solid var(--ink);border-radius:5px;background:#fff;color:#151515;overflow:hidden}
-    .modifierTutorDomino>span{display:flex;align-items:center;justify-content:center;flex:1;font:750 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace}.modifierTutorDomino>span+span{border-top:2px solid #151515}
-    .modifierTutorMark{position:absolute;inset:0;display:grid;place-items:center;font:900 18px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;pointer-events:none}
-    .modifierTutorRoute{display:grid;gap:8px;width:min(280px,86%);font:750 13px/1.25 ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center}.modifierTutorRoute b{font-size:20px;letter-spacing:.12em}.modifierTutorRoute i{height:2px;background:var(--ink);opacity:.7}
-    .modifierTutorBody{min-height:90px;margin:0;color:var(--muted);font-size:15px;line-height:1.48}
-    .modifierTutorActions{display:grid;grid-template-columns:auto 1fr;gap:7px;margin-top:16px}.modifierTutorActions button{min-height:46px;border:1px solid var(--line);border-radius:4px;background:transparent;color:inherit;font:750 12px/1 inherit}.modifierTutorActions .modifierNext{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+    #modifierTutorialDialog{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:calc(24px + env(safe-area-inset-top)) max(20px,calc((100vw - 390px)/2)) calc(18px + env(safe-area-inset-bottom));border:0;border-radius:0;background:var(--bg);color:var(--ink);overflow:hidden}
+    #modifierTutorialDialog[open]{display:grid;grid-template-rows:auto auto minmax(128px,1fr) auto auto auto;align-content:stretch}
+    #modifierTutorialDialog::backdrop{background:var(--bg)}
+    .modifierTutorKicker{display:block;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    .modifierTutorTitle{margin:7px 0 0;font-size:clamp(28px,8vw,34px);font-weight:760;line-height:1;letter-spacing:.035em}
+    .modifierTutorVisual{display:flex;align-items:center;justify-content:center;min-height:0;margin:15px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden}
+    .modifierTutorGameTile{display:grid;place-items:center;width:110px;height:150px}
+    .modifierTutorGameTile .domino{transform:scale(1.55);transform-origin:center}
+    .modifierTutorGameTile .tileModMark{font-size:14px!important;font-weight:950!important;color:rgba(21,21,21,.86)!important}
+    .modifierTutorMachine{display:grid;grid-template-columns:54px 12px 54px 12px 54px 12px 54px;grid-template-rows:54px auto;align-items:center;justify-content:center;column-gap:2px;row-gap:8px;width:100%}
+    .modifierTutorMachineTile{display:grid;place-items:center;width:54px;height:54px;overflow:visible}
+    .modifierTutorMachineTile .domino{transform:rotate(90deg) scale(.68);transform-origin:center}
+    .modifierTutorLink{width:12px;height:1px;background:var(--ink);opacity:.45}
+    .modifierTutorMachine strong{grid-column:1/-1;color:var(--muted);font-size:10px;letter-spacing:.12em;text-align:center}
+    .modifierTutorBody{margin:0;color:var(--ink);font-size:16px;line-height:1.42}
+    .modifierTutorNote{margin:9px 0 0;color:var(--muted);font-size:12px;line-height:1.38}
+    .modifierTutorActions{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-top:16px;padding-top:10px;border-top:1px solid var(--line)}
+    .modifierTutorActions button{appearance:none;min-height:48px;padding:9px 14px;border:0;border-radius:3px;background:transparent;color:inherit;font:750 12px/1 inherit;letter-spacing:.04em}
+    .modifierTutorActions .modifierBack{padding-left:2px;padding-right:12px;color:var(--muted);text-align:left}
+    .modifierTutorActions .modifierNext{background:var(--ink);color:var(--paper)}
+    .modifierTutorActions button:focus{outline:none}
+    .modifierTutorActions button:focus-visible{outline:1px solid var(--ink);outline-offset:2px}
     .boardCoachLayer.tour .boardCoachActions{grid-template-columns:1fr auto!important;align-items:center!important}
     .boardCoachLayer.tour .boardCoachActions span{order:1!important;color:var(--ink)!important;font-size:12px!important;font-weight:850!important;letter-spacing:.09em!important;text-align:left!important}
     .boardCoachLayer.tour .boardCoachActions button[data-ux-action="leave"]{order:2!important;min-height:36px!important;padding:5px 7px!important;border:0!important;color:var(--muted)!important;font-size:9px!important;font-weight:650!important;opacity:.48}
     .tutorialPanel button{border-color:transparent!important;background:transparent!important;color:var(--muted)!important;font-size:9px!important;font-weight:650!important;opacity:.48!important}
     #nextGameMechanics,#nextModifiersTutorial{letter-spacing:.04em}
+    @media(max-height:700px){
+      .titleCard h1{transform:translate(-.6vw,-4.5dvh)}
+      #modifierTutorialDialog{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+      #modifierTutorialDialog[open]{grid-template-rows:auto auto minmax(104px,1fr) auto auto auto}
+      .modifierTutorTitle{font-size:27px}.modifierTutorVisual{margin:10px 0}.modifierTutorGameTile{height:112px}.modifierTutorGameTile .domino{transform:scale(1.35)}.modifierTutorBody{font-size:14px}.modifierTutorActions{margin-top:10px}.modifierTutorActions button{min-height:44px}
+    }
     @media(prefers-reduced-motion:reduce){.titleCard h1 .titleLetter{opacity:1;filter:none;animation:none}}
   `;
   doc.head.appendChild(style);
@@ -62,13 +79,25 @@
     h1.dataset.monoidAnimated='true';h1.setAttribute('aria-label','MONOID');h1.innerHTML='MONOID'.split('').map(letter=>`<span class="titleLetter" aria-hidden="true">${letter}</span>`).join('')
   }
 
+  function tuneGameplayChrome(){const menu=$('menuButton');if(menu){menu.textContent='MENU';menu.setAttribute('aria-label','Open game menu')}}
+
   let tutorialHub=null,modifierDialog=null,modifierStep=0;
   const modifierSteps=[
-    {abbr:'DD',title:'DOUBLE DOUBLE',values:['4','4'],body:'A physical non-zero Double can carry DD. On its first activation each Move, both halves apply. Later passes in that Move use the normal Double operation.'},
-    {abbr:'DE',title:'DOUBLE ECHO',values:['3','3'],body:'On this physical non-zero Double’s first activation each Move, an Echo copies the current Score and follows the already chosen downstream route once. Final Score is Main + Echo. Echoes cannot create Echoes.'},
-    {abbr:'ZM',title:'ZERO MEMORY',values:['0','5'],body:'On this physical Zero’s first rebound each Move, repeat the immediately preceding non-zero scoring operation exactly once, then continue the normal rebound.'},
-    {abbr:'LC',title:'LONG CHAIN',route:true,body:'LONG CHAIN modifies the whole machine. At 10+ unique routed tiles, every starred physical tile activated on that route pays its tier once. In Endless, the full payout lasts 7 qualifying Moves.'}
+    {abbr:'DD',cls:'dd',title:'DOUBLE DOUBLE',values:[4,4],body:'First activation each Move: both halves apply. Later passes use the normal Double operation.',note:'One physical Double. One stronger first activation.'},
+    {abbr:'DE',cls:'de',title:'DOUBLE ECHO',values:[3,3],body:'First activation each Move: copy the current Score and replay the already chosen downstream route once. Final Score = Main + Echo.',note:'The Echo follows the chosen route; it does not choose a new one.'},
+    {abbr:'ZM',cls:'zm',title:'ZERO MEMORY',values:[0,5],body:'First rebound each Move: repeat the immediately preceding non-zero scoring operation once, then continue the normal rebound.',note:'Zero remembers the operation, not just the printed pip value.'},
+    {abbr:'LC',title:'LONG CHAIN',route:true,body:'On a route of 10+ unique tiles, each activated starred physical tile pays its tier once. In Endless, the full payout lasts 7 qualifying Moves.',note:'Long Chain modifies the machine, not one domino.'}
   ];
+  const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
+  const pips=n=>(P[n]||[]).map(([x,y])=>`<i class="spip" style="left:${x}%;top:${y}%"></i>`).join('');
+  function dominoMarkup(a,b,abbr='',cls=''){
+    const mark=abbr?`<i class="tileModMark ${cls}" style="--mod-shift:0px" aria-hidden="true"><span>${abbr[0]}</span><span>${abbr[1]}</span></i>`:'';
+    return`<div class="domino"><div class="half"><div class="spips">${pips(a)}</div></div><div class="half"><div class="spips">${pips(b)}</div></div>${mark}</div>`
+  }
+  function modifierVisual(step){
+    if(!step.route)return`<div class="modifierTutorGameTile" role="img" aria-label="${step.title} on domino ${step.values[0]} ${step.values[1]}">${dominoMarkup(step.values[0],step.values[1],step.abbr,step.cls)}</div>`;
+    const tiles=[[1,2],[2,4],[4,5],[5,6]];return`<div class="modifierTutorMachine" role="img" aria-label="Example long routed machine">${tiles.map((v,i)=>`${i?'<i class="modifierTutorLink"></i>':''}<span class="modifierTutorMachineTile">${dominoMarkup(v[0],v[1])}</span>`).join('')}<strong>10+ UNIQUE ROUTED TILES</strong></div>`
+  }
 
   function ensureTutorialHub(){
     if(tutorialHub)return tutorialHub;
@@ -89,18 +118,18 @@
 
   function renderModifierTutorial(){
     if(!modifierDialog)return;const step=modifierSteps[modifierStep];
-    const visual=step.route?'<div class="modifierTutorRoute"><b>★ — ★ — ★ — ★</b><i></i><span>10+ UNIQUE TILES</span></div>':`<div class="modifierTutorDomino"><span>${step.values[0]}</span><span>${step.values[1]}</span><b class="modifierTutorMark">${step.abbr}</b></div>`;
     modifierDialog.querySelector('.modifierTutorKicker').textContent=`MODIFIERS · ${modifierStep+1}/${modifierSteps.length}`;
     modifierDialog.querySelector('.modifierTutorTitle').textContent=step.title;
-    modifierDialog.querySelector('.modifierTutorVisual').innerHTML=visual;
+    modifierDialog.querySelector('.modifierTutorVisual').innerHTML=modifierVisual(step);
     modifierDialog.querySelector('.modifierTutorBody').textContent=step.body;
+    modifierDialog.querySelector('.modifierTutorNote').textContent=step.note;
     const back=modifierDialog.querySelector('.modifierBack'),next=modifierDialog.querySelector('.modifierNext');
     back.textContent=modifierStep?'BACK':'CLOSE';next.textContent=modifierStep===modifierSteps.length-1?'DONE':'NEXT';
   }
   function ensureModifierDialog(){
     if(modifierDialog)return modifierDialog;
     modifierDialog=doc.createElement('dialog');modifierDialog.id='modifierTutorialDialog';
-    modifierDialog.innerHTML='<span class="modifierTutorKicker"></span><h2 class="modifierTutorTitle"></h2><div class="modifierTutorVisual"></div><p class="modifierTutorBody"></p><div class="modifierTutorActions"><button class="modifierBack">BACK</button><button class="modifierNext">NEXT</button></div>';
+    modifierDialog.innerHTML='<span class="modifierTutorKicker"></span><h2 class="modifierTutorTitle"></h2><div class="modifierTutorVisual"></div><p class="modifierTutorBody"></p><p class="modifierTutorNote"></p><div class="modifierTutorActions"><button class="modifierBack">BACK</button><button class="modifierNext">NEXT</button></div>';
     doc.body.appendChild(modifierDialog);
     modifierDialog.querySelector('.modifierBack').addEventListener('click',()=>{if(modifierStep===0){modifierDialog.close();return}modifierStep--;renderModifierTutorial()});
     modifierDialog.querySelector('.modifierNext').addEventListener('click',()=>{if(modifierStep===modifierSteps.length-1){modifierDialog.close();return}modifierStep++;renderModifierTutorial()});
@@ -136,7 +165,7 @@
     if(!systemsDone&&nextMods)nextMods.remove()
   }
 
-  installBuildStamp();animateTitle();installTutorialHubButton();
+  installBuildStamp();animateTitle();tuneGameplayChrome();installTutorialHubButton();
   ensureTutorialHub();ensureModifierDialog();
   new MutationObserver(syncTutorialContinuations).observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden'],characterData:true});
   syncTutorialContinuations();
