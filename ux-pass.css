@@ -31,6 +31,7 @@ body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;back
 .boardCoachLayer.tutorial .boardCoachCard{padding:11px 12px;background:rgba(247,247,244,.92);backdrop-filter:blur(3px)}
 .boardCoachLayer.tutorial .boardCoachCard h2{font-size:clamp(17px,5vw,22px)}
 .boardCoachLayer.tutorial .boardCoachCard p{font-size:clamp(15px,4vw,18px);line-height:1.25}
+.boardCoachLayer.tutorial .boardCoachActions{pointer-events:auto}
 .monoidTourHighlight{position:relative!important;z-index:505!important;outline:2px solid #fff!important;outline-offset:3px!important;background:var(--paper)!important;box-shadow:0 0 0 5px rgba(255,255,255,.22)!important}
 body.monoidTourActive .gameHeader,body.monoidTourActive .scoreStrip,body.monoidTourActive .metaStrip,body.monoidTourActive .bottomBar{pointer-events:none}
 .tile.tutorialLocked{opacity:.34!important;filter:none!important;cursor:default!important}
