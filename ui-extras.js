@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUiExtrasInstalled)return;
   root.__monoidUiExtrasInstalled=true;
 
-  const BUILD_ID='20260915.1';
+  const BUILD_ID='20260915.3';
   const $=id=>doc.getElementById(id);
   const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
@@ -115,7 +115,7 @@
     if(learn){learn.textContent='TUTORIALS';learn.onclick=event=>{event?.preventDefault?.();openTutorialHub()}}
     syncTutorialEntryButtons()
   }
-  function syncTutorialEntryButtons(){const button=$('tutorialHubButton');if(!button)return;button.hidden=!!firstRunChoice&&!firstRunChoice.hidden}
+  function syncTutorialEntryButtons(){const button=$('tutorialHubButton');if(!button)return;const hidden=!!firstRunChoice&&!firstRunChoice.hidden;if(button.hidden!==hidden)button.hidden=hidden}
 
   function waitForSelectionThen(action){
     leaveTutorial?.click();let tries=0;const tick=()=>{if(selection&&!selection.hidden){action();return}if(tries++<30)setTimeout(tick,40)};setTimeout(tick,0)
@@ -138,6 +138,6 @@
 
   installBuildStamp();animateTitle();installTutorialHubButton();
   ensureTutorialHub();ensureModifierDialog();
-  new MutationObserver(syncTutorialContinuations).observe(doc.body,{subtree:true,childList:true,attributes:true,characterData:true});
+  new MutationObserver(syncTutorialContinuations).observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden'],characterData:true});
   syncTutorialContinuations();
 })(window);
