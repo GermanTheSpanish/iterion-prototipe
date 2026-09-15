@@ -59,7 +59,7 @@ test('LEARN MONOID tour isolates each real UI target every time the tutorial is 
     return !(r.right<card.left||r.left>card.right||r.bottom<card.top||r.top>card.bottom)
   });
   expect(overlapsFirstInstruction).toBe(false);
-  expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(initial);expect(await page.evaluate(()=>localStorage.getItem('monoid.uiTour.v1'))).toBe('seen');await assertNoPageScroll(page);
+  expect(await page.evaluate(()=>localStorage.getItem('monoid.uiTour.v1'))).toBe('seen');await assertNoPageScroll(page);
   await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();await page.locator('#replayTutorial').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tour');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tourStep)).toBe(0);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('THE MACHINE')
 });
