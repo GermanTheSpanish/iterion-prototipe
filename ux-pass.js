@@ -30,8 +30,10 @@
     {title:'BUILD THE SIGNAL',body:'EVEN adds. ODD multiplies.\nConnect the 3.'},
     {title:'ZERO',body:"Zero doesn't score.\nIt turns the signal back. Connect the 4."},
     {title:'REBOUND',body:'Start from the other end.\nHit Zero — then watch the signal come all the way back.'},
-    {title:'T-SPLIT',body:'Enter the Double from the side.\nWith both ends connected, the signal splits in two.'}
+    {title:'EXTEND THE ARM',body:'Keep building from the rebound end.\nMake the machine longer.'},
+    {title:'T-SPLIT',body:'Now enter the Double from the side.\nWith both ends connected, the signal splits in two.'}
   ];
+  const tutorialTileIds=new Set(['d2-2','d2-3','d3-4','d0-4','d2-5','d5-6','d2-6']);
 
   function gameFlow(){return root.__monoidFlow||{screen:null,tutorialStep:null}}
   function currentGame(){return root.__monoidGame||null}
@@ -47,13 +49,18 @@
       {tileId:'d2-3',x,y:8,rr:1},
       {tileId:'d3-4',x,y:12,rr:1},
       {tileId:'d0-4',x,y:18,rr:3},
-      {tileId:'d2-5',x,y:2,rr:3},
-      {tileId:'d2-6',x:x+2,y:5,rr:0}
+      {tileId:'d2-5',x,y:2,rr:3}
     ][step]||null
   }
   function prepareTutorialHand(game,tileId){
     const D=root.IterionData,s=game.state(),tile=s.set.find(t=>t.id===tileId);if(!tile)return;
-    s.hand=Array(D.HAND_SIZE).fill(null);s.hand[0]=tile;s.reserve=s.reserve.filter(t=>t.id!==tileId);
+    const placed=new Set((s.pieces||[]).map(p=>p.tile?.id).filter(Boolean));
+    const primaryPool=s.set.filter(t=>!placed.has(t.id)&&t.id!==tileId&&!tutorialTileIds.has(t.id));
+    const fallbackPool=s.set.filter(t=>!placed.has(t.id)&&t.id!==tileId&&tutorialTileIds.has(t.id));
+    const decoys=[...primaryPool,...fallbackPool].slice(0,Math.max(0,D.HAND_SIZE-1));
+    s.hand=[tile,...decoys];while(s.hand.length<D.HAND_SIZE)s.hand.push(null);
+    const inHand=new Set(s.hand.filter(Boolean).map(t=>t.id));
+    s.reserve=s.set.filter(t=>!placed.has(t.id)&&!inHand.has(t.id));
     s.blocked=false;s.needsReroll=false;s.cleared=false;s.running=false
   }
   function restoreTutorialPatch(){
@@ -67,23 +74,37 @@
     tutorialPatch={game,candidates,openShop,finishPlacement};
     game.candidatesForIndex=function(i){
       const E=root.IterionEngine,step=gameFlow().tutorialStep,s=game.state(),tile=s.hand[i],rootPiece=tutorialRoot(game);
+      if(i!==0)return[];
       if(step===0&&!rootPiece&&tile&&s.rootRR!==1)game.setRootRotation(1);
       const list=candidates(i),spec=tutorialPlacement(step,E);
-      if(!tile||!spec||tile.id!==spec.tileId)return list;
-      return list.filter(c=>c.x===spec.x&&c.y===spec.y&&c.rr===spec.rr)
+      if(!tile)return[];
+      if(spec&&tile.id===spec.tileId)return list.filter(c=>c.x===spec.x&&c.y===spec.y&&c.rr===spec.rr);
+      if(step===5&&s.turn<6&&tile.id==='d5-6'){
+        const rebound=s.pieces.find(p=>p.tile?.id==='d2-5');if(!rebound)return[];
+        return list.filter(c=>E.axis(c.rr)===rebound.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rebound.id&&contact.kind==='full')&&!(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece?.id))
+      }
+      if(step===5&&s.turn>=6&&tile.id==='d2-6'){
+        return list.filter((c,n)=>{
+          const sideEntry=E.axis(c.rr)!==rootPiece?.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece?.id&&String(contact.kind||'').startsWith('double-'));
+          const sim=sideEntry?tutorialSim(game,tile,c,n):null;
+          return sideEntry&&!!sim?.events?.some(e=>e.type==='signal-fork'&&e.piece===rootPiece?.id)
+        })
+      }
+      return[]
     };
     game.openShop=function(...args){
-      if(gameFlow().screen==='tutorial'&&gameFlow().tutorialStep===5&&game.state().turn<6)return true;
+      if(gameFlow().screen==='tutorial'&&gameFlow().tutorialStep===5&&game.state().turn<7)return true;
       return openShop(...args)
     };
     game.finishPlacement=function(ctx){
       const step=gameFlow().tutorialStep,result=finishPlacement(ctx);
       if(gameFlow().screen!=='tutorial'||!result?.ok)return result;
       if(step===3)queueMicrotask(()=>{if(gameFlow().tutorialStep===4&&currentGame()===game)prepareTutorialHand(game,'d2-5')});
-      if(step===4)queueMicrotask(()=>{if(gameFlow().tutorialStep===5&&currentGame()===game){game.config.TARGETS[0]=1e9;prepareTutorialHand(game,'d2-6')}});
+      if(step===4)queueMicrotask(()=>{if(gameFlow().tutorialStep===5&&currentGame()===game){game.config.TARGETS[0]=1e9;prepareTutorialHand(game,'d5-6')}});
       if(step===5){
         const rootPiece=tutorialRoot(game),split=ctx?.sim?.events?.some(e=>e.type==='signal-fork'&&e.piece===rootPiece?.id);
         if(split){const state=game.state();state.cleared=false;openShop()}
+        else if(game.state().turn===6)queueMicrotask(()=>{if(gameFlow().tutorialStep===5&&currentGame()===game)prepareTutorialHand(game,'d2-6')})
       }
       return result
     }
@@ -141,14 +162,27 @@
   function advanceTour(){if(ux.mode!=='tour')return;if(ux.tourStep<tour.length-1){ux.tourStep++;renderTour();return}finishTour()}
   function finishTour(){localStorage.setItem(TOUR_KEY,'seen');document.body.classList.remove('monoidTourActive');ux.mode='tutorial';ux.tourStep=null;renderTutorialCoach()}
 
+  function syncTutorialHandLocks(){
+    const active=gameFlow().screen==='tutorial';
+    document.querySelectorAll('#hand .tile').forEach((button,index)=>{
+      const locked=active&&index!==0;button.classList.toggle('tutorialLocked',locked);
+      if(locked){button.disabled=true;button.setAttribute('aria-disabled','true');button.setAttribute('aria-label',(button.getAttribute('aria-label')||'Domino')+' Tutorial: use the highlighted tile.')}
+    })
+  }
+  function positionTutorialCoach(game){
+    const E=root.IterionEngine,tile=game?.state?.().hand?.[0],candidate=game?.candidatesForIndex?.(0)?.[0];
+    if(!tile||!candidate)return;const p=E.pieceFrom(tile,candidate.x,candidate.y,0,candidate.rr,-1),centreY=(p.rect.miny+p.rect.maxy)/2;
+    coach.classList.toggle('coachBottom',centreY<E.H*.56)
+  }
   function renderTutorialCoach(){
     const flow=gameFlow();
     if(flow.screen!=='tutorial'){if(ux.mode==='tutorial')hideCoach();return}
     if(ux.mode==='tour')return;
     const commerce=overlay.classList.contains('show')&&modal.classList.contains('commerceModal');if(commerce){if(ux.mode==='tutorial')coach.hidden=true;return}
-    const step=Math.max(0,Math.min(tutorialCopy.length-1,Number(flow.tutorialStep)||0)),copy=tutorialCopy[step];
-    ux.mode='tutorial';highlight(document.querySelector('#hand .tile'));
-    showCoach('tutorial',step,`LEARN MONOID · ${step+1}/${tutorialCopy.length}`,copy.title,copy.body,'<button id="monoidCoachLeave" data-ux-action="leave">LEAVE</button>')
+    const game=currentGame(),step=Math.max(0,Math.min(5,Number(flow.tutorialStep)||0)),turn=game?.state?.().turn||0,copyIndex=step===5?(turn<6?5:6):step,copy=tutorialCopy[copyIndex];
+    ux.mode='tutorial';syncTutorialHandLocks();highlight(document.querySelector('#hand .tile:not(.tutorialLocked)')||document.querySelector('#hand .tile'));
+    showCoach('tutorial',copyIndex,`LEARN MONOID · ${copyIndex+1}/${tutorialCopy.length}`,copy.title,copy.body,'<button id="monoidCoachLeave" data-ux-action="leave">LEAVE</button>');
+    positionTutorialCoach(game)
   }
 
   function showFirstBrief(){
@@ -219,10 +253,10 @@
   function syncExperience(){
     document.title=document.title.replace(/^NOMON\b/,'MONOID');if(wordmark&&wordmark.textContent.trim()==='NOMON')wordmark.textContent='MONOID';
     const flow=gameFlow(),game=currentGame();
-    if(flow.screen==='tutorial'&&game&&game!==lastTutorialGame){lastTutorialGame=game;ensureTutorialPatch();startTour()}
+    if(flow.screen==='tutorial'&&game&&game!==lastTutorialGame){lastTutorialGame=game;ensureTutorialPatch();prepareTutorialHand(game,'d2-2');startTour()}
     else if(flow.screen!=='tutorial'&&lastTutorialGame){lastTutorialGame=null;restoreTutorialPatch()}
     if(app.hidden&&ux.mode!=='idle'&&ux.mode!=='endlessBrief')hideCoach();
-    ensureTutorialPatch();syncPendingDraw();wrapEndlessButton();syncCommerce();
+    ensureTutorialPatch();syncPendingDraw();syncTutorialHandLocks();wrapEndlessButton();syncCommerce();
     if(flow.screen==='tutorial'&&ux.mode!=='tour')renderTutorialCoach();else if(flow.screen!=='tutorial'&&ux.mode==='tutorial')hideCoach();
     if(!coach.hidden)syncCoachRect()
   }
