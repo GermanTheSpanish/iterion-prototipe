@@ -34,12 +34,12 @@ test('entry card uses keyboard, has no click-through and starts the real opening
 
 test('Game Selection keeps new, continue and tutorial separate and confirms replacement',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const original=await page.evaluate(()=>window.__monoidGame.state().runId);
-  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#firstRunChoice')).toBeHidden();await expect(page.locator('#startRun')).toHaveText('NEW RUN');await expect(page.locator('#continueRun')).toBeVisible();await expect(page.locator('#replayTutorial')).toBeVisible();
+  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#firstRunChoice')).toBeHidden();await expect(page.locator('#startRun')).toHaveText('NEW RUN');await expect(page.locator('#continueRun')).toBeVisible();await expect(page.locator('#replayTutorial')).toBeVisible();await expect(page.locator('#systemsTutorial')).toBeVisible();
   page.once('dialog',dialog=>dialog.dismiss());await page.locator('#startRun').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.runId)).toBe(original);
   page.once('dialog',dialog=>dialog.accept());await page.locator('#startRun').click();await expect(page.locator('#board')).toBeVisible();expect(await page.evaluate(()=>window.__monoidGame.state().runId)).not.toBe(original);
 });
 
-test('tutorial can be left and repeated without changing the saved run',async({page})=>{
+test('Basics tutorial can be left and repeated without changing the saved run',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));
@@ -52,28 +52,28 @@ test('tutorial can be left and repeated without changing the saved run',async({p
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
 });
 
-test('tutorial completes with real placements, rebound, a longer arm and T-Split and can retry',async({page})=>{
+test('Basics tutorial completes seven real legal placements and can retry',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await page.locator('#replayTutorial').click();await finishTutorialTour(page);
   await placeTutorialTile(page,'2/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(1);
   await placeTutorialTile(page,'3/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().turns.filter(e=>Number.isInteger(e.turn)).at(-1).ops)).toContain('+2');
   await placeTutorialTile(page,'4/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(3);
   await placeTutorialTile(page,'5/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().turns.filter(e=>Number.isInteger(e.turn)).at(-1).ops)).toContain('×3');
-  await placeTutorialTile(page,'6/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().turns.some(e=>Number.isInteger(e.turn)&&e.rebounds>0))).toBe(true);
+  await placeTutorialTile(page,'6/6');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');await placeTutorialTile(page,null);expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(6);
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await placeTutorialTile(page,null);
   await expect(page.locator('#overlayTitle')).toHaveText('SHOP');await expect(page.locator('#overlayBody')).toContainText('real Shop');await expect(page.locator('#overlayBody')).toContainText('Market appears only between stages');
-  expect(await page.evaluate(()=>{const s=window.__monoidGame.snapshot();return s.board.length===7&&s.shop.open&&s.turns.some(e=>e.type==='signal-resolution'&&(e.events||[]).some(x=>x.type==='signal-fork'))})).toBe(true);
+  expect(await page.evaluate(()=>{const s=window.__monoidGame.snapshot();return s.board.length===7&&s.shop.open})).toBe(true);
   await page.locator('#overlaySecondary').click();await finishTutorialTour(page);await expect(page.locator('#tutorialStep')).toContainText('1/6');
   await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
 });
 
-test('tutorial FINISH exits after the seventh real placement',async({page})=>{
+test('Basics tutorial FINISH exits after the seventh real placement',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#learnMonoid').click();await finishTutorialTour(page);
   for(const step of ['2/6','3/6','4/6','5/6','6/6'])await placeTutorialTile(page,step);await placeTutorialTile(page,null);await placeTutorialTile(page,null);
   await expect(page.locator('#overlayPrimary')).toHaveText('FINISH');await page.locator('#overlayPrimary').click();await expect(page.locator('#gameSelection')).toBeVisible();
 });
 
-test('leaving during drag or an in-flight placement never replaces the normal run',async({page})=>{
+test('leaving during drag or an in-flight Basics placement never replaces the normal run',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await page.locator('#replayTutorial').click();await finishTutorialTour(page);
   const tile=await page.locator('#hand .tile').first().boundingBox();await page.mouse.move(tile.x+tile.width/2,tile.y+tile.height/2);await page.mouse.down();await page.mouse.move(tile.x-20,tile.y+tile.height/2);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible();
   await page.locator('#replayTutorial').click();await finishTutorialTour(page);await expect(page.locator('#reroll')).toBeDisabled();await placeTutorialTile(page,null);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible({timeout:12000});
