@@ -57,6 +57,9 @@
     game.candidatesForIndex=function(i){
       const list=candidates(i),step=gameFlow().tutorialStep,s=game.state(),tile=s.hand[i],rootPiece=tutorialRoot(game);
       if(!tile||!rootPiece)return list;
+      if(step===1){
+        return list.filter(c=>(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full'))
+      }
       if(step===4){
         return list.filter((c,n)=>{
           const oppositeEnd=(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full');
