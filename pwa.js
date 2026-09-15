@@ -79,5 +79,11 @@
     const local=/^(localhost|127\.0\.0\.1)$/.test(root.location.hostname);if(root.location.protocol!=='https:'&&!local)return;
     try{const reg=await nav.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'});state.swRegistered=true;state.swScope=reg.scope;reg.update().catch(()=>{})}catch(error){state.swRegistered=false;state.swScope=null;console.warn('MONOID PWA service worker registration failed',error)}
   }
-  if(doc.readyState==='complete')registerServiceWorker();else root.addEventListener('load',registerServiceWorker,{once:true})
+  if(doc.readyState==='complete')registerServiceWorker();else root.addEventListener('load',registerServiceWorker,{once:true});
+
+  function loadUiExtras(){
+    if(doc.querySelector('script[data-monoid-ui-extras]'))return;
+    const script=doc.createElement('script');script.src='ui-extras.js?v=20260915.1';script.async=false;script.dataset.monoidUiExtras='true';doc.body.appendChild(script)
+  }
+  if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',loadUiExtras,{once:true});else loadUiExtras()
 })(window);
