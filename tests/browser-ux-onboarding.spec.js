@@ -14,6 +14,13 @@ async function finishUiTour(page){
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tutorial')
 }
 
+async function assertTutorialHandGuidance(page){
+  await expect(page.locator('#hand .tile')).toHaveCount(5);
+  expect(await page.locator('#hand .tile').evaluateAll(nodes=>nodes.filter(n=>!n.disabled).length)).toBe(1);
+  await expect(page.locator('#hand .tile').first()).not.toHaveClass(/tutorialLocked/);
+  for(let i=1;i<5;i++)await expect(page.locator('#hand .tile').nth(i)).toHaveClass(/tutorialLocked/)
+}
+
 async function dropCurrentTutorialTile(page){
   const tile=page.locator('#hand .tile').first(),box=await tile.boundingBox();expect(box).toBeTruthy();
   const target=await page.evaluate(()=>{
@@ -32,7 +39,7 @@ async function placeCurrentTutorialTile(page){
   await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().running),{timeout:10000}).toBe(false)
 }
 
-test('LEARN MONOID tour explains the real UI every time the tutorial is opened',async({page})=>{
+test('LEARN MONOID tour isolates each real UI target every time the tutorial is opened',async({page})=>{
   await page.setViewportSize({width:390,height:844});await enterSelection(page);await page.locator('#learnMonoid').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tour');
   const initial=await page.evaluate(()=>window.__monoidGame.exportState());
@@ -40,20 +47,29 @@ test('LEARN MONOID tour explains the real UI every time the tutorial is opened',
   const headings=['THE MACHINE','TARGET','SCORE','MOVES','HAND'];
   for(let i=0;i<targets.length;i++){
     await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tourStep)).toBe(i);await expect(page.locator(targets[i])).toHaveClass(/monoidTourHighlight/);await expect(page.locator('#monoidBoardCoach h2')).toHaveText(headings[i]);
+    const focus=await page.locator(targets[i]).evaluate(el=>({background:getComputedStyle(el).backgroundColor,z:getComputedStyle(el).zIndex,shade:getComputedStyle(document.body,'::before').backgroundColor}));
+    expect(focus.background).not.toBe('rgba(0, 0, 0, 0)');expect(Number(focus.z)).toBeGreaterThan(500);expect(focus.shade).not.toBe('rgba(0, 0, 0, 0)');
     expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(initial);await page.locator('#monoidBoardCoach').click()
   }
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tutorial');await expect(page.locator('#monoidBoardCoach h2')).toHaveText('THE FIRST TILE');await expect(page.locator('#hand .tile').first()).toHaveClass(/monoidTourHighlight/);
+  await assertTutorialHandGuidance(page);
+  const overlapsFirstInstruction=await page.evaluate(()=>{
+    const g=window.__monoidGame,E=window.IterionEngine,t=g.state().hand[0],c=g.candidatesForIndex(0)[0],b=document.querySelector('#board').getBoundingClientRect(),card=document.querySelector('#monoidBoardCoach .boardCoachCard').getBoundingClientRect();if(!t||!c)return true;
+    const p=E.pieceFrom(t,c.x,c.y,0,c.rr,-1),r={left:b.left+p.rect.minx/E.G*b.width,right:b.left+p.rect.maxx/E.G*b.width,top:b.top+p.rect.miny/E.H*b.height,bottom:b.top+p.rect.maxy/E.H*b.height};
+    return !(r.right<card.left||r.left>card.right||r.bottom<card.top||r.top>card.bottom)
+  });
+  expect(overlapsFirstInstruction).toBe(false);
   expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(initial);expect(await page.evaluate(()=>localStorage.getItem('monoid.uiTour.v1'))).toBe('seen');await assertNoPageScroll(page);
   await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();await page.locator('#replayTutorial').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tour');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tourStep)).toBe(0);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('THE MACHINE')
 });
 
-test('tutorial rebound starts at the opposite end, teaches a real T-Split, and conceals the next draw during cascades',async({page})=>{
+test('tutorial builds a longer rebound arm, teaches a real T-Split, and conceals the next draw during cascades',async({page})=>{
   await page.setViewportSize({width:390,height:844});await enterSelection(page);await page.locator('#learnMonoid').click();await finishUiTour(page);
-  for(let i=0;i<4;i++)await placeCurrentTutorialTile(page);
+  for(let i=0;i<4;i++){await assertTutorialHandGuidance(page);await placeCurrentTutorialTile(page)}
   await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.tutorialStep)).toBe(4);
   await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().hand[0]?.id)).toBe('d2-5');
-  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('REBOUND');
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('REBOUND');await assertTutorialHandGuidance(page);
   const reboundCandidates=await page.evaluate(()=>{
     const g=window.__monoidGame,root=g.state().pieces.find(p=>p.tile.id==='d2-2'),cs=g.candidatesForIndex(0);
     return{count:cs.length,allOppositeEnds:cs.every(c=>(c.contacts||[]).some(x=>x.piece?.id===root.id&&x.kind==='full'))}
@@ -64,9 +80,13 @@ test('tutorial rebound starts at the opposite end, teaches a real T-Split, and c
   await expect(page.locator('#hand .domino').first()).toHaveClass(/back/);
   await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().running),{timeout:10000}).toBe(false);
   await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.tutorialStep),{timeout:10000}).toBe(5);
+  await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().hand[0]?.id)).toBe('d5-6');
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');await assertTutorialHandGuidance(page);
+  const extension=await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),rebound=s.pieces.find(p=>p.tile.id==='d2-5'),root=s.pieces.find(p=>p.tile.id==='d2-2'),cs=g.candidatesForIndex(0);return{count:cs.length,extends:cs.every(c=>(c.contacts||[]).some(x=>x.piece?.id===rebound.id&&x.kind==='full')&&!(c.contacts||[]).some(x=>x.piece?.id===root.id))}});
+  expect(extension.count).toBeGreaterThan(0);expect(extension.extends).toBe(true);
+  await placeCurrentTutorialTile(page);
   await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().hand[0]?.id)).toBe('d2-6');
-  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');
-  await expect.poll(()=>page.locator('#hand .domino').first().evaluate(el=>el.classList.contains('back'))).toBe(false);
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await expect(page.locator('#monoidBoardCoach')).toContainText('7/7');await assertTutorialHandGuidance(page);
   const splitCandidates=await page.evaluate(()=>{
     const g=window.__monoidGame,E=window.IterionEngine,D=window.IterionData,s=g.state(),tile=s.hand[0],root=s.pieces.find(p=>p.tile.id==='d2-2'),cs=g.candidatesForIndex(0);
     return{count:cs.length,allSplit:cs.every((c,n)=>{const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,200000+n);p.tile={...tile};const sim=E.bestSignal(p.id,[...s.pieces,p],{initialOutput:tile.a+tile.b,bifurcate:D.BIFURCATION_ENABLED});return sim.events.some(e=>e.type==='signal-fork'&&e.piece===root.id)})}
@@ -74,6 +94,7 @@ test('tutorial rebound starts at the opposite end, teaches a real T-Split, and c
   expect(splitCandidates.count).toBeGreaterThan(0);expect(splitCandidates.allSplit).toBe(true);
   await placeCurrentTutorialTile(page);
   await expect(page.locator('#overlayTitle')).toHaveText('SHOP');
+  expect(await page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(7);
   expect(await page.evaluate(()=>window.__monoidGame.state().events.some(v=>v.type==='signal-resolution'&&(v.events||[]).some(e=>e.type==='signal-fork')))).toBe(true);
   await assertCommerceIsDedicatedOverlay(page)
 });
