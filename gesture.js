@@ -50,3 +50,13 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pw
   script.dataset.monoidPwa='true';
   document.head.appendChild(script)
 }
+
+// Development-only update probe. It is isolated from engine/game state and can
+// be removed with the visible build marker once external playtesting stabilises.
+if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-update]')){
+  const script=document.createElement('script');
+  script.src='update-check.js?v=20260915.2';
+  script.async=false;
+  script.dataset.monoidUpdate='true';
+  document.head.appendChild(script)
+}
