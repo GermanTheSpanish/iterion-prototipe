@@ -6,8 +6,8 @@
 
   const BUILD_ID='20260915.1';
   const $=id=>doc.getElementById(id);
-  const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow');
-  const replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
+  const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
+  const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
   const overlay=$('overlay'),overlayTitle=$('overlayTitle'),overlayPrimary=$('overlayPrimary');
   const coach=$('monoidBoardCoach');
   const version=`v${root.IterionData?.VERSION||'dev'} · build ${BUILD_ID}`;
@@ -85,6 +85,7 @@
     });
     return tutorialHub
   }
+  function openTutorialHub(){ensureTutorialHub();if(!tutorialHub.open)tutorialHub.showModal()}
 
   function renderModifierTutorial(){
     if(!modifierDialog)return;const step=modifierSteps[modifierStep];
@@ -110,14 +111,18 @@
   function installTutorialHubButton(){
     if(!selection||!replay||!systems)return;
     replay.hidden=true;systems.hidden=true;
-    let button=$('tutorialHubButton');if(!button){button=doc.createElement('button');button.id='tutorialHubButton';button.className='entrySecondary';button.textContent='TUTORIALS';selection.insertBefore(button,replay);button.addEventListener('click',()=>{ensureTutorialHub();if(!tutorialHub.open)tutorialHub.showModal()})}
+    let button=$('tutorialHubButton');if(!button){button=doc.createElement('button');button.id='tutorialHubButton';button.className='entrySecondary';button.textContent='TUTORIALS';selection.insertBefore(button,replay);button.addEventListener('click',openTutorialHub)}
+    if(learn){learn.textContent='TUTORIALS';learn.onclick=event=>{event?.preventDefault?.();openTutorialHub()}}
+    syncTutorialEntryButtons()
   }
+  function syncTutorialEntryButtons(){const button=$('tutorialHubButton');if(!button)return;button.hidden=!!firstRunChoice&&!firstRunChoice.hidden}
 
   function waitForSelectionThen(action){
     leaveTutorial?.click();let tries=0;const tick=()=>{if(selection&&!selection.hidden){action();return}if(tries++<30)setTimeout(tick,40)};setTimeout(tick,0)
   }
 
   function syncTutorialContinuations(){
+    syncTutorialEntryButtons();
     const ux=root.__monoidUx||{};
     const basicsDone=ux.tutorialKind==='basics'&&overlay?.classList.contains('show')&&overlayTitle?.textContent.trim()==='SHOP'&&overlayPrimary?.textContent.trim()==='FINISH';
     let next=$('nextGameMechanics');
