@@ -60,7 +60,7 @@
 
   const style=doc.createElement('style');style.id='monoid-update-style';style.textContent='#checkForUpdates,#applyMonoidUpdate{letter-spacing:.02em}#applyMonoidUpdate{background:#151515;color:#fff;border-color:#151515}';doc.head.appendChild(style);
   root.MonoidUpdate=Object.freeze({checkForUpdates,applyUpdate});
-  new MutationObserver(()=>{installMenuActions();syncBuildStamp()}).observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','open']});
+  new MutationObserver(syncBuildStamp).observe(doc.body,{subtree:true,childList:true});
   doc.addEventListener('visibilitychange',()=>{if(doc.visibilityState==='visible')checkForUpdates({silent:true})});
   root.addEventListener('pageshow',()=>checkForUpdates({silent:true}));
   installMenuActions();syncBuildStamp();setTimeout(()=>checkForUpdates({silent:true,force:true}),500)
