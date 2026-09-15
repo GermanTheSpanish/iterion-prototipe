@@ -81,9 +81,9 @@
   }
   if(doc.readyState==='complete')registerServiceWorker();else root.addEventListener('load',registerServiceWorker,{once:true});
 
-  function loadUiExtras(){
-    if(doc.querySelector('script[data-monoid-ui-extras]'))return;
-    const script=doc.createElement('script');script.src=`ui-extras.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiExtras='true';doc.body.appendChild(script)
+  function loadUiLayer(){
+    if(!doc.querySelector('script[data-monoid-ui-extras]')){const script=doc.createElement('script');script.src=`ui-extras.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiExtras='true';doc.body.appendChild(script)}
+    if(!doc.querySelector('script[data-monoid-ui-runtime-fixes]')){const script=doc.createElement('script');script.src=`ui-runtime-fixes.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiRuntimeFixes='true';doc.body.appendChild(script)}
   }
-  if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',loadUiExtras,{once:true});else loadUiExtras()
+  if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',loadUiLayer,{once:true});else loadUiLayer()
 })(window);

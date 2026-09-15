@@ -84,7 +84,7 @@ test('leaving during drag or an in-flight Basics placement never replaces the no
 });
 
 for(const viewport of [{width:375,height:667},{width:390,height:844}]){
-  test(`three exclusive screens and centered title ${viewport.width}`,async({page},testInfo)=>{
+  test(`three exclusive screens and raised title ${viewport.width}`,async({page},testInfo)=>{
     await page.setViewportSize(viewport);
     await page.goto('http://127.0.0.1:4173/');
     await expect(page.locator('#titleCard')).toHaveText('MONOID');
@@ -92,7 +92,7 @@ for(const viewport of [{width:375,height:667},{width:390,height:844}]){
     await expect(page.locator('#gameSelection')).toBeHidden();
     const title=await page.locator('#titleCard h1').boundingBox();
     expect(Math.abs(title.x+title.width/2-viewport.width/2)).toBeLessThan(2);
-    expect(Math.abs(title.y+title.height/2-viewport.height/2)).toBeLessThan(2);
+    const centerY=title.y+title.height/2;expect(centerY).toBeGreaterThan(viewport.height*.40);expect(centerY).toBeLessThan(viewport.height*.48);
     await page.screenshot({path:testInfo.outputPath('title-only.png')});
     await page.mouse.click(12,12);
     await expect(page.locator('#gameSelection')).toBeVisible();
@@ -116,7 +116,7 @@ for(const viewport of [{width:375,height:667},{width:390,height:844}]){
   });
 }
 
-test('critical title and screen isolation survive a missing presentation stylesheet',async({page})=>{
+test('critical raised title and screen isolation survive a missing presentation stylesheet',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.route('**/ui-theme.css*',route=>route.abort());
   await page.goto('http://127.0.0.1:4173/');
@@ -124,10 +124,10 @@ test('critical title and screen isolation survive a missing presentation stylesh
   await expect(page.locator('#titleCard')).toHaveText('MONOID');
   const title=await page.locator('#titleCard h1').boundingBox();
   expect(Math.abs(title.x+title.width/2-195)).toBeLessThan(2);
-  expect(Math.abs(title.y+title.height/2-422)).toBeLessThan(2);
+  const centerY=title.y+title.height/2;expect(centerY).toBeGreaterThan(844*.40);expect(centerY).toBeLessThan(844*.48);
   const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
   expect(assets.length).toBeGreaterThan(1);
-  expect(assets.every(url=>url.includes('?v=entry-0311')||/(?:ui-extras|update-check)\.js\?v=20260915\.\d+$/.test(url))).toBe(true);
+  expect(assets.every(url=>url.includes('?v=entry-0311')||/(?:ui-extras|ui-runtime-fixes|update-check)\.js\?v=20260915\.\d+$/.test(url))).toBe(true);
   await page.mouse.click(12,12);
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();
