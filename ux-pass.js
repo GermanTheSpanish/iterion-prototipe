@@ -40,6 +40,10 @@
     const E=root.IterionEngine,D=root.IterionData,s=game.state(),p=E.pieceFrom(tile,c.x,c.y,0,c.rr,100000+n);p.tile={...tile};
     return E.bestSignal(p.id,[...s.pieces,p],{initialOutput:tile.a+tile.b,bifurcate:D.BIFURCATION_ENABLED})
   }
+  function isShortEnd(axis,side){return axis==='H'?(side==='L'||side==='R'):(side==='U'||side==='D')}
+  function touchesShortEnd(candidate,piece){
+    return(candidate.contacts||[]).some(contact=>contact.piece?.id===piece.id&&contact.kind==='full'&&contact.relation&&isShortEnd(piece.axis,contact.relation.sideB))
+  }
   function prepareTutorialHand(game,tileId){
     const D=root.IterionData,s=game.state(),tile=s.set.find(t=>t.id===tileId);if(!tile)return;
     s.hand=Array(D.HAND_SIZE).fill(null);s.hand[0]=tile;s.reserve=s.reserve.filter(t=>t.id!==tileId);
@@ -62,15 +66,15 @@
       }
       if(!tile||!rootPiece)return list;
       if(step===1){
-        return list.filter(c=>E.axis(c.rr)===rootPiece.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full'))
+        return list.filter(c=>E.axis(c.rr)===rootPiece.axis&&touchesShortEnd(c,rootPiece))
       }
       if(step===2||step===3){
         const previousId=step===2?'d2-3':'d3-4',previous=s.pieces.find(p=>p.tile?.id===previousId);if(!previous)return list;
-        return list.filter(c=>E.axis(c.rr)===previous.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===previous.id&&contact.kind==='full'))
+        return list.filter(c=>E.axis(c.rr)===previous.axis&&touchesShortEnd(c,previous))
       }
       if(step===4){
         return list.filter((c,n)=>{
-          const oppositeEnd=E.axis(c.rr)===rootPiece.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full');
+          const oppositeEnd=E.axis(c.rr)===rootPiece.axis&&touchesShortEnd(c,rootPiece);
           return oppositeEnd&&tutorialSim(game,tile,c,n).rebounds>0
         })
       }
@@ -84,7 +88,7 @@
       return list
     };
     game.openShop=function(...args){
-      if(gameFlow().screen==='tutorial'&&gameFlow().tutorialStep===4)return true;
+      if(gameFlow().screen==='tutorial'&&gameFlow().tutorialStep===5&&game.state().turn<6)return true;
       return openShop(...args)
     };
     game.finishPlacement=function(ctx){
