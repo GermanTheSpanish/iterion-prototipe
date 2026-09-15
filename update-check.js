@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUpdateBootstrapped)return;
   root.__monoidUpdateBootstrapped=true;
 
-  const CURRENT_BUILD='20260915.2',CHECK_MIN_MS=60000;
+  const CURRENT_BUILD='20260915.3',CHECK_MIN_MS=60000;
   const state={currentBuild:CURRENT_BUILD,latestBuild:null,latestVersion:null,updateAvailable:false,status:'idle',lastCheck:0};
   let checkButton=null,applyButton=null,resetTimer=0;
   Object.defineProperty(root,'__monoidUpdate',{configurable:true,get:()=>({...state})});
@@ -22,12 +22,12 @@
   }
   function clearReset(){if(resetTimer){clearTimeout(resetTimer);resetTimer=0}}
   function syncButtons(){
-    if(!checkButton)return;clearReset();checkButton.disabled=state.status==='checking';
+    if(!checkButton)return;clearReset();checkButton.disabled=state.status==='checking'||state.status==='reloading';
     if(state.status==='checking')checkButton.textContent='CHECKING…';
     else if(state.updateAvailable)checkButton.textContent=`UPDATE AVAILABLE · ${state.latestBuild}`;
     else if(state.status==='error')checkButton.textContent='CHECK FAILED · TAP TO RETRY';
     else checkButton.textContent='CHECK FOR UPDATES';
-    if(applyButton)applyButton.hidden=!state.updateAvailable
+    if(applyButton){applyButton.hidden=!state.updateAvailable;applyButton.disabled=state.status==='reloading'}
   }
   function showCurrentBriefly(){
     if(!checkButton)return;clearReset();checkButton.textContent=`UP TO DATE · ${CURRENT_BUILD}`;
@@ -53,9 +53,9 @@
     }catch(error){state.updateAvailable=false;state.status='error';syncButtons();console.warn('MONOID update check failed',error);return false}
   }
   async function applyUpdate(){
-    if(!state.updateAvailable)return;persistActiveRun();state.status='reloading';if(applyButton){applyButton.disabled=true;applyButton.textContent='UPDATING…'}
+    if(!state.updateAvailable)return;persistActiveRun();state.status='reloading';syncButtons();if(applyButton)applyButton.textContent='UPDATING…';
     try{const reg=await root.navigator?.serviceWorker?.getRegistration?.();await reg?.update?.()}catch(_){ }
-    const url=new URL(root.location.href);url.searchParams.set('_monoidUpdate',String(Date.now()));root.location.replace(url.href)
+    const url=new URL(root.location.href);url.searchParams.set('_monoidUpdate',String(state.latestBuild||Date.now()));root.location.replace(url.href)
   }
 
   const style=doc.createElement('style');style.id='monoid-update-style';style.textContent='#checkForUpdates,#applyMonoidUpdate{letter-spacing:.02em}#applyMonoidUpdate{background:#151515;color:#fff;border-color:#151515}';doc.head.appendChild(style);
