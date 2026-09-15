@@ -1,7 +1,8 @@
 const {test,expect}=require('@playwright/test');
 
 async function enterSelection(page){await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await expect(page.locator('#gameSelection')).toBeVisible()}
-async function startTutorialFromHub(page,kind){await page.locator('#tutorialHubButton').click();await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
+async function openTutorialHub(page){const persistent=page.locator('#tutorialHubButton');if(await persistent.isVisible())await persistent.click();else await page.locator('#learnMonoid').click();await expect(page.locator('#tutorialHub')).toBeVisible()}
+async function startTutorialFromHub(page,kind){await openTutorialHub(page);await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
 async function assertNoPageScroll(page){expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true)}
 async function assertCommerceIsDedicatedOverlay(page){const contained=await page.evaluate(()=>{const m=document.querySelector('.commerceModal').getBoundingClientRect(),b=document.querySelector('.boardShell').getBoundingClientRect();return m.left>=b.left-1&&m.right<=b.right+1&&m.top>=b.top-1&&m.bottom<=b.bottom+1});expect(contained).toBe(false);await expect(page.locator('body')).not.toHaveClass(/monoidCommerceActive/)}
 async function finishUiTour(page){for(let i=0;i<5;i++)await page.locator('#monoidBoardCoach').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tutorial')}
@@ -19,7 +20,7 @@ async function chooseCandidateMatching(page,predicateSource){
 }
 
 test('BASICS tour isolates the real UI and exposes every canonical root placement',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await enterSelection(page);await expect(page.locator('#tutorialHubButton')).toBeVisible();await expect(page.locator('#systemsTutorial')).toBeHidden();await page.locator('#learnMonoid').click();
+  await page.setViewportSize({width:390,height:844});await enterSelection(page);await expect(page.locator('#learnMonoid')).toBeVisible();await expect(page.locator('#learnMonoid')).toHaveText('TUTORIALS');await expect(page.locator('#tutorialHubButton')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();await startTutorialFromHub(page,'basics');
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tour');
   const targets=['#board','#targetDetail','#scoreDetail','.movesMeta','.handRail'],headings=['THE MACHINE','TARGET','SCORE','MOVES','HAND'];
   for(let i=0;i<targets.length;i++){await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tourStep)).toBe(i);await expect(page.locator(targets[i])).toHaveClass(/monoidTourHighlight/);await expect(page.locator('#monoidBoardCoach h2')).toHaveText(headings[i]);const focus=await page.locator(targets[i]).evaluate(el=>({z:getComputedStyle(el).zIndex,shade:getComputedStyle(document.body,'::before').backgroundColor}));expect(Number(focus.z)).toBeGreaterThan(500);expect(focus.shade).not.toBe('rgba(0, 0, 0, 0)');await page.locator('#monoidBoardCoach').click()}
@@ -30,7 +31,7 @@ test('BASICS tour isolates the real UI and exposes every canonical root placemen
 });
 
 test('BASICS keeps placements canonical while teaching Zero, rebound and T-Split without hidden coordinates',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await enterSelection(page);await page.locator('#learnMonoid').click();await finishUiTour(page);
+  await page.setViewportSize({width:390,height:844});await enterSelection(page);await startTutorialFromHub(page,'basics');await finishUiTour(page);
   // Every step exposes the canonical candidate set for the active physical tile; only the other hand tiles are tutorial-locked.
   for(let i=0;i<4;i++){await assertTutorialHandGuidance(page);expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);await placeCurrentTutorialTile(page)}
   await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.tutorialStep)).toBe(4);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('REBOUND');
