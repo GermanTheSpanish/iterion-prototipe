@@ -40,3 +40,23 @@
   }
   return{createPressGesture};
 });
+
+// Browser-only platform shell. Kept out of engine/game state so install/fullscreen
+// behaviour cannot alter deterministic gameplay or saved runs.
+if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pwa]')){
+  const script=document.createElement('script');
+  script.src='pwa.js?v=20260915.4';
+  script.async=false;
+  script.dataset.monoidPwa='true';
+  document.head.appendChild(script)
+}
+
+// Development-only update probe. It is isolated from engine/game state and can
+// be removed with the visible build marker once external playtesting stabilises.
+if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-update]')){
+  const script=document.createElement('script');
+  script.src='update-check.js?v=20260915.4';
+  script.async=false;
+  script.dataset.monoidUpdate='true';
+  document.head.appendChild(script)
+}
