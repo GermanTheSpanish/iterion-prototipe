@@ -56,6 +56,10 @@
     tutorialPatch={game,candidates,openShop,finishPlacement};
     game.candidatesForIndex=function(i){
       const E=root.IterionEngine,list=candidates(i),step=gameFlow().tutorialStep,s=game.state(),tile=s.hand[i],rootPiece=tutorialRoot(game);
+      if(step===0&&!rootPiece&&tile){
+        const centred=list.filter(c=>{const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1),cx=(p.rect.minx+p.rect.maxx)/2,cy=(p.rect.miny+p.rect.maxy)/2;return Math.abs(cx-E.G/2)<.01&&Math.abs(cy-E.H/2)<.01});
+        return centred.length?centred:list
+      }
       if(!tile||!rootPiece)return list;
       if(step===1){
         return list.filter(c=>E.axis(c.rr)===rootPiece.axis&&(c.contacts||[]).some(contact=>contact.piece?.id===rootPiece.id&&contact.kind==='full'))
