@@ -83,7 +83,7 @@
       if(step===4)queueMicrotask(()=>{if(gameFlow().tutorialStep===5&&currentGame()===game)prepareTutorialHand(game,'d2-6')});
       if(step===5){
         const rootPiece=tutorialRoot(game),split=ctx?.sim?.events?.some(e=>e.type==='signal-fork'&&e.piece===rootPiece?.id);
-        if(split){game.state().cleared=false;openShop()}
+        if(split){const state=game.state();state.cleared=false;openShop()}
       }
       return result
     }
