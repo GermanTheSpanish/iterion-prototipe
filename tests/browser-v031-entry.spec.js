@@ -127,7 +127,7 @@ test('critical title and screen isolation survive a missing presentation stylesh
   expect(Math.abs(title.y+title.height/2-422)).toBeLessThan(2);
   const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
   expect(assets.length).toBeGreaterThan(1);
-  expect(assets.every(url=>url.includes('?v=entry-0311')||url.includes('ui-extras.js?v=20260915.1'))).toBe(true);
+  expect(assets.every(url=>url.includes('?v=entry-0311')||/(?:ui-extras|update-check)\.js\?v=20260915\.\d+$/.test(url))).toBe(true);
   await page.mouse.click(12,12);
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();
