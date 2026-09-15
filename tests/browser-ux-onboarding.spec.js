@@ -1,6 +1,7 @@
 const {test,expect}=require('@playwright/test');
 
 async function enterSelection(page){await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await expect(page.locator('#gameSelection')).toBeVisible()}
+async function startTutorialFromHub(page,kind){await page.locator('#tutorialHubButton').click();await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
 async function assertNoPageScroll(page){expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true)}
 async function assertCommerceIsDedicatedOverlay(page){const contained=await page.evaluate(()=>{const m=document.querySelector('.commerceModal').getBoundingClientRect(),b=document.querySelector('.boardShell').getBoundingClientRect();return m.left>=b.left-1&&m.right<=b.right+1&&m.top>=b.top-1&&m.bottom<=b.bottom+1});expect(contained).toBe(false);await expect(page.locator('body')).not.toHaveClass(/monoidCommerceActive/)}
 async function finishUiTour(page){for(let i=0;i<5;i++)await page.locator('#monoidBoardCoach').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tutorial')}
@@ -18,7 +19,7 @@ async function chooseCandidateMatching(page,predicateSource){
 }
 
 test('BASICS tour isolates the real UI and exposes every canonical root placement',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await enterSelection(page);await expect(page.locator('#systemsTutorial')).toBeVisible();await page.locator('#learnMonoid').click();
+  await page.setViewportSize({width:390,height:844});await enterSelection(page);await expect(page.locator('#tutorialHubButton')).toBeVisible();await expect(page.locator('#systemsTutorial')).toBeHidden();await page.locator('#learnMonoid').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tour');
   const targets=['#board','#targetDetail','#scoreDetail','.movesMeta','.handRail'],headings=['THE MACHINE','TARGET','SCORE','MOVES','HAND'];
   for(let i=0;i<targets.length;i++){await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tourStep)).toBe(i);await expect(page.locator(targets[i])).toHaveClass(/monoidTourHighlight/);await expect(page.locator('#monoidBoardCoach h2')).toHaveText(headings[i]);const focus=await page.locator(targets[i]).evaluate(el=>({z:getComputedStyle(el).zIndex,shade:getComputedStyle(document.body,'::before').backgroundColor}));expect(Number(focus.z)).toBeGreaterThan(500);expect(focus.shade).not.toBe('rgba(0, 0, 0, 0)');await page.locator('#monoidBoardCoach').click()}
@@ -36,23 +37,23 @@ test('BASICS keeps placements canonical while teaching Zero, rebound and T-Split
   const reboundCount=await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length);expect(reboundCount).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
   await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.tutorialStep)).toBe(5);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await expect(page.locator('#monoidBoardCoach')).toContainText('7/7');expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
-  await expect(page.locator('#overlayTitle')).toHaveText('SHOP');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(7);await assertCommerceIsDedicatedOverlay(page)
+  await expect(page.locator('#overlayTitle')).toHaveText('SHOP');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(7);await assertCommerceIsDedicatedOverlay(page);await expect(page.locator('#nextGameMechanics')).toBeVisible()
 });
 
 test('SYSTEMS starts from a prepared real machine and teaches Circuit, Mod and POWER in sequence',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await enterSelection(page);await page.locator('#systemsTutorial').click();
+  await page.setViewportSize({width:390,height:844});await enterSelection(page);await startTutorialFromHub(page,'systems');
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tutorialKind)).toBe('systems');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.systemsPhase)).toBe('circuit');await expect(page.locator('#monoidBoardCoach h2')).toHaveText('CIRCUITS');
   const fixture=await page.evaluate(()=>{const s=window.__monoidGame.state();return{pieces:s.pieces.length,pending:s.pendingCircuit&&{size:s.pendingCircuit.size,reward:s.pendingCircuit.reward,eligible:s.pendingCircuit.eligibleTileIds.length},power:s.hand[0]&&{id:s.hand[0].id,m:s.hand[0].powerMultiplier},mods:s.mods.slice()}});
   expect(fixture.pieces).toBe(4);expect(fixture.pending.size).toBe(4);expect(fixture.pending.eligible).toBeGreaterThan(0);expect(fixture.mods).toContain('long-run');expect(fixture.power).toEqual({id:'g2-d1-2',m:2});
   await page.locator('#board .circuitEligible').first().click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.systemsPhase)).toBe('mod');await expect(page.locator('#monoidBoardCoach h2')).toHaveText('MODIFIERS');expect(await page.evaluate(()=>Object.keys(window.__monoidGame.state().circuitRanks).length)).toBeGreaterThan(0);await expect(page.locator('#machineModStatus')).toBeVisible();
   await page.locator('[data-ux-action="systems-next"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.systemsPhase)).toBe('power');await expect(page.locator('#monoidBoardCoach h2')).toHaveText('POWER');await expect(page.locator('#monoidBoardCoach')).toContainText('×2 magnitude');await assertTutorialHandGuidance(page);expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);
-  await placeCurrentTutorialTile(page);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.systemsPhase)).toBe('complete');await expect(page.locator('#monoidBoardCoach h2')).toHaveText('MACHINE EVOLUTION');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.some(p=>p.tile.id==='g2-d1-2'&&p.tile.powerMultiplier===2))).toBe(true);
+  await placeCurrentTutorialTile(page);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.systemsPhase)).toBe('complete');await expect(page.locator('#monoidBoardCoach h2')).toHaveText('MACHINE EVOLUTION');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.some(p=>p.tile.id==='g2-d1-2'&&p.tile.powerMultiplier===2))).toBe(true);await expect(page.locator('#nextModifiersTutorial')).toBeVisible();
   await page.locator('[data-ux-action="systems-finish"]').click();await expect(page.locator('#gameSelection')).toBeVisible();await assertNoPageScroll(page)
 });
 
 test('SYSTEMS sandbox never overwrites a saved normal run',async({page})=>{
   await page.setViewportSize({width:390,height:844});await enterSelection(page);await page.locator('#startRun').click();if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
-  const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await page.locator('#systemsTutorial').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tutorialKind)).toBe('systems');expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved)
+  const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'systems');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tutorialKind)).toBe('systems');expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved)
 });
 
 test('first real run briefing is board-led, state-neutral and shown once',async({page})=>{
