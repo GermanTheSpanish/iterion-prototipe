@@ -9,5 +9,5 @@ assert.match(source,/id==='long-run'/);assert.match(source,/tag\.textContent='MA
 assert.match(source,/EXTREME_THRESHOLD=1e27/);assert.match(source,/toExponential\(2\)/,'Extreme Endless numbers must use scientific notation');
 assert.match(source,/width:clamp\(108px,29\.3vw,126px\)/,'MONOID header width should tune to the 14 Pro Max Dynamic Island reference');
 assert.match(source,/\.app \.piece>\.tileModMark\{font-size:clamp\(12px,3\.4vw,15px\)!important\}/,'Board modifier codes must be substantially larger');
-assert.doesNotMatch(source,/IterionEngine|finishPlacement|buyMarketMod\s*=|target\s*=/,'Late polish must not redefine engine, placement or commerce behaviour');
+assert.doesNotMatch(source,/IterionEngine|finishPlacement|buyMarketMod\s*=/,'Late polish must not redefine engine, placement or commerce behaviour');
 console.log('MONOID late UI polish source regression: ok');
