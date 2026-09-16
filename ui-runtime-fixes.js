@@ -40,11 +40,11 @@
     gameplayStyle.id='monoid-gameplay-ui-pass';
     gameplayStyle.textContent=`
       /* Figma-approved gameplay composition. Presentation only: no engine geometry changes. */
-      .app{width:min(100%,430px)!important;padding:calc(8px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))!important;grid-template-rows:44px 122px 38px minmax(0,1fr) auto!important;gap:0!important;background:#f7f7f4!important}
+      .app{width:min(100%,430px)!important;padding:calc(8px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))!important;grid-template-rows:44px 122px 38px minmax(0,1fr) auto!important;gap:0!important}
       .gameHeader{position:relative!important;min-height:44px!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important}
       .wordmark{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:clamp(118px,30vw,132px)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;font-size:16px!important;font-weight:700!important;letter-spacing:0!important;line-height:1!important;color:#171717!important;pointer-events:none!important}
       .headerActions{position:relative!important;z-index:3!important;width:auto!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important}
-      #menuButton{width:84px!important;min-width:84px!important;height:36px!important;min-height:36px!important;padding:0 16px!important;border:0!important;border-radius:12px!important;background:#111!important;color:#fff!important;font-size:15px!important;font-weight:750!important;line-height:36px!important;letter-spacing:.055em!important;text-align:center!important}
+      #menuButton{width:92px!important;min-width:92px!important;height:44px!important;min-height:44px!important;padding:0 16px!important;border:4px solid transparent!important;border-radius:16px!important;background:#111!important;background-clip:padding-box!important;color:#fff!important;font-size:15px!important;font-weight:750!important;line-height:36px!important;letter-spacing:.055em!important;text-align:center!important}
       /* Compatibility target for old automated flows; real Help lives inside MENU. */
       .gameHeader #helpButton{position:absolute!important;left:0!important;top:0!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border:0!important;opacity:0!important;overflow:hidden!important}
 
@@ -65,7 +65,7 @@
       .gameArea{min-height:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) 52px!important;gap:8px!important;align-items:start!important;overflow:hidden!important;padding-top:10px!important}
       .boardShell{position:relative!important;min-width:0!important;min-height:0!important;width:100%!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;overflow:visible!important;display:block!important}
       .boardTop{display:none!important}
-      .boardTop:has(.machineModStatus:not([hidden])){position:absolute!important;left:0!important;right:0!important;top:6px!important;z-index:18!important;display:flex!important;justify-content:center!important;padding:0!important;pointer-events:none!important}
+      .boardTop:has(.machineModStatus:not([hidden])){position:absolute!important;left:0!important;right:0!important;top:-20px!important;z-index:18!important;display:flex!important;justify-content:center!important;padding:0!important;pointer-events:none!important}
       .boardTop>strong,.boardTop>#boardsize{display:none!important}
       .boardFrame{display:block!important;width:100%!important;min-height:0!important;overflow:visible!important}
       .board{position:relative!important;width:min(100%,350px,calc((100dvh - 280px) * .75))!important;max-width:350px!important;max-height:none!important;aspect-ratio:3 / 4!important;margin:0!important;border:1px solid #d4d2cc!important;border-radius:0!important;background-color:#fff!important;background-image:none!important;box-shadow:none!important;overflow:hidden!important}
@@ -100,12 +100,12 @@
       @media(max-height:720px){
         .app{padding-top:calc(5px + env(safe-area-inset-top))!important;padding-bottom:calc(6px + env(safe-area-inset-bottom))!important;grid-template-rows:40px 86px 32px minmax(0,1fr) auto!important}
         .gameHeader,.headerActions{height:40px!important;min-height:40px!important}
-        #menuButton{height:34px!important;min-height:34px!important;line-height:34px!important}
+        #menuButton{height:44px!important;min-height:44px!important;line-height:36px!important}
         .wordmark{font-size:14px!important;width:118px!important}
         .scoreCard{padding-top:8px!important}.scoreValue{margin-top:9px!important;font-size:38px!important}.scoreCaption{font-size:11px!important;margin-top:3px!important}
         .metaStrip{min-height:32px!important;padding:6px 0!important}.roundMeta,.roundMeta>strong,.stageMeta>strong{font-size:12px!important}
         .gameArea{grid-template-columns:minmax(0,1fr) 48px!important;gap:6px!important;padding-top:7px!important}.board{width:min(100%,350px,calc((100dvh - 255px) * .75))!important}
-        .handHeader{height:18px!important}.handHeader .label{font-size:10px!important}.hand{gap:4px!important}.handSlot{height:58px!important;min-height:58px!important;flex-basis:58px!important}.handRail .tile{width:44px!important}.handRail .domino{width:34px!important}.handRail .domino>.half{width:32px!important;height:32px!important}
+        .handHeader{height:18px!important}.handHeader .label{font-size:11px!important}.hand{gap:4px!important}.handSlot{height:58px!important;min-height:58px!important;flex-basis:58px!important}.handRail .tile{width:44px!important}.handRail .domino{width:34px!important}.handRail .domino>.half{width:32px!important;height:32px!important}
         .bottomBar{gap:6px!important;padding-top:6px!important}.hint{min-height:18px!important;font-size:11px!important}.railActions{gap:5px!important}.railActions .btn{height:48px!important;min-height:48px!important;font-size:12px!important}.railActions .btn small{margin-top:4px!important;font-size:9px!important}
       }
     `;
