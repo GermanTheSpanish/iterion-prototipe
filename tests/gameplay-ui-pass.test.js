@@ -10,5 +10,6 @@ assert(src.includes('justify-content:flex-start!important'),'Hand must be top-al
 assert(src.includes("button.textContent='How to play'"),'Rulebook entry must live in MENU');
 assert(!src.includes('gameplay-ui-pass.js?v='),'gameplay pass must not create an extra runtime asset');
 assert(!src.includes('.scoreProgress{display:none!important}'),'score progress remains a visible canonical presentation cue');
-assert(src.includes('max-height:none!important;aspect-ratio:3 / 4!important'),'board aspect ratio must not collapse inside the flexible grid');
+assert(src.includes('height:auto!important;max-height:none!important;flex:none!important;aspect-ratio:3 / 4!important'),'board ratio must own its rendered height');
+assert(src.includes('.headerActions{position:relative!important;z-index:3!important;width:100%!important'),'hidden legacy Help target must not overlap MENU');
 console.log('gameplay UI composition regression: ok');
