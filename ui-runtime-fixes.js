@@ -43,7 +43,7 @@
       .app{width:min(100%,430px)!important;padding:calc(8px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))!important;grid-template-rows:44px 122px 38px minmax(0,1fr) auto!important;gap:0!important}
       .gameHeader{position:relative!important;min-height:44px!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important}
       .wordmark{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:clamp(118px,30vw,132px)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;font-size:16px!important;font-weight:700!important;letter-spacing:0!important;line-height:1!important;color:#171717!important;pointer-events:none!important}
-      .headerActions{position:relative!important;z-index:3!important;width:auto!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important}
+      .headerActions{position:relative!important;z-index:3!important;width:100%!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important}
       #menuButton{width:92px!important;min-width:92px!important;height:44px!important;min-height:44px!important;padding:0 16px!important;border:4px solid transparent!important;border-radius:16px!important;background:#111!important;background-clip:padding-box!important;color:#fff!important;font-size:15px!important;font-weight:750!important;line-height:36px!important;letter-spacing:.055em!important;text-align:center!important}
       /* Compatibility target for old automated flows; real Help lives inside MENU. */
       .gameHeader #helpButton{position:absolute!important;left:0!important;top:0!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border:0!important;opacity:0!important;overflow:hidden!important}
@@ -68,7 +68,7 @@
       .boardTop:has(.machineModStatus:not([hidden])){position:absolute!important;left:0!important;right:0!important;top:-20px!important;z-index:18!important;display:flex!important;justify-content:center!important;padding:0!important;pointer-events:none!important}
       .boardTop>strong,.boardTop>#boardsize{display:none!important}
       .boardFrame{display:block!important;width:100%!important;min-height:0!important;overflow:visible!important}
-      .board{position:relative!important;width:min(100%,350px,calc((100dvh - 280px) * .75))!important;max-width:350px!important;max-height:none!important;aspect-ratio:3 / 4!important;margin:0!important;border:1px solid #d4d2cc!important;border-radius:0!important;background-color:#fff!important;background-image:none!important;box-shadow:none!important;overflow:hidden!important}
+      .board{position:relative!important;width:min(100%,350px,calc((100dvh - 280px) * .75))!important;max-width:350px!important;height:auto!important;max-height:none!important;flex:none!important;aspect-ratio:3 / 4!important;margin:0!important;border:1px solid #d4d2cc!important;border-radius:0!important;background-color:#fff!important;background-image:none!important;box-shadow:none!important;overflow:hidden!important}
       body.endlessPalette .board{background-color:rgb(214,211,203)!important}
       .board.dragging{box-shadow:inset 0 0 0 1px rgba(17,17,17,.15)!important}
       .boardCenterMark{position:absolute;z-index:3;display:block;background:#aaa8a2;pointer-events:none}
