@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20260916\.2'/);
+assert.match(source,/BUILD_ID='20260916\.3'/);
 assert.match(source,/MAX_MARKET_TILES=3/,'Market previews must be capped at three visible physical tiles');
 assert.match(source,/RANDOM FROM · \$\{count\}/,'Market must label the physical pool as random, not selectable');
 assert.match(source,/additional random recipients/,'Market must expose a +N overflow count');
