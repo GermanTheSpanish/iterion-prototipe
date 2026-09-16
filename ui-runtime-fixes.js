@@ -29,5 +29,10 @@
       .app .btn{min-height:44px!important}
     }
   `;
-  doc.head.appendChild(style)
+  doc.head.appendChild(style);
+
+  /* Load the approved gameplay composition after all legacy presentation layers. */
+  if(!doc.querySelector('script[data-monoid-gameplay-ui-pass]')){
+    const script=doc.createElement('script');script.src='gameplay-ui-pass.js?v=figma-20260917-1';script.async=false;script.dataset.monoidGameplayUiPass='true';doc.body.appendChild(script)
+  }
 })(window);
