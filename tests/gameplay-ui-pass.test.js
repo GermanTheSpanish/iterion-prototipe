@@ -1,0 +1,13 @@
+const fs=require('fs'),assert=require('assert');
+const path=require('path');
+const src=fs.readFileSync(path.join(__dirname,'..','gameplay-ui-pass.js'),'utf8');
+assert(src.includes('aspect-ratio:3 / 4!important'),'board must preserve canonical 3:4 geometry');
+for(const side of ['top','right','bottom','left'])assert(src.includes(`'${side}'`),`missing ${side} board marker`);
+assert(src.includes('left:50%;width:1px;height:10px;transform:translateX(-50%)'),'top/bottom marks must be mathematically centred');
+assert(src.includes('top:50%;width:10px;height:1px;transform:translateY(-50%)'),'left/right marks must be mathematically centred');
+assert(src.includes('grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.25fr)'),'Move/Reroll/Undo must be equal and Shop only slightly wider');
+assert(src.includes('justify-content:flex-start!important'),'Hand must be top-aligned');
+assert(src.includes("button.textContent='How to play'"),'Rulebook entry must live in MENU');
+const runtime=fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'utf8');
+assert(runtime.includes("gameplay-ui-pass.js?v=figma-20260917-1"),'runtime layer must load gameplay UI pass last');
+console.log('gameplay UI composition regression: ok');
