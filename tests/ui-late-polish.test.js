@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
+assert.match(source,/MAX_MARKET_TILES=3/,'Market previews must be capped at three visible physical tiles');
+assert.match(source,/tiles\.length-MAX_MARKET_TILES/,'Market must expose a +N overflow count');
+assert.match(source,/marketAssignments \.marketTile/,'Assigned physical modifiers must be read from canonical Market markup');
+assert.match(source,/assigned\.get\(offerLabel\(id\)\)/,'Assigned tile must move beside its own modifier');
+assert.match(source,/id==='long-run'/);assert.match(source,/tag\.textContent='MACHINE'/,'Long Chain must present as a machine modifier');
+assert.match(source,/EXTREME_THRESHOLD=1e27/);assert.match(source,/toExponential\(2\)/,'Extreme Endless numbers must use scientific notation');
+assert.match(source,/width:clamp\(108px,29\.3vw,126px\)/,'MONOID header width should tune to the 14 Pro Max Dynamic Island reference');
+assert.match(source,/\.app \.piece>\.tileModMark\{font-size:clamp\(12px,3\.4vw,15px\)!important\}/,'Board modifier codes must be substantially larger');
+assert.doesNotMatch(source,/IterionEngine|finishPlacement|buyMarketMod\s*=|target\s*=/,'Late polish must not redefine engine, placement or commerce behaviour');
+console.log('MONOID late UI polish source regression: ok');
