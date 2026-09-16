@@ -53,8 +53,12 @@
       .targetCard{text-align:left!important}
       .scoreCard .label{display:block!important;font-size:11px!important;font-weight:500!important;line-height:1!important;letter-spacing:.23em!important;color:#65635f!important}
       .scoreValue{display:block!important;margin:17px 0 0!important;font-size:clamp(46px,14vw,62px)!important;font-weight:390!important;line-height:.82!important;letter-spacing:-.035em!important;overflow:visible!important;text-overflow:clip!important}
-      .scoreCard:not(.targetCard) .scoreValue{padding-bottom:5px!important;border-bottom:1px solid #d4d2cc!important}
+      .scoreCard:not(.targetCard) .scoreValue{padding-bottom:0!important;border-bottom:0!important}
       .scoreCaption{display:block!important;margin-top:5px!important;min-height:16px!important;font-size:14px!important;font-weight:400!important;line-height:1.15!important;color:#67645f!important}
+      .scoreProgress{display:block!important;position:relative!important;height:1px!important;margin:8px 0 0!important;background:#d4d2cc!important;overflow:hidden!important}
+      .scoreProgressTrack{display:block!important;height:1px!important;background:#d4d2cc!important;overflow:hidden!important}
+      .scoreProgressFill{display:block!important;height:1px!important}
+      .scoreProgressNext{display:none!important}
 
       .metaStrip{display:block!important;min-height:38px!important;padding:8px 0 7px!important;border-top:0!important;border-bottom:1px solid #d4d2cc!important}
       .roundMeta{display:flex!important;align-items:baseline!important;gap:22px!important;font-size:14px!important;font-weight:500!important;line-height:1!important;letter-spacing:.01em!important;white-space:nowrap!important}
@@ -102,7 +106,7 @@
         .gameHeader,.headerActions{height:40px!important;min-height:40px!important}
         #menuButton{height:44px!important;min-height:44px!important;line-height:36px!important}
         .wordmark{font-size:14px!important;width:118px!important}
-        .scoreCard{padding-top:8px!important}.scoreValue{margin-top:9px!important;font-size:38px!important}.scoreCaption{font-size:11px!important;margin-top:3px!important}
+        .scoreCard{padding-top:8px!important}.scoreValue{margin-top:9px!important;font-size:38px!important}.scoreCaption{font-size:11px!important;margin-top:3px!important}.scoreProgress{margin-top:5px!important}
         .metaStrip{min-height:32px!important;padding:6px 0!important}.roundMeta,.roundMeta>strong,.stageMeta>strong{font-size:12px!important}
         .gameArea{grid-template-columns:minmax(0,1fr) 48px!important;gap:6px!important;padding-top:7px!important}.board{width:min(100%,350px,calc((100dvh - 255px) * .75))!important}
         .handHeader{height:18px!important}.handHeader .label{font-size:11px!important}.hand{gap:4px!important}.handSlot{height:58px!important;min-height:58px!important;flex-basis:58px!important}.handRail .tile{width:44px!important}.handRail .domino{width:34px!important}.handRail .domino>.half{width:32px!important;height:32px!important}
