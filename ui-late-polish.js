@@ -30,9 +30,14 @@
     .app .piece:has(>.tileModMark) .pips,.app .domino:has(>.tileModMark) .spips{opacity:.28}
     .app .circuitTile>.tileModMark{color:rgba(255,255,255,.96)!important;text-shadow:0 0 1px #000!important}
     .modifierTutorGameTile .domino>.tileModMark{font-size:23px!important;font-weight:950!important;color:rgba(17,17,17,.96)!important}
-    .marketTile .domino>.tileModMark{font-size:13px!important;font-weight:950!important;color:rgba(17,17,17,.96)!important;text-shadow:none!important}
-    .marketTile .domino.circuitTile>.tileModMark{color:rgba(255,255,255,.98)!important;text-shadow:0 0 1px #000!important}
-    .marketTile .domino:has(>.tileModMark) .spips{opacity:.24}
+    /* Compact commerce previews: equal halves, centred values, secondary seam code.
+       Board/hand miniatures do not opt into this mode. Keep material and tier edges. */
+    .domino.compactPreview{height:62px}
+    .domino.compactPreview>.half{width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;min-height:0;flex:1 1 0!important}
+    .domino.compactPreview>.half>.spips{inset:16%!important;opacity:1!important;transform:none!important}
+    .domino.compactPreview>.tileModMark{inset:auto!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;display:flex!important;align-items:center;justify-content:center;gap:0;padding:0 1px!important;height:10px;white-space:nowrap;font-size:9px!important;font-weight:800!important;line-height:1!important;letter-spacing:0!important;font-style:normal;color:rgba(17,17,17,.96)!important;background:inherit!important;text-shadow:none!important}
+    .domino.compactPreview.powerTile:not(.circuitTile)>.tileModMark{background:var(--power-pale)!important}
+    .domino.compactPreview.circuitTile>.tileModMark{color:rgba(255,255,255,.98)!important}
 
     /* Long Chain is a machine state: one quiet horizontal instrument above the board. */
     .boardTop:has(.machineModStatus:not([hidden])){display:flex!important;justify-content:center!important}
