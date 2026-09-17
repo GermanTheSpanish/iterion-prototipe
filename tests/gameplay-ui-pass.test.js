@@ -6,10 +6,13 @@ for(const side of ['top','right','bottom','left'])assert(src.includes(`'${side}'
 assert(src.includes('left:50%;width:1px;height:10px;transform:translateX(-50%)'),'top/bottom marks must be mathematically centred');
 assert(src.includes('top:50%;width:10px;height:1px;transform:translateY(-50%)'),'left/right marks must be mathematically centred');
 assert(src.includes('grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.25fr)'),'Move/Reroll/Undo must be equal and Shop only slightly wider');
-assert(src.includes('justify-content:flex-start!important'),'Hand must be top-aligned');
+assert(src.includes('justify-content:flex-start!important'),'Hand and MENU alignment must remain top/left led');
 assert(src.includes("button.textContent='How to play'"),'Rulebook entry must live in MENU');
 assert(!src.includes('gameplay-ui-pass.js?v='),'gameplay pass must not create an extra runtime asset');
 assert(!src.includes('.scoreProgress{display:none!important}'),'score progress remains a visible canonical presentation cue');
 assert(src.includes('height:auto!important;max-height:none!important;flex:none!important;aspect-ratio:3 / 4!important'),'board ratio must own its rendered height');
 assert(src.includes('.headerActions{position:relative!important;z-index:3!important;width:100%!important'),'hidden legacy Help target must not overlap MENU');
+assert(src.includes('position:fixed!important;left:50vw!important'),'MONOID must be centred against the physical viewport, not the header container');
+assert(src.includes('left:auto!important;right:0!important'),'hidden legacy Help target must move away from left-side MENU');
+assert(src.includes('#shopButton{border-color:#111!important;background:#111!important;color:#fff!important}'),'Shop must keep the approved black emphasis');
 console.log('gameplay UI composition regression: ok');
