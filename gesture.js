@@ -70,3 +70,14 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-mo
   script.dataset.monoidModes='true';
   document.head.appendChild(script)
 }
+
+// Experimental scoring is isolated behind the black ? mode. Classic continues
+// to use the canonical engine unchanged; this runtime only wraps newly-created
+// prototype runs after the route has already been selected by the classic comparator.
+if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-prototype-scoring]')){
+  const script=document.createElement('script');
+  script.src='prototype-scoring.js?v=20260917.1';
+  script.async=false;
+  script.dataset.monoidPrototypeScoring='true';
+  document.head.appendChild(script)
+}
