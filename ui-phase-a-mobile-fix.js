@@ -22,7 +22,6 @@
   `;
 
   function syncBuildStamp(){
-    root.__MONOID_BUILD=BUILD_ID;
     const text=`v${root.IterionData?.VERSION||'dev'} · build ${BUILD_ID}`;
     const entry=doc.getElementById('devBuildStamp'),menu=doc.querySelector('.menuBuildStamp');
     if(entry&&entry.textContent!==text)entry.textContent=text;
