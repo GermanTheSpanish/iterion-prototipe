@@ -9,12 +9,14 @@
   style.id='monoid-phase-a-mobile-fix';
   style.textContent=`
     /* Phase A accidentally changed the approved viewport-centred wordmark back to
-       header-relative positioning. Keep MONOID anchored to the physical phone. */
+       header-relative positioning. Keep both its box and visible glyphs centred on
+       the physical phone; the wordmark has a wider fixed measure than its text. */
     .gameHeader .wordmark{
       position:fixed!important;
       left:50vw!important;
       top:calc(8px + env(safe-area-inset-top) + 22px)!important;
       transform:translate(-50%,-50%)!important;
+      text-align:center!important;
     }
     @media(max-height:720px){
       .gameHeader .wordmark{top:calc(5px + env(safe-area-inset-top) + 20px)!important}
