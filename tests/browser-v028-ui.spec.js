@@ -74,18 +74,19 @@ test('v028 inspector mirrors the current Overkill tier as the same centre line',
   await page.screenshot({path:testInfo.outputPath('inspector-overkill-divider.png')});
 });
 
-test('v029 tile modifiers print boldly into physical halves in reading order',async({page},testInfo)=>{
+test('v029 tile modifiers stay large but quiet behind physical values in reading order',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
   await page.evaluate(()=>{
     const board=document.querySelector('#board');
-    const make=(cls,left)=>{const d=document.createElement('div');d.className=`piece ${cls}`;d.style.cssText=`position:absolute;left:${left}px;top:10px;width:${cls.includes('h')?'80px':'30px'};height:${cls.includes('h')?'30px':'80px'}`;d.innerHTML='<div class="cube"></div><div class="cube"></div><i class="tileModMark dd" style="--mod-shift:-3px"><span>D</span><span>D</span></i><i class="tileModMark de" style="--mod-shift:3px"><span>D</span><span>E</span></i>';board.appendChild(d);return d};
+    const make=(cls,left)=>{const d=document.createElement('div');d.className=`piece ${cls}`;d.style.cssText=`position:absolute;left:${left}px;top:10px;width:${cls.includes('h')?'80px':'30px'};height:${cls.includes('h')?'30px':'80px'}`;d.innerHTML='<div class="cube"><span class="pips"><i class="pip"></i></span></div><div class="cube"><span class="pips"><i class="pip"></i></span></div><i class="tileModMark dd" style="--mod-shift:-3px"><span>D</span><span>D</span></i><i class="tileModMark de" style="--mod-shift:3px"><span>D</span><span>E</span></i>';board.appendChild(d);return d};
     make('h',10);make('v circuitTile',110);
   });
   const horizontal=page.locator('#board .piece.h').last(),vertical=page.locator('#board .piece.v').last();
   const boxes=await horizontal.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el.parentElement);return{x:r.x,y:r.y,w:r.width,h:r.height,color:s.color,background:s.backgroundColor,border:s.borderTopWidth}}));
-  expect(boxes[0].x).toBeLessThan(boxes[1].x);expect(boxes[0].w).toBeCloseTo(boxes[1].w,0);expect(boxes[0].background).toBe('rgba(0, 0, 0, 0)');expect(boxes[0].border).toBe('0px');expect(boxes[0].color).toBe('rgba(17, 17, 17, 0.94)');const horizontalStyle=await horizontal.locator('.tileModMark.dd').evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),weight:Number(getComputedStyle(el).fontWeight)}));expect(horizontalStyle.size).toBeGreaterThanOrEqual(12);expect(horizontalStyle.weight).toBeGreaterThanOrEqual(900);
+  expect(boxes[0].x).toBeLessThan(boxes[1].x);expect(boxes[0].w).toBeCloseTo(boxes[1].w,0);expect(boxes[0].background).toBe('rgba(0, 0, 0, 0)');expect(boxes[0].border).toBe('0px');expect(boxes[0].color).toBe('rgba(17, 17, 17, 0.4)');const horizontalStyle=await horizontal.locator('.tileModMark.dd').evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),weight:Number(getComputedStyle(el).fontWeight)}));expect(horizontalStyle.size).toBeGreaterThanOrEqual(15);expect(horizontalStyle.weight).toBeGreaterThanOrEqual(900);
+  expect(await horizontal.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
   const verticalBoxes=await vertical.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height,color:getComputedStyle(el.parentElement).color}}));
-  expect(verticalBoxes[0].y).toBeLessThan(verticalBoxes[1].y);expect(verticalBoxes[0].h).toBeCloseTo(verticalBoxes[1].h,0);expect(verticalBoxes[0].color).toBe('rgba(255, 255, 255, 0.96)');
+  expect(verticalBoxes[0].y).toBeLessThan(verticalBoxes[1].y);expect(verticalBoxes[0].h).toBeCloseTo(verticalBoxes[1].h,0);expect(verticalBoxes[0].color).toBe('rgba(255, 255, 255, 0.4)');
   await expect(horizontal.locator('.tileModMark')).toHaveText(['DD','DE']);await expect(vertical.locator('.tileModMark')).toHaveText(['DD','DE']);
   await page.screenshot({path:testInfo.outputPath('tile-modifiers-by-half.png')});
 });
