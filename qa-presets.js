@@ -2,7 +2,7 @@
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.MonoidQaPresets=api;
-  if(root?.document){api.installMenuAccess(root);api.autoStart(root);}
+  if(root?.document){api.installMenuAccess(root);api.autoStart(root);api.autoResumeReturn(root);}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const BUILD_ID='20260917.4';
@@ -88,7 +88,21 @@
     const url=new URL(root.location.href);url.search='';url.searchParams.set('qa',id);url.searchParams.set('cb',BUILD_ID);return url.href
   }
   function normalUrl(root){
-    const url=new URL(root.location.href);url.search='';url.searchParams.set('cb',BUILD_ID);return url.href
+    const url=new URL(root.location.href);url.search='';url.searchParams.set('qaReturn','1');url.searchParams.set('cb',BUILD_ID);return url.href
+  }
+  function autoResumeReturn(root){
+    const url=new URL(root.location.href);if(url.searchParams.get('qaReturn')!=='1'||url.searchParams.has('qa'))return false;
+    let tries=0,entered=false;
+    const resume=()=>{
+      const title=root.document.getElementById('titleCard'),continueRun=root.document.getElementById('continueRun'),app=root.document.querySelector('.app');
+      if(app&&!app.hidden){
+        url.searchParams.delete('qaReturn');url.searchParams.delete('cb');root.history.replaceState(root.history.state,'',url.href);return
+      }
+      if(!entered&&title&&!title.hidden){entered=true;title.click();root.requestAnimationFrame(resume);return}
+      if(continueRun&&!continueRun.hidden){continueRun.click();root.requestAnimationFrame(resume);return}
+      if(tries++<360)root.requestAnimationFrame(resume)
+    };
+    root.requestAnimationFrame(resume);return true
   }
   function installMenuAccess(root){
     const doc=root.document,menu=doc?.getElementById('gameMenu'),anchor=doc?.querySelector('#gameMenu p');if(!doc||!menu||menu.querySelector('#qaTestRunsButton'))return false;
@@ -140,5 +154,5 @@
     };
     root.requestAnimationFrame(start);return true
   }
-  return{BUILD_ID,PRESETS,ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY,makeSet,pieceSpecs,applyPreset,installStorageSandbox,persistCurrentRun,qaUrl,normalUrl,installMenuAccess,autoStart};
+  return{BUILD_ID,PRESETS,ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY,makeSet,pieceSpecs,applyPreset,installStorageSandbox,persistCurrentRun,qaUrl,normalUrl,installMenuAccess,autoStart,autoResumeReturn};
 });
