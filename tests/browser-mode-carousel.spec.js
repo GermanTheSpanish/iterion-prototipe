@@ -24,6 +24,7 @@ test('mode carousel feels continuous and settles with positional overshoot',asyn
   // Two places before the loop boundary, Classic exists offscreen already and
   // moves into the clipped frame during the drag rather than appearing on release.
   await page.evaluate(()=>window.__monoidModes.select(6));
+  await page.waitForTimeout(300);
   const frame=await page.locator('#modeCarouselFrame').boundingBox();
   const loopViewport=await page.locator('#modeCarouselViewport').boundingBox();
   const classicBefore=await page.locator('#modeClassic').boundingBox();
