@@ -4,7 +4,7 @@
   if(!doc||root.__monoidPhaseAMobileFixInstalled)return;
   root.__monoidPhaseAMobileFixInstalled=true;
 
-  const BUILD_ID='20260917.3';
+  const BUILD_ID='20260917.4';
   const style=doc.createElement('style');
   style.id='monoid-phase-a-mobile-fix';
   style.textContent=`
