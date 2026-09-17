@@ -86,7 +86,7 @@
     if(!doc.querySelector('script[data-monoid-ui-runtime-fixes]')){const script=doc.createElement('script');script.src=`ui-runtime-fixes.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiRuntimeFixes='true';doc.body.appendChild(script)}
     if(!doc.querySelector('script[data-monoid-ui-late-polish]')){const script=doc.createElement('script');script.src=`ui-late-polish.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiLatePolish='true';doc.body.appendChild(script)}
     if(!doc.querySelector('script[data-monoid-phase-a]')&&!root.MonoidPhaseA){const script=doc.createElement('script');script.src=`ui-phase-a.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidPhaseA='true';script.addEventListener('load',()=>script.remove(),{once:true});doc.body.appendChild(script)}
-    if(!doc.querySelector('script[data-monoid-phase-a-mobile-fix]')&&!root.MonoidPhaseAMobileFix){const script=doc.createElement('script');script.src=`ui-phase-a-mobile-fix.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidPhaseAMobileFix='true';doc.body.appendChild(script)}
+    if(!doc.querySelector('script[data-monoid-phase-a-mobile-fix]')&&!root.MonoidPhaseAMobileFix){const script=doc.createElement('script');script.src=`ui-phase-a-mobile-fix.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidPhaseAMobileFix='true';script.addEventListener('load',()=>script.remove(),{once:true});doc.body.appendChild(script)}
   }
   if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',loadUiLayer,{once:true});else loadUiLayer()
 })(window);
