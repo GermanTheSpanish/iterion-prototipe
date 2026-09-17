@@ -16,7 +16,6 @@
     return 0
   }
   function syncBuildStamp(){
-    root.__MONOID_BUILD=CURRENT_BUILD;
     const label=versionLabel(),entry=doc.getElementById('devBuildStamp'),menu=doc.querySelector('.menuBuildStamp');
     if(entry&&entry.textContent!==label)entry.textContent=label;if(menu&&menu.textContent!==label)menu.textContent=label
   }
