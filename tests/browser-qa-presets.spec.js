@@ -83,8 +83,8 @@ test('PWA menu opens QA test runs and returns to the untouched saved run',async(
   await page.locator('#menuButton').click();await page.locator('#qaTestRunsButton').click();
   await expect(page.locator('[data-qa-return]')).toBeVisible();
   await page.locator('[data-qa-return]').click();
+  await expect.poll(()=>new URL(page.url()).searchParams.has('qa'),{timeout:12000}).toBe(false);
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
   await expect(page.locator('body')).not.toHaveAttribute('data-qa-preset',/.+/);
-  expect(new URL(page.url()).searchParams.has('qa')).toBe(false);
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(savedBefore)
 });
