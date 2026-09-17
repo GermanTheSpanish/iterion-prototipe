@@ -6,7 +6,7 @@
 
   const CURRENT_BUILD='20260917.1',CHECK_MIN_MS=60000;
   const state={currentBuild:CURRENT_BUILD,latestBuild:null,latestVersion:null,updateAvailable:false,status:'idle',lastCheck:0};
-  let checkButton=null,applyButton=null,resetTimer=0;
+  let checkButton=null,applyButton=null,resetTimer=0,startupTimer=0;
   Object.defineProperty(root,'__monoidUpdate',{configurable:true,get:()=>({...state})});
 
   const versionLabel=(build=CURRENT_BUILD,version=root.IterionData?.VERSION||'dev')=>`v${version} · build ${build}`;
@@ -55,13 +55,16 @@
   async function applyUpdate(){
     if(!state.updateAvailable)return;persistActiveRun();state.status='reloading';syncButtons();if(applyButton)applyButton.textContent='UPDATING…';
     try{const reg=await root.navigator?.serviceWorker?.getRegistration?.();await reg?.update?.()}catch(_){ }
-    const url=new URL(root.location.href);url.searchParams.set('_monoidUpdate',String(state.latestBuild||Date.now()));root.location.replace(url.href)
+    const url=new URL(root.location.href);url.searchParams.set('_monoidUpdate',String(state.latestBuild||Date.now()));url.searchParams.set('_monoidReload',String(Date.now()));root.location.replace(url.href)
   }
+  function scheduleStartupCheck(delay=350){if(startupTimer)clearTimeout(startupTimer);startupTimer=setTimeout(()=>{startupTimer=0;checkForUpdates({silent:true,force:true})},delay)}
+  function workerChanged(){checkForUpdates({silent:true,force:true})}
 
   const style=doc.createElement('style');style.id='monoid-update-style';style.textContent='#checkForUpdates,#applyMonoidUpdate{letter-spacing:.02em}#applyMonoidUpdate{background:#151515;color:#fff;border-color:#151515}';doc.head.appendChild(style);
   root.MonoidUpdate=Object.freeze({checkForUpdates,applyUpdate});
   new MutationObserver(syncBuildStamp).observe(doc.body,{subtree:true,childList:true});
   doc.addEventListener('visibilitychange',()=>{if(doc.visibilityState==='visible')checkForUpdates({silent:true})});
-  root.addEventListener('pageshow',()=>checkForUpdates({silent:true}));
-  installMenuActions();syncBuildStamp();setTimeout(()=>checkForUpdates({silent:true,force:true}),500)
+  root.addEventListener('pageshow',()=>checkForUpdates({silent:true,force:true}));
+  const sw=root.navigator?.serviceWorker;if(sw?.addEventListener){sw.addEventListener('controllerchange',workerChanged);sw.addEventListener('message',event=>{if(event.data?.type==='MONOID_SW_UPDATED')workerChanged()})}
+  installMenuActions();syncBuildStamp();scheduleStartupCheck()
 })(window);
