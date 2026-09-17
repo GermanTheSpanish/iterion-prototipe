@@ -29,9 +29,13 @@
     const decimals=scaled<10?2:scaled<100?1:0;
     return sign+trimNumber(scaled,decimals)+UNITS[tier]
   }
-  function parsePlainNumber(text){
-    const raw=String(text||'').trim();if(!/^-?[\d,]+(?:\.\d+)?$/.test(raw))return NaN;
-    return Number(raw.replace(/,/g,''))
+  function parseVisibleNumber(text){
+    const raw=String(text||'').trim();if(!raw)return NaN;
+    if(/^-?[\d,]+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(raw))return Number(raw.replace(/,/g,''));
+    const match=raw.match(/^(-?[\d,]+(?:\.\d+)?)(K|M|B|T|Qa|Qi|Sx|Sp|Oc|No|Dc)$/);
+    if(!match)return NaN;
+    const tier=UNITS.indexOf(match[2]);if(tier<0)return NaN;
+    return Number(match[1].replace(/,/g,''))*10**((tier+1)*3)
   }
 
   const style=doc.createElement('style');
@@ -103,12 +107,9 @@
   }
 
   function syncNumbers(){
-    const game=root.__monoidGame,score=$('score'),target=$('target'),scoreDetail=$('scoreDetail');if(!game?.state||!score||!target)return;
-    const targetValue=Number(game.target?.());if(Number.isFinite(targetValue)){const text=compactPrimary(targetValue);if(target.textContent!==text)target.textContent=text}
-    if(scoreDetail?.classList.contains('scoreLive')){
-      const live=parsePlainNumber(score.textContent);if(Number.isFinite(live)&&Math.abs(live)>=COMPACT_THRESHOLD){const text=compactPrimary(live);if(score.textContent!==text)score.textContent=text}
-    }else{
-      const value=Number(game.state().score);if(Number.isFinite(value)){const text=compactPrimary(value);if(score.textContent!==text)score.textContent=text}
+    for(const el of[$('score'),$('target')]){
+      if(!el)continue;const value=parseVisibleNumber(el.textContent);if(!Number.isFinite(value))continue;
+      const text=compactPrimary(value);if(el.textContent!==text)el.textContent=text
     }
   }
   function alignMarketAssignments(){
@@ -118,14 +119,14 @@
     })
   }
   function syncFinalFx(){
-    const game=root.__monoidGame,number=doc.querySelector('.finalfx>span');if(!game?.state||!number)return;
-    const value=Number(game.state().score);if(Number.isFinite(value)&&Math.abs(value)>=COMPACT_THRESHOLD){const text=compactPrimary(value);if(number.textContent!==text)number.textContent=text}
+    const number=doc.querySelector('.finalfx>span');if(!number)return;const value=parseVisibleNumber(number.textContent);if(!Number.isFinite(value)||Math.abs(value)<COMPACT_THRESHOLD)return;
+    const text=compactPrimary(value);if(number.textContent!==text)number.textContent=text
   }
   function sync(){queued=false;syncNumbers();alignMarketAssignments();syncFinalFx()}
   let queued=false;
   function schedule(){if(queued)return;queued=true;root.requestAnimationFrame(sync)}
   new MutationObserver(schedule).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','aria-label','hidden']});
   root.addEventListener('resize',schedule);root.addEventListener('pageshow',schedule);
-  root.MonoidPhaseA=Object.freeze({COMPACT_THRESHOLD,compactPrimary,sync,alignMarketAssignments});
+  root.MonoidPhaseA=Object.freeze({COMPACT_THRESHOLD,compactPrimary,parseVisibleNumber,sync,alignMarketAssignments});
   installLast()
 })(window);
