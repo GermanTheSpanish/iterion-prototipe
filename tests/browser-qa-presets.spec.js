@@ -33,7 +33,7 @@ async function assertLateGameSurface(page,id){
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260917.2');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260917.3');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
