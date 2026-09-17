@@ -60,3 +60,13 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-up
   script.dataset.monoidUpdate='true';
   document.head.appendChild(script)
 }
+
+// Prototype game-mode carousel. Loaded as a presentation/input layer so it can
+// be removed or iterated without touching deterministic engine/game rules.
+if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-modes]')){
+  const script=document.createElement('script');
+  script.src='mode-carousel.js?v=20260917.2';
+  script.async=false;
+  script.dataset.monoidModes='true';
+  document.head.appendChild(script)
+}
