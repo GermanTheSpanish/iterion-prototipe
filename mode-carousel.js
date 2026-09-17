@@ -17,6 +17,8 @@
   const FLING_PROJECTION_MS=70;
   const SETTLE_APPROACH_MS=250;
   const SETTLE_LAND_MS=140;
+  const SETTLE_MIN_APPROACH_MS=140;
+  const SETTLE_MIN_LAND_MS=70;
   const SETTLE_MS=SETTLE_APPROACH_MS+SETTLE_LAND_MS;
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
@@ -39,6 +41,10 @@
     const distance=target-x,abs=Math.abs(distance);if(abs>=MAGNET_RADIUS)return x;
     const pull=MAGNET_STRENGTH*(1-abs/MAGNET_RADIUS);return x+distance*pull
   }
+  function settleProfile(startShift,targetShift){
+    const remaining=Math.min(SPACING,Math.abs((Number(targetShift)||0)-(Number(startShift)||0))),t=remaining/SPACING,strength=t*t*(3-2*t);
+    return Object.freeze({remaining,strength,overshoot:SETTLE_OVERSHOOT*strength,approachMs:Math.round(SETTLE_MIN_APPROACH_MS+(SETTLE_APPROACH_MS-SETTLE_MIN_APPROACH_MS)*strength),landMs:Math.round(SETTLE_MIN_LAND_MS+(SETTLE_LAND_MS-SETTLE_MIN_LAND_MS)*strength)})
+  }
   function injectStyles(doc){
     if(doc.getElementById('monoidModeCarouselStyles'))return;
     const style=doc.createElement('style');style.id='monoidModeCarouselStyles';style.textContent=`
@@ -47,15 +53,15 @@
 .modeCarouselViewport.isDragging{cursor:grabbing}
 .modeSlide{appearance:none;position:absolute;left:50%;top:2px;width:72px;height:112px;margin:0;padding:0;border:0;background:transparent;color:#151515;display:grid;place-items:center;transform:translateX(-50%);translate:var(--mode-x,0px) 0;transform-origin:center;transition:translate .24s cubic-bezier(.22,.72,.24,1),opacity .18s ease;will-change:translate,opacity;touch-action:none}
 .modeCarouselViewport.isDragging .modeSlide,.modeCarouselViewport.isRebasing .modeSlide{transition:none!important}
-.modeCarouselViewport.isPulling .modeSlide{transition:translate ${SETTLE_APPROACH_MS}ms cubic-bezier(.30,0,.22,1),opacity .18s ease}
-.modeCarouselViewport.isLanding .modeSlide{transition:translate ${SETTLE_LAND_MS}ms cubic-bezier(.18,.72,.28,1),opacity .12s ease}
+.modeCarouselViewport.isPulling .modeSlide{transition:translate var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1),opacity .18s ease}
+.modeCarouselViewport.isLanding .modeSlide{transition:translate var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1),opacity .12s ease}
 .modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{visibility:hidden;pointer-events:none}.modeSlide.isRemote .modeTile{visibility:visible}
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
 .modeCarouselViewport.isDragging .modeTile,.modeCarouselViewport.isRebasing .modeTile{transition:none!important}
-.modeCarouselViewport.isPulling .modeTile{transition:transform ${SETTLE_APPROACH_MS}ms cubic-bezier(.30,0,.22,1)}
-.modeCarouselViewport.isLanding .modeTile{transition:transform ${SETTLE_LAND_MS}ms cubic-bezier(.18,.72,.28,1)}
+.modeCarouselViewport.isPulling .modeTile{transition:transform var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1)}
+.modeCarouselViewport.isLanding .modeTile{transition:transform var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1)}
 .modeTilePrototype,.modeTileLocked{position:relative;overflow:hidden}
 .modeTilePrototype{background:#151515!important;border-color:#151515!important;color:#fff}
 .modeTilePrototype::after,.modeTileLocked::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);background:currentColor;opacity:.9}
@@ -94,24 +100,26 @@
       root.__monoidSelectedMode=mode.id;if(root.__monoidModes)root.__monoidModes.selected=mode.id
     }
     function clearSettleTimer(){if(settleTimer){root.clearTimeout(settleTimer);settleTimer=0}}
+    function clearSettleVars(){viewport.style.removeProperty('--settle-approach-ms');viewport.style.removeProperty('--settle-land-ms')}
     function commitSettle(){
       if(!settleState)return;
       const next=settleState.next;
-      clearSettleTimer();viewport.classList.remove('isPulling','isLanding');viewport.classList.add('isRebasing');selected=next;render(0);void viewport.offsetWidth;viewport.classList.remove('isRebasing');settleState=null
+      clearSettleTimer();viewport.classList.remove('isPulling','isLanding');viewport.classList.add('isRebasing');selected=next;render(0);void viewport.offsetWidth;viewport.classList.remove('isRebasing');clearSettleVars();settleState=null
     }
     function stopSettling(commit=true){
-      if(settleState){if(commit)commitSettle();else{clearSettleTimer();settleState=null;viewport.classList.remove('isPulling','isLanding','isRebasing')}}
-      else viewport.classList.remove('isPulling','isLanding','isRebasing')
+      if(settleState){if(commit)commitSettle();else{clearSettleTimer();settleState=null;viewport.classList.remove('isPulling','isLanding','isRebasing');clearSettleVars()}}
+      else{viewport.classList.remove('isPulling','isLanding','isRebasing');clearSettleVars()}
     }
     function settle(next,startShift,targetShift){
       stopSettling(true);
       const nextIndex=wrapIndex(next),reduced=root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       if(reduced){viewport.classList.remove('isDragging');selected=nextIndex;render(0);return MODES[selected]}
-      const travel=targetShift-startShift,direction=Math.sign(travel)||Math.sign(-startShift);
-      if(!direction){selected=nextIndex;render(0);return MODES[selected]}
-      const overshootShift=targetShift+direction*SETTLE_OVERSHOOT;
-      settleState={next:nextIndex,targetShift};viewport.classList.remove('isDragging','isLanding');viewport.classList.add('isPulling');void viewport.offsetWidth;render(overshootShift);
-      settleTimer=root.setTimeout(()=>{if(!settleState)return;viewport.classList.remove('isPulling');viewport.classList.add('isLanding');void viewport.offsetWidth;render(settleState.targetShift);settleTimer=root.setTimeout(commitSettle,SETTLE_LAND_MS+20)},SETTLE_APPROACH_MS);
+      const travel=targetShift-startShift,direction=Math.sign(travel)||Math.sign(-startShift),profile=settleProfile(startShift,targetShift);
+      if(!direction||profile.remaining<.5){selected=nextIndex;render(0);return MODES[selected]}
+      const overshootShift=targetShift+direction*profile.overshoot;
+      viewport.style.setProperty('--settle-approach-ms',`${profile.approachMs}ms`);viewport.style.setProperty('--settle-land-ms',`${profile.landMs}ms`);
+      settleState={next:nextIndex,targetShift,profile};viewport.classList.remove('isDragging','isLanding');viewport.classList.add('isPulling');void viewport.offsetWidth;render(overshootShift);
+      settleTimer=root.setTimeout(()=>{if(!settleState)return;viewport.classList.remove('isPulling');viewport.classList.add('isLanding');void viewport.offsetWidth;render(settleState.targetShift);settleTimer=root.setTimeout(commitSettle,settleState.profile.landMs+20)},profile.approachMs);
       return MODES[nextIndex]
     }
     function select(index){
@@ -132,5 +140,5 @@
     root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select};
     render();return true
   }
-  return{ACTIVE_MODE_KEY,MODES,SPACING,SETTLE_MS,SETTLE_APPROACH_MS,SETTLE_LAND_MS,SETTLE_OVERSHOOT,clampIndex,wrapIndex,stepIndex,cyclicOffset,magnetizeDrag,mount};
+  return{ACTIVE_MODE_KEY,MODES,SPACING,SETTLE_MS,SETTLE_APPROACH_MS,SETTLE_LAND_MS,SETTLE_MIN_APPROACH_MS,SETTLE_MIN_LAND_MS,SETTLE_OVERSHOOT,clampIndex,wrapIndex,stepIndex,cyclicOffset,magnetizeDrag,settleProfile,mount};
 });
