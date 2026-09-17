@@ -129,7 +129,7 @@
     dialog.addEventListener('click',event=>{
       const choice=event.target.closest('[data-qa-preset]')?.dataset.qaPreset;
       if(choice&&PRESETS[choice]){persistCurrentRun(root);root.location.assign(qaUrl(root,choice));return}
-      if(event.target.closest('[data-qa-return]'))root.location.assign(normalUrl(root))
+      if(event.target.closest('[data-qa-return]'))root.location.replace(normalUrl(root))
     });
     return true
   }
