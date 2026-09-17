@@ -61,7 +61,6 @@ const echo=score([
 assert.strictEqual(echo.mainOutput,36);
 assert.strictEqual(echo.echoOutput,36);
 assert.strictEqual(echo.output,72);
-assert.deepStrictEqual(echo.events.find(e=>e.type==='double-echo-result'),assert.objectContaining?{}:{});
 const echoResult=echo.events.find(e=>e.type==='double-echo-result');
 assert.strictEqual(echoResult.mainOutput,36);assert.strictEqual(echoResult.echoOutput,36);assert.strictEqual(echoResult.finalOutput,72);
 
