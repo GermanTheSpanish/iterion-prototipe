@@ -41,12 +41,12 @@
     gameplayStyle.textContent=`
       /* Figma-approved gameplay composition. Presentation only: no engine geometry changes. */
       .app{width:min(100%,430px)!important;padding:calc(8px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))!important;grid-template-rows:44px 122px 38px minmax(0,1fr) auto!important;gap:0!important}
-      .gameHeader{position:relative!important;min-height:44px!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important}
-      .wordmark{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:clamp(118px,30vw,132px)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;font-size:16px!important;font-weight:700!important;letter-spacing:0!important;line-height:1!important;color:#171717!important;pointer-events:none!important}
-      .headerActions{position:relative!important;z-index:3!important;width:100%!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-end!important}
+      .gameHeader{position:relative!important;min-height:44px!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important}
+      .wordmark{position:fixed!important;left:50vw!important;top:calc(8px + env(safe-area-inset-top) + 22px)!important;transform:translate(-50%,-50%)!important;width:clamp(118px,30vw,132px)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;font-size:16px!important;font-weight:700!important;letter-spacing:0!important;line-height:1!important;color:#171717!important;pointer-events:none!important}
+      .headerActions{position:relative!important;z-index:3!important;width:100%!important;height:44px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important}
       #menuButton{width:92px!important;min-width:92px!important;height:44px!important;min-height:44px!important;padding:0 16px!important;border:4px solid transparent!important;border-radius:16px!important;background:#111!important;background-clip:padding-box!important;color:#fff!important;font-size:15px!important;font-weight:750!important;line-height:36px!important;letter-spacing:.055em!important;text-align:center!important}
       /* Compatibility target for old automated flows; real Help lives inside MENU. */
-      .gameHeader #helpButton{position:absolute!important;left:0!important;top:0!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border:0!important;opacity:0!important;overflow:hidden!important}
+      .gameHeader #helpButton{position:absolute!important;left:auto!important;right:0!important;top:0!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border:0!important;opacity:0!important;overflow:hidden!important}
 
       .scoreStrip{display:grid!important;grid-template-columns:1fr 1fr!important;gap:20px!important;align-items:stretch!important}
       .scoreCard{position:relative!important;min-width:0!important;min-height:0!important;padding:17px 0 8px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:right!important}
@@ -98,14 +98,14 @@
       .railActions .btn small{display:block!important;margin-top:6px!important;font-size:11px!important;font-weight:450!important;line-height:1!important;text-transform:none!important;color:#67645f!important}
       .railActions .btn:disabled{opacity:1!important}
       .railActions .btn:disabled small{color:#96938d!important}
-      .shopRailButton{border-color:#111!important;background:#111!important;color:#fff!important}
-      .shopRailButton small{color:#e5e5e1!important}
+      #shopButton{border-color:#111!important;background:#111!important;color:#fff!important}
+      #shopButton small{color:#e5e5e1!important}
 
       @media(max-height:720px){
         .app{padding-top:calc(5px + env(safe-area-inset-top))!important;padding-bottom:calc(6px + env(safe-area-inset-bottom))!important;grid-template-rows:40px 86px 32px minmax(0,1fr) auto!important}
         .gameHeader,.headerActions{height:40px!important;min-height:40px!important}
         #menuButton{height:44px!important;min-height:44px!important;line-height:36px!important}
-        .wordmark{font-size:14px!important;width:118px!important}
+        .wordmark{top:calc(5px + env(safe-area-inset-top) + 20px)!important;font-size:14px!important;width:118px!important}
         .scoreCard{padding-top:8px!important}.scoreValue{margin-top:9px!important;font-size:38px!important}.scoreCaption{font-size:11px!important;margin-top:3px!important}.scoreProgress{margin-top:5px!important}
         .metaStrip{min-height:32px!important;padding:6px 0!important}.roundMeta,.roundMeta>strong,.stageMeta>strong{font-size:12px!important}
         .gameArea{grid-template-columns:minmax(0,1fr) 48px!important;gap:6px!important;padding-top:7px!important}.board{width:min(100%,350px,calc((100dvh - 255px) * .75))!important}
