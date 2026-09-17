@@ -45,7 +45,7 @@
 // behaviour cannot alter deterministic gameplay or saved runs.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pwa]')){
   const script=document.createElement('script');
-  script.src='pwa.js?v=20260917.2';
+  script.src='pwa.js?v=20260917.3';
   script.async=false;
   script.dataset.monoidPwa='true';
   document.head.appendChild(script)
@@ -55,7 +55,7 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pw
 // be removed with the visible build marker once external playtesting stabilises.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-update]')){
   const script=document.createElement('script');
-  script.src='update-check.js?v=20260917.2';
+  script.src='update-check.js?v=20260917.3';
   script.async=false;
   script.dataset.monoidUpdate='true';
   document.head.appendChild(script)
@@ -86,7 +86,7 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pr
 // when ?qa= is present and sandboxes the user's real saved run in memory.
 if(typeof document!=='undefined'&&new URL(location.href).searchParams.has('qa')&&!document.querySelector('script[data-monoid-qa-presets]')){
   const script=document.createElement('script');
-  script.src='qa-presets.js?v=20260917.2';
+  script.src='qa-presets.js?v=20260917.3';
   script.async=false;
   script.dataset.monoidQaPresets='true';
   document.head.appendChild(script)
