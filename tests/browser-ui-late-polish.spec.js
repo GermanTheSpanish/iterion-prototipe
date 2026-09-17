@@ -47,7 +47,7 @@ for(const width of [375,430])for(const endless of [false,true]){
     await page.setViewportSize({width,height:width===375?667:932});
     await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
     await page.goto('http://127.0.0.1:4173/');
-    await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish)).toBe(true);
+    await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish&&!!window.MonoidPhaseA)).toBe(true);
     await page.locator('#titleCard').click();await page.locator('#startRun').click();
     await page.evaluate(endless=>{
       const g=window.__monoidGame,s=g.state(),E=window.IterionEngine;
@@ -61,17 +61,23 @@ for(const width of [375,430])for(const endless of [false,true]){
     },endless);
     await page.locator('#helpButton').click();await page.locator('#overlayPrimary').click();
     await expect(page.locator('.marketStructuredOffer')).toHaveCount(3);
-    const tiles=await compactGeometry(page.locator('.marketPhysicalContext .marketTile:not(.marketTileOverflow) .domino'));
+    const tiles=await compactGeometry(page.locator('.marketContextRow .marketTile:not(.marketTileOverflow) .domino'));
     assertCompactValues(tiles);expect(tiles.filter(t=>t.mark)).toHaveLength(3);
     expect(tiles.some(t=>t.circuit&&t.power)).toBe(true);expect(tiles.some(t=>t.power&&!t.circuit)).toBe(true);
     const upgraded=page.locator('.marketPoolGroup .domino:has(.upgradeDot.u2)').first();
     expect(await upgraded.locator('.half').nth(1).evaluate(el=>getComputedStyle(el).borderTopColor)).toBe('rgb(154, 112, 181)');
     await expect(page.locator('.app .compactPreview')).toHaveCount(0);
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
-    expect(await boardMark.locator('.tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12);
-    expect(await boardMark.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0.28');
-    expect(await page.evaluate(()=>{const g=window.__monoidGame,before=JSON.stringify(g.exportState());window.MonoidLatePolish.sync();return before===JSON.stringify(g.exportState())})).toBe(true);
+    expect(await boardMark.locator('.tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(15);
+    expect(await boardMark.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
+    const boardMarkColor=await boardMark.locator('.tileModMark').evaluate(el=>getComputedStyle(el).color);
+    expect(boardMarkColor).toMatch(/0\.4\)$/);
+    expect(await page.evaluate(()=>{const g=window.__monoidGame,before=JSON.stringify(g.exportState());window.MonoidLatePolish.sync();window.MonoidPhaseA.sync();return before===JSON.stringify(g.exportState())})).toBe(true);
     expect(await page.locator('.commerceModal').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+    if(endless){
+      const wordmarkColor=await page.locator('.wordmark').evaluate(el=>getComputedStyle(el).color);expect(wordmarkColor).not.toBe('rgb(23, 23, 23)');
+      const toolColor=await page.locator('#reroll').evaluate(el=>getComputedStyle(el).color);expect(toolColor).not.toBe('rgb(23, 23, 23)')
+    }
     await page.screenshot({path:testInfo.outputPath(`compact-market-${width}-${endless}.png`)});
   });
 }
@@ -79,7 +85,7 @@ for(const width of [375,430])for(const endless of [false,true]){
 test('Shop uses compact geometry without revealing its face-down domino',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
-  await page.goto('http://127.0.0.1:4173/');await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish)).toBe(true);
+  await page.goto('http://127.0.0.1:4173/');await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish&&!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   await page.evaluate(()=>{window.__monoidGame.state().coins=200});await page.locator('#shopButton').click();
   const preview=page.locator('.randomTilePreview .domino');await expect(preview).toHaveClass(/compactPreview/);await expect(preview).toHaveClass(/back/);
@@ -96,8 +102,9 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
   await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260917.1');
+  await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
-  const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(2);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(130);
+  const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
 
   await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame,s=g.state(),E=window.IterionEngine;const ids=['d1-1','d2-2','d3-3','d4-4','d5-5','d6-6'];s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=80;s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*6,4+Math.floor(i/3)*8,0,i%2?1:0,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.doubleDoubleTileId='d3-3';s.doubleEchoTileId=null;s.zeroMemoryTileId=null;s.circuitRanks={'d3-3':1};s.hand=s.hand.map(t=>s.placedTileIds.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));g.openIntermission();s.shopOffers=['double-double','double-echo','long-run']});
   await page.locator('#helpButton').click();await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
@@ -106,6 +113,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
 
   const dd=page.locator('[data-market-offer="double-double"]');
   await expect(dd.locator('.marketAssignedGroup .marketAssignedTile')).toHaveCount(1);
+  expect(await dd.locator('.marketAssignedGroup').evaluate(el=>el.parentElement.classList.contains('marketOfferAction'))).toBe(true);
   await expect(dd.locator('.marketPoolGroup .marketContextLabel')).toHaveText('RANDOM FROM · 5');
   await expect(dd.locator('.marketPoolGroup .marketTile:not(.marketTileOverflow)')).toHaveCount(3);
   await expect(dd.locator('.marketPoolGroup .marketTileMore')).toHaveText('+2');
@@ -133,7 +141,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
 
   const markSize=await page.locator('[data-market-offer="double-double"] .marketAssignedTile .tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));expect(markSize).toBe(9);
   expect(await page.evaluate(()=>window.MonoidLatePolish.scientific(1.1641532182693482e33))).toBe('1.16e33');
-  await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame;g.state().score=8.603241731728167e47;window.MonoidLatePolish.sync()});await expect(page.locator('#score')).toHaveText('8.6e47');await expect(page.locator('#score')).toHaveClass(/extremeValue/);
+  await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame;g.state().score=8.603241731728167e47;window.MonoidLatePolish.sync();window.MonoidPhaseA.sync()});await expect(page.locator('#score')).toHaveText('8.6e47');await expect(page.locator('#score')).toHaveClass(/extremeValue/);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 });
 
@@ -146,4 +154,21 @@ test('Market keeps the same component and touch targets on 375px phones',async({
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const actions=await page.locator('.marketOfferAction .shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
   await expect(page.locator('.marketStructuredOffer').first().locator('.marketOfferDescription')).toBeVisible()
+});
+
+test('Phase A compacts primary numbers at 50K and thickens the score instrument without overlap',async({page})=>{
+  await page.setViewportSize({width:375,height:812});
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.goto('http://127.0.0.1:4173/');await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
+  await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.evaluate(()=>{
+    const g=window.__monoidGame,s=g.state();s.score=10495000000;g.config.TARGETS[s.round]=38147010;window.MonoidPhaseA.sync()
+  });
+  await expect(page.locator('#score')).toHaveText('10.5B');await expect(page.locator('#target')).toHaveText('38.1M');
+  expect(await page.evaluate(()=>window.MonoidPhaseA.compactPrimary(49999))).toBe('49,999');
+  expect(await page.evaluate(()=>window.MonoidPhaseA.compactPrimary(50000))).toBe('50K');
+  const boxes=await page.locator('#target,#score').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{x:r.x,right:r.right,width:r.width}}));expect(boxes[0].right).toBeLessThan(boxes[1].x);
+  const barHeight=await page.locator('.scoreProgressTrack').evaluate(el=>parseFloat(getComputedStyle(el).height));expect(barHeight).toBeGreaterThanOrEqual(3);
+  const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-187.5)).toBeLessThan(1);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 });
