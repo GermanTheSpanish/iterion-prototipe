@@ -100,7 +100,9 @@
 
   function decorateWordmark(){
     const wordmark=doc.querySelector('.wordmark');if(!wordmark)return;
-    if(!wordmark.dataset.letterized){wordmark.dataset.letterized='true';wordmark.setAttribute('aria-label','MONOID');wordmark.innerHTML='MONOID'.split('').map(c=>`<span aria-hidden="true">${c}</span>`).join('')}
+    const spans=[...wordmark.children],letters=spans.map(span=>span.textContent||'').join('');
+    const intact=spans.length===6&&spans.every(span=>span.tagName==='SPAN')&&letters==='MONOID';
+    if(!intact){wordmark.dataset.letterized='true';wordmark.setAttribute('aria-label','MONOID');wordmark.innerHTML='MONOID'.split('').map(c=>`<span aria-hidden="true">${c}</span>`).join('')}
   }
   function scientific(value){
     value=Number(value);if(!Number.isFinite(value))return String(value);
