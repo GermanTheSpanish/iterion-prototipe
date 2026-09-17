@@ -135,7 +135,7 @@
     });
     function finishDrag(e){
       if(!drag||e.pointerId!==drag.id)return;
-      const current=selected,dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,distanceEnough=Math.abs(dx)>=SWIPE_THRESHOLD,flingEnough=Math.abs(dx)>=MIN_FLING_DISTANCE&&Math.abs(projected)>=SWIPE_THRESHOLD,next=distanceEnough||flingEnough?stepIndex(current,projected<0?1:-1):current,releaseOffset=cyclicOffset(next,current)*SPACING+drag.visualX;
+      const current=selected,dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,capturedByCenter=Math.abs(dx)<MAGNET_RADIUS,distanceEnough=Math.abs(dx)>=SWIPE_THRESHOLD,flingEnough=Math.abs(dx)>=MIN_FLING_DISTANCE&&Math.abs(projected)>=SWIPE_THRESHOLD,next=capturedByCenter?current:(distanceEnough||flingEnough?stepIndex(current,projected<0?1:-1):current),releaseOffset=cyclicOffset(next,current)*SPACING+drag.visualX;
       drag=null;selected=next;
       render(releaseOffset);
       viewport.classList.remove('isDragging');
