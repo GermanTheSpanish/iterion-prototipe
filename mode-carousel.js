@@ -49,7 +49,7 @@
 .modeCarouselViewport.isDragging .modeSlide,.modeCarouselViewport.isRebasing .modeSlide{transition:none!important}
 .modeCarouselViewport.isPulling .modeSlide{transition:translate ${SETTLE_APPROACH_MS}ms cubic-bezier(.30,0,.22,1),opacity .18s ease}
 .modeCarouselViewport.isLanding .modeSlide{transition:translate ${SETTLE_LAND_MS}ms cubic-bezier(.18,.72,.28,1),opacity .12s ease}
-.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{pointer-events:none}
+.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{visibility:hidden;pointer-events:none}.modeSlide.isRemote .modeTile{visibility:visible}
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}

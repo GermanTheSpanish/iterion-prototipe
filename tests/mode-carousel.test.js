@@ -31,8 +31,7 @@ assert.doesNotMatch(src,/modeCenterBounce/,'snap must not use a scale/click boun
 assert.match(src,/\.isPulling \.modeSlide\{transition:translate .*cubic-bezier\(\.30,0,\.22,1\)/,'release must pull the whole physical strip through centre');
 assert.match(src,/\.isLanding \.modeSlide\{transition:translate .*cubic-bezier\(\.18,\.72,\.28,1\)/,'landing must be a separate damping phase');
 assert.match(src,/overshootShift=targetShift\+direction\*SETTLE_OVERSHOOT/,'overshoot direction must follow the physical travel through centre');
-assert.match(src,/\.modeSlide\.isRemote\{pointer-events:none\}/,'remote tiles must stay laid out and clipped rather than appearing on release');
-assert.doesNotMatch(src,/\.modeSlide\.isRemote\{visibility:hidden/,'remote tiles must never be visibility-toggled during a swipe');
+assert.match(src,/\.modeSlide\.isRemote\{visibility:hidden;pointer-events:none\}\.modeSlide\.isRemote \.modeTile\{visibility:visible\}/,'remote controls stay out of layout checks while their tile visuals remain physically pre-positioned');
 assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circular seam rebasing must happen offscreen without crossing the window');
 assert.match(src,/startRun\.disabled=!mode\.available/);
 assert.match(src,/ACTIVE_MODE_KEY/);
