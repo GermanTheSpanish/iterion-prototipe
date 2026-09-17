@@ -33,7 +33,7 @@ async function assertLateGameSurface(page,id){
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260917.3');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260917.4');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -61,4 +61,30 @@ test('Prototype first-Endless QA link exposes deferred mode, Endless and POWER x
   expect(await page.locator('#board .power3').count()).toBeGreaterThanOrEqual(5);
   await page.screenshot({path:testInfo.outputPath('qa-prototype-endless-r16.png'),fullPage:true});
   await assertRealSaveSurvived(page)
+});
+
+
+test('PWA menu opens QA test runs and returns to the untouched saved run',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.goto(BASE);await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  const savedBefore=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));
+  expect(savedBefore).toBeTruthy();
+  await page.locator('#menuButton').click();
+  await expect(page.locator('#qaTestRunsButton')).toBeVisible();
+  await page.locator('#qaTestRunsButton').click();
+  await expect(page.locator('#qaTestRunsDialog')).toBeVisible();
+  await expect(page.locator('#qaTestRunsDialog')).toContainText('CLASSIC · ROUND 14');
+  await expect(page.locator('#qaTestRunsDialog')).toContainText('PROTOTYPE · ENDLESS R16');
+  await page.locator('[data-qa-preset="classic14"]').click();
+  await expect(page.locator('body')).toHaveAttribute('data-qa-preset','classic14',{timeout:12000});
+  expect(await page.evaluate(()=>window.__monoidQa?.savedRunProtected)).toBe(true);
+  expect(await page.evaluate(()=>window.__monoidQa?.originalStorage?.['iterion.activeRun.v1'])).toBe(savedBefore);
+  await page.locator('#menuButton').click();await page.locator('#qaTestRunsButton').click();
+  await expect(page.locator('[data-qa-return]')).toBeVisible();
+  await page.locator('[data-qa-return]').click();
+  await expect.poll(()=>new URL(page.url()).searchParams.has('qa'),{timeout:12000}).toBe(false);
+  await expect(page.locator('.app')).toBeVisible({timeout:12000});
+  await expect(page.locator('body')).not.toHaveAttribute('data-qa-preset',/.+/);
+  expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(savedBefore)
 });

@@ -2,10 +2,10 @@
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.MonoidQaPresets=api;
-  if(root?.document)api.autoStart(root);
+  if(root?.document){api.installMenuAccess(root);api.autoStart(root);api.autoResumeReturn(root);}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const BUILD_ID='20260917.3';
+  const BUILD_ID='20260917.4';
   const ACTIVE_RUN_KEY='iterion.activeRun.v1';
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
   const LATEST_RUN_KEY='iterion.latestRun.v9';
@@ -78,6 +78,60 @@
     const menu=root.document.getElementById('gameMenu');if(!menu||menu.querySelector('.qaPresetStamp'))return;
     const p=root.document.createElement('p');p.className='qaPresetStamp';p.textContent=`QA PRESET · ${preset.mode.toUpperCase()} · R${preset.round+1} · SAVED RUN SAFE`;p.style.cssText='margin:8px 0 0;color:var(--muted);font:700 9px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em';menu.appendChild(p)
   }
+  function persistCurrentRun(root){
+    if(new URL(root.location.href).searchParams.has('qa'))return;
+    const game=root.__monoidGame,flow=root.__monoidFlow;
+    if(flow?.screen!=='game'||!game?.exportState)return;
+    try{root.localStorage.setItem(ACTIVE_RUN_KEY,JSON.stringify(game.exportState()))}catch(_){ }
+  }
+  function qaUrl(root,id){
+    const url=new URL(root.location.href);url.search='';url.searchParams.set('qa',id);url.searchParams.set('cb',BUILD_ID);return url.href
+  }
+  function normalUrl(root){
+    const url=new URL(root.location.href);url.search='';url.searchParams.set('qaReturn','1');url.searchParams.set('cb',BUILD_ID);return url.href
+  }
+  function autoResumeReturn(root){
+    const url=new URL(root.location.href);if(url.searchParams.get('qaReturn')!=='1'||url.searchParams.has('qa'))return false;
+    let tries=0,entered=false;
+    const resume=()=>{
+      const title=root.document.getElementById('titleCard'),continueRun=root.document.getElementById('continueRun'),app=root.document.querySelector('.app');
+      if(app&&!app.hidden){
+        url.searchParams.delete('qaReturn');url.searchParams.delete('cb');root.history.replaceState(root.history.state,'',url.href);return
+      }
+      if(!entered&&title&&!title.hidden){entered=true;title.click();root.requestAnimationFrame(resume);return}
+      if(continueRun&&!continueRun.hidden){continueRun.click();root.requestAnimationFrame(resume);return}
+      if(tries++<360)root.requestAnimationFrame(resume)
+    };
+    root.requestAnimationFrame(resume);return true
+  }
+  function installMenuAccess(root){
+    const doc=root.document,menu=doc?.getElementById('gameMenu'),anchor=doc?.querySelector('#gameMenu p');if(!doc||!menu||menu.querySelector('#qaTestRunsButton'))return false;
+    const style=doc.createElement('style');style.id='monoid-qa-menu-style';style.textContent=`
+      #qaTestRunsButton{margin-top:10px!important;border-top:1px solid var(--line)!important}
+      #qaTestRunsDialog{width:min(420px,94vw);padding:18px}
+      #qaTestRunsDialog .qaMenuIntro{margin:2px 0 12px;color:var(--muted);font-size:11px;line-height:1.4}
+      #qaTestRunsDialog .qaPresetChoice{display:grid;width:100%;min-height:58px;padding:10px 12px;border:0;border-top:1px solid var(--line);background:transparent;color:var(--ink);text-align:left}
+      #qaTestRunsDialog .qaPresetChoice strong{font-size:13px;letter-spacing:.04em}
+      #qaTestRunsDialog .qaPresetChoice small{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.3}
+      #qaTestRunsDialog .qaReturn{display:block;margin-top:12px;padding:12px;text-align:center;text-decoration:none;background:#151515;color:#fff;border:1px solid #151515}
+    `;doc.head.appendChild(style);
+    const button=doc.createElement('button');button.id='qaTestRunsButton';button.className='menuAction';button.textContent='QA / TEST RUNS';menu.insertBefore(button,anchor||null);
+    const dialog=doc.createElement('dialog');dialog.id='qaTestRunsDialog';dialog.className='gameMenu';
+    const inQa=new URL(root.location.href).searchParams.has('qa');
+    dialog.innerHTML=`<div class="menuHead"><h2>QA / Test runs</h2><button class="iconButton" aria-label="Close QA test runs">×</button></div>
+      <p class="qaMenuIntro">Prepared late-game states. Your real saved run is protected.</p>
+      <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Late-game machine · DD · DE · ZM · Circuits · POWER</small></button>
+      <button class="qaPresetChoice" data-qa-preset="prototype16"><strong>PROTOTYPE · ENDLESS R16</strong><small>Deferred scoring · Endless palette · POWER ×3</small></button>
+      ${inQa?`<a class="menuAction qaReturn" data-qa-return href="${normalUrl(root)}">RETURN TO SAVED RUN</a>`:''}`;
+    doc.body.appendChild(dialog);
+    const close=()=>dialog.close();dialog.querySelector('.iconButton').addEventListener('click',close);
+    button.addEventListener('click',()=>{if(menu.open)menu.close();if(!dialog.open)dialog.showModal()});
+    dialog.addEventListener('click',event=>{
+      const choice=event.target.closest('[data-qa-preset]')?.dataset.qaPreset;
+      if(choice&&PRESETS[choice]){persistCurrentRun(root);root.location.assign(qaUrl(root,choice));return}
+    });
+    return true
+  }
   function autoStart(root){
     const id=new URL(root.location.href).searchParams.get('qa'),preset=PRESETS[id];if(!preset)return false;
     const sandbox=installStorageSandbox(root,preset.mode);root.__monoidActiveMode=preset.mode;
@@ -99,5 +153,5 @@
     };
     root.requestAnimationFrame(start);return true
   }
-  return{BUILD_ID,PRESETS,ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY,makeSet,pieceSpecs,applyPreset,installStorageSandbox,autoStart};
+  return{BUILD_ID,PRESETS,ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY,makeSet,pieceSpecs,applyPreset,installStorageSandbox,persistCurrentRun,qaUrl,normalUrl,installMenuAccess,autoStart,autoResumeReturn};
 });
