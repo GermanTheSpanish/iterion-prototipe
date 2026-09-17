@@ -1,0 +1,15 @@
+const fs=require('fs'),assert=require('assert');
+const path=require('path');
+const src=fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'utf8');
+assert(src.includes('aspect-ratio:3 / 4!important'),'board must preserve canonical 3:4 geometry');
+for(const side of ['top','right','bottom','left'])assert(src.includes(`'${side}'`),`missing ${side} board marker`);
+assert(src.includes('left:50%;width:1px;height:10px;transform:translateX(-50%)'),'top/bottom marks must be mathematically centred');
+assert(src.includes('top:50%;width:10px;height:1px;transform:translateY(-50%)'),'left/right marks must be mathematically centred');
+assert(src.includes('grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.25fr)'),'Move/Reroll/Undo must be equal and Shop only slightly wider');
+assert(src.includes('justify-content:flex-start!important'),'Hand must be top-aligned');
+assert(src.includes("button.textContent='How to play'"),'Rulebook entry must live in MENU');
+assert(!src.includes('gameplay-ui-pass.js?v='),'gameplay pass must not create an extra runtime asset');
+assert(!src.includes('.scoreProgress{display:none!important}'),'score progress remains a visible canonical presentation cue');
+assert(src.includes('height:auto!important;max-height:none!important;flex:none!important;aspect-ratio:3 / 4!important'),'board ratio must own its rendered height');
+assert(src.includes('.headerActions{position:relative!important;z-index:3!important;width:100%!important'),'hidden legacy Help target must not overlap MENU');
+console.log('gameplay UI composition regression: ok');

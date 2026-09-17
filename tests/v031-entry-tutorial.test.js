@@ -9,10 +9,12 @@ assert.strictEqual(D.VERSION,'0.31.1');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.match(html,/id="titleCard"[^>]*role="button"[^>]*tabindex="0"/);
-assert.match(html,/LEARN MONOID · 2 MIN/);
+assert.match(html,/LEARN BASICS · 2 MIN/);
+assert.match(html,/SYSTEMS TUTORIAL · 3 MIN/);
 assert.match(html,/SKIP · START RUN/);
 assert.match(html,/id="continueRun"/);
 assert.match(html,/id="replayTutorial"/);
+assert.match(html,/id="systemsTutorial"/);
 assert.match(html,/class="selectionDouble"/);
 assert.match(ui,/e\.stopPropagation\(\);showSelection\(\)/,'entry activation must consume the event');
 assert.match(fs.readFileSync(path.join(__dirname,'..','ui-theme.css'),'utf8'),/\.entryScreen\[hidden\],\.firstRunChoice\[hidden\],\.gameSelection>\[hidden\]\{display:none!important\}/,'grid entry screens must honor hidden');
@@ -24,7 +26,7 @@ assert.match(ui,/const game=GAME/,'an asynchronous placement must retain its own
 assert.match(ui,/tutorial\.exitPending=true/,'exit during an asynchronous tutorial action must be deferred');
 assert.match(ui,/if\(exitPending\)\{leaveTutorial\(false\);return\}/);
 assert.match(ui,/shopBtn\.disabled=!!tutorial/);assert.match(ui,/rerollBtn\.disabled=!!tutorial/);assert.match(ui,/menuButton\.disabled=!!tutorial/);
-assert.match(ui,/GAME\.openShop\(\)/,'the final tutorial step must open the real Shop state');
+assert.match(ui,/GAME\.openShop\(\)/,'the final Basics tutorial step must open the real Shop state');
 assert.match(ui,/tutorial\?\.step===5/);assert.match(ui,/Market appears only between stages/);
 assert.match(ui,/if\(!tutorial&&\(game\.state\(\)\.cleared\|\|game\.state\(\)\.blocked\)\)armOutcomeDelay/,'normal outcome timing must not replace tutorial completion');
 
