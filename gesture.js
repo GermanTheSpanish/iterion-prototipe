@@ -76,7 +76,7 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-mo
 // prototype runs after the route has already been selected by the classic comparator.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-prototype-scoring]')){
   const script=document.createElement('script');
-  script.src='prototype-scoring.js?v=20260917.1';
+  script.src='prototype-scoring.js?v=entry-0311';
   script.async=false;
   script.dataset.monoidPrototypeScoring='true';
   document.head.appendChild(script)
