@@ -28,7 +28,7 @@ assert.doesNotMatch(src,/modeCenterBounce/,'snap must not use a scale/click boun
 assert.match(src,/\.isSettling \.modeSlide\{transition:translate .*cubic-bezier\(\.30,0,\.18,1\.13\)/,'settle must overshoot spatially past centre');
 assert.match(src,/\.modeSlide \.modeTile\{transform:scale\(var\(--tile-scale,1\)\);transition:transform \.18s ease\}/,'size transition must remain separate from positional overshoot');
 assert.match(src,/\.isDragging \.modeSlide\{transition:none\}/,'dragging must track the pointer without transition lag');
-assert.doesNotMatch(src,/isRemote\{visibility:hidden/,'offscreen modes must remain laid out so they enter continuously');
+assert.match(src,/\.modeSlide\.isRemote\{visibility:hidden;pointer-events:none\}\.modeSlide\.isRemote \.modeTile\{visibility:visible\}/,'remote controls stay noninteractive while their tiles remain visually pre-positioned');
 assert.match(src,/startRun\.disabled=!mode\.available/);
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
