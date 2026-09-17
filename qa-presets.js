@@ -113,7 +113,7 @@
       #qaTestRunsDialog .qaPresetChoice{display:grid;width:100%;min-height:58px;padding:10px 12px;border:0;border-top:1px solid var(--line);background:transparent;color:var(--ink);text-align:left}
       #qaTestRunsDialog .qaPresetChoice strong{font-size:13px;letter-spacing:.04em}
       #qaTestRunsDialog .qaPresetChoice small{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.3}
-      #qaTestRunsDialog .qaReturn{margin-top:12px;background:#151515;color:#fff;border-color:#151515}
+      #qaTestRunsDialog .qaReturn{display:block;margin-top:12px;padding:12px;text-align:center;text-decoration:none;background:#151515;color:#fff;border:1px solid #151515}
     `;doc.head.appendChild(style);
     const button=doc.createElement('button');button.id='qaTestRunsButton';button.className='menuAction';button.textContent='QA / TEST RUNS';menu.insertBefore(button,anchor||null);
     const dialog=doc.createElement('dialog');dialog.id='qaTestRunsDialog';dialog.className='gameMenu';
@@ -122,14 +122,13 @@
       <p class="qaMenuIntro">Prepared late-game states. Your real saved run is protected.</p>
       <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Late-game machine · DD · DE · ZM · Circuits · POWER</small></button>
       <button class="qaPresetChoice" data-qa-preset="prototype16"><strong>PROTOTYPE · ENDLESS R16</strong><small>Deferred scoring · Endless palette · POWER ×3</small></button>
-      ${inQa?'<button class="menuAction qaReturn" data-qa-return>RETURN TO SAVED RUN</button>':''}`;
+      ${inQa?`<a class="menuAction qaReturn" data-qa-return href="${normalUrl(root)}">RETURN TO SAVED RUN</a>`:''}`;
     doc.body.appendChild(dialog);
     const close=()=>dialog.close();dialog.querySelector('.iconButton').addEventListener('click',close);
     button.addEventListener('click',()=>{if(menu.open)menu.close();if(!dialog.open)dialog.showModal()});
     dialog.addEventListener('click',event=>{
       const choice=event.target.closest('[data-qa-preset]')?.dataset.qaPreset;
       if(choice&&PRESETS[choice]){persistCurrentRun(root);root.location.assign(qaUrl(root,choice));return}
-      if(event.target.closest('[data-qa-return]'))root.location.replace(normalUrl(root))
     });
     return true
   }
