@@ -106,8 +106,16 @@
     doc.head.appendChild(style);schedule()
   }
 
-  function syncNumbers(){
-    for(const el of[$('score'),$('target')]){
+  function syncNumbers(fromState=false){
+    const score=$('score'),target=$('target');
+    if(fromState){
+      const game=root.__monoidGame,state=game?.state?.();
+      const scoreValue=Number(state?.score),targetValue=Number(game?.target?.());
+      if(score&&Number.isFinite(scoreValue))score.textContent=compactPrimary(scoreValue);
+      if(target&&Number.isFinite(targetValue))target.textContent=compactPrimary(targetValue);
+      return
+    }
+    for(const el of[score,target]){
       if(!el)continue;const value=parseVisibleNumber(el.textContent);if(!Number.isFinite(value))continue;
       const text=compactPrimary(value);if(el.textContent!==text)el.textContent=text
     }
@@ -122,9 +130,9 @@
     const number=doc.querySelector('.finalfx>span');if(!number)return;const value=parseVisibleNumber(number.textContent);if(!Number.isFinite(value)||Math.abs(value)<COMPACT_THRESHOLD)return;
     const text=compactPrimary(value);if(number.textContent!==text)number.textContent=text
   }
-  function sync(){queued=false;syncNumbers();alignMarketAssignments();syncFinalFx()}
+  function sync(fromState=true){queued=false;syncNumbers(fromState);alignMarketAssignments();syncFinalFx()}
   let queued=false;
-  function schedule(){if(queued)return;queued=true;root.requestAnimationFrame(sync)}
+  function schedule(){if(queued)return;queued=true;root.requestAnimationFrame(()=>sync(false))}
   new MutationObserver(schedule).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','aria-label','hidden']});
   root.addEventListener('resize',schedule);root.addEventListener('pageshow',schedule);
   root.MonoidPhaseA=Object.freeze({COMPACT_THRESHOLD,compactPrimary,parseVisibleNumber,sync,alignMarketAssignments});
