@@ -1,0 +1,24 @@
+const assert=require('assert');
+const fs=require('fs');
+const path=require('path');
+const C=require('../mode-carousel.js');
+
+assert.strictEqual(C.MODES.length,8);
+assert.deepStrictEqual(C.MODES.slice(0,2).map(m=>[m.id,m.available]),[['classic',true],['prototype',true]]);
+assert.strictEqual(C.MODES.slice(2).length,6);
+assert(C.MODES.slice(2).every(m=>m.available===false&&m.description==='Not available'));
+assert.strictEqual(C.clampIndex(-3),0);
+assert.strictEqual(C.clampIndex(99),7);
+assert.strictEqual(C.stepIndex(0,-1),0);
+assert.strictEqual(C.stepIndex(0,1),1);
+assert.strictEqual(C.stepIndex(7,1),7);
+const src=fs.readFileSync(path.join(__dirname,'..','mode-carousel.js'),'utf8');
+assert.match(src,/id='modeCarouselFrame'|frame\.id='modeCarouselFrame'/);
+assert.match(src,/slides\[0\]\.id='modeClassic'/);
+assert.match(src,/modeTilePrototype/);
+assert.match(src,/startRun\.disabled=!mode\.available/);
+assert.match(src,/ACTIVE_MODE_KEY/);
+const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
+assert.match(gesture,/mode-carousel\.js\?v=20260917\.2/);
+assert.match(gesture,/data-monoid-modes/);
+console.log('mode carousel regression tests passed');
