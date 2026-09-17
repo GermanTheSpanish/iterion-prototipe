@@ -35,6 +35,17 @@ test('entry card uses keyboard, has no click-through and starts the real opening
   expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
+test('game mode carousel keeps its frame, swipes modes and blocks unavailable entries',async({page})=>{
+  await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();
+  await expect(page.locator('#modeCarouselFrame')).toBeVisible();await expect(page.locator('.modeSlide')).toHaveCount(8);await expect(page.locator('#modeName')).toHaveText('CLASSIC');await expect(page.locator('#modeDescription')).toHaveText('The original machine');
+  const frame=await page.locator('#modeCarouselFrame').boundingBox(),viewport=await page.locator('#modeCarouselViewport').boundingBox();expect(frame).toBeTruthy();expect(viewport).toBeTruthy();
+  const neighbor=await page.locator('#modePrototype').boundingBox();expect(neighbor).toBeTruthy();expect(neighbor.x).toBeGreaterThanOrEqual(frame.x);expect(neighbor.x+neighbor.width).toBeLessThanOrEqual(frame.x+frame.width);
+  await page.mouse.move(viewport.x+viewport.width*.70,viewport.y+viewport.height*.5);await page.mouse.down();await page.mouse.move(viewport.x+viewport.width*.20,viewport.y+viewport.height*.5);await page.mouse.up();
+  await expect(page.locator('#modeName')).toHaveText('PROTOTYPE');await expect(page.locator('#modeDescription')).toHaveText('Experimental rules');await expect(page.locator('#startRun')).toBeEnabled();
+  await page.evaluate(()=>window.__monoidModes.select(2));await expect(page.locator('#modeDescription')).toHaveText('Not available');await expect(page.locator('#startRun')).toBeDisabled();
+  await page.evaluate(()=>window.__monoidModes.select(1));await page.locator('#startRun').click();await expect(page.locator('#board')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('prototype');
+});
+
 test('Game Selection keeps new, continue and tutorials separate and confirms replacement',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const original=await page.evaluate(()=>window.__monoidGame.state().runId);
   await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#firstRunChoice')).toBeHidden();await expect(page.locator('#startRun')).toHaveText('NEW RUN');await expect(page.locator('#continueRun')).toBeVisible();await expect(page.locator('#tutorialHubButton')).toBeVisible();await expect(page.locator('#replayTutorial')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();
@@ -127,7 +138,7 @@ test('critical raised title and screen isolation survive a missing presentation 
   const centerY=title.y+title.height/2;expect(centerY).toBeGreaterThan(844*.40);expect(centerY).toBeLessThan(844*.48);
   const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
   expect(assets.length).toBeGreaterThan(1);
-  expect(assets.every(url=>url.includes('?v=entry-0311')||/(?:pwa|ui-extras|ui-runtime-fixes|ui-late-polish|update-check)\.js\?v=20260917\.\d+$/.test(url))).toBe(true);
+  expect(assets.every(url=>url.includes('?v=entry-0311')||/(?:pwa|ui-extras|ui-runtime-fixes|ui-late-polish|update-check|mode-carousel)\.js\?v=20260917\.\d+$/.test(url))).toBe(true);
   await page.mouse.click(12,12);
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();
