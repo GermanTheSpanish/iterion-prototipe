@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const BUILD='20260917.3',NEXT_BUILD='20260917.4';
+const BUILD='20260917.4',NEXT_BUILD='20260917.5';
 
 async function openTutorialHub(page){const persistent=page.locator('#tutorialHubButton');if(await persistent.isVisible())await persistent.click();else await page.locator('#learnMonoid').click();await expect(page.locator('#tutorialHub')).toBeVisible()}
 async function startTutorialFromHub(page,kind){await openTutorialHub(page);await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
