@@ -45,7 +45,7 @@
 .modeSlide{appearance:none;position:absolute;left:50%;top:2px;width:72px;height:112px;margin:0;padding:0;border:0;background:transparent;color:#151515;display:grid;place-items:center;transform:translateX(-50%);translate:var(--mode-x,0px) 0;transform-origin:center;transition:translate .24s cubic-bezier(.22,.72,.24,1),opacity .18s ease;will-change:translate,opacity;touch-action:none}
 .modeCarouselViewport.isDragging .modeSlide{transition:none}
 .modeCarouselViewport.isSettling .modeSlide{transition:translate ${SETTLE_MS}ms cubic-bezier(.30,0,.18,1.13),opacity .18s ease}
-.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{pointer-events:none}
+.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{visibility:hidden;pointer-events:none}.modeSlide.isRemote .modeTile{visibility:visible}
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
