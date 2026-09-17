@@ -9,23 +9,43 @@
   }
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
+  const SPACING=98;
+  const MAGNET_RADIUS=30;
+  const MAGNET_STRENGTH=.72;
+  const SWIPE_THRESHOLD=28;
+  const FLING_PROJECTION_MS=70;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'The original machine',available:true,kind:'classic'}),
     Object.freeze({id:'prototype',name:'PROTOTYPE',description:'Experimental rules',available:true,kind:'prototype'}),
     ...Array.from({length:6},(_,i)=>Object.freeze({id:`locked-${i+1}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
-  const stepIndex=(index,delta)=>clampIndex(clampIndex(index)+Math.sign(delta||0));
+  const wrapIndex=index=>{const n=Number.isFinite(index)?Math.trunc(index):0;return((n%MODES.length)+MODES.length)%MODES.length};
+  const stepIndex=(index,delta)=>wrapIndex(wrapIndex(index)+Math.sign(delta||0));
+  function cyclicOffset(index,selected){
+    let offset=wrapIndex(index)-wrapIndex(selected),half=MODES.length/2;
+    if(offset>half)offset-=MODES.length;
+    if(offset<-half)offset+=MODES.length;
+    return offset
+  }
+  function magnetizeDrag(value){
+    const x=Math.max(-SPACING,Math.min(SPACING,Number(value)||0)),targets=[-SPACING,0,SPACING];
+    let target=targets[0];for(const candidate of targets)if(Math.abs(x-candidate)<Math.abs(x-target))target=candidate;
+    const distance=target-x,abs=Math.abs(distance);if(abs>=MAGNET_RADIUS)return x;
+    const pull=MAGNET_STRENGTH*(1-abs/MAGNET_RADIUS);return x+distance*pull
+  }
   function injectStyles(doc){
     if(doc.getElementById('monoidModeCarouselStyles'))return;
     const style=doc.createElement('style');style.id='monoidModeCarouselStyles';style.textContent=`
 .modeCarouselFrame{position:relative;display:grid!important;grid-template-rows:116px auto auto;justify-items:center;gap:9px;width:min(240px,72vw);min-height:196px;padding:18px 0 16px!important;overflow:hidden;color:#151515;cursor:default}
 .modeCarouselViewport{position:relative;width:100%;height:116px;overflow:hidden;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 .modeCarouselViewport.isDragging{cursor:grabbing}
-.modeSlide{appearance:none;position:absolute;left:50%;top:2px;width:72px;height:112px;margin:0;padding:0;border:0;background:transparent;color:#151515;display:grid;place-items:center;transform-origin:center;transition:transform .2s ease,opacity .2s ease;will-change:transform;touch-action:none}
-.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2;opacity:.78}.modeSlide.isRemote{visibility:hidden;pointer-events:none}
+.modeSlide{appearance:none;position:absolute;left:50%;top:2px;width:72px;height:112px;margin:0;padding:0;border:0;background:transparent;color:#151515;display:grid;place-items:center;transform-origin:center;transition:transform .31s cubic-bezier(.2,.82,.24,1.08),opacity .18s ease;will-change:transform,opacity;touch-action:none}
+.modeCarouselViewport.isDragging .modeSlide{transition:none}
+.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{visibility:hidden;pointer-events:none}
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
-.modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none}
+.modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
+.modeCarouselViewport.isSnapping .modeSlide.isSelected .modeTile{animation:modeCenterBounce .28s .10s cubic-bezier(.2,.85,.3,1) both}
 .modeTilePrototype,.modeTileLocked{position:relative;overflow:hidden}
 .modeTilePrototype{background:#151515!important;border-color:#151515!important;color:#fff}
 .modeTilePrototype::after,.modeTileLocked::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);background:currentColor;opacity:.9}
@@ -34,7 +54,8 @@
 .modeCarouselFrame>strong{font-size:15px;letter-spacing:.13em;line-height:1.1}
 .modeCarouselFrame>small{min-height:16px;color:#61615b;line-height:1.2}
 .modeCarouselFrame[data-mode-available="false"]>strong,.modeCarouselFrame[data-mode-available="false"]>small{color:#777771}
-@media(prefers-reduced-motion:reduce){.modeSlide{transition:none}}
+@keyframes modeCenterBounce{0%{transform:scale(1)}48%{transform:scale(1.035)}76%{transform:scale(.992)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.modeSlide{transition:none}.modeCarouselViewport.isSnapping .modeSlide.isSelected .modeTile{animation:none}}
 `;
     doc.head.appendChild(style)
   }
@@ -57,23 +78,29 @@
     const name=doc.createElement('strong');name.id='modeName';
     const description=doc.createElement('small');description.id='modeDescription';
     frame.append(viewport,name,description);oldClassic.replaceWith(frame);
-    let selected=0,drag=null,suppressClickUntil=0;
+    let selected=0,drag=null,suppressClickUntil=0,snapTimer=0;
     function render(dragX=0){
       const mode=MODES[selected];frame.dataset.mode=mode.id;frame.dataset.modeAvailable=String(mode.available);name.textContent=mode.name;description.textContent=mode.description;startRun.disabled=!mode.available;
-      slides.forEach((slide,i)=>{const offset=i-selected,abs=Math.abs(offset);slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;const x=offset*98+dragX,scale=offset===0?1:.82;slide.style.transform=`translateX(calc(-50% + ${x}px)) scale(${scale})`});
+      slides.forEach((slide,i)=>{const offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+dragX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.transform=`translateX(calc(-50% + ${x}px)) scale(${scale})`});
       root.__monoidSelectedMode=mode.id;if(root.__monoidModes)root.__monoidModes.selected=mode.id
     }
-    function select(index){selected=clampIndex(index);render();return MODES[selected]}
-    slides.forEach((slide,i)=>slide.addEventListener('click',e=>{e.preventDefault();if(Date.now()<suppressClickUntil)return;select(i)}));
-    viewport.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;drag={id:e.pointerId,startX:e.clientX,lastX:e.clientX};viewport.classList.add('isDragging');viewport.setPointerCapture?.(e.pointerId)});
-    viewport.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;drag.lastX=e.clientX;const dx=Math.max(-98,Math.min(98,e.clientX-drag.startX));render(dx)});
-    function finishDrag(e){if(!drag||e.pointerId!==drag.id)return;const dx=drag.lastX-drag.startX;drag=null;viewport.classList.remove('isDragging');if(Math.abs(dx)>=32){suppressClickUntil=Date.now()+350;select(stepIndex(selected,dx<0?1:-1))}else render()}
-    viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;drag=null;viewport.classList.remove('isDragging');render()});
-    frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();select(stepIndex(selected,1))}else if(e.key==='ArrowLeft'){e.preventDefault();select(stepIndex(selected,-1))}});
+    function bounce(){
+      if(root.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+      if(snapTimer)root.clearTimeout(snapTimer);viewport.classList.remove('isSnapping');void viewport.offsetWidth;viewport.classList.add('isSnapping');snapTimer=root.setTimeout(()=>{viewport.classList.remove('isSnapping');snapTimer=0},430)
+    }
+    function select(index,withBounce=true){selected=clampIndex(index);render();if(withBounce)bounce();return MODES[selected]}
+    slides.forEach((slide,i)=>slide.addEventListener('click',e=>{e.preventDefault();if(Date.now()<suppressClickUntil)return;select(i,true)}));
+    viewport.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;if(snapTimer){root.clearTimeout(snapTimer);snapTimer=0}viewport.classList.remove('isSnapping');const now=root.performance?.now?.()??Date.now();drag={id:e.pointerId,startX:e.clientX,lastX:e.clientX,lastAt:now,velocityX:0,visualX:0};viewport.classList.add('isDragging');viewport.setPointerCapture?.(e.pointerId)});
+    viewport.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const now=root.performance?.now?.()??Date.now(),dt=Math.max(1,now-drag.lastAt),instant=(e.clientX-drag.lastX)/dt;drag.velocityX=drag.velocityX*.62+instant*.38;drag.lastX=e.clientX;drag.lastAt=now;drag.visualX=magnetizeDrag(e.clientX-drag.startX);render(drag.visualX)});
+    function finishDrag(e){
+      if(!drag||e.pointerId!==drag.id)return;const dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,next=Math.abs(projected)>=SWIPE_THRESHOLD?stepIndex(selected,projected<0?1:-1):selected;drag=null;viewport.classList.remove('isDragging');suppressClickUntil=Date.now()+350;select(next,true)
+    }
+    viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;drag=null;viewport.classList.remove('isDragging');select(selected,true)});
+    frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();select(stepIndex(selected,1),true)}else if(e.key==='ArrowLeft'){e.preventDefault();select(stepIndex(selected,-1),true)}});
     startRun.onclick=function(event){const mode=MODES[selected];if(!mode.available)return;const previousMode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic',beforeSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;root.localStorage?.setItem(ACTIVE_MODE_KEY,mode.id);root.__monoidActiveMode=mode.id;originalStart?.call(this,event);const afterSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;if(beforeSaved&&beforeSaved===afterSaved&&!doc.getElementById('gameSelection')?.hidden){root.localStorage?.setItem(ACTIVE_MODE_KEY,previousMode);root.__monoidActiveMode=previousMode}}
     if(continueRun)continueRun.onclick=function(event){const mode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic';root.__monoidActiveMode=mode;return originalContinue?.call(this,event)};
-    root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select:index=>select(index)};
+    root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select:index=>select(index,true)};
     render();return true
   }
-  return{ACTIVE_MODE_KEY,MODES,clampIndex,stepIndex,mount};
+  return{ACTIVE_MODE_KEY,MODES,SPACING,clampIndex,wrapIndex,stepIndex,cyclicOffset,magnetizeDrag,mount};
 });
