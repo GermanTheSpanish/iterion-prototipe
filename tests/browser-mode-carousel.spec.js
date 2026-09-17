@@ -67,3 +67,43 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await expect(page.locator('#modeName')).toHaveText('CLASSIC',{timeout:1200});
   await expect(page.locator('#modeDescription')).toHaveText('The original machine');
 });
+
+test('black prototype mode enables deferred scoring while Classic stays canonical',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.waitForFunction(()=>!!window.MonoidPrototypeScoring&&!!window.__monoidModes);
+  await page.locator('#titleCard').click();
+
+  // Classic creates the untouched canonical game.
+  await expect(page.locator('#modeName')).toHaveText('CLASSIC');
+  await page.locator('#startRun').click();
+  expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel??null)).toBeNull();
+  expect(await page.evaluate(()=>window.__monoidGame.config.SCORING_MODEL??null)).toBeNull();
+
+  // Use a clean page to start the black ? mode as a real run.
+  await page.evaluate(()=>localStorage.clear());
+  await page.reload();
+  await page.waitForFunction(()=>!!window.MonoidPrototypeScoring&&!!window.__monoidModes);
+  await page.locator('#titleCard').click();
+  await page.evaluate(()=>window.__monoidModes.select(1));
+  await expect(page.locator('#modeName')).toHaveText('PROTOTYPE');
+  await page.locator('#startRun').click();
+  expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('prototype');
+  expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel)).toBe('deferred-v1');
+  expect(await page.evaluate(()=>window.__monoidGame.config.SCORING_MODEL)).toBe('deferred-v1');
+  expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('prototype');
+
+  // Browser-level arithmetic check for the exact experiment wired to the mode.
+  const comparison=await page.evaluate(()=>{
+    const P=window.MonoidPrototypeScoring;
+    const result=P.replayDeferredScoring({output:290,events:[
+      {type:'op',piece:1,value:6,op:'add',add:6},
+      {type:'op',piece:2,value:3,op:'multiply',factor:3},
+      {type:'op',piece:3,value:4,op:'add',add:4},
+      {type:'op',piece:4,value:5,op:'multiply',factor:5}
+    ]},12);
+    return{classic:result.classicOutput,deferred:result.output,formula:result.deferredScoring.formula,route:result.deferredScoring.routeSelection}
+  });
+  expect(comparison).toEqual({classic:290,deferred:330,formula:'(Trigger + Σ additions) × Π multipliers',route:'classic-comparator'});
+  expect(await page.evaluate(()=>window.__monoidGame.debugText())).toContain('Scoring Model: deferred-v1');
+});
