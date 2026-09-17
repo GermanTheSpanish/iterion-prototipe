@@ -27,8 +27,11 @@ async function assertLateGameSurface(page,id){
   expect(await page.locator('#board .circuitTile').count()).toBeGreaterThanOrEqual(3);
   expect(await page.locator('#board .powerTile').count()).toBeGreaterThanOrEqual(5);
   await expect(page.locator('#machineModStatus')).toBeVisible();
-  const centreError=await page.locator('.wordmark').evaluate(el=>{const r=el.getBoundingClientRect();return Math.abs(r.left+r.width/2-innerWidth/2)});
-  expect(centreError).toBeLessThan(1.25);
+  const centering=await page.locator('.wordmark').evaluate(el=>{
+    const box=el.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(el);const glyphs=range.getBoundingClientRect(),centre=innerWidth/2;
+    return{box:Math.abs(box.left+box.width/2-centre),glyphs:Math.abs(glyphs.left+glyphs.width/2-centre)}
+  });
+  expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
   await expect(page.locator('.menuBuildStamp')).toContainText('build 20260917.2');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
