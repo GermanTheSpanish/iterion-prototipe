@@ -43,7 +43,7 @@
   style.textContent=`
     /* Phase A: stable mobile hierarchy. Presentation only. */
     .gameHeader{position:relative!important}
-    .gameHeader .wordmark{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;color:var(--ink)!important}
+    .gameHeader .wordmark{position:absolute!important;left:var(--phase-a-wordmark-x,50%)!important;top:50%!important;transform:translate(-50%,-50%)!important;color:var(--ink)!important}
 
     .scoreValue{max-width:100%!important;white-space:nowrap!important;font-variant-numeric:tabular-nums!important}
     .scoreCaption{color:var(--muted)!important}
@@ -106,6 +106,12 @@
     doc.head.appendChild(style);schedule()
   }
 
+  function syncWordmark(){
+    const header=doc.querySelector('.gameHeader'),wordmark=header?.querySelector('.wordmark');if(!header||!wordmark)return;
+    const rect=header.getBoundingClientRect(),scale=header.offsetWidth?rect.width/header.offsetWidth:1;
+    const localX=(root.innerWidth/2-rect.left)/(scale||1);
+    if(Number.isFinite(localX))header.style.setProperty('--phase-a-wordmark-x',`${localX}px`)
+  }
   function syncNumbers(fromState=false){
     const score=$('score'),target=$('target');
     if(fromState){
@@ -130,11 +136,11 @@
     const number=doc.querySelector('.finalfx>span');if(!number)return;const value=parseVisibleNumber(number.textContent);if(!Number.isFinite(value)||Math.abs(value)<COMPACT_THRESHOLD)return;
     const text=compactPrimary(value);if(number.textContent!==text)number.textContent=text
   }
-  function sync(fromState=true){queued=false;syncNumbers(fromState);alignMarketAssignments();syncFinalFx()}
+  function sync(fromState=true){queued=false;syncWordmark();syncNumbers(fromState);alignMarketAssignments();syncFinalFx()}
   let queued=false;
   function schedule(){if(queued)return;queued=true;root.requestAnimationFrame(()=>sync(false))}
   new MutationObserver(schedule).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','aria-label','hidden']});
   root.addEventListener('resize',schedule);root.addEventListener('pageshow',schedule);
-  root.MonoidPhaseA=Object.freeze({COMPACT_THRESHOLD,compactPrimary,parseVisibleNumber,sync,alignMarketAssignments});
+  root.MonoidPhaseA=Object.freeze({COMPACT_THRESHOLD,compactPrimary,parseVisibleNumber,sync,syncWordmark,alignMarketAssignments});
   installLast()
 })(window);
