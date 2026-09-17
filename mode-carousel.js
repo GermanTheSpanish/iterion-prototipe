@@ -13,6 +13,7 @@
   const MAGNET_RADIUS=30;
   const MAGNET_STRENGTH=.72;
   const SWIPE_THRESHOLD=28;
+  const MIN_FLING_DISTANCE=18;
   const FLING_PROJECTION_MS=70;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'The original machine',available:true,kind:'classic'}),
@@ -93,7 +94,7 @@
     viewport.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;if(snapTimer){root.clearTimeout(snapTimer);snapTimer=0}viewport.classList.remove('isSnapping');const now=root.performance?.now?.()??Date.now();drag={id:e.pointerId,startX:e.clientX,lastX:e.clientX,lastAt:now,velocityX:0,visualX:0};viewport.classList.add('isDragging');viewport.setPointerCapture?.(e.pointerId)});
     viewport.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const now=root.performance?.now?.()??Date.now(),dt=Math.max(1,now-drag.lastAt),instant=(e.clientX-drag.lastX)/dt;drag.velocityX=drag.velocityX*.62+instant*.38;drag.lastX=e.clientX;drag.lastAt=now;drag.visualX=magnetizeDrag(e.clientX-drag.startX);render(drag.visualX)});
     function finishDrag(e){
-      if(!drag||e.pointerId!==drag.id)return;const dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,next=Math.abs(projected)>=SWIPE_THRESHOLD?stepIndex(selected,projected<0?1:-1):selected;drag=null;viewport.classList.remove('isDragging');suppressClickUntil=Date.now()+350;select(next,true)
+      if(!drag||e.pointerId!==drag.id)return;const dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,distanceEnough=Math.abs(dx)>=SWIPE_THRESHOLD,flingEnough=Math.abs(dx)>=MIN_FLING_DISTANCE&&Math.abs(projected)>=SWIPE_THRESHOLD,next=distanceEnough||flingEnough?stepIndex(selected,projected<0?1:-1):selected;drag=null;viewport.classList.remove('isDragging');suppressClickUntil=Date.now()+350;select(next,true)
     }
     viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;drag=null;viewport.classList.remove('isDragging');select(selected,true)});
     frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();select(stepIndex(selected,1),true)}else if(e.key==='ArrowLeft'){e.preventDefault();select(stepIndex(selected,-1),true)}});
