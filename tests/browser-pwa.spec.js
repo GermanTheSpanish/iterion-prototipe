@@ -79,8 +79,15 @@ test('manual update check confirms the current build',async({page})=>{
 });
 
 test('silent update detection offers reload and preserves the active run before refresh',async({page})=>{
-  await page.route('**/build.json*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({version:'0.31.1',build:NEXT_BUILD})}));
-  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.addInitScript(nextBuild=>{
+    localStorage.setItem('monoid.firstRunBriefing.v1','seen');
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=(input,init)=>{
+      const url=typeof input==='string'?input:(input&&typeof input.url==='string'?input.url:String(input));
+      if(url.includes('build.json'))return Promise.resolve(new Response(JSON.stringify({version:'0.31.1',build:nextBuild}),{status:200,headers:{'Content-Type':'application/json'}}));
+      return nativeFetch(input,init)
+    }
+  },NEXT_BUILD);
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUpdate?.updateAvailable),{timeout:5000}).toBe(true);
   const before=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));expect(before).toBeTruthy();
