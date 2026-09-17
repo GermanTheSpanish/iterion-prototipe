@@ -1,8 +1,11 @@
 const {test,expect}=require('@playwright/test');
 
 function transformX(transform){
-  const match=String(transform||'').match(/\+\s*(-?\d+(?:\.\d+)?)px/);
-  return match?Number(match[1]):NaN
+  const value=String(transform||'');
+  const match=value.match(/-50%\s*([+-])\s*(\d+(?:\.\d+)?)px/);
+  if(match)return Number(match[2])*(match[1]==='-'?-1:1);
+  if(/translateX\((?:calc\()?\s*-50%\s*\)?\)/.test(value))return 0;
+  return NaN
 }
 
 test('mode carousel uses positional overshoot and brings wrapped tiles in from the clipped edge',async({page})=>{
