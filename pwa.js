@@ -85,7 +85,7 @@
     if(!doc.querySelector('script[data-monoid-ui-extras]')){const script=doc.createElement('script');script.src=`ui-extras.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiExtras='true';doc.body.appendChild(script)}
     if(!doc.querySelector('script[data-monoid-ui-runtime-fixes]')){const script=doc.createElement('script');script.src=`ui-runtime-fixes.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiRuntimeFixes='true';doc.body.appendChild(script)}
     if(!doc.querySelector('script[data-monoid-ui-late-polish]')){const script=doc.createElement('script');script.src=`ui-late-polish.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiLatePolish='true';doc.body.appendChild(script)}
-    if(!doc.querySelector('script[data-monoid-phase-a]')){const script=doc.createElement('script');script.src='ui-phase-a.js?v=20260917.phaseA1';script.async=false;script.dataset.monoidPhaseA='true';doc.body.appendChild(script)}
+    if(!doc.querySelector('script[data-monoid-phase-a]')&&!root.MonoidPhaseA){const script=doc.createElement('script');script.src='ui-phase-a.js?v=20260917.phaseA1';script.async=false;script.dataset.monoidPhaseA='true';script.addEventListener('load',()=>script.remove(),{once:true});doc.body.appendChild(script)}
   }
   if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',loadUiLayer,{once:true});else loadUiLayer()
 })(window);
