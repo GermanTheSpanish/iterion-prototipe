@@ -33,7 +33,7 @@ test('installed mode intercepts Android-style Back and opens the run menu instea
 
 test('title reveal follows DOMINO order without a pre-animation flash',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe(BUILD);
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260917.1');
   await expect(page.locator('#devBuildStamp')).toContainText(`v0.31.1 · build ${BUILD}`);
   const letters=page.locator('#titleCard .titleLetter');await expect(letters).toHaveCount(6);const title=page.locator('#titleCard h1');await expect(title).toHaveAttribute('aria-label','MONOID');
   expect(await title.evaluate(el=>getComputedStyle(el).visibility)).toBe('visible');
