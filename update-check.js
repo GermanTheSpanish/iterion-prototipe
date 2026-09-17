@@ -4,9 +4,9 @@
   if(!doc||root.__monoidUpdateBootstrapped)return;
   root.__monoidUpdateBootstrapped=true;
 
-  const CURRENT_BUILD='20260917.2',CHECK_MIN_MS=60000;
+  const CURRENT_BUILD='20260917.3',CHECK_MIN_MS=60000;
   const state={currentBuild:CURRENT_BUILD,latestBuild:null,latestVersion:null,updateAvailable:false,status:'idle',lastCheck:0};
-  let checkButton=null,applyButton=null,resetTimer=0,startupTimer=0;
+  let checkButton=null,applyButton=null,startupTimer=0;
   Object.defineProperty(root,'__monoidUpdate',{configurable:true,get:()=>({...state})});
 
   const versionLabel=(build=CURRENT_BUILD,version=root.IterionData?.VERSION||'dev')=>`v${version} · build ${build}`;
@@ -19,18 +19,14 @@
     const label=versionLabel(),entry=doc.getElementById('devBuildStamp'),menu=doc.querySelector('.menuBuildStamp');
     if(entry&&entry.textContent!==label)entry.textContent=label;if(menu&&menu.textContent!==label)menu.textContent=label
   }
-  function clearReset(){if(resetTimer){clearTimeout(resetTimer);resetTimer=0}}
   function syncButtons(){
-    if(!checkButton)return;clearReset();checkButton.disabled=state.status==='checking'||state.status==='reloading';
+    if(!checkButton)return;checkButton.disabled=state.status==='checking'||state.status==='reloading';
     if(state.status==='checking')checkButton.textContent='CHECKING…';
     else if(state.updateAvailable)checkButton.textContent=`UPDATE AVAILABLE · ${state.latestBuild}`;
     else if(state.status==='error')checkButton.textContent='CHECK FAILED · TAP TO RETRY';
+    else if(state.status==='current')checkButton.textContent=`UP TO DATE · ${CURRENT_BUILD}`;
     else checkButton.textContent='CHECK FOR UPDATES';
     if(applyButton){applyButton.hidden=!state.updateAvailable;applyButton.disabled=state.status==='reloading'}
-  }
-  function showCurrentBriefly(){
-    if(!checkButton)return;clearReset();checkButton.textContent=`UP TO DATE · ${CURRENT_BUILD}`;
-    resetTimer=setTimeout(()=>{resetTimer=0;if(!state.updateAvailable&&state.status==='current')checkButton.textContent='CHECK FOR UPDATES'},2200)
   }
   function installMenuActions(){
     const menu=doc.getElementById('gameMenu'),anchor=doc.getElementById('gameSelectionButton');if(!menu||!anchor)return;
@@ -49,7 +45,7 @@
     try{
       const response=await root.fetch(`build.json?ts=${now}`,{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);
       const info=await response.json();if(!info?.build)throw new Error('Missing build id');
-      state.latestBuild=String(info.build);state.latestVersion=String(info.version||root.IterionData?.VERSION||'dev');state.updateAvailable=compareBuilds(state.latestBuild,CURRENT_BUILD)>0;state.status=state.updateAvailable?'available':'current';syncButtons();if(!silent&&!state.updateAvailable)showCurrentBriefly();return state.updateAvailable
+      state.latestBuild=String(info.build);state.latestVersion=String(info.version||root.IterionData?.VERSION||'dev');state.updateAvailable=compareBuilds(state.latestBuild,CURRENT_BUILD)>0;state.status=state.updateAvailable?'available':'current';syncButtons();return state.updateAvailable
     }catch(error){state.updateAvailable=false;state.status='error';syncButtons();console.warn('MONOID update check failed',error);return false}
   }
   async function applyUpdate(){
