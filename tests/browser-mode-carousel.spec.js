@@ -1,6 +1,8 @@
 const {test,expect}=require('@playwright/test');
 
-test('mode carousel feels continuous and settles with positional overshoot',async({page})=>{
+function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y}
+
+test('mode carousel keeps a continuous physical strip and lands with directional overshoot',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
   await page.locator('#titleCard').click();
@@ -10,21 +12,27 @@ test('mode carousel feels continuous and settles with positional overshoot',asyn
   const viewport=await page.locator('#modeCarouselViewport').boundingBox();
   const before=await page.locator('#modeClassic').boundingBox();
   expect(viewport).toBeTruthy();expect(before).toBeTruthy();
-  const beforeCenter=before.x+before.width/2;
-  const pointerX=viewport.x+viewport.width/2,pointerY=viewport.y+viewport.height/2;
+  const viewportCenter=viewport.x+viewport.width/2,beforeCenter=before.x+before.width/2;
+  const pointerX=viewportCenter,pointerY=viewport.y+viewport.height/2;
   await page.mouse.move(pointerX,pointerY);await page.mouse.down();await page.mouse.move(pointerX+12,pointerY);
   const during=await page.locator('#modeClassic').boundingBox();expect(during).toBeTruthy();
   const magneticShift=during.x+during.width/2-beforeCenter;
   expect(magneticShift).toBeGreaterThan(0);expect(magneticShift).toBeLessThan(12);
   await page.mouse.up();
-  const settle=await page.evaluate(()=>{const viewport=document.querySelector('#modeCarouselViewport'),slide=document.querySelector('#modeClassic'),tile=document.querySelector('#modeClassic .modeTile');return{settling:viewport.classList.contains('isSettling'),timing:getComputedStyle(slide).transitionTimingFunction,tileAnimation:getComputedStyle(tile).animationName}});
-  expect(settle.settling).toBe(true);expect(settle.timing).toContain('cubic-bezier(0.3, 0, 0.18, 1.13)');expect(settle.tileAnimation).toBe('none');
+  await expect(page.locator('#modeCarouselViewport')).toHaveClass(/isPulling/);
+  const trace=await page.evaluate(async()=>{
+    const slide=document.querySelector('#modeClassic'),viewport=document.querySelector('#modeCarouselViewport'),center=viewport.getBoundingClientRect().left+viewport.getBoundingClientRect().width/2,start=performance.now(),samples=[];
+    await new Promise(resolve=>{function tick(now){const r=slide.getBoundingClientRect();samples.push(r.left+r.width/2-center);if(now-start<460)requestAnimationFrame(tick);else resolve()}requestAnimationFrame(tick)});
+    return samples
+  });
+  expect(Math.min(...trace)).toBeLessThan(-3,'a tile released right of centre must pass to the left before landing');
+  expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
+  await expect(page.locator('#modeCarouselViewport')).not.toHaveClass(/isPulling|isLanding/);
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
 
-  // Two places before the loop boundary, Classic exists offscreen already and
-  // moves into the clipped frame during the drag rather than appearing on release.
+  // Two places before the loop boundary, Classic is physically present offscreen
+  // and enters through the clip while the finger is still dragging.
   await page.evaluate(()=>window.__monoidModes.select(6));
-  await page.waitForTimeout(300);
   const frame=await page.locator('#modeCarouselFrame').boundingBox();
   const loopViewport=await page.locator('#modeCarouselViewport').boundingBox();
   const classicBefore=await page.locator('#modeClassic').boundingBox();
@@ -34,11 +42,17 @@ test('mode carousel feels continuous and settles with positional overshoot',asyn
   await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx-82,sy);
   const classicDuring=await page.locator('#modeClassic').boundingBox();expect(classicDuring).toBeTruthy();
   expect(classicDuring.x).toBeLessThan(frame.x+frame.width);expect(classicDuring.x+classicDuring.width).toBeGreaterThan(frame.x+frame.width);
-  await page.mouse.up();await expect(page.locator('#modeName')).toHaveText('LOCKED');
+  await page.mouse.up();await expect(page.locator('#modeName')).toHaveText('LOCKED',{timeout:1200});
 
+  // Regression for the recorded flash: a far tile must never animate across the
+  // selection window when the circular seam is rebased from the last mode to Classic.
   await page.evaluate(()=>window.__monoidModes.select(7));
-  const lastViewport=await page.locator('#modeCarouselViewport').boundingBox();expect(lastViewport).toBeTruthy();
-  await page.mouse.move(lastViewport.x+lastViewport.width*.70,lastViewport.y+lastViewport.height*.5);await page.mouse.down();await page.mouse.move(lastViewport.x+lastViewport.width*.20,lastViewport.y+lastViewport.height*.5);await page.mouse.up();
-  await expect(page.locator('#modeName')).toHaveText('CLASSIC');
+  const seamViewport=await page.locator('#modeCarouselViewport').boundingBox();expect(seamViewport).toBeTruthy();
+  const farTile=page.locator('.modeSlide[data-index="4"]');
+  const farBefore=await farTile.boundingBox();expect(farBefore).toBeTruthy();expect(intersects(farBefore,seamViewport)).toBe(false);
+  const lx=seamViewport.x+seamViewport.width*.72,ly=seamViewport.y+seamViewport.height*.5;
+  await page.mouse.move(lx,ly);await page.mouse.down();await page.mouse.move(lx-78,ly);await page.mouse.up();
+  for(const wait of [25,45,55,65,75,85]){await page.waitForTimeout(wait);const box=await farTile.boundingBox();expect(box).toBeTruthy();expect(intersects(box,seamViewport)).toBe(false)}
+  await expect(page.locator('#modeName')).toHaveText('CLASSIC',{timeout:1200});
   await expect(page.locator('#modeDescription')).toHaveText('The original machine');
 });

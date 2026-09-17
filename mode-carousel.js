@@ -15,7 +15,10 @@
   const SWIPE_THRESHOLD=28;
   const MIN_FLING_DISTANCE=18;
   const FLING_PROJECTION_MS=70;
-  const SETTLE_MS=360;
+  const SETTLE_APPROACH_MS=250;
+  const SETTLE_LAND_MS=140;
+  const SETTLE_MS=SETTLE_APPROACH_MS+SETTLE_LAND_MS;
+  const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'The original machine',available:true,kind:'classic'}),
     Object.freeze({id:'prototype',name:'PROTOTYPE',description:'Experimental rules',available:true,kind:'prototype'}),
@@ -43,12 +46,16 @@
 .modeCarouselViewport{position:relative;width:100%;height:116px;overflow:hidden;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
 .modeCarouselViewport.isDragging{cursor:grabbing}
 .modeSlide{appearance:none;position:absolute;left:50%;top:2px;width:72px;height:112px;margin:0;padding:0;border:0;background:transparent;color:#151515;display:grid;place-items:center;transform:translateX(-50%);translate:var(--mode-x,0px) 0;transform-origin:center;transition:translate .24s cubic-bezier(.22,.72,.24,1),opacity .18s ease;will-change:translate,opacity;touch-action:none}
-.modeCarouselViewport.isDragging .modeSlide{transition:none}
-.modeCarouselViewport.isSettling .modeSlide{transition:translate ${SETTLE_MS}ms cubic-bezier(.30,0,.18,1.13),opacity .18s ease}
-.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{visibility:hidden;pointer-events:none}.modeSlide.isRemote .modeTile{visibility:visible}
+.modeCarouselViewport.isDragging .modeSlide,.modeCarouselViewport.isRebasing .modeSlide{transition:none!important}
+.modeCarouselViewport.isPulling .modeSlide{transition:translate ${SETTLE_APPROACH_MS}ms cubic-bezier(.30,0,.22,1),opacity .18s ease}
+.modeCarouselViewport.isLanding .modeSlide{transition:translate ${SETTLE_LAND_MS}ms cubic-bezier(.18,.72,.28,1),opacity .12s ease}
+.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{pointer-events:none}
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
+.modeCarouselViewport.isDragging .modeTile,.modeCarouselViewport.isRebasing .modeTile{transition:none!important}
+.modeCarouselViewport.isPulling .modeTile{transition:transform ${SETTLE_APPROACH_MS}ms cubic-bezier(.30,0,.22,1)}
+.modeCarouselViewport.isLanding .modeTile{transition:transform ${SETTLE_LAND_MS}ms cubic-bezier(.18,.72,.28,1)}
 .modeTilePrototype,.modeTileLocked{position:relative;overflow:hidden}
 .modeTilePrototype{background:#151515!important;border-color:#151515!important;color:#fff}
 .modeTilePrototype::after,.modeTileLocked::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);background:currentColor;opacity:.9}
@@ -57,7 +64,7 @@
 .modeCarouselFrame>strong{font-size:15px;letter-spacing:.13em;line-height:1.1}
 .modeCarouselFrame>small{min-height:16px;color:#61615b;line-height:1.2}
 .modeCarouselFrame[data-mode-available="false"]>strong,.modeCarouselFrame[data-mode-available="false"]>small{color:#777771}
-@media(prefers-reduced-motion:reduce){.modeSlide,.modeCarouselViewport.isSettling .modeSlide,.modeSlide .modeTile{transition:none}}
+@media(prefers-reduced-motion:reduce){.modeSlide,.modeCarouselViewport.isDragging .modeSlide,.modeCarouselViewport.isPulling .modeSlide,.modeCarouselViewport.isLanding .modeSlide,.modeSlide .modeTile{transition:none!important}}
 `;
     doc.head.appendChild(style)
   }
@@ -80,39 +87,50 @@
     const name=doc.createElement('strong');name.id='modeName';
     const description=doc.createElement('small');description.id='modeDescription';
     frame.append(viewport,name,description);oldClassic.replaceWith(frame);
-    let selected=0,drag=null,suppressClickUntil=0,settleTimer=0;
-    function render(dragX=0){
+    let selected=0,drag=null,suppressClickUntil=0,settleTimer=0,settleState=null;
+    function render(trackX=0){
       const mode=MODES[selected];frame.dataset.mode=mode.id;frame.dataset.modeAvailable=String(mode.available);name.textContent=mode.name;description.textContent=mode.description;startRun.disabled=!mode.available;
-      slides.forEach((slide,i)=>{const offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+dragX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.setProperty('--mode-x',`${x}px`);slide.style.setProperty('--tile-scale',String(scale))});
+      slides.forEach((slide,i)=>{const offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+trackX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.setProperty('--mode-x',`${x}px`);slide.style.setProperty('--tile-scale',String(scale))});
       root.__monoidSelectedMode=mode.id;if(root.__monoidModes)root.__monoidModes.selected=mode.id
     }
-    function stopSettling(){if(settleTimer){root.clearTimeout(settleTimer);settleTimer=0}viewport.classList.remove('isSettling')}
-    function settle(index){
-      stopSettling();
-      const reduced=root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      if(!reduced){viewport.classList.add('isSettling');void viewport.offsetWidth}
-      selected=wrapIndex(index);render();
-      if(!reduced)settleTimer=root.setTimeout(()=>{viewport.classList.remove('isSettling');settleTimer=0},SETTLE_MS+40);
-      return MODES[selected]
+    function clearSettleTimer(){if(settleTimer){root.clearTimeout(settleTimer);settleTimer=0}}
+    function commitSettle(){
+      if(!settleState)return;
+      const next=settleState.next;
+      clearSettleTimer();viewport.classList.remove('isPulling','isLanding');viewport.classList.add('isRebasing');selected=next;render(0);void viewport.offsetWidth;viewport.classList.remove('isRebasing');settleState=null
     }
-    function select(index,animated=true){
-      stopSettling();selected=clampIndex(index);render();
-      return MODES[selected]
+    function stopSettling(commit=true){
+      if(settleState){if(commit)commitSettle();else{clearSettleTimer();settleState=null;viewport.classList.remove('isPulling','isLanding','isRebasing')}}
+      else viewport.classList.remove('isPulling','isLanding','isRebasing')
     }
-    slides.forEach((slide,i)=>slide.addEventListener('click',e=>{e.preventDefault();if(Date.now()<suppressClickUntil)return;select(i,true)}));
-    viewport.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;stopSettling();const now=root.performance?.now?.()??Date.now();drag={id:e.pointerId,startX:e.clientX,lastX:e.clientX,lastAt:now,velocityX:0,visualX:0};viewport.classList.add('isDragging');viewport.setPointerCapture?.(e.pointerId)});
+    function settle(next,startShift,targetShift){
+      stopSettling(true);
+      const nextIndex=wrapIndex(next),reduced=root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if(reduced){viewport.classList.remove('isDragging');selected=nextIndex;render(0);return MODES[selected]}
+      const travel=targetShift-startShift,direction=Math.sign(travel)||Math.sign(-startShift);
+      if(!direction){selected=nextIndex;render(0);return MODES[selected]}
+      const overshootShift=targetShift+direction*SETTLE_OVERSHOOT;
+      settleState={next:nextIndex,targetShift};viewport.classList.remove('isDragging','isLanding');viewport.classList.add('isPulling');void viewport.offsetWidth;render(overshootShift);
+      settleTimer=root.setTimeout(()=>{if(!settleState)return;viewport.classList.remove('isPulling');viewport.classList.add('isLanding');void viewport.offsetWidth;render(settleState.targetShift);settleTimer=root.setTimeout(commitSettle,SETTLE_LAND_MS+20)},SETTLE_APPROACH_MS);
+      return MODES[nextIndex]
+    }
+    function select(index){
+      stopSettling(true);viewport.classList.add('isRebasing');selected=clampIndex(index);render(0);void viewport.offsetWidth;viewport.classList.remove('isRebasing');return MODES[selected]
+    }
+    slides.forEach((slide,i)=>slide.addEventListener('click',e=>{e.preventDefault();if(Date.now()<suppressClickUntil)return;const offset=cyclicOffset(i,selected);if(Math.abs(offset)!==1)return;if(settleState)stopSettling(true);settle(i,0,-offset*SPACING)}));
+    viewport.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;stopSettling(true);const now=root.performance?.now?.()??Date.now();drag={id:e.pointerId,startX:e.clientX,lastX:e.clientX,lastAt:now,velocityX:0,visualX:0};viewport.classList.add('isDragging');viewport.setPointerCapture?.(e.pointerId)});
     viewport.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const now=root.performance?.now?.()??Date.now(),dt=Math.max(1,now-drag.lastAt),instant=(e.clientX-drag.lastX)/dt;drag.velocityX=drag.velocityX*.62+instant*.38;drag.lastX=e.clientX;drag.lastAt=now;drag.visualX=magnetizeDrag(e.clientX-drag.startX);render(drag.visualX)});
     function finishDrag(e){
       if(!drag||e.pointerId!==drag.id)return;
-      const dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,distanceEnough=Math.abs(dx)>=SWIPE_THRESHOLD,flingEnough=Math.abs(dx)>=MIN_FLING_DISTANCE&&Math.abs(projected)>=SWIPE_THRESHOLD,next=distanceEnough||flingEnough?stepIndex(selected,projected<0?1:-1):selected;
-      drag=null;viewport.classList.remove('isDragging');suppressClickUntil=Date.now()+350;settle(next)
+      const dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,distanceEnough=Math.abs(dx)>=SWIPE_THRESHOLD,flingEnough=Math.abs(dx)>=MIN_FLING_DISTANCE&&Math.abs(projected)>=SWIPE_THRESHOLD,delta=distanceEnough||flingEnough?(projected<0?1:-1):0,next=delta?stepIndex(selected,delta):selected,startShift=drag.visualX,targetShift=-delta*SPACING;
+      drag=null;viewport.classList.remove('isDragging');suppressClickUntil=Date.now()+SETTLE_MS+80;settle(next,startShift,targetShift)
     }
-    viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;drag=null;viewport.classList.remove('isDragging');settle(selected)});
-    frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();select(stepIndex(selected,1),true)}else if(e.key==='ArrowLeft'){e.preventDefault();select(stepIndex(selected,-1),true)}});
-    startRun.onclick=function(event){const mode=MODES[selected];if(!mode.available)return;const previousMode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic',beforeSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;root.localStorage?.setItem(ACTIVE_MODE_KEY,mode.id);root.__monoidActiveMode=mode.id;originalStart?.call(this,event);const afterSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;if(beforeSaved&&beforeSaved===afterSaved&&!doc.getElementById('gameSelection')?.hidden){root.localStorage?.setItem(ACTIVE_MODE_KEY,previousMode);root.__monoidActiveMode=previousMode}}
-    if(continueRun)continueRun.onclick=function(event){const mode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic';root.__monoidActiveMode=mode;return originalContinue?.call(this,event)};
-    root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select:index=>select(index,true)};
+    viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;const startShift=drag.visualX;drag=null;viewport.classList.remove('isDragging');settle(selected,startShift,0)});
+    frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();settle(stepIndex(selected,1),0,-SPACING)}else if(e.key==='ArrowLeft'){e.preventDefault();settle(stepIndex(selected,-1),0,SPACING)}});
+    startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!mode.available)return;const previousMode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic',beforeSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;root.localStorage?.setItem(ACTIVE_MODE_KEY,mode.id);root.__monoidActiveMode=mode.id;originalStart?.call(this,event);const afterSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;if(beforeSaved&&beforeSaved===afterSaved&&!doc.getElementById('gameSelection')?.hidden){root.localStorage?.setItem(ACTIVE_MODE_KEY,previousMode);root.__monoidActiveMode=previousMode}}
+    if(continueRun)continueRun.onclick=function(event){stopSettling(true);const mode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic';root.__monoidActiveMode=mode;return originalContinue?.call(this,event)};
+    root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select};
     render();return true
   }
-  return{ACTIVE_MODE_KEY,MODES,SPACING,SETTLE_MS,clampIndex,wrapIndex,stepIndex,cyclicOffset,magnetizeDrag,mount};
+  return{ACTIVE_MODE_KEY,MODES,SPACING,SETTLE_MS,SETTLE_APPROACH_MS,SETTLE_LAND_MS,SETTLE_OVERSHOOT,clampIndex,wrapIndex,stepIndex,cyclicOffset,magnetizeDrag,mount};
 });

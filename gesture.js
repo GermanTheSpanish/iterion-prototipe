@@ -65,7 +65,7 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-up
 // be removed or iterated without touching deterministic engine/game rules.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-modes]')){
   const script=document.createElement('script');
-  script.src='mode-carousel.js?v=20260917.4';
+  script.src='mode-carousel.js?v=20260917.5';
   script.async=false;
   script.dataset.monoidModes='true';
   document.head.appendChild(script)
