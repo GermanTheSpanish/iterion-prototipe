@@ -43,13 +43,13 @@ test('title reveal follows DOMINO order without a pre-animation flash',async({pa
   expect(Math.max(...delays)+duration).toBeGreaterThanOrEqual(1.55);
   const box=await title.boundingBox();expect(box).toBeTruthy();expect(box.y+box.height/2).toBeGreaterThan(844*.40);expect(box.y+box.height/2).toBeLessThan(844*.48);
   await page.locator('#titleCard').click();await expect(page.locator('#learnMonoid')).toBeVisible();await expect(page.locator('#learnMonoid')).toHaveText('TUTORIALS');await expect(page.locator('#tutorialHubButton')).toBeHidden();await expect(page.locator('#replayTutorial')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();
-  await openTutorialHub(page);await expect(page.locator('#tutorialHub')).toContainText('BASICS · 2 MIN');await expect(page.locator('#tutorialHub')).toContainText('GAME MECHANICS · 3 MIN');await expect(page.locator('#tutorialHub')).toContainText('MODIFIERS · 2 MIN')
+  await openTutorialHub(page);await expect(page.locator('#tutorialHub')).toContainText('BASICS · 2 MIN');await expect(page.locator('#tutorialHub')).toContainText('GAME MECHANICS · 3 MIN');await expect(page.locator('#tutorialHub')).toContainText('MODIFIERS · 3 MIN')
 });
 
 test('modifier mini tutorial uses game domino language and a clean full-screen hierarchy',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await openTutorialHub(page);await page.locator('[data-tutorial="modifiers"]').click();
   const dialog=page.locator('#modifierTutorialDialog');await expect(dialog).toBeVisible();const dialogBox=await dialog.boundingBox();expect(dialogBox.width).toBeGreaterThanOrEqual(389);expect(dialogBox.height).toBeGreaterThanOrEqual(843);
-  for(const title of ['DOUBLE DOUBLE','DOUBLE ECHO','ZERO MEMORY']){
+  for(const title of ['DOUBLE DOUBLE','DOUBLE ECHO','ZERO PORT','PARITY EXCHANGE','CORNER','LONG LINE','OVERLOAD','TERMINAL']){
     await expect(page.locator('.modifierTutorTitle')).toHaveText(title);await expect(page.locator('.modifierTutorGameTile .domino')).toBeVisible();await expect(page.locator('.modifierTutorGameTile .tileModMark')).toBeVisible();
     const mark=await page.locator('.modifierTutorGameTile .tileModMark span').allTextContents();expect(mark.join('')).toHaveLength(2);await page.locator('.modifierNext').click()
   }
