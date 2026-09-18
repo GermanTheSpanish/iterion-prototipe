@@ -52,6 +52,7 @@ function createGame(E,opts={}){
     for(const [id,ids] of Object.entries(allTileModAssignments()))if(id!==exceptId&&ids.includes(tileId))return true;
     return false
   }
+  function tileModIdsForTile(tileId){const out=[];for(const [id,ids] of Object.entries(allTileModAssignments()))if(ids.includes(tileId))out.push(id);return out}
   function pieceModifierMap(){
     const byTile=allTileModAssignments(),out=new Map();
     for(const p of s.pieces){const set=new Set();for(const [id,ids] of Object.entries(byTile))if(ids.includes(p.tile.id))set.add(id);if(set.size)out.set(p.id,set)}
@@ -247,8 +248,9 @@ function createGame(E,opts={}){
     const{tile,p,trigger,sim}=ctx,resonance=moveResonance(sim,trigger);s.score=resonance.output;s.best=Math.max(s.best,s.score);s.cleared=s.score>=target();
     const st=(sim.events||[]).find(e=>e.type==='start'),rs=(sim.events||[]).filter(e=>e.type==='route'),income=upgradeIncomeFor(sim);
     const activatedPieceIds=[...new Set((sim.events||[]).filter(e=>e.type==='op').map(e=>e.piece))],activatedTileIds=[...new Set([tile.id,...activatedPieceIds.map(id=>s.pieces.find(p=>p.id===id)?.tile?.id).filter(Boolean)])];
-    const zeroMemoryEvent=(sim.events||[]).find(e=>e.type==='zero-memory')||null,echoEvent=(sim.events||[]).find(e=>e.type==='double-echo-result')||null;
-    s.events.push({turn:s.turn,round:s.round+1,roundTurn:s.roundTurn,tile:cloneTile(tile),activatedTileIds,placement:{x:p.cubes[0].x,y:p.cubes[0].y,z:0,rr:p.rr},dir:E.ARROW[p.rr],target:target(),trigger,baseTrigger:trigger,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,output:s.score,upgradeCoins:income.total,starCoins:income.total,longRunActivated:income.longRunActive,longRunCapped:income.longRunCapped,systemStrain:s.systemStrain||0,uniquePieces:income.uniquePieces,zeroMemoryActivation:zeroMemoryEvent?{tileId:s.pieces.find(q=>q.id===zeroMemoryEvent.piece)?.tile?.id||null,op:zeroMemoryEvent.op,add:zeroMemoryEvent.add||0,factor:zeroMemoryEvent.factor||0,before:zeroMemoryEvent.before,after:zeroMemoryEvent.after}:null,echo:echoEvent?{tileId:s.doubleEchoTileId,mainOutput:echoEvent.mainOutput,echoOutput:echoEvent.echoOutput,finalOutput:echoEvent.finalOutput,rebounds:echoEvent.echoRebounds||0}:null,rebounds:sim.rebounds||0,start:st?.key||'-',flipped:!!st?.flipped,reason:sim.reason,ops:(sim.events||[]).filter(e=>e.type==='op').map(e=>e.op==='multiply'?`${e.piece}:×${e.factor}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''} ${e.before}>${e.after}${e.reverse?'R':''}`:`${e.piece}:+${e.add}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''} ${e.before}>${e.after}${e.reverse?'R':''}`).join(','),routes:rs.map(e=>`${e.piece}:${e.entryHalf}>${e.toPieceId}:${e.toHalf}`).join(';'),search:sim.search?`${sim.search.starts}/${sim.search.leaves}/${sim.search.expanded}${sim.search.truncated?'!':''}`:'-',clear:s.cleared});
+    const zeroPortEvents=(sim.events||[]).filter(e=>e.type==='zero-port'),echoEvent=(sim.events||[]).find(e=>e.type==='double-echo-result')||null;
+    const zeroPorts=zeroPortEvents.map(e=>({fromTileId:s.pieces.find(q=>q.id===e.piece)?.tile?.id||null,toTileId:s.pieces.find(q=>q.id===e.toPieceId)?.tile?.id||null}));
+    s.events.push({turn:s.turn,round:s.round+1,roundTurn:s.roundTurn,tile:cloneTile(tile),activatedTileIds,placement:{x:p.cubes[0].x,y:p.cubes[0].y,z:0,rr:p.rr},dir:E.ARROW[p.rr],target:target(),trigger,baseTrigger:trigger,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,output:s.score,upgradeCoins:income.total,starCoins:income.total,longRunActivated:income.longRunActive,longRunCapped:income.longRunCapped,systemStrain:s.systemStrain||0,uniquePieces:income.uniquePieces,zeroPorts,echo:echoEvent?{tileId:s.doubleEchoTileId,mainOutput:echoEvent.mainOutput,echoOutput:echoEvent.echoOutput,finalOutput:echoEvent.finalOutput,rebounds:echoEvent.echoRebounds||0}:null,rebounds:sim.rebounds||0,start:st?.key||'-',flipped:!!st?.flipped,reason:sim.reason,ops:(sim.events||[]).filter(e=>e.type==='op').map(e=>{const mod=e.modMultiplier>1?` MOD×${e.modMultiplier}`:'';return e.op==='multiply'?`${e.piece}:×${e.factor}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`:`${e.piece}:+${e.add}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`}).join(','),routes:rs.map(e=>`${e.piece}:${e.entryHalf}>${e.toPieceId}:${e.toHalf}`).join(';'),search:sim.search?`${sim.search.starts}/${sim.search.leaves}/${sim.search.expanded}${sim.search.truncated?'!':''}`:'-',clear:s.cleared});
     const upgradeCoins=awardUpgradeIncome(income);
     const forks=(sim.events||[]).filter(e=>e.type==='signal-fork');
     if(forks.length)s.events.push({type:'signal-resolution',round:s.round+1,move:s.turn,baseOutput:sim.output,splitCount:forks.length,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,events:sim.events.map(e=>({...e,tileId:s.pieces.find(q=>q.id===e.piece)?.tile.id||null}))});
@@ -286,13 +288,13 @@ function createGame(E,opts={}){
     return{ok:true,tileId,before,after}
   }
 
-  function canUseReroll(){return !s.pendingCircuit&&rerollsAvailable()>0&&!s.running&&!s.cleared&&!s.shopOpen&&s.failureReason!=='no-tiles'&&s.failureReason!=='placement-limit'}
+  function canUseReroll(){return !s.pendingCircuit&&!s.pendingModPlacement&&rerollsAvailable()>0&&!s.running&&!s.cleared&&!s.shopOpen&&s.failureReason!=='no-tiles'&&s.failureReason!=='placement-limit'}
   function reroll(){
     const r=applyReroll(false);if(!r.ok)return r;
     const continuation=assessContinuation()||{autoRerolls:0};
     return{...r,autoRerolls:continuation.autoRerolls||0,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason}
   }
-  function canUseMove(){return !s.pendingCircuit&&(s.consumables?.move||0)>0&&!s.running&&!s.cleared&&!s.shopOpen&&!s.needsReroll&&(!s.blocked||s.failureReason==='placement-limit')}
+  function canUseMove(){return !s.pendingCircuit&&!s.pendingModPlacement&&(s.consumables?.move||0)>0&&!s.running&&!s.cleared&&!s.shopOpen&&!s.needsReroll&&(!s.blocked||s.failureReason==='placement-limit')}
   function useMove(){
     if(!canUseMove())return{ok:false,reason:'state'};
     s.consumables.move--;s.undoFrame=null;s.extraPlacements++;
@@ -300,7 +302,7 @@ function createGame(E,opts={}){
     s.events.push({type:'consume',round:s.round+1,roundTurn:s.roundTurn,item:'move',remaining:s.consumables.move,maxPlacements:maxPlacements()});
     return{ok:true,maxPlacements:maxPlacements(),remaining:s.consumables.move}
   }
-  function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.running&&!s.shopOpen}
+  function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.shopOpen}
   function preserveShopTransactions(frame,current){
     const tail=(current.events||[]).slice((frame.events||[]).length);
     const keptTypes=new Set(['shop-open','shop-buy','tile-buy','shop-close']);
@@ -353,7 +355,7 @@ function createGame(E,opts={}){
     return{ok:true,item:id,quantity:qty,baseCost:m.cost,total,unitCosts,inflationBefore,inflationAfter:inflationBefore+(qty*step),systemStrain:strain,canAfford:s.coins>=total}
   }
   function canBuyTool(id){
-    const m=M.get(id);if(!m||m.kind!=='consumable'||s.pendingCircuit||s.running||s.cleared||s.shopOpen||s.needsReroll)return false;
+    const m=M.get(id);if(!m||m.kind!=='consumable'||s.pendingCircuit||s.pendingModPlacement||s.running||s.cleared||s.shopOpen||s.needsReroll)return false;
     const empty=id==='reroll'?rerollsAvailable()===0:(s.consumables?.[id]||0)===0;if(!empty)return false;
     if(s.blocked)return id==='move'&&s.failureReason==='placement-limit';
     return true
@@ -376,7 +378,7 @@ function createGame(E,opts={}){
   }
 
   function availableShopItems(){return M.all().filter(m=>m.kind==='consumable')}
-  function canOpenShop(){return !s.pendingCircuit&&!s.running&&!s.cleared&&!s.shopOpen}
+  function canOpenShop(){return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.shopOpen}
   function openShop(){
     if(!canOpenShop())return false;
     const tileOffers=ensureShopTileOffers();
@@ -487,6 +489,7 @@ function createGame(E,opts={}){
     const targetCount=marketTargetCount(id);if(targetCount<1)return{ok:false,reason:'no-target'};
     const cost=marketModPrice(id);if(s.coins<cost)return{ok:false,reason:'coins'};
     const previousTileId=assignedTileIdsForMod(id)[0]||null,purchase=applyPurchase(cost);
+    s.undoFrame=null;
     const record={mod:id,tile:null,targetTileId:null,previousTileId,cost,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter,pending:m.target!=='machine'};s.marketBuys.push(record);
     s.events.push({type:'market-mod-buy',mod:id,round:s.round+1,shop:'market',targetTileId:null,previousTileId,candidateCount:targetCount,pending:m.target!=='machine',baseCost:Number(cfg[m.marketCostKey])||0,cost,coins:s.coins,...purchase});
     if(m.target==='machine'){
@@ -525,7 +528,7 @@ function createGame(E,opts={}){
   function buyDoubleDouble(){return buyMarketMod('double-double')}
   function closeMarket(){return resolveIntermission('continue')}
 
-  function canStartEndless(){return !s.pendingCircuit&&!!s.standardComplete&&!s.endlessMode&&s.cleared&&s.round===cfg.TOTAL_ROUNDS-1&&!s.running&&!s.shopOpen}
+  function canStartEndless(){return !s.pendingCircuit&&!s.pendingModPlacement&&!!s.standardComplete&&!s.endlessMode&&s.cleared&&s.round===cfg.TOTAL_ROUNDS-1&&!s.running&&!s.shopOpen}
   function startEndless(){
     if(!canStartEndless())return false;
     s.endlessMode=true;s.endlessStartedRound=s.round+2;s.systemStrain=0;s.endlessLongRunActivations=0;s.undoFrame=null;
