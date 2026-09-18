@@ -34,7 +34,7 @@ function blockedGame(seed=3201){
   assert.equal(s.needsReroll,false,'automatic recovery must never leave a confirmation state');
   assert.equal(s.blocked,false);assert.equal(s.failureReason,null);
   assert.equal(g.hasLegal(),true);
-  assert.equal(s.undoFrame,null,'automatic reroll has the same undo boundary as a manual reroll');
+  assert.deepEqual(s.undoFrame,{sentinel:true},'automatic reroll remains part of the move and must stay Undo-able');
   const event=s.events.findLast(e=>e.type==='reroll');
   assert.equal(event.automatic,true);
   assert.match(g.debugText(),/AUTO REROLL source=free/);
