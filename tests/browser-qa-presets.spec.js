@@ -62,8 +62,7 @@ test('Prototype first-Endless QA link exposes deferred mode, Endless and POWER x
   await expect(page.locator('#roundstat')).toHaveText('16/∞');await expect(page.locator('#stagestat')).toHaveText('6/∞');
   await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('125B');
   await expect(page.locator('body')).toHaveClass(/endlessPalette/);
-  const endlessBg=await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor);
-  expect(endlessBg).toBe('rgb(41, 41, 39)');
+  await expect.poll(()=>page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(41, 41, 39)');
   expect(await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,model:window.__monoidGame.state().scoringModel,active:window.__monoidActiveMode,generation:window.__monoidGame.state().setGeneration}))).toEqual({mode:'prototype',model:'deferred-v1',active:'prototype',generation:3});
   expect(await page.locator('#board .power3').count()).toBeGreaterThanOrEqual(5);
   const normalPower=page.locator('#board .power3:not(.circuitTile)').first();
