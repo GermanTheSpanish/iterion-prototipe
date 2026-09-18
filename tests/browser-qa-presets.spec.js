@@ -27,13 +27,16 @@ async function assertLateGameSurface(page,id,{expectZm=true,minPieces=19,minPowe
   expect(await page.locator('#board .circuitTile').count()).toBeGreaterThanOrEqual(3);
   expect(await page.locator('#board .powerTile').count()).toBeGreaterThanOrEqual(minPower);
   await expect(page.locator('#machineModStatus')).toBeVisible();
+  expect(await page.locator('#machineModStatus').evaluate(el=>el.parentElement?.classList.contains('metaStrip'))).toBe(true);
+  const statusBox=await page.locator('#machineModStatus').boundingBox(),roundBox=await page.locator('.roundMeta').boundingBox();
+  expect(statusBox.x).toBeGreaterThan(roundBox.x+roundBox.width);
   const centering=await page.locator('.wordmark').evaluate(el=>{
     const box=el.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(el);const glyphs=range.getBoundingClientRect(),centre=innerWidth/2;
     return{box:Math.abs(box.left+box.width/2-centre),glyphs:Math.abs(glyphs.left+glyphs.width/2-centre)}
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260918.1');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260918.2');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -59,8 +62,19 @@ test('Prototype first-Endless QA link exposes deferred mode, Endless and POWER x
   await expect(page.locator('#roundstat')).toHaveText('16/∞');await expect(page.locator('#stagestat')).toHaveText('6/∞');
   await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('125B');
   await expect(page.locator('body')).toHaveClass(/endlessPalette/);
+  const endlessBg=await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor);
+  expect(endlessBg).toBe('rgb(41, 41, 39)');
   expect(await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,model:window.__monoidGame.state().scoringModel,active:window.__monoidActiveMode,generation:window.__monoidGame.state().setGeneration}))).toEqual({mode:'prototype',model:'deferred-v1',active:'prototype',generation:3});
   expect(await page.locator('#board .power3').count()).toBeGreaterThanOrEqual(5);
+  const normalPower=page.locator('#board .power3:not(.circuitTile)').first();
+  const circuitPower=page.locator('#board .power3.circuitTile').first();
+  if(await normalPower.count()){
+    expect(await normalPower.evaluate(el=>getComputedStyle(el,'::before').backgroundColor)).toBe('rgb(193, 180, 198)');
+    expect(await normalPower.locator('.pip').first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(23, 23, 23)')
+  }
+  if(await circuitPower.count()){
+    expect(await circuitPower.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(44, 32, 51)')
+  }
   await page.screenshot({path:testInfo.outputPath('qa-prototype-endless-r16.png'),fullPage:true});
   await assertRealSaveSurvived(page)
 });
