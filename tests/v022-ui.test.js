@@ -4,7 +4,7 @@ const path=require('path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const data=read('data.js'),game=read('game.js'),ui=read('ui.js'),html=read('index.html'),help=read('help.js');
 
-assert.match(data,/VERSION:'0\.31\.1'/);
+assert.match(data,/VERSION:'0\.32\.0'/);
 assert.match(data,/STAGE_SIZE:3/);
 assert.match(data,/BOARD_SIZES:\[\[18,24\],\[21,28\],\[24,32\],\[27,36\],\[30,40\]\]/);
 assert.doesNotMatch(data,/SHOP_CHANCE/,'inter-round random Shop chance must be removed');
@@ -21,7 +21,7 @@ assert.doesNotMatch(game,/buyMarketRandomTile/,'random tile supply must not rema
 assert.match(ui,/GAME\.buyShopRandomTile\(\)/);
 assert.match(ui,/GAME\.buyShopItem\(id\)/);
 assert.match(ui,/overlayTitle\.textContent='MARKET'/);
-const marketStart=ui.indexOf('function showMarket()'),marketEnd=ui.indexOf('\n  function showNoMoves()',marketStart);
+const marketStart=ui.indexOf('function showMarket()'),marketEnd=ui.indexOf('\n  function showFailed()',marketStart);
 assert(marketStart>=0&&marketEnd>marketStart);
 assert.doesNotMatch(ui.slice(marketStart,marketEnd),/MYSTERY DOMINO|buyShopRandomTile/,'Market UI must not sell basic random tile supply');
 assert.match(help,/id:'economy',displayName:'Shop \/ Market'/,'Rulebook must explain the Shop / Market split');
