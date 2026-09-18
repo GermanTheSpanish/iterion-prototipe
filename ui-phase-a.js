@@ -4,7 +4,7 @@
   if(!doc||root.__monoidPhaseAInstalled)return;
   root.__monoidPhaseAInstalled=true;
 
-  const BUILD_ID='20260918.3';
+  const BUILD_ID='20260918.4';
   const COMPACT_THRESHOLD=50000;
   const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
   const $=id=>doc.getElementById(id);
