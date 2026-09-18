@@ -5,7 +5,7 @@
   if(root?.document){api.installMenuAccess(root);api.autoStart(root);api.autoResumeReturn(root);}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const BUILD_ID='20260918.7';
+  const BUILD_ID='20260918.8';
   const ACTIVE_RUN_KEY='iterion.activeRun.v1';
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
   const LATEST_RUN_KEY='iterion.latestRun.v9';
