@@ -302,7 +302,7 @@ function createGame(E,opts={}){
     s.events.push({type:'consume',round:s.round+1,roundTurn:s.roundTurn,item:'move',remaining:s.consumables.move,maxPlacements:maxPlacements()});
     return{ok:true,maxPlacements:maxPlacements(),remaining:s.consumables.move}
   }
-  function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.shopOpen}
+  function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.pendingModPlacement&&!s.running&&!s.shopOpen}
   function preserveShopTransactions(frame,current){
     const tail=(current.events||[]).slice((frame.events||[]).length);
     const keptTypes=new Set(['shop-open','shop-buy','tile-buy','shop-close']);
