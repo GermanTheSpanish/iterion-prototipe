@@ -2,7 +2,7 @@ const assert=require('assert'),fs=require('fs'),path=require('path');
 const root=path.join(__dirname,'..');
 const workflow=fs.readFileSync(path.join(root,'.github/workflows/regression.yml'),'utf8');
 assert.match(workflow,/pull_request:/);
-assert.match(workflow,/branches: \['\*\*'\]/);
+assert.match(workflow,/push:\n\s+branches: \[main\]/);\nassert.match(workflow,/pull_request:/);\nassert.match(workflow,/workflow_dispatch:/);
 assert.match(workflow,/contents: read/);
 assert.match(workflow,/persist-credentials: false/);
 assert.match(workflow,/npm ci /);
