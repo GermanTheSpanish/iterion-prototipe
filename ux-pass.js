@@ -143,7 +143,7 @@
     if(title==='SHOP'){
       setText(document.querySelector('.randomOffer p'),'Adds one new physical domino to your set.');
       const sections=[...document.querySelectorAll('.shopSection')],toolsIntro=sections[1]?.querySelector(':scope > p');setText(toolsIntro,'Stored until you use them. Each round already gives one free Reroll.');
-      const intro=document.querySelector('.marketIntro'),introText='This is the real Shop. Supplies for this run. Market appears only between stages.';if(intro&&intro.textContent.trim()!==introText)intro.innerHTML='<strong>This is the real Shop.</strong> Supplies for this run. Market appears only between stages.';
+      const intro=document.querySelector('.marketIntro'),introText='This is the real Tile Shop. Physical dominoes for this run. Market appears only between stages.';if(intro&&intro.textContent.trim()!==introText)intro.innerHTML='<strong>This is the real Tile Shop.</strong> Physical dominoes for this run. Market appears only between stages.';
       const foot=document.querySelector('.shopFoot');if(foot){const endless=document.body.classList.contains('endlessPalette');setText(foot,endless?'Each purchase raises Inflation. Endless Strain raises prices; Undo removes that placement’s Strain.':'Each purchase raises Inflation by 1.')}
     }
     if(title==='MARKET'){const foot=document.querySelector('.shopFoot');if(foot){const endless=document.body.classList.contains('endlessPalette');setText(foot,endless?'Buy one mod, or leave it. Inflation and Endless Strain raise prices.':'Buy one mod, or leave it. Each purchase raises Inflation by 1.')}}
