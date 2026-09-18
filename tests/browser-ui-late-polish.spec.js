@@ -71,8 +71,8 @@ for(const width of [375,430])for(const endless of [false,true]){
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
     expect(await boardMark.locator('.tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(15);
     expect(await boardMark.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
-    const boardMarkColor=await boardMark.locator('.tileModMark').evaluate(el=>getComputedStyle(el).color);
-    expect(boardMarkColor).toMatch(/0\.2\)$/);
+    const boardMarkStyle=await boardMark.evaluate(el=>({circuit:el.classList.contains('circuitTile'),color:getComputedStyle(el.querySelector('.tileModMark')).color}));
+    expect(boardMarkStyle.color).toBe(boardMarkStyle.circuit?'rgba(255, 255, 255, 0.3)':'rgba(17, 17, 17, 0.2)');
     expect(await page.evaluate(()=>{const g=window.__monoidGame,before=JSON.stringify(g.exportState());window.MonoidLatePolish.sync();window.MonoidPhaseA.sync();return before===JSON.stringify(g.exportState())})).toBe(true);
     expect(await page.locator('.commerceModal').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
     if(endless){
