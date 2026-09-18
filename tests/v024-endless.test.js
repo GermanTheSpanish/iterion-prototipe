@@ -52,9 +52,14 @@ function clearNext(game){
   assert.deepStrictEqual(g.snapshot().board,before.board);
   const offer=s.shopOffers[0],price=g.marketModPrice(offer),buy=g.buyMarketMod(offer);assert(buy.ok);
   assert.strictEqual(s.coins,before.coins-price);assert.strictEqual(s.inflation,before.inflation+1);
-  assert.strictEqual(g.buyMarketMod(offer).reason,'limit');
+  assert.strictEqual(s.shopOpen,false,'any Mod purchase closes the Market immediately');
+  assert.strictEqual(g.buyMarketMod(offer).reason,'shop');
+  if(buy.pending){
+    assert.notStrictEqual(buy.stage,'source','fresh Endless fixture cannot begin with a complete Zero Port pair');
+    assert(buy.eligibleTileIds.length>0);assert(g.chooseMarketModTile(buy.eligibleTileIds[0]).ok)
+  }
   const afterMarket=g.snapshot();
-  assert(g.closeMarket());assert(g.advance());
+  assert(g.advance());
   assert.strictEqual(s.round,15);assert.strictEqual(g.target(),250000000000);
   assert.deepStrictEqual(g.snapshot().board,afterMarket.board,'coordinates and exact modifier targets persist');
   assert.deepStrictEqual(g.snapshot().set,afterMarket.set);
