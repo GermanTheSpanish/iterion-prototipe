@@ -21,7 +21,7 @@ assert.doesNotMatch(game,/buyMarketRandomTile/,'random tile supply must not rema
 assert.match(ui,/GAME\.buyShopRandomTile\(\)/);
 assert.match(ui,/GAME\.buyShopItem\(id\)/);
 assert.match(ui,/overlayTitle\.textContent='MARKET'/);
-const marketStart=ui.indexOf('function showMarket()'),marketEnd=ui.indexOf('\n  function showNoMoves()',marketStart);
+const marketStart=ui.indexOf('function showMarket()'),marketEnd=ui.indexOf('\n  function showFailed()',marketStart);
 assert(marketStart>=0&&marketEnd>marketStart);
 assert.doesNotMatch(ui.slice(marketStart,marketEnd),/MYSTERY DOMINO|buyShopRandomTile/,'Market UI must not sell basic random tile supply');
 assert.match(help,/id:'economy',displayName:'Shop \/ Market'/,'Rulebook must explain the Shop / Market split');
