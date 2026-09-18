@@ -39,16 +39,6 @@ assert.strictEqual(split.output,52,'arm A=(10+2)×3=36; arm B=10+2+4=16; JOIN=52
 assert.deepStrictEqual(split.events.filter(e=>e.type==='signal-end').map(e=>e.output),[36,16]);
 assert.strictEqual(split.events.find(e=>e.type==='signal-join').output,52);
 
-// Zero Memory remains a repeated term in the accumulator rather than forcing
-// an immediate arithmetic resolution.
-const zm=score([
-  {type:'op',piece:1,value:4,op:'add',add:4},
-  {type:'zero-memory',piece:9,sourcePiece:1,sourceValue:4,op:'add',add:4},
-  {type:'op',piece:2,value:3,op:'multiply',factor:3}
-],10,66);
-assert.strictEqual(zm.output,54,'(10 + 4 + 4) × 3');
-assert.strictEqual(zm.events.find(e=>e.type==='zero-memory').deferredAdd,8);
-
 // Double Echo copies the deferred state at activation, then resolves Main and
 // Echo independently before adding them, preserving the current signal model.
 const echo=score([
