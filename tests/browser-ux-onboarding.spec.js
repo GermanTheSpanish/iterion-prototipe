@@ -39,7 +39,7 @@ test('BASICS keeps placements canonical while teaching Zero, rebound and T-Split
   const reboundCount=await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length);expect(reboundCount).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
   await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.tutorialStep)).toBe(5);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await expect(page.locator('#monoidBoardCoach')).toContainText('7/7');expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
-  await expect(page.locator('#overlayTitle')).toHaveText('SHOP');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(7);await assertCommerceIsDedicatedOverlay(page);await expect(page.locator('#nextGameMechanics')).toBeVisible()
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(7);await assertCommerceIsDedicatedOverlay(page);await expect(page.locator('#nextGameMechanics')).toBeVisible()
 });
 
 test('SYSTEMS starts from a prepared real machine and teaches Circuit, Mod and POWER in sequence',async({page})=>{
