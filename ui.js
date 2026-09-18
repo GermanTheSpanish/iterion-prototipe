@@ -181,10 +181,10 @@
   function summaryHtml(){const r=runSummary(),m=r.mvpTile;return`<div class="summary"><div class="sumCard wide"><div class="sumLabel">MVP TILE</div><div class="sumValue">${m?`[${m.a}|${m.b}] → ${fmt(m.output)}`:'—'}</div><div class="sumSmall">${m?`Best activation · Round ${m.round}, move ${m.placement}`:'No placement yet'}</div></div><div class="sumCard"><div class="sumLabel">PROGRESS</div><div class="sumValue">${r.endless?.active?`${D.TOTAL_ROUNDS}/${D.TOTAL_ROUNDS} + ${r.endless.roundsCleared}`:`${r.roundsCleared}/${r.totalRounds}`}</div><div class="sumSmall">${r.endless?.active?'Base complete · Endless clears':'Rounds cleared'}</div></div><div class="sumCard"><div class="sumLabel">MACHINE</div><div class="sumValue">${r.machine}</div><div class="sumSmall">${r.setSize} tiles · Set ${r.setGeneration}</div></div><div class="sumCard wide"><div class="sumLabel">SCORE SOURCES</div><div class="sumValue">${r.multOps} multipliers · ${r.addOps} additions</div><div class="sumSmall">${r.rebounds} rebounds · Best ${fmt(r.bestOutput)}</div></div><div class="sumCard wide"><div class="sumLabel">ECONOMY</div><div class="sumValue">${r.coins} coins · Inflation ${r.inflation}${r.endless?.active?` · Strain ${r.systemStrain}`:''}</div><div class="sumSmall">Move ${r.consumables.move} · Reroll ${r.consumables.reroll} · Undo ${r.consumables.undo} · ${r.purchases} purchases${r.endless?.active?` · Long Chain ${r.longRunActivations}/${D.ENDLESS_LONG_RUN_ACTIVATIONS||7}`:''}</div></div></div>`}
 
   function advanceRound(){
-    const before=GAME.snapshot().stage.index;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
-    persistGame();hideOverlay();handFx.fill('normal');render();const after=GAME.snapshot().stage.index;toast(after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
+    const before=GAME.snapshot().stage.index,eventIndex=GAME.state().events.length;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
+    persistGame();hideOverlay();handFx.fill('normal');render();const auto=autoRerollsSince(eventIndex),after=GAME.snapshot().stage.index;if(!autoRerollToast(auto))toast(after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
   }
-  function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}persistGame();hideOverlay();handFx.fill('normal');render();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
+  function startEndless(){const eventIndex=GAME.state().events.length;clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}persistGame();hideOverlay();handFx.fill('normal');render();const auto=autoRerollsSince(eventIndex);if(!autoRerollToast(auto))toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
   function showClear(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1];
     overlayTitle.textContent=complete?'RUN COMPLETE':endless?'ENDLESS ROUND CLEAR':'ROUND CLEAR';
@@ -215,23 +215,16 @@
     overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();persistGame();advanceRound()}
   }
 
-  function showNoMoves(){
-    resetOverlay();const s=GAME.state();overlayTitle.textContent='NO LEGAL MOVES';overlayBody.innerHTML='<p>No tile in your hand can continue the machine. Use this round’s free Reroll, a stored Reroll, Shop, Undo, or start a new run.</p><button id="downloadNoMovesRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>';
-    overlayBody.querySelector('#downloadNoMovesRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
-    overlayPrimary.textContent=s.freeReroll?`REROLL · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`REROLL · ${s.consumables.reroll}`;overlayPrimary.disabled=!GAME.canUseReroll();overlayPrimary.onclick=doReroll;
-    overlaySecondary.style.display='inline-block';overlaySecondary.textContent='SHOP';overlaySecondary.onclick=openPermanentShop;
-    if(GAME.canUndo()){overlayTertiary.style.display='inline-block';overlayTertiary.textContent=`UNDO · ${s.consumables.undo}`;overlayTertiary.onclick=useUndo}else setNewRunButton(overlayTertiary)
-  }
   function showFailed(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',noLegal=s.failureReason==='no-legal-moves',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
-    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or Shop Move can continue this round.':'You used every move for this round.'):(stalled?'No tile in your hand can continue the machine, but the Shop can sell a stored Reroll.':'No legal continuation remains.');
+    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or Shop Move can continue this round.':'You used every move for this round.'):noLegal?'No legal continuation remains and no Rerolls are left.':(stalled?'The machine can still be recovered.':'The run cannot continue.');
     overlayBody.innerHTML=`<p>${endless?`Base run complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
     overlayBody.querySelector('#downloadFailedRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
-    if(GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='SHOP';b.onclick=openPermanentShop}
+    if(!noLegal&&GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='SHOP';b.onclick=openPermanentShop}
     if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
-    if(GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
+    if(!noLegal&&GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
     const b=buttons[slot++]||overlayTertiary;setNewRunButton(b)
   }
 
@@ -241,7 +234,7 @@
     hint.textContent=view.hint;renderLog();
     const pending=s.pendingCircuit;circuitChoice.hidden=!pending;if(pending){hint.textContent='Choose one outlined tile to develop.';circuitChoice.textContent=`CIRCUIT CLOSED · ${pending.size} TILES · +${pending.reward} RANK${pending.reward===1?'':'S'} · CHOOSE A TILE`}
     if(auxOverlay){renderAuxOverlay();return}if(pending){hideOverlay();return}if(uiBusy){hideOverlay();return}if(s.shopOpen){s.shopType==='market'?showMarket():showShop();return}if(tutorial)return;
-    if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.needsReroll)showNoMoves();else if(s.blocked)showFailed();else hideOverlay()}
+    if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.blocked)showFailed();else hideOverlay()}
   }
 
   function center(c,r){const p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);return{x:(p.rect.minx+p.rect.maxx)/2/E.G*r.width,y:(p.rect.miny+p.rect.maxy)/2/E.H*r.height}}
@@ -255,9 +248,9 @@
     if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}
     const game=GAME,generationBefore=game.state().setGeneration||1,ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}
     uiBusy=true;const drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output);const result=game.finishPlacement(ctx);persistGame();
-    const exitPending=!!tutorial?.exitPending;if(!exitPending)advanceTutorial(result);await drawAnim;uiBusy=false;
+    const exitPending=!!tutorial?.exitPending;if(!exitPending)advanceTutorial(result);await drawAnim;if(result.autoRerolls?.length)await revealAutoReroll(result.autoRerolls);uiBusy=false;
     if(exitPending){leaveTutorial(false);return}if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay();render();
-    if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
+    if(!tutorial&&result.autoRerolls?.length)autoRerollToast(result.autoRerolls);else if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
   }
 
   function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
@@ -343,7 +336,19 @@
     await wait(finalFx(finalOutput))
   }
 
-  async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}persistGame();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}
+  function autoRerollsSince(index){return GAME.state().events.slice(index).filter(e=>e.type==='reroll'&&e.automatic)}
+  function autoRerollToast(events){
+    const count=events?.length||0;if(!count)return false;
+    toast(count===1?'NO LEGAL MOVES · REROLL USED':`NO LEGAL MOVES · ${count} REROLLS USED`);return true
+  }
+  async function revealAutoReroll(events){
+    if(!events?.length)return;
+    handFx.fill('back');renderHand();await wait(Math.min(D.REROLL_BLACK_MS||240,240));
+    for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(Math.min(D.HAND_REVEAL_STAGGER_MS||60,60))}
+    handFx.fill('normal');renderHand()
+  }
+
+  async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}persistGame();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render();if(r.autoRerolls?.length)autoRerollToast(r.autoRerolls)}
 
   function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${H.debugTelemetryText()}`}
   function renderLog(){
