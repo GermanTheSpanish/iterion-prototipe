@@ -51,29 +51,27 @@ function testOpeningProtectionAlsoCoversReroll(){
   assertPhysicalSetIntegrity(s);
 }
 
-function testDoubleDoubleIsRandomAndTransfers(){
+function testDoubleDoubleIsChosenAndTransfers(){
   const game=Game.createGame(E,{seed:12345,STARTING_COINS:100});
   const s=game.state(),doubles=s.set.filter(t=>t.a===t.b&&t.a>0);
   s.pieces=doubles.map((tile,i)=>{const p=E.pieceFrom(tile,(i%3)*6,Math.floor(i/3)*6,0,0,100+i);p.tile={...tile};return p});
   s.placedTileIds=doubles.map(t=>t.id);s.shopOpen=true;s.shopType='market';s.shopOffers=['double-double'];s.marketBuys=[];s.coins=100;s.inflation=0;
   const first=game.buyDoubleDouble();
-  assert.strictEqual(first.ok,true);
-  assert.strictEqual(first.cost,8);
+  assert.strictEqual(first.ok,true);assert.strictEqual(first.pending,true);assert.strictEqual(first.cost,8);
   assert.strictEqual(first.candidateCount,6,'six placed non-zero doubles are eligible in the fixture');
-  assert.strictEqual(first.tile.a,first.tile.b);
-  assert(first.tile.a>0,'[0|0] must never be selected as Double Double');
-  assert.strictEqual(s.doubleDoubleTileId,first.tile.id);
-  const firstId=first.tile.id;
+  assert.strictEqual(s.doubleDoubleTileId,null,'purchase must not randomly assign Double Double');
+  assert.strictEqual(s.shopOpen,false,'tile Mod purchase closes Market before board targeting');
+  assert(game.chooseMarketModTile('d4-4').ok);assert.strictEqual(s.doubleDoubleTileId,'d4-4');
+  const firstId=s.doubleDoubleTileId;
 
-  s.shopOpen=true;s.shopType='market';s.shopOffers=['double-double'];s.marketBuys=[];
+  s.shopOpen=true;s.shopType='market';s.shopOffers=['double-double'];s.marketBuys=[];s.intermissionResolved=false;s.nextShopType='market';
   const second=game.buyDoubleDouble();
   assert.strictEqual(second.ok,true,'Double Double may transfer in a later Market');
   assert.strictEqual(second.cost,9,'later Market price must include global Inflation');
   assert.strictEqual(second.previousTileId,firstId);
-  assert.notStrictEqual(second.tile.id,firstId,'transferring Double Double must move away from the active physical tile');
-  assert.strictEqual(second.candidateCount,5,'active placed double must be excluded from the next Market target roll');
-  assert.strictEqual(s.doubleDoubleTileId,second.tile.id);
-  assert.match(game.debugText(),/MARKET DOUBLE DOUBLE/,'random Double Double result must remain visible in debug data');
+  assert.strictEqual(second.candidateCount,5,'active placed double must be excluded from reassignment targets');
+  assert(game.chooseMarketModTile('d6-6').ok);assert.strictEqual(s.doubleDoubleTileId,'d6-6');
+  assert.match(game.debugText(),/DOUBLE-DOUBLE ASSIGN/i,'chosen Double Double result must remain visible in debug data');
 }
 
 function testExactDominoRemoved(){
@@ -86,6 +84,6 @@ function testExactDominoRemoved(){
 
 testOpeningProtectionFixesKnownBrickSeed();
 testOpeningProtectionAlsoCoversReroll();
-testDoubleDoubleIsRandomAndTransfers();
+testDoubleDoubleIsChosenAndTransfers();
 testExactDominoRemoved();
 console.log('v0.20 gameplay regression tests passed');
