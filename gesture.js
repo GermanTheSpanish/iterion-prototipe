@@ -45,7 +45,7 @@
 // behaviour cannot alter deterministic gameplay or saved runs.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pwa]')){
   const script=document.createElement('script');
-  script.src='pwa.js?v=20260917.4';
+  script.src='pwa.js?v=20260918.1';
   script.async=false;
   script.dataset.monoidPwa='true';
   document.head.appendChild(script)
@@ -55,7 +55,7 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pw
 // be removed with the visible build marker once external playtesting stabilises.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-update]')){
   const script=document.createElement('script');
-  script.src='update-check.js?v=20260917.4';
+  script.src='update-check.js?v=20260918.1';
   script.async=false;
   script.dataset.monoidUpdate='true';
   document.head.appendChild(script)
@@ -86,7 +86,7 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pr
  // the same script autostarts the requested sandboxed late-game fixture.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-qa-presets]')){
   const script=document.createElement('script');
-  script.src='qa-presets.js?v=20260917.4';
+  script.src='qa-presets.js?v=20260918.1';
   script.async=false;
   script.dataset.monoidQaPresets='true';
   document.head.appendChild(script)

@@ -17,15 +17,15 @@ async function assertRealSaveSurvived(page){
   expect(await page.evaluate(key=>localStorage.getItem(key),MODE)).toBe('classic');
   expect(await page.evaluate(key=>localStorage.getItem(key),LATEST)).toBe('REAL-LATEST-RUN-SENTINEL')
 }
-async function assertLateGameSurface(page,id){
+async function assertLateGameSurface(page,id,{expectZm=true,minPieces=19,minPower=5}={}){
   await expect(page.locator('body')).toHaveAttribute('data-qa-preset',id);
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
-  await expect.poll(()=>page.locator('#board .piece').count()).toBeGreaterThanOrEqual(19);
+  await expect.poll(()=>page.locator('#board .piece').count()).toBeGreaterThanOrEqual(minPieces);
   await expect(page.locator('#board .tileModMark.dd')).toHaveCount(1);
   await expect(page.locator('#board .tileModMark.de')).toHaveCount(1);
-  await expect(page.locator('#board .tileModMark.zm')).toHaveCount(1);
+  await expect(page.locator('#board .tileModMark.zm')).toHaveCount(expectZm?1:0);
   expect(await page.locator('#board .circuitTile').count()).toBeGreaterThanOrEqual(3);
-  expect(await page.locator('#board .powerTile').count()).toBeGreaterThanOrEqual(5);
+  expect(await page.locator('#board .powerTile').count()).toBeGreaterThanOrEqual(minPower);
   await expect(page.locator('#machineModStatus')).toBeVisible();
   const centering=await page.locator('.wordmark').evaluate(el=>{
     const box=el.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(el);const glyphs=range.getBoundingClientRect(),centre=innerWidth/2;
@@ -33,7 +33,7 @@ async function assertLateGameSurface(page,id){
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260917.4');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260918.1');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -41,10 +41,12 @@ async function assertLateGameSurface(page,id){
 test('Classic R14 QA link exposes Phase A late-game states without touching the saved run',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await seedRealSave(page);
   await page.goto(`${BASE}?qa=classic14&ci=1`);
-  await assertLateGameSurface(page,'classic14');
+  await assertLateGameSurface(page,'classic14',{expectZm:false,minPieces:30,minPower:2});
   await expect(page.locator('#roundstat')).toHaveText('14/15');await expect(page.locator('#stagestat')).toHaveText('5/5');
-  await expect(page.locator('#target')).toHaveText('10B');await expect(page.locator('#score')).toHaveText('8.65B');
+  await expect(page.locator('#target')).toHaveText('10B');await expect(page.locator('#score')).toHaveText('0');
   expect(await page.evaluate(()=>window.__monoidGame.state().endlessMode)).toBe(false);
+  expect(await page.evaluate(()=>window.__monoidQa?.sourceRunId)).toBe('mu66e4fp-116me8o');
+  expect(await page.evaluate(()=>({pieces:window.__monoidGame.state().pieces.length,best:window.__monoidGame.state().best,coins:window.__monoidGame.state().coins,inflation:window.__monoidGame.state().inflation,hand:window.__monoidGame.state().hand.map(t=>t.id)}))).toEqual({pieces:30,best:57863119300,coins:165,inflation:8,hand:['g2-d0-2','g2-d0-1','g2-d1-3','g2-d1-1','g2-d1-5']});
   expect(await page.evaluate(()=>window.__monoidActiveMode)).toBe('classic');
   await page.screenshot({path:testInfo.outputPath('qa-classic-r14.png'),fullPage:true});
   await assertRealSaveSurvived(page)
