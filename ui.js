@@ -215,13 +215,6 @@
     overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();persistGame();advanceRound()}
   }
 
-  function showNoMoves(){
-    resetOverlay();const s=GAME.state();overlayTitle.textContent='NO LEGAL MOVES';overlayBody.innerHTML='<p>No tile in your hand can continue the machine. Use this round’s free Reroll, a stored Reroll, Shop, Undo, or start a new run.</p><button id="downloadNoMovesRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>';
-    overlayBody.querySelector('#downloadNoMovesRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
-    overlayPrimary.textContent=s.freeReroll?`REROLL · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`REROLL · ${s.consumables.reroll}`;overlayPrimary.disabled=!GAME.canUseReroll();overlayPrimary.onclick=doReroll;
-    overlaySecondary.style.display='inline-block';overlaySecondary.textContent='SHOP';overlaySecondary.onclick=openPermanentShop;
-    if(GAME.canUndo()){overlayTertiary.style.display='inline-block';overlayTertiary.textContent=`UNDO · ${s.consumables.undo}`;overlayTertiary.onclick=useUndo}else setNewRunButton(overlayTertiary)
-  }
   function showFailed(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
