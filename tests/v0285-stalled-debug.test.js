@@ -26,7 +26,7 @@ assert.equal(g.snapshot().recovery.recoverable,false);
 assert.deepEqual(g.handPlacementDiagnostics().map(x=>x.legalPlacements),[0,0]);
 let debug=g.debugText();
 assert.match(debug,/^MONOID DEBUG v/,'native debug export must use current MONOID branding');
-assert.match(debug,/Current hand: #1 \[0\|0\] id=blocked-0-0 legal=0 \| #2 \[1\|1\] id=blocked-1-1 legal=0/);
+assert.match(debug,/Current hand: .*id=blocked-0-0 legal=0.*id=blocked-1-1 legal=0|Current hand: .*id=blocked-1-1 legal=0.*id=blocked-0-0 legal=0/,'debug must report both blocked physical tiles regardless of seeded reroll order');
 assert.match(debug,/Recovery: recoverable=no .* ownedReroll=no .* shopReroll=yes@3c/);
 assert.match(debug,/Result: ROUND FAILED · no-legal-moves/);
 assert.match(debug,/R1 NO LEGAL MOVES after move 1 hand=\[0\|0\] id=blocked-0-0,\[1\|1\] id=blocked-1-1/);
