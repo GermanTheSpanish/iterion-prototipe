@@ -88,4 +88,11 @@ function create(seed,opts={}){
   assert(!restored.shopTileOffers.some(t=>t.id===chosen.id),'Undo must not put a purchased Shop offer back on sale');
 }
 
+{
+  const fs=require('fs'),path=require('path'),ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
+  assert.match(ui,/NEXT SET · CHOOSE A TILE/,'Shop UI must expose the four visible next-set choices');
+  assert.match(ui,/data-shop-tile-offer/);
+  assert.match(ui,/GAME\.buyShopTileOffer\(/);
+}
+
 console.log('v0.33.0 next-set Shop tile offer regression tests passed');
