@@ -6,7 +6,7 @@ const ux=fs.readFileSync(path.join(root,'ux-pass.js'),'utf8');
 const controller=fs.readFileSync(path.join(root,'tutorial-controller.js'),'utf8');
 assert.match(index,/<title>MONOID<\/title>/);
 assert.match(index,/<span class="wordmark">MONOID<\/span>/);
-assert.match(index,/ui-theme\.css\?v=20260918\.10/);
+assert.match(index,/ui-theme\.css\?v=20260918\.11/);
 assert.doesNotMatch(index,/ux-pass\.css/);
 assert.strictEqual(fs.existsSync(path.join(root,'ux-pass.css')),false);
 assert.match(index,/tutorial-controller\.js\?v=entry-0311/);assert.match(index,/tutorial-controller\.js\?v=entry-0311[\s\S]*ux-pass\.js\?v=entry-0311/);
