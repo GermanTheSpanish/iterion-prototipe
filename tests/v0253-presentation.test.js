@@ -24,3 +24,9 @@ assert.equal(V.scoreDisplay(1253000000,1254000000).score,'1,253M');
 assert.equal(V.scoreDisplay(1253000000,1254000000).note,'1M to target');
 for(const type of ['echo-op','zero-memory']){assert.equal(V.operationHalf({type,piece:7},{piece:7,exitHalf:1}),1);assert.equal(V.operationHalf({type,piece:7},{piece:8,exitHalf:1}),undefined)}
 assert.equal(V.operationHalf({piece:7,exitHalf:0},{piece:7,exitHalf:1}),0);
+
+const tileState={set:[{id:'d2-2',upgrade:2}],circuitRanks:{'d2-2':3},doubleDoubleTileId:'d2-2',doubleEchoTileId:'d2-2',zeroMemoryTileId:null};
+assert.deepEqual(V.tileViewModel({id:'d2-2',a:2,b:2,powerMultiplier:3},tileState),{id:'d2-2',upgrade:2,powerMultiplier:3,circuitRank:3,modifiers:[{label:'DD',className:'dd'},{label:'DE',className:'de'}]});
+assert.deepEqual(V.longChainViewModel({mods:['long-run'],endlessMode:true,endlessLongRunActivations:3},7),{owned:true,used:3,remaining:4,cap:7,endless:true,visible:true,ratio:4/7,ariaLabel:'Long Chain · 4 of 7 Endless activations remaining'});
+const hud=V.hudViewModel({score:1250,round:2,roundTurn:4,coins:12,systemStrain:3,endlessMode:true,endlessLongRunActivations:3,mods:['long-run'],pieces:[{}]},{stage:{index:2,round:2,size:3,total:5},endless:{active:true},powerSets:{generation:2,powerMultiplier:2},availableTileCount:17},{target:2500,maxPlacements:7,totalRounds:15,boardWidth:30,boardHeight:40,longChainCap:7});
+assert.equal(hud.score,'1,250');assert.equal(hud.target,'2,500');assert.equal(hud.stage,'2/∞');assert.equal(hud.round,'3/∞');assert.equal(hud.moves,'4/7');assert.equal(hud.movesRemaining,3);assert.equal(hud.stageRound,'ENDLESS · STAGE 2 · ROUND 2/3 · STRAIN 3 · POWER ×2');assert.equal(hud.boardSize,'30 × 40');assert.equal(hud.hint,'Build the machine · 3 moves remaining.');assert.equal(hud.longChain.remaining,4);
