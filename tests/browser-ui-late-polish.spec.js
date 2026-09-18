@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+async function openHelp(page){await page.locator('#menuButton').click();await page.locator('#menuHelpButton').click()}
 
 // Inspect actual pip geometry, not just the presence of preview classes.
 async function compactGeometry(locator){
@@ -59,7 +60,7 @@ for(const width of [375,430])for(const endless of [false,true]){
       s.placedTileIds=ids.slice();s.hand=s.hand.map(t=>ids.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!ids.includes(t.id));
       g.openIntermission();s.shopOffers=['double-double','double-echo','zero-memory'];
     },endless);
-    await page.locator('#helpButton').click();await page.locator('#overlayPrimary').click();
+    await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('.marketStructuredOffer')).toHaveCount(3);
     const tiles=await compactGeometry(page.locator('.marketContextRow .marketTile:not(.marketTileOverflow) .domino'));
     assertCompactValues(tiles);expect(tiles.filter(t=>t.mark)).toHaveLength(3);
@@ -107,7 +108,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
 
   await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame,s=g.state(),E=window.IterionEngine;const ids=['d1-1','d2-2','d3-3','d4-4','d5-5','d6-6'];s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=80;s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*6,4+Math.floor(i/3)*8,0,i%2?1:0,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.doubleDoubleTileId='d3-3';s.doubleEchoTileId=null;s.zeroMemoryTileId=null;s.circuitRanks={'d3-3':1};s.hand=s.hand.map(t=>s.placedTileIds.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));g.openIntermission();s.shopOffers=['double-double','double-echo','long-run']});
-  await page.locator('#helpButton').click();await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
+  await openHelp(page);await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
   await expect.poll(()=>page.locator('.marketStructuredOffer').count()).toBe(3);
   expect(await page.locator('.marketAssignments').evaluate(el=>getComputedStyle(el).display)).toBe('none');
 
@@ -150,7 +151,7 @@ test('Market keeps the same component and touch targets on 375px phones',async({
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
   await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),E=window.IterionEngine,ids=['d1-1','d2-2','d3-3','d4-4'];s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=40;s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*4,4,0,1,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.hand=s.hand.map(t=>s.placedTileIds.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));g.openIntermission();s.shopOffers=['double-double','double-echo','long-run']});
-  await page.locator('#helpButton').click();await page.locator('#overlayPrimary').click();await expect.poll(()=>page.locator('.marketStructuredOffer').count()).toBe(3);
+  await openHelp(page);await page.locator('#overlayPrimary').click();await expect.poll(()=>page.locator('.marketStructuredOffer').count()).toBe(3);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const actions=await page.locator('.marketOfferAction .shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
   await expect(page.locator('.marketStructuredOffer').first().locator('.marketOfferDescription')).toBeVisible()
