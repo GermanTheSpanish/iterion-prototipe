@@ -50,7 +50,7 @@ check('straight Echo and zero double retain selected topology at every POWER lev
 // State-machine boundary fixtures deliberately isolate supply from board search.
 // Geometry, matching and routing above use the real engine and legal placements.
 const stateEngine={...E,hasLegalMove:()=>true};
-function stateGame(){return G.createGame(stateEngine,{seed:2701,TARGETS:Array(15).fill(1e12)})}
+function stateGame(){return G.createGame(stateEngine,{seed:2701,TARGETS:Array(15).fill(1e12),FIRST_TILE_MUST_BE_DOUBLE:false})}
 function consumeSupply(g){const s=g.state();s.placedTileIds=s.set.map(t=>t.id);s.hand=Array(5).fill(null);s.reserve=[];s.cleared=false;s.roundTurn=0;g.assessContinuation()}
 function uniqueLocations(s){const ids=[...s.placedTileIds,...s.hand.filter(Boolean).map(t=>t.id),...s.reserve.map(t=>t.id)];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,s.set.length);assert.equal(new Set(s.set.map(t=>t.id)).size,s.set.length)}
 check('complete sets I through VII, capped POWER, unique IDs and deterministic draws',()=>{
