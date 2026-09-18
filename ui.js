@@ -215,17 +215,10 @@
     overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();persistGame();advanceRound()}
   }
 
-  function showNoMoves(){
-    resetOverlay();const s=GAME.state();overlayTitle.textContent='NO LEGAL MOVES';overlayBody.innerHTML='<p>No tile in your hand can continue the machine. Use this round’s free Reroll, a stored Reroll, Shop, Undo, or start a new run.</p><button id="downloadNoMovesRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>';
-    overlayBody.querySelector('#downloadNoMovesRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
-    overlayPrimary.textContent=s.freeReroll?`REROLL · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`REROLL · ${s.consumables.reroll}`;overlayPrimary.disabled=!GAME.canUseReroll();overlayPrimary.onclick=doReroll;
-    overlaySecondary.style.display='inline-block';overlaySecondary.textContent='SHOP';overlaySecondary.onclick=openPermanentShop;
-    if(GAME.canUndo()){overlayTertiary.style.display='inline-block';overlayTertiary.textContent=`UNDO · ${s.consumables.undo}`;overlayTertiary.onclick=useUndo}else setNewRunButton(overlayTertiary)
-  }
   function showFailed(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',noLegal=s.failureReason==='no-legal-moves',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
-    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or Shop Move can continue this round.':'You used every move for this round.'):(stalled?'No tile in your hand can continue the machine, but the Shop can sell a stored Reroll.':'No legal continuation remains.');
+    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or Shop Move can continue this round.':'You used every move for this round.'):noLegal?'No legal continuation remains. Available Rerolls were consumed automatically.':'No legal continuation remains.';
     overlayBody.innerHTML=`<p>${endless?`Base run complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
     overlayBody.querySelector('#downloadFailedRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
@@ -241,7 +234,7 @@
     hint.textContent=view.hint;renderLog();
     const pending=s.pendingCircuit;circuitChoice.hidden=!pending;if(pending){hint.textContent='Choose one outlined tile to develop.';circuitChoice.textContent=`CIRCUIT CLOSED · ${pending.size} TILES · +${pending.reward} RANK${pending.reward===1?'':'S'} · CHOOSE A TILE`}
     if(auxOverlay){renderAuxOverlay();return}if(pending){hideOverlay();return}if(uiBusy){hideOverlay();return}if(s.shopOpen){s.shopType==='market'?showMarket():showShop();return}if(tutorial)return;
-    if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.needsReroll)showNoMoves();else if(s.blocked)showFailed();else hideOverlay()}
+    if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.blocked)showFailed();else hideOverlay()}
   }
 
   function center(c,r){const p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);return{x:(p.rect.minx+p.rect.maxx)/2/E.G*r.width,y:(p.rect.miny+p.rect.maxy)/2/E.H*r.height}}
@@ -251,16 +244,22 @@
   function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=placementCandidates(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
   function moveDrag(e){if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px'}const c=nearest(e.clientX,e.clientY),o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()}
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
+  function autoRerollMessage(autoRerolls=[]){
+    if(!autoRerolls.length)return'';
+    const last=autoRerolls[autoRerolls.length-1],spent=autoRerolls.length===1?(last.source==='free'?'FREE':'STORED'):`${autoRerolls.length}×`;
+    return`NO LEGAL MOVES · AUTO REROLL · ${spent}`
+  }
   async function endDrag(e){
     if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}
     const game=GAME,generationBefore=game.state().setGeneration||1,ctx=GAME.beginPlacement(i,c);if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}
     uiBusy=true;const drawAnim=animateDrawSlot(i);renderBoard();await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output);const result=game.finishPlacement(ctx);persistGame();
     const exitPending=!!tutorial?.exitPending;if(!exitPending)advanceTutorial(result);await drawAnim;uiBusy=false;
     if(exitPending){leaveTutorial(false);return}if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay();render();
-    if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
+    const autoMessage=!tutorial?autoRerollMessage(result.autoRerolls):'';
+    if(autoMessage)toast(autoMessage);else if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
   }
 
-  function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
+  function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();const autoMessage=autoRerollMessage(r.autoRerolls);toast(autoMessage||`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
   const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
   function handlePointerMove(e){press.move(e);if(drag.active)moveDrag(e)}
   async function handlePointerUp(e){press.end(e);if(drag.active)await endDrag(e)}
