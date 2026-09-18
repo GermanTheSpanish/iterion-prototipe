@@ -39,7 +39,7 @@ function assertCompactValues(tiles){
         expect((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toBeGreaterThan(4.5);
       }
     }
-    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|ZM)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.circuit)expect(tile.mark.color).toBe('rgba(255, 255, 255, 0.3)')}
+    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|ZP|PX|CR|LN|OV|TE)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.circuit)expect(tile.mark.color).toBe('rgba(255, 255, 255, 0.3)')}
   }
 }
 
@@ -54,19 +54,19 @@ for(const width of [375,430])for(const endless of [false,true]){
       const g=window.__monoidGame,s=g.state(),E=window.IterionEngine;
       const ids=['d6-6','d1-1','d0-5','d2-2','d3-3','d4-4','d0-0','d0-1','d0-2','d0-3'];
       s.round=endless?17:2;s.endlessMode=endless;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=200;
-      s.doubleDoubleTileId='d6-6';s.doubleEchoTileId='d1-1';s.zeroMemoryTileId='d0-5';s.circuitRanks={'d6-6':3,'d3-3':1};
+      s.doubleDoubleTileId='d6-6';s.doubleEchoTileId='d1-1';s.zeroPortTileIds=['d0-5','d0-0'];s.circuitRanks={'d6-6':3,'d3-3':1};
       s.set.find(t=>t.id==='d6-6').powerMultiplier=2;s.set.find(t=>t.id==='d0-5').powerMultiplier=3;s.set.find(t=>t.id==='d2-2').upgrade=2;
       s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%4)*4,4+Math.floor(i/4)*4,0,1,i+1);p.tile={...t};return p});
       s.placedTileIds=ids.slice();s.hand=s.hand.map(t=>ids.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!ids.includes(t.id));
-      g.openIntermission();s.shopOffers=['double-double','double-echo','zero-memory'];
+      g.openIntermission();s.shopOffers=['double-double','double-echo','zero-port'];
     },endless);
     await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('.marketStructuredOffer')).toHaveCount(3);
-    const tiles=await compactGeometry(page.locator('.marketContextRow .marketTile:not(.marketTileOverflow) .domino'));
-    assertCompactValues(tiles);expect(tiles.filter(t=>t.mark)).toHaveLength(3);
+    const tiles=await compactGeometry(page.locator('.marketAssignedGroup .marketAssignedTile .domino'));
+    assertCompactValues(tiles);expect(tiles.filter(t=>t.mark)).toHaveLength(4);
     expect(tiles.some(t=>t.circuit&&t.power)).toBe(true);expect(tiles.some(t=>t.power&&!t.circuit)).toBe(true);
-    const upgraded=page.locator('.marketPoolGroup .domino:has(.upgradeDot.u2)').first();
-    expect(await upgraded.locator('.half').nth(1).evaluate(el=>getComputedStyle(el).borderTopColor)).toBe('rgb(154, 112, 181)');
+    await expect(page.locator('.marketPoolGroup .marketTile')).toHaveCount(0);
+    await expect(page.locator('[data-market-offer="zero-port"] .marketAssignedGroup .marketAssignedTile')).toHaveCount(2);
     await expect(page.locator('.app .compactPreview')).toHaveCount(0);
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
     expect(await boardMark.locator('.tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(15);
@@ -102,30 +102,27 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260917.1');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260918.12');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
 
-  await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame,s=g.state(),E=window.IterionEngine;const ids=['d1-1','d2-2','d3-3','d4-4','d5-5','d6-6'];s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=80;s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*6,4+Math.floor(i/3)*8,0,i%2?1:0,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.doubleDoubleTileId='d3-3';s.doubleEchoTileId=null;s.zeroMemoryTileId=null;s.circuitRanks={'d3-3':1};s.hand=s.hand.map(t=>s.placedTileIds.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));g.openIntermission();s.shopOffers=['double-double','double-echo','long-run']});
+  await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame,s=g.state(),E=window.IterionEngine;const ids=['d1-1','d2-2','d3-3','d4-4','d5-5','d6-6'];s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=80;s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*6,4+Math.floor(i/3)*8,0,i%2?1:0,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.doubleDoubleTileId='d3-3';s.doubleEchoTileId=null;s.zeroPortTileIds=[];s.circuitRanks={'d3-3':1};s.hand=s.hand.map(t=>s.placedTileIds.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));g.openIntermission();s.shopOffers=['double-double','double-echo','long-run']});
   await openHelp(page);await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
   await expect.poll(()=>page.locator('.marketStructuredOffer').count()).toBe(3);
   expect(await page.locator('.marketAssignments').evaluate(el=>getComputedStyle(el).display)).toBe('none');
 
   const dd=page.locator('[data-market-offer="double-double"]');
   await expect(dd.locator('.marketAssignedGroup .marketAssignedTile')).toHaveCount(1);
-  expect(await dd.locator('.marketAssignedGroup').evaluate(el=>el.parentElement.classList.contains('marketOfferAction'))).toBe(true);
-  await expect(dd.locator('.marketPoolGroup .marketContextLabel')).toHaveText('RANDOM FROM · 5');
-  await expect(dd.locator('.marketPoolGroup .marketTile:not(.marketTileOverflow)')).toHaveCount(3);
-  await expect(dd.locator('.marketPoolGroup .marketTileMore')).toHaveText('+2');
-  await expect(dd.locator(':scope > .marketTileList')).toHaveCount(0);
+  await expect(dd.locator('.marketAssignedGroup .marketContextLabel')).toHaveText('INSTALLED');
+  await expect(dd.locator('.marketPoolGroup .marketContextLabel')).toHaveText('COMPATIBLE · 5');
+  await expect(dd.locator('.marketPoolGroup .marketTile')).toHaveCount(0);
 
   const de=page.locator('[data-market-offer="double-echo"]');
-  await expect(de.locator('.marketPoolGroup .marketContextLabel')).toHaveText('RANDOM FROM · 5');
-  await expect(de.locator('.marketPoolGroup .marketTile:not(.marketTileOverflow)')).toHaveCount(3);
-  await expect(de.locator('.marketPoolGroup .marketTileMore')).toHaveText('+2');
+  await expect(de.locator('.marketPoolGroup .marketContextLabel')).toHaveText('COMPATIBLE · 5');
+  await expect(de.locator('.marketPoolGroup .marketTile')).toHaveCount(0);
   await expect(page.locator('[data-market-offer="long-run"] .marketMachineTag strong')).toHaveText('MACHINE');
-  await expect(page.locator('.shopFoot')).toContainText('assigned randomly from the shown pool');
+  await expect(page.locator('.shopFoot')).toContainText('choose a highlighted compatible tile on the board');
 
   const buttonBoxes=await page.locator('.marketStructuredOffer .marketOfferAction .shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));
   expect(buttonBoxes.every(b=>Math.abs(b.w-112)<2&&b.h>=44)).toBe(true);
@@ -133,14 +130,16 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
 
   const circuitMarkColor=await dd.locator('.marketAssignedTile .tileModMark').evaluate(el=>getComputedStyle(el).color);
   expect(circuitMarkColor).toBe('rgba(255, 255, 255, 0.3)');
+  const markSize=await dd.locator('.marketAssignedTile .tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));expect(markSize).toBe(11);
 
   await dd.locator('.marketOfferAction .shopBuy').click();
-  await expect.poll(()=>page.locator('.marketStructuredOffer').count()).toBe(3);
-  await expect(page.locator('[data-market-offer="double-double"] .marketAssignedGroup .marketAssignedTile')).toHaveCount(1);
-  await expect(page.locator('[data-market-offer="double-double"] .marketOfferAction .shopBuy')).toContainText('PURCHASED');
-  await expect(page.locator('[data-market-offer="double-echo"] .marketOfferAction .shopBuy')).toContainText('LOCKED');
-
-  const markSize=await page.locator('[data-market-offer="double-double"] .marketAssignedTile .tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));expect(markSize).toBe(11);
+  await expect(page.locator('#overlay')).not.toHaveClass(/show/);
+  await expect(page.locator('#circuitChoice')).toContainText('DOUBLE DOUBLE · CHOOSE A TILE');
+  await expect(page.locator('#board .circuitEligible')).toHaveCount(5);
+  await page.locator('.piece[data-tile-id="d4-4"]').click();
+  await expect(page.locator('#circuitChoice')).toBeHidden();
+  expect(await page.evaluate(()=>window.__monoidGame.state().doubleDoubleTileId)).toBe('d4-4');
+  expect(await page.evaluate(()=>window.__monoidGame.state().pendingModPlacement)).toBe(null);
   expect(await page.evaluate(()=>window.MonoidLatePolish.scientific(1.1641532182693482e33))).toBe('1.16e33');
   await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame;g.state().score=8.603241731728167e47;window.MonoidLatePolish.sync();window.MonoidPhaseA.sync()});await expect(page.locator('#score')).toHaveText('8.6e47');await expect(page.locator('#score')).toHaveClass(/extremeValue/);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
