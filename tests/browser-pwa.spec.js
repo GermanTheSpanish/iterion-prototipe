@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const BUILD='20260918.11',NEXT_BUILD='20260918.12';
+const BUILD='20260918.12',NEXT_BUILD='20260918.13';
 
 async function openTutorialHub(page){const persistent=page.locator('#tutorialHubButton');if(await persistent.isVisible())await persistent.click();else await page.locator('#learnMonoid').click();await expect(page.locator('#tutorialHub')).toBeVisible()}
 async function startTutorialFromHub(page,kind){await openTutorialHub(page);await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
@@ -33,8 +33,8 @@ test('installed mode intercepts Android-style Back and opens the run menu instea
 
 test('title reveal follows DOMINO order without a pre-animation flash',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260917.1');
-  await expect(page.locator('#devBuildStamp')).toContainText(`v0.34.0 · build ${BUILD}`);
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260918.12');
+  await expect(page.locator('#devBuildStamp')).toContainText(`v0.35.0 · build ${BUILD}`);
   const letters=page.locator('#titleCard .titleLetter');await expect(letters).toHaveCount(6);const title=page.locator('#titleCard h1');await expect(title).toHaveAttribute('aria-label','MONOID');
   expect(await title.evaluate(el=>getComputedStyle(el).visibility)).toBe('visible');
   const delays=await letters.evaluateAll(nodes=>nodes.map(n=>parseFloat(getComputedStyle(n).animationDelay)||0));
@@ -43,13 +43,13 @@ test('title reveal follows DOMINO order without a pre-animation flash',async({pa
   expect(Math.max(...delays)+duration).toBeGreaterThanOrEqual(1.55);
   const box=await title.boundingBox();expect(box).toBeTruthy();expect(box.y+box.height/2).toBeGreaterThan(844*.40);expect(box.y+box.height/2).toBeLessThan(844*.48);
   await page.locator('#titleCard').click();await expect(page.locator('#learnMonoid')).toBeVisible();await expect(page.locator('#learnMonoid')).toHaveText('TUTORIALS');await expect(page.locator('#tutorialHubButton')).toBeHidden();await expect(page.locator('#replayTutorial')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();
-  await openTutorialHub(page);await expect(page.locator('#tutorialHub')).toContainText('BASICS · 2 MIN');await expect(page.locator('#tutorialHub')).toContainText('GAME MECHANICS · 3 MIN');await expect(page.locator('#tutorialHub')).toContainText('MODIFIERS · 2 MIN')
+  await openTutorialHub(page);await expect(page.locator('#tutorialHub')).toContainText('BASICS · 2 MIN');await expect(page.locator('#tutorialHub')).toContainText('GAME MECHANICS · 3 MIN');await expect(page.locator('#tutorialHub')).toContainText('MODIFIERS · 3 MIN')
 });
 
 test('modifier mini tutorial uses game domino language and a clean full-screen hierarchy',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await openTutorialHub(page);await page.locator('[data-tutorial="modifiers"]').click();
   const dialog=page.locator('#modifierTutorialDialog');await expect(dialog).toBeVisible();const dialogBox=await dialog.boundingBox();expect(dialogBox.width).toBeGreaterThanOrEqual(389);expect(dialogBox.height).toBeGreaterThanOrEqual(843);
-  for(const title of ['DOUBLE DOUBLE','DOUBLE ECHO','ZERO MEMORY']){
+  for(const title of ['DOUBLE DOUBLE','DOUBLE ECHO','ZERO PORT','PARITY EXCHANGE','CORNER','LONG LINE','OVERLOAD','TERMINAL']){
     await expect(page.locator('.modifierTutorTitle')).toHaveText(title);await expect(page.locator('.modifierTutorGameTile .domino')).toBeVisible();await expect(page.locator('.modifierTutorGameTile .tileModMark')).toBeVisible();
     const mark=await page.locator('.modifierTutorGameTile .tileModMark span').allTextContents();expect(mark.join('')).toHaveLength(2);await page.locator('.modifierNext').click()
   }
@@ -84,7 +84,7 @@ test('silent update detection offers reload and preserves the active run before 
     const nativeFetch=window.fetch.bind(window);
     window.fetch=(input,init)=>{
       const url=typeof input==='string'?input:(input&&typeof input.url==='string'?input.url:String(input));
-      if(url.includes('build.json'))return Promise.resolve(new Response(JSON.stringify({version:'0.34.0',build:nextBuild}),{status:200,headers:{'Content-Type':'application/json'}}));
+      if(url.includes('build.json'))return Promise.resolve(new Response(JSON.stringify({version:'0.35.0',build:nextBuild}),{status:200,headers:{'Content-Type':'application/json'}}));
       return nativeFetch(input,init)
     }
   },NEXT_BUILD);

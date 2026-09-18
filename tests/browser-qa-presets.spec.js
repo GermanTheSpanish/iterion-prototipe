@@ -17,13 +17,13 @@ async function assertRealSaveSurvived(page){
   expect(await page.evaluate(key=>localStorage.getItem(key),MODE)).toBe('classic');
   expect(await page.evaluate(key=>localStorage.getItem(key),LATEST)).toBe('REAL-LATEST-RUN-SENTINEL')
 }
-async function assertLateGameSurface(page,id,{expectZm=true,minPieces=19,minPower=5}={}){
+async function assertLateGameSurface(page,id,{expectZp=2,minPieces=19,minPower=5}={}){
   await expect(page.locator('body')).toHaveAttribute('data-qa-preset',id);
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
   await expect.poll(()=>page.locator('#board .piece').count()).toBeGreaterThanOrEqual(minPieces);
   await expect(page.locator('#board .tileModMark.dd')).toHaveCount(1);
   await expect(page.locator('#board .tileModMark.de')).toHaveCount(1);
-  await expect(page.locator('#board .tileModMark.zm')).toHaveCount(expectZm?1:0);
+  await expect(page.locator('#board .tileModMark.zp')).toHaveCount(expectZp);
   expect(await page.locator('#board .circuitTile').count()).toBeGreaterThanOrEqual(3);
   expect(await page.locator('#board .powerTile').count()).toBeGreaterThanOrEqual(minPower);
   await expect(page.locator('#machineModStatus')).toBeVisible();
@@ -36,7 +36,7 @@ async function assertLateGameSurface(page,id,{expectZm=true,minPieces=19,minPowe
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260918.11');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260918.12');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -44,7 +44,7 @@ async function assertLateGameSurface(page,id,{expectZm=true,minPieces=19,minPowe
 test('Classic R14 QA link exposes Phase A late-game states without touching the saved run',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await seedRealSave(page);
   await page.goto(`${BASE}?qa=classic14&ci=1`);
-  await assertLateGameSurface(page,'classic14',{expectZm:false,minPieces:30,minPower:2});
+  await assertLateGameSurface(page,'classic14',{expectZp:0,minPieces:30,minPower:2});
   await expect(page.locator('#roundstat')).toHaveText('14/15');await expect(page.locator('#stagestat')).toHaveText('5/5');
   await expect(page.locator('#target')).toHaveText('10B');await expect(page.locator('#score')).toHaveText('0');
   expect(await page.evaluate(()=>window.__monoidGame.state().endlessMode)).toBe(false);

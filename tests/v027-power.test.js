@@ -25,19 +25,15 @@ check('legally constructed competing routes ignore POWER metadata at every level
   }
   E.setBoardSize(30,40);
 });
-for(const fixture of [simple,zeros,nested])for(const power of [2,3,4])check(`${fixture.name} topology, DD, ZM and Echo at x${power}`,()=>{
-  const ps=fixture(),opts={doubleDoublePieceId:1,zeroMemoryPieceId:2,doubleEchoPieceId:1};const base=run(ps,opts);
+for(const fixture of [simple,zeros,nested])for(const power of [2,3,4])check(`${fixture.name} topology, DD and Echo at x${power}`,()=>{
+  const ps=fixture(),opts={doubleDoublePieceId:1,doubleEchoPieceId:1};const base=run(ps,opts);
   ps.forEach(p=>p.tile.powerMultiplier=power);const r=run(ps,opts);
   assert.deepEqual(topology(r),topology(base));assert.notEqual(r.output,base.output);
   assert.equal(r.events.filter(e=>e.type==='double-echo-start').length,1);
   assert.equal(r.output,r.mainOutput+r.echoOutput);
   assert.equal(r.events.filter(e=>e.type==='op'&&e.doubleDouble).length,1);
-  const zm=r.events.find(e=>e.type==='zero-memory');if(zm)assert.equal(zm.factor,9*power,'the preceding first DD operation is x9 before POWER');
   for(const family of ['signal','echo-signal']){const totals=new Map();for(const e of r.events){if(e.type===family+'-end'){const xs=totals.get(e.fork)||[];xs.push(e.output);totals.set(e.fork,xs)}if(e.type===family+'-join')assert.equal(e.output,totals.get(e.piece).reduce((a,b)=>a+b,0))}}
   const ranks=Object.fromEntries(ps.slice(0,3).map(p=>[p.tile.id,5])),res=C.resonance(r.output,r.events,ps,ranks,D);assert.equal(res.multiplier,25);assert.equal(res.active.length,3);assert.equal(res.output,Math.floor((r.mainOutput+r.echoOutput)*25));
-});
-check('POWER ZM repeats the actual preceding factor, not the printed value',()=>{
-  const ps=zeros();ps[0].tile.powerMultiplier=3;const r=run(ps,{zeroMemoryPieceId:2});assert.equal(r.events.find(e=>e.type==='zero-memory').factor,9);
 });
 check('Echo activated inside an arm does not traverse its ancestor sibling',()=>{
   const ps=nested(),base=run(ps),r=run(ps,{doubleEchoPieceId:4});assert.deepEqual(topology(r),topology(base));

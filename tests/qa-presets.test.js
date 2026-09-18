@@ -52,14 +52,14 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
     assert.strictEqual(snap.stage.index,5);assert.strictEqual(game.target(),10000000000);assert.strictEqual(s.endlessMode,false);
     assert.strictEqual(s.pieces.length,30);assert.strictEqual(game.availableTileCount(),26);
     assert.strictEqual(s.score,0);assert.strictEqual(s.best,57863119300);assert.strictEqual(s.coins,165);assert.strictEqual(s.inflation,8);
-    assert.strictEqual(s.zeroMemoryTileId,null,'source run has no ZM; do not invent one for QA');
+    assert.deepStrictEqual(s.zeroPortTileIds,[],'source run has no Zero Port; do not invent one for QA');
     assert.deepStrictEqual(s.hand.map(t=>t.id),['g2-d0-2','g2-d0-1','g2-d1-3','g2-d1-1','g2-d1-5']);
     assert.deepStrictEqual(game.handPlacementDiagnostics().map(x=>x.legalPlacements),[9,12,16,12,22]);
     assert.deepStrictEqual(s.circuitRanks,{'d3-3':4,'d4-5':2,'d2-2':5});
     assert.strictEqual(s.circuitSignatures.length,6);assert.strictEqual(s.wins.length,13);assert.strictEqual(s.anchorId,'g2-d3-5');
     assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});assert.strictEqual(s.freeReroll,1)
   }else{
-    assert(s.zeroMemoryTileId&&ids.includes(s.zeroMemoryTileId),`${id}: ZM is on the machine`);
+    assert.deepStrictEqual(new Set(s.zeroPortTileIds),new Set(['d0-4','d0-5']),`${id}: Zero Port pair is on the machine`);assert(s.zeroPortTileIds.every(tileId=>ids.includes(tileId)),`${id}: both ZP endpoints are physical placed tiles`);
     assert.strictEqual(snap.stage.index,6);assert.strictEqual(game.target(),250000000000);assert.strictEqual(s.standardComplete,true);assert.strictEqual(s.gameMode,'prototype');assert.strictEqual(s.scoringModel,'deferred-v1')
   }
 }

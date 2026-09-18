@@ -39,7 +39,7 @@ test('R15 waits for selection; Endless retains Circuit state and opens its first
 test('normal stage expansion preserves rank and discovery',()=>{const g=fixture({TARGETS:Array(15).fill(1)}),s=g.state();s.round=2;close(g);g.chooseCircuitTile('d1-2');const before=clone(g.snapshot().circuits);g.openIntermission();g.closeMarket();assert(g.advance());assert.deepEqual(g.snapshot().circuits,before);assert.equal(s.boardStage,1)});
 test('canonical route, operations, traversals and rebound unchanged by ranks',()=>{const a=fixture(),ca=a.beginPlacement(0,{x:2,y:2,rr:1}),b=fixture();b.state().circuitRanks={'d1-2':5,'d2-3':4};const cb=b.beginPlacement(0,{x:2,y:2,rr:1});assert.deepEqual(cb.sim,ca.sim);const original=structuredClone(cb.sim);b.finishPlacement(cb);assert.deepEqual(cb.sim,original)});
 test('Rulebook documents circuit power, Endless slots and Stars separately',()=>{const section=H.rulebookSections().find(s=>s.id==='circuits');assert(section);assert.match(section.rulesDescription,/\+2 \/ \+3 \/ \+4/);assert.match(section.rulesDescription,/Endless adds one Circuit Tile slot/);assert.match(section.rulesDescription,/Star/i)});
-for(const options of [{},{doubleDoublePieceId:1},{zeroMemoryPieceId:2},{doubleEchoPieceId:1},{doubleDoublePieceId:1,zeroMemoryPieceId:2,doubleEchoPieceId:1}])test(`resonance follows unchanged DD/ZM/DE resolution ${JSON.stringify(options)}`,()=>{
+for(const options of [{},{doubleDoublePieceId:1},{doubleEchoPieceId:1},{doubleDoublePieceId:1,doubleEchoPieceId:1}])test(`resonance follows unchanged DD/DE resolution ${JSON.stringify(options)}`,()=>{
   const g=G.createGame(E,{seed:2502,TARGETS:Array(15).fill(1e15)}),s=g.state();
   const specs=[[3,'entry',1,5,0],[1,'double',5,5,4],[2,'zero',5,0,8]];
   s.pieces=specs.map(([id,tileId,a,b,x])=>{const p=E.pieceFrom({a,b},x,0,0,0,id);p.tile={id:tileId,a,b,upgrade:2};return p});
@@ -49,7 +49,6 @@ for(const options of [{},{doubleDoublePieceId:1},{zeroMemoryPieceId:2},{doubleEc
   // The trigger tile is not scored by this selected route: it must not resonate.
   assert.deepEqual(r.active.map(a=>a.tileId),['double','zero']);assert(sim.rebounds>0);
   if(options.doubleDoublePieceId){const ops=sim.events.filter(e=>e.type==='op'&&e.piece===1);assert.equal(ops.filter(e=>e.doubleDouble).length,1);assert.equal(ops[0].factor,25);assert.equal(ops.at(-1).factor,5)}
-  if(options.zeroMemoryPieceId)assert.equal(sim.events.filter(e=>e.type==='zero-memory').length,1);
   if(options.doubleEchoPieceId){assert.equal(sim.output,sim.mainOutput+sim.echoOutput);assert.equal(sim.events.filter(e=>e.type==='double-echo-start').length,1)}
 });
 test('Long Run and Stars pay unchanged once despite resonance, rebound and Echo',()=>{

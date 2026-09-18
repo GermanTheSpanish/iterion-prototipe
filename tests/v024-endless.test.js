@@ -52,9 +52,14 @@ function clearNext(game){
   assert.deepStrictEqual(g.snapshot().board,before.board);
   const offer=s.shopOffers[0],price=g.marketModPrice(offer),buy=g.buyMarketMod(offer);assert(buy.ok);
   assert.strictEqual(s.coins,before.coins-price);assert.strictEqual(s.inflation,before.inflation+1);
-  assert.strictEqual(g.buyMarketMod(offer).reason,'limit');
+  assert.strictEqual(s.shopOpen,false,'any Mod purchase closes the Market immediately');
+  assert.strictEqual(g.buyMarketMod(offer).reason,'shop');
+  if(buy.pending){
+    assert.notStrictEqual(buy.stage,'source','fresh Endless fixture cannot begin with a complete Zero Port pair');
+    assert(buy.eligibleTileIds.length>0);assert(g.chooseMarketModTile(buy.eligibleTileIds[0]).ok)
+  }
   const afterMarket=g.snapshot();
-  assert(g.closeMarket());assert(g.advance());
+  assert(g.advance());
   assert.strictEqual(s.round,15);assert.strictEqual(g.target(),250000000000);
   assert.deepStrictEqual(g.snapshot().board,afterMarket.board,'coordinates and exact modifier targets persist');
   assert.deepStrictEqual(g.snapshot().set,afterMarket.set);
@@ -93,10 +98,10 @@ function clearNext(game){
   s.pieces=[E.pieceFrom(double,4,0,0,0,1),E.pieceFrom(zero,8,0,0,2,2)];
   s.pieces[0].tile={...double};s.pieces[1].tile={...zero};s.placedTileIds=[double.id,zero.id];
   s.hand=Array(D.HAND_SIZE).fill(null);s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id));
-  s.mods=['long-run'];s.doubleDoubleTileId=double.id;s.doubleEchoTileId=double.id;s.zeroMemoryTileId=zero.id;
+  s.mods=['long-run'];s.doubleDoubleTileId=double.id;s.doubleEchoTileId=double.id;s.zeroPortTileIds=[zero.id];
   const before=g.snapshot();assert(g.startEndless());assert(g.closeMarket());assert(g.advance());
   const after=g.snapshot();
-  for(const key of ['board','set','mods','doubleDoubleTileId','doubleEchoTileId','zeroMemoryTileId'])assert.deepStrictEqual(after[key],before[key],key+' survives Endless');
+  for(const key of ['board','set','mods','doubleDoubleTileId','doubleEchoTileId','zeroPortTileIds'])assert.deepStrictEqual(after[key],before[key],key+' survives Endless');
   physicalIds(g);
 }
 console.log('v0.24 Endless progression, identity, Market and victory regression tests passed');

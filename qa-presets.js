@@ -90,7 +90,7 @@
       s.wins=clone(REAL_CLASSIC14.wins);s.events=[{type:'qa-preset',preset:preset.id,round:14,mode:'classic',sourceRunId:REAL_CLASSIC14.runId}];
       s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;
       s.anchorId='g2-d3-5';s.freeReroll=1;s.consumables={move:0,reroll:0,undo:0};s.roundZero={drawn:2,placed:0,endHand:0};
-      s.doubleDoubleTileId='d2-2';s.doubleEchoTileId='d4-4';s.zeroMemoryTileId=null;s.mods=['long-run'];
+      s.doubleDoubleTileId='d2-2';s.doubleEchoTileId='d4-4';s.zeroPortTileIds=[];s.parityExchangeTileId=null;s.cornerTileId=null;s.longLineTileId=null;s.overloadTileId=null;s.terminalTileId=null;s.pendingModPlacement=null;s.mods=['long-run'];
       s.circuitRanks=clone(REAL_CLASSIC14.circuitRanks);s.circuitSignatures=clone(REAL_CLASSIC14.circuitSignatures);s.pendingCircuit=null;
       s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
       s.standardComplete=false;s.endlessMode=false;s.endlessStartedRound=null;s.systemStrain=0;s.endlessLongRunActivations=0;s.boardStage=4;
@@ -110,7 +110,7 @@
     s.wins=winHistory(preset.round);s.events=[{type:'qa-preset',preset:preset.id,round:preset.round+1,mode:preset.mode}];
     s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;
     s.anchorId='d5-6';s.freeReroll=1;s.consumables={move:2,reroll:1,undo:1};s.roundZero={drawn:1,placed:1,endHand:0};
-    s.doubleDoubleTileId='d4-4';s.doubleEchoTileId='d5-5';s.zeroMemoryTileId='d0-5';s.mods=['long-run'];
+    s.doubleDoubleTileId='d4-4';s.doubleEchoTileId='d5-5';s.zeroPortTileIds=['d0-4','d0-5'];s.parityExchangeTileId=null;s.cornerTileId=null;s.longLineTileId=null;s.overloadTileId=null;s.terminalTileId=null;s.pendingModPlacement=null;s.mods=['long-run'];
     s.circuitRanks={'d4-4':2,'d5-5':3,[`g${preset.powerGeneration}-d6-6`]:5};s.circuitSignatures=['qa-loop-a','qa-loop-b'];s.pendingCircuit=null;
     s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
     s.standardComplete=true;s.endlessMode=true;s.endlessStartedRound=15;s.systemStrain=8;s.endlessLongRunActivations=3;

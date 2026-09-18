@@ -2,23 +2,21 @@ const assert=require('assert');
 const fs=require('fs');
 const E=require('../engine.js');
 
-E.setBoardSize(18,24);
-const entry=E.pieceFrom({a:1,b:5},0,0,0,0,3);entry.tile={id:'entry',a:1,b:5};
-const mid=E.pieceFrom({a:5,b:5},4,0,0,0,1);mid.tile={id:'mid',a:5,b:5};
-const zero=E.pieceFrom({a:5,b:0},8,0,0,0,2);zero.tile={id:'zero',a:5,b:0};
-const pieces=[entry,mid,zero];
-const normal=E.bestSignal(entry.id,pieces,{initialOutput:6});
-const memory=E.bestSignal(entry.id,pieces,{initialOutput:6,zeroMemoryPieceId:zero.id});
-assert.strictEqual(normal.output,750,'fixture retains canonical rebound output');
-assert.strictEqual(memory.output,3750,'Zero Memory repeats the immediately previous ×5 once');
-assert.strictEqual(memory.rebounds,normal.rebounds,'Zero Memory must not change rebound count or charges');
-assert.deepStrictEqual(memory.path,normal.path,'Zero Memory must not change the selected route path');
-assert.deepStrictEqual(memory.segments,normal.segments,'Zero Memory must not change selected route segments');
-const zm=memory.events.filter(e=>e.type==='zero-memory');
-assert.strictEqual(zm.length,1,'Zero Memory activates at most once per Move');
-assert.strictEqual(zm[0].op,'multiply');assert.strictEqual(zm[0].factor,5);
-const zeroOpIndex=memory.events.findIndex(e=>e.type==='op'&&e.piece===zero.id&&e.op==='zero'),memoryIndex=memory.events.findIndex(e=>e.type==='zero-memory'),reboundIndex=memory.events.findIndex(e=>e.type==='rebound'&&e.piece===zero.id);
-assert(zeroOpIndex<memoryIndex&&memoryIndex<reboundIndex,'event order must be scoring op → ZERO → repeated op → rebound');
+E.setBoardSize(30,40);
+function piece(a,b,x,y,rr,id){const p=E.pieceFrom({a,b},x,y,0,rr,id);p.tile={id:`tile-${id}`,a,b};return p}
+const pieces=[
+  piece(3,3,6,8,0,1),
+  piece(0,3,2,8,0,2),
+  piece(3,0,10,8,0,3),
+  piece(3,2,7,10,1,4)
+];
+const normal=E.bestSignal(4,pieces,{initialOutput:5,bifurcate:true});
+const ported=E.bestSignal(4,pieces,{initialOutput:5,bifurcate:true,zeroPortPieceIds:[2,3]});
+assert(normal.rebounds>0,'canonical zero fixture must rebound without Zero Port');
+assert.strictEqual(ported.rebounds,0,'paired Zero Ports replace the zero rebound');
+assert(ported.events.some(e=>e.type==='zero-port'&&e.piece===2&&e.toPieceId===3));
+assert(ported.events.some(e=>e.type==='zero-port'&&e.piece===3&&e.toPieceId===2));
+assert(!ported.events.some(e=>e.type==='zero-memory'),'Zero Memory no longer exists in scoring');
 const source=fs.readFileSync(require.resolve('../engine.js'),'utf8');
 assert(source.includes('const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length]'),'route comparator must remain traversals → output → rebounds → path length');
-console.log('v0.23 Stage C Zero Memory isolated engine tests passed');
+console.log('v0.23 Stage C Zero Port isolated engine tests passed');

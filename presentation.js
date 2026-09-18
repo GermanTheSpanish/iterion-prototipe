@@ -27,7 +27,7 @@
     const upgrade=Math.min(3,Math.max(0,Number(tile.upgrade||setTile?.upgrade)||0));
     const powerMultiplier=Math.max(1,Number(tile.powerMultiplier)||1);
     const circuitRank=Math.max(0,Number(state.circuitRanks?.[id])||0);
-    const modifiers=[];if(id&&state.doubleDoubleTileId===id)modifiers.push(Object.freeze({label:'DD',className:'dd'}));if(id&&state.doubleEchoTileId===id)modifiers.push(Object.freeze({label:'DE',className:'de'}));if(id&&state.zeroMemoryTileId===id)modifiers.push(Object.freeze({label:'ZM',className:'zm'}));
+    const modifiers=[];if(id&&state.doubleDoubleTileId===id)modifiers.push(Object.freeze({label:'DD',className:'dd'}));if(id&&state.doubleEchoTileId===id)modifiers.push(Object.freeze({label:'DE',className:'de'}));if(id&&Array.isArray(state.zeroPortTileIds)&&state.zeroPortTileIds.includes(id))modifiers.push(Object.freeze({label:'ZP',className:'zp'}));if(id&&state.parityExchangeTileId===id)modifiers.push(Object.freeze({label:'PX',className:'px'}));if(id&&state.cornerTileId===id)modifiers.push(Object.freeze({label:'CR',className:'cr'}));if(id&&state.longLineTileId===id)modifiers.push(Object.freeze({label:'LN',className:'ln'}));if(id&&state.overloadTileId===id)modifiers.push(Object.freeze({label:'OV',className:'ov'}));if(id&&state.terminalTileId===id)modifiers.push(Object.freeze({label:'TE',className:'te'}));
     return Object.freeze({id,upgrade,powerMultiplier,circuitRank,modifiers:Object.freeze(modifiers)})
   }
   function longChainViewModel(state={},cap=7){
