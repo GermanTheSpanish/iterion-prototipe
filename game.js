@@ -230,14 +230,24 @@ function createGame(E,opts={}){
   }
 
   function canUseReroll(){return !s.pendingCircuit&&((s.freeReroll||0)+(s.consumables?.reroll||0)>0)&&!s.running&&!s.cleared&&!s.shopOpen&&s.failureReason!=='no-tiles'&&s.failureReason!=='placement-limit'}
-  function reroll(){
+  function reroll(options={}){
     if(!canUseReroll())return{ok:false,reason:'state'};
+    const automatic=!!options.automatic;
     const source=(s.freeReroll||0)>0?'free':'stored';
     if(source==='free')s.freeReroll--;else s.consumables.reroll--;
     s.undoFrame=null;s.blocked=false;s.failureReason=null;
     const old=s.hand.filter(Boolean);s.reserve.push(...old);sh(s.reserve);s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne());
-    const protection=ensureOpeningContinuation('reroll');s.needsReroll=false;s.events.push({type:'reroll',round:s.round+1,roundTurn:s.roundTurn,source,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,hand:s.hand.filter(Boolean).map(cloneTile)});if(protection)s.events.push(protection);
-    assessContinuation();return{ok:true,source,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason}
+    const protection=ensureOpeningContinuation('reroll');s.needsReroll=false;s.events.push({type:'reroll',round:s.round+1,roundTurn:s.roundTurn,source,automatic,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,hand:s.hand.filter(Boolean).map(cloneTile)});if(protection)s.events.push(protection);
+    assessContinuation();return{ok:true,source,automatic,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason}
+  }
+  function resolveRequiredRerolls(){
+    if(s.pendingCircuit||s.running||s.cleared||s.shopOpen)return{ok:false,reason:'state',rerolls:0,sources:[]};
+    const sources=[];
+    while(s.needsReroll&&canUseReroll()){
+      const result=reroll({automatic:true});if(!result.ok)break;sources.push(result.source)
+    }
+    if(s.needsReroll&&!canUseReroll())fail('no-legal-moves');
+    return{ok:sources.length>0,rerolls:sources.length,sources,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,remaining:(s.freeReroll||0)+(s.consumables?.reroll||0)}
   }
   function canUseMove(){return !s.pendingCircuit&&(s.consumables?.move||0)>0&&!s.running&&!s.cleared&&!s.shopOpen&&!s.needsReroll&&(!s.blocked||s.failureReason==='placement-limit')}
   function useMove(){
@@ -404,11 +414,11 @@ function createGame(E,opts={}){
   function status(){if(s.pendingCircuit)return'CIRCUIT CHOICE';if(s.endlessMode)return s.blocked?'ENDLESS FAILED':s.cleared?'ENDLESS CLEAR':'ENDLESS';return s.standardComplete&&s.cleared&&s.round===cfg.TOTAL_ROUNDS-1?'COMPLETE':s.blocked?'ROUND FAILED':'IN PROGRESS'}
 
   function recoveryOptions(){
-    const failure=s.needsReroll?'no-legal-moves':s.failureReason,shopAvailable=canOpenShop(),undo=canUndo();
+    const failure=s.needsReroll?'no-legal-moves':s.failureReason,terminalNoLegal=s.blocked&&s.failureReason==='no-legal-moves',shopAvailable=canOpenShop(),undo=!terminalNoLegal&&canUndo();
     const ownedReroll=canUseReroll(),ownedMove=failure==='placement-limit'&&canUseMove();
-    const shopReroll=shopAvailable&&s.coins>=shopItemPrice('reroll'),shopMove=shopAvailable&&s.coins>=shopItemPrice('move'),shopTile=shopAvailable&&s.coins>=shopRandomPrice();
-    const shopRescue=failure==='no-legal-moves'?shopReroll:failure==='placement-limit'?shopMove:failure==='no-tiles'?shopTile:false;
-    const recoverable=failure==='no-legal-moves'?(ownedReroll||undo||shopRescue):failure==='placement-limit'?(ownedMove||undo||shopRescue):failure==='no-tiles'?(undo||shopRescue):undo;
+    const shopReroll=!terminalNoLegal&&shopAvailable&&s.coins>=shopItemPrice('reroll'),shopMove=shopAvailable&&s.coins>=shopItemPrice('move'),shopTile=shopAvailable&&s.coins>=shopRandomPrice();
+    const shopRescue=failure==='no-legal-moves'?false:failure==='placement-limit'?shopMove:failure==='no-tiles'?shopTile:false;
+    const recoverable=failure==='no-legal-moves'?ownedReroll:failure==='placement-limit'?(ownedMove||undo||shopRescue):failure==='no-tiles'?(undo||shopRescue):undo;
     return{recoverable,undo,ownedReroll,ownedMove,shopAvailable,shopRescue,shopReroll,shopMove,shopTile,prices:{reroll:shopItemPrice('reroll'),move:shopItemPrice('move'),randomTile:shopRandomPrice()}}
   }
 
@@ -435,7 +445,7 @@ function createGame(E,opts={}){
       if(v.type==='circuit-closed'){lines.push(`R${v.round} CIRCUIT CLOSED size=${v.size} reward=+${v.reward} limit=${v.circuitTileLimit||cfg.CIRCUIT_TILE_LIMIT} signature=${v.signature} eligible=${v.eligibleTileIds.join(',')||'-'} unavailable=${v.unavailable||'no'}`);continue}
       if(v.type==='circuit-upgrade'){lines.push(`R${v.round} CIRCUIT UPGRADE [${v.tile?.a}|${v.tile?.b}] id=${v.tileId} rank=${v.before}>${v.after} signature=${v.signature}`);continue}
       if(v.type==='circuit-resonance'){lines.push(`T${v.move} CIRCUIT(active=${v.active.map(t=>`${t.tileId}:C${t.rank}`).join(',')||'-'} resonance=+${v.bonus*100}% x${v.multiplier} base=${v.baseOutput} final=${v.output} safeInteger=${v.safeInteger})`);continue}
-      if(v.type==='reroll'){lines.push(`R${v.round} REROLL source=${v.source||'stored'} after move ${v.roundTurn} stored=${v.remaining} free=${v.freeRemaining??0} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
+      if(v.type==='reroll'){lines.push(`R${v.round} ${v.automatic?'AUTO ':''}REROLL source=${v.source||'stored'} after move ${v.roundTurn} stored=${v.remaining} free=${v.freeRemaining??0} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
       if(v.type==='opening-protection'){lines.push(`R1 OPENING PROTECTION ${v.source} -> [${v.tile.a}|${v.tile.b}]${v.replaced?` swapped=[${v.replaced.a}|${v.replaced.b}]`:''}`);continue}
       if(v.type==='consume'){lines.push(`R${v.round} USE ${v.item.toUpperCase()} after move ${v.roundTurn} remaining=${v.remaining}${v.maxPlacements?` maxMoves=${v.maxPlacements}`:''}`);continue}
       if(v.type==='undo'){lines.push(`R${v.round} UNDO after move ${v.roundTurn} remaining=${v.remaining}${v.undone?` reverted=T${v.undone.turn} [${v.undone.tile.a}|${v.undone.tile.b}] output=${v.undone.output}`:''}${v.preservedPurchases?` preservedShop=${v.preservedPurchases} spend=${v.preservedSpend}`:''}${v.coinShortfall?` fundingShortfall=${v.coinShortfall}`:''}`);continue}
@@ -473,7 +483,7 @@ function createGame(E,opts={}){
     s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,shopItemPrice,shopRandomPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,openIntermission,buyMarketMod,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,canInteract,beginPlacement,finishPlacement,reroll,resolveRequiredRerolls,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,shopItemPrice,shopRandomPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,openIntermission,buyMarketMod,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
