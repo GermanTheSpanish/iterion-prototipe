@@ -7,7 +7,7 @@
   const nav=root.navigator||{},ua=nav.userAgent||'';
   const ios=/iPad|iPhone|iPod/i.test(ua)||(nav.platform==='MacIntel'&&(nav.maxTouchPoints||0)>1);
   const android=/Android/i.test(ua),mobile=ios||android;
-  const GUARD_KEY='monoidBackGuardV1',SHELL_BUILD='20260918.4';
+  const GUARD_KEY='monoidBackGuardV1',SHELL_BUILD='20260918.5';
   const state={deferredPrompt:null,installOutcome:null,swRegistered:false,swScope:null,backIntercepts:0,mobile,ios,android};
   const inDisplayMode=()=>!!(nav.standalone===true||root.matchMedia?.('(display-mode: fullscreen)').matches||root.matchMedia?.('(display-mode: standalone)').matches);
   Object.defineProperty(root,'__monoidPwa',{configurable:true,get:()=>({...state,installed:inDisplayMode()})});
@@ -85,7 +85,6 @@
     if(!doc.querySelector('script[data-monoid-ui-extras]')){const script=doc.createElement('script');script.src=`ui-extras.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiExtras='true';doc.body.appendChild(script)}
     if(!doc.querySelector('script[data-monoid-ui-runtime-fixes]')){const script=doc.createElement('script');script.src=`ui-runtime-fixes.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiRuntimeFixes='true';doc.body.appendChild(script)}
     if(!doc.querySelector('script[data-monoid-ui-late-polish]')){const script=doc.createElement('script');script.src=`ui-late-polish.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidUiLatePolish='true';doc.body.appendChild(script)}
-    if(!doc.querySelector('script[data-monoid-phase-a]')&&!root.MonoidPhaseA){const script=doc.createElement('script');script.src=`ui-phase-a.js?v=${SHELL_BUILD}`;script.async=false;script.dataset.monoidPhaseA='true';script.addEventListener('load',()=>script.remove(),{once:true});doc.body.appendChild(script)}
   }
   if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',loadUiLayer,{once:true});else loadUiLayer()
 })(window);
