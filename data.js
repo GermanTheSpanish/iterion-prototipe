@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.32.0',
+    VERSION:'0.33.0',
     ENGINE_VERSION:'0.15.0-l-split',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -53,6 +53,8 @@
     STARTING_REROLL_CONSUMABLES:0,
     STARTING_UNDO_CONSUMABLES:0,
     SHOP_RANDOM_TILE_COST:1,
+    SHOP_TILE_OFFER_COUNT:4,
+    SHOP_TILE_OFFER_COST:2,
     MARKET_OFFER_COUNT:3,
     MARKET_PURCHASE_LIMIT:1,
     MARKET_DOUBLE_DOUBLE_COST:8,
