@@ -51,7 +51,7 @@ function configureBlockedGame({rerolls,handSize,reserve=[]}){
   const recovery=g.recoveryOptions();
   assert.equal(recovery.recoverable,false,'Shop and Undo must not turn exhausted no-legal-moves into another confirmation path');
   assert.equal(recovery.shopRescue,false);
-  assert.equal(recovery.undo,false,'automatic reroll consumption clears the prior Undo frame just like a manual reroll');
+  assert.equal(recovery.undo,true,'automatic reroll is part of placement resolution and must preserve the prior Undo frame');
 }
 
 {
