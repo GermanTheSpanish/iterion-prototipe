@@ -4,12 +4,17 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260917.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
+  const BUILD_ID='20260918.12',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={
     'double-double':'First activation each Move applies both halves; later passes are normal.',
     'double-echo':'First activation each Move sends one non-recursive Echo down the chosen route.',
-    'zero-memory':'First rebound each Move repeats the previous non-zero scoring operation.',
+    'zero-port':'Pair two zero tiles. A signal teleports between them instead of rebounding.',
+    'parity-exchange':'Odd values add and even values multiply on the chosen physical tile.',
+    'corner':'A 90° routed turn gives the chosen tile ×2 operation magnitude.',
+    'long-line':'Straight routing gives ×2 at 3–4 traversals and ×3 from 5.',
+    'overload':'Operation magnitude scales with physical neighbours, capped at ×4.',
+    'terminal':'Exactly one physical neighbour gives ×3 operation magnitude.',
     'long-run':'10+ unique routed tiles: all activated Stars pay once.'
   };
 
@@ -114,16 +119,15 @@
     for(const[el,value]of pairs){if(!el||!Number.isFinite(Number(value)))continue;const extreme=Math.abs(Number(value))>=EXTREME_THRESHOLD;el.classList.toggle('extremeValue',extreme);if(extreme){const text=scientific(value);if(el.textContent!==text)el.textContent=text}}
     const final=doc.querySelector('.finalfx>span');if(final&&Math.abs(Number(s.score))>=EXTREME_THRESHOLD){const text=scientific(s.score);if(final.textContent!==text)final.textContent=text}
   }
-  const offerLabel=id=>id==='double-double'?'DD':id==='double-echo'?'DE':id==='zero-memory'?'ZM':null;
+  const OFFER_LABELS=Object.freeze({'double-double':'DD','double-echo':'DE','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE'});
+  const offerLabel=id=>OFFER_LABELS[id]||null;
   function assignedTiles(){
-    const map=new Map();doc.querySelectorAll('.marketAssignments .marketTile').forEach(tile=>{const label=tile.querySelector('small')?.textContent?.trim();if(label&&!map.has(label))map.set(label,tile)});return map
-  }
-  function trimTileList(list,total){
-    if(!list)return;list.querySelector('.marketTileMore')?.remove();
-    const tiles=[...list.querySelectorAll(':scope > .marketTile')];
-    tiles.forEach((tile,i)=>{tile.classList.toggle('marketTileOverflow',i>=MAX_MARKET_TILES);tile.setAttribute('aria-hidden',i>=MAX_MARKET_TILES?'true':'false')});
-    const hidden=Math.max(0,Number(total??tiles.length)-MAX_MARKET_TILES);
-    if(hidden>0){const more=doc.createElement('span');more.className='marketTileMore';more.textContent=`+${hidden}`;more.setAttribute('aria-label',`${hidden} additional random recipients`);list.appendChild(more)}
+    const map=new Map();
+    doc.querySelectorAll('.marketAssignments .marketTile').forEach(tile=>{
+      const label=tile.querySelector('small')?.textContent?.trim();if(!label)return;
+      const list=map.get(label)||[];list.push(tile);map.set(label,list)
+    });
+    return map
   }
   function makeContextGroup(label,className){
     const group=doc.createElement('div');group.className=`marketContextGroup ${className}`;
@@ -144,13 +148,13 @@
     const game=root.__monoidGame;if(!game?.marketOfferInfo)return;
     const assigned=assignedTiles(),endless=!!game.state?.().endlessMode;
     const foot=overlay.querySelector('.shopFoot');
-    const footCopy=`Tile modifiers are assigned randomly from the shown pool. DD and DE cannot share a double. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
+    const footCopy=`Buy one tile Mod, then choose a highlighted compatible tile on the board. ZP links two zero tiles and later purchases relocate one endpoint. DD and DE remain exclusive. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
     if(foot&&foot.textContent!==footCopy)foot.textContent=footCopy;
 
     doc.querySelectorAll('.marketOffer[data-market-offer]').forEach(offer=>{
       if(offer.classList.contains('marketStructuredOffer'))return;
       const id=offer.dataset.marketOffer,info=game.marketOfferInfo(id),mod=info?.mod;
-      const head=offer.querySelector(':scope > .marketOfferHead'),desc=offer.querySelector(':scope > p'),target=offer.querySelector(':scope > .marketTarget'),list=offer.querySelector(':scope > .marketTileList'),button=offer.querySelector(':scope > .shopBuy');
+      const head=offer.querySelector(':scope > .marketOfferHead'),desc=offer.querySelector(':scope > p'),target=offer.querySelector(':scope > .marketTarget'),button=offer.querySelector(':scope > .shopBuy');
       if(!head||!button||!info||!mod)return;
 
       const description=desc||doc.createElement('p');description.className='marketOfferDescription';
@@ -164,15 +168,16 @@
         machine.innerHTML=`<strong>MACHINE</strong>${endless?'<small>7 FULL PAYOUTS IN ENDLESS</small>':''}`;
         physical.appendChild(machine)
       }else{
-        const code=offerLabel(id),assignedTile=assigned.get(code);
-        if(assignedTile){
-          const assignedGroup=makeContextGroup('ASSIGNED','marketAssignedGroup'),clone=assignedTile.cloneNode(true);
-          clone.classList.add('marketAssignedTile');clone.querySelector('small')?.remove();
-          assignedGroup.tiles.appendChild(clone);physical.appendChild(assignedGroup.group)
+        const code=offerLabel(id),assignedList=assigned.get(code)||[];
+        if(assignedList.length){
+          const assignedGroup=makeContextGroup(id==='zero-port'&&assignedList.length>1?'LINKED':'INSTALLED','marketAssignedGroup');
+          for(const assignedTile of assignedList){
+            const clone=assignedTile.cloneNode(true);clone.classList.add('marketAssignedTile');clone.querySelector('small')?.remove();assignedGroup.tiles.appendChild(clone)
+          }
+          physical.appendChild(assignedGroup.group)
         }
-        const count=Number(info.targetCount)||0,pool=makeContextGroup(count>0?`RANDOM FROM · ${count}`:'NO VALID TARGET','marketPoolGroup');
-        if(list){trimTileList(list,count);pool.tiles.appendChild(list)}
-        physical.appendChild(pool.group)
+        const count=Number(info.targetCount)||0,compatible=makeContextGroup(count>0?`COMPATIBLE · ${count}`:'NO VALID TARGET','marketPoolGroup');
+        physical.appendChild(compatible.group)
       }
 
       const action=doc.createElement('div');action.className='marketOfferAction';action.appendChild(button);
