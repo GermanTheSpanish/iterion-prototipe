@@ -1,242 +1,448 @@
-# ITERION — Codex / Agent Instructions
+# MONOID — Repository Agent Instructions
 
 ## Purpose
 
-ITERION is a mobile-first domino roguelike / score-builder prototype.
+MONOID is a mobile-first domino roguelike / score-builder in late-stage development.
 
-The game is inspired structurally by score-building roguelikes, but its identity must come from domino placement, connection topology, spatial construction, persistent board state, routing and tile-specific interactions.
+The core game is already substantially implemented. Work in this repository should now prioritise:
+1. finishing remaining gameplay/system work,
+2. final UI/UX,
+3. tutorial/onboarding,
+4. balance and playtesting,
+5. release hardening.
 
-When working in this repository, preserve the game design unless the user explicitly asks for a design or balance change. A bug-fix task is not permission to redesign rules, scoring, economy or UX.
+Do not turn late-stage development into an architectural rewrite.
+
+MONOID's identity comes from physical domino placement, connectivity, routing, persistent machine construction, network topology, doubles, zeros, parity, tile identity, modifiers on physical tiles, Circuits, POWER, Markets and long-term spatial architecture.
 
 The user's explicit task instructions take precedence over this file.
 
 ---
 
-## Repository architecture
+## Source of truth
 
-This is currently a lightweight browser prototype with no framework and no formal build system.
+For current implementation details, use this order:
 
-- `index.html` — application shell, layout and CSS.
-- `data.js` — game constants, version numbers and tunable balance/config values.
-- `engine.js` — deterministic board geometry, domino placement validation, contacts/connections and signal/scoring traversal.
-- `game.js` — run state, seeded RNG, rounds, hand/reserve, placements, persistence, shops, upgrades, coins and run events/snapshots.
-- `mods.js` — modifier registry and modifier definitions.
-- `ui.js` — DOM rendering, board/hand display, pointer interaction, drag/rotation behaviour, overlays, shops and run-summary/report UI.
+1. current GitHub `main`,
+2. current debug/run data,
+3. approved project documentation,
+4. conversational memory.
 
-Keep these responsibilities separated. In particular:
+Never guess current behaviour from an older conversation when the repository can answer it.
 
-- Do not move game rules into `ui.js` merely to make a visual interaction work.
-- Do not put rendering concerns into `engine.js` or `game.js`.
-- Prefer changing constants in `data.js` rather than scattering magic numbers through the code.
-- New modifiers should be registered through `mods.js` unless there is a strong architectural reason not to.
+For visual design, approved Figma work may define the intended presentation. The repository remains authoritative for gameplay behaviour.
+
+---
+
+## Late-stage development rule
+
+The game is no longer a throwaway prototype.
+
+Do not perform broad cleanup, framework migrations, folder reorganisations or speculative abstractions unless they directly unblock a concrete current task or prevent a demonstrated regression.
+
+A cleaner architecture is not, by itself, sufficient reason to rewrite stable code.
+
+Prefer:
+- small coherent patches,
+- explicit boundaries,
+- deterministic behaviour,
+- targeted regression tests,
+- incremental UI replacement,
+- backwards-compatible state/debug data where practical.
+
+Avoid:
+- broad rewrites,
+- opportunistic refactors during feature work,
+- replacing stable engine behaviour for elegance,
+- migrating to Unity/another engine during unrelated tasks,
+- changing several gameplay systems in one patch.
+
+---
+
+## Real implementation rule
+
+A requested implementation is not complete merely because:
+- tests were changed,
+- documentation was changed,
+- build metadata was bumped,
+- version numbers changed,
+- a branch/PR was created.
+
+If the task asks for a gameplay, system, UI or UX change, the relevant runtime source must actually implement that change.
+
+Tests must verify the implementation; they must not substitute for it.
+
+Do not bump a version or build to imply progress before the implementation exists.
+
+Docs-only changes should not change the game version or deploy build unless there is a concrete runtime reason.
+
+---
+
+## Current architecture
+
+The repository is a framework-free browser/PWA implementation.
+
+### Core gameplay
+
+- `data.js` — configuration, version, balance values and gameplay constants.
+- `engine.js` — deterministic board geometry, placement legality, connections, routing and scoring traversal.
+- `game.js` — authoritative run state, seeded RNG, rounds, persistence, hand/reserve, economy, shops, Undo and snapshots.
+- `circuits.js` — Circuit detection/reward helpers.
+- `mods.js` — modifier definitions and registry.
+- `prototype-scoring.js` — experimental Prototype-mode scoring behaviour.
+
+### Presentation / interaction
+
+- `presentation.js` — display-only helpers and the minimal presentation/view-model boundary.
+- `ui.js` — main DOM rendering and interaction controller.
+- `tutorial-controller.js` — tutorial-only gameplay orchestration/wrappers.
+- `ux-pass.js` — tutorial/coach presentation and UX presentation behaviour.
+- `ui-runtime-fixes.js` — consolidated runtime gameplay UI composition.
+- `ui-late-polish.js` — late presentation/commerce polish.
+- `ui-extras.js` — additional tutorial/menu presentation.
+- `ui-theme.css` — primary stylesheet.
+
+### Shell / support
+
+- `gesture.js` — pointer/gesture bootstrap and runtime loaders.
+- `pwa.js` — PWA shell, install flow and service-worker registration.
+- `sw.js` — service worker.
+- `update-check.js` — update/build detection.
+- `qa-presets.js` — isolated QA fixtures.
+- `help.js` — rulebook/inspection support.
+- `mode-carousel.js` — mode selection presentation.
+
+Keep these responsibilities separated.
+
+In particular:
+- gameplay rules must not move into presentation code,
+- UI fixes must not alter routing/scoring,
+- `presentation.js` must remain display-only,
+- tutorial exceptions belong in `tutorial-controller.js`, not generic UX/UI files,
+- QA fixtures must not become runtime game rules.
 
 ---
 
 ## Core gameplay invariants
 
-Treat the following as rules that must not change during unrelated work.
+Do not change these during unrelated work.
 
-### Domino identity
+### Physical tile identity
 
-A domino is one logical tile composed of two permanently connected halves.
+A domino is one physical tile instance with one unique tile ID.
 
-Never represent a placed domino as two independent game pieces. The UI may render two visual halves, but selection, placement, rotation, ownership, upgrades and state must remain attached to the single domino.
+Two dominoes may have identical printed values if legitimately acquired, but one physical tile instance must never exist twice simultaneously.
 
-### Connection rule
+The two halves of a domino are not independent gameplay pieces.
 
-Domino contacts follow matching-value rules.
+### Placement
 
-Adjacent contacting halves are legal only when their values match. For example, `2` may connect to `2`; `2` may not connect to `4`.
-
-Do not relax this rule because two pieces geometrically touch.
-
-### Rotation
-
-Dominoes rotate in 90-degree increments. Rotation must preserve the two-half relationship and must work consistently for candidate previews and committed placements.
-
-### Doubles
-
-Doubles are special dominoes and the engine contains dedicated long-side / centred-port behaviour for them. Do not simplify double handling into ordinary rectangular adjacency without explicitly checking the existing engine rules.
-
-### Board support
-
-The current playable prototype is ground-plane only (`z = 0`). Do not introduce floating/unsupported placement as a side effect of another task.
-
-### First tile
-
-The current prototype requires the opening tile to be a double. The source of truth is `FIRST_TILE_MUST_BE_DOUBLE` in `data.js`.
+- Matching values connect.
+- Rotation is in 90-degree increments.
+- The first tile of a run must be a double.
+- The game remains ground-plane only.
+- Do not reintroduce 3D/vertical building.
 
 ### Persistent machine
 
-The placed structure currently persists between rounds. The source of truth is `PERSIST_MACHINE_BETWEEN_ROUNDS` in `data.js`.
+The machine persists across rounds unless an explicit gameplay change says otherwise.
 
-Do not clear or reconstruct the machine between rounds unless a task explicitly requires it.
+Do not clear/reconstruct it as a UI or round-transition shortcut.
 
----
+### Mobile-first
 
-## Scoring and routing
+Gameplay must fit on one phone screen without page scrolling.
 
-Scoring/routing behaviour is implemented in `engine.js` and orchestrated from `game.js`.
+The board remains the visual focus.
 
-Do not modify scoring semantics as part of a placement, rendering, input or layout bug fix.
-
-Important current concepts include:
-
-- A newly placed tile produces a trigger value.
-- The engine traverses connected pieces to compute an output.
-- Even/odd/zero behaviour and double behaviour are encoded in the engine.
-- Zero values can affect routing/rebound behaviour.
-- Search/routing decisions must remain deterministic for the same game state and seed.
-
-Before changing scoring or routing, inspect `applyOp`, connection traversal and `bestSignal` in `engine.js`, plus placement finalisation in `game.js`.
-
-If a scoring change is explicitly requested, update run-event reporting so the resulting run can still be diagnosed from exported data.
+The hand remains vertical on the right.
 
 ---
 
-## State and determinism
+## Scoring and routing are protected behaviour
 
-`game.js` owns gameplay state.
+Treat current engine behaviour as canonical unless the task explicitly changes gameplay.
 
-The run uses a seeded RNG. Preserve reproducibility: the same seed and the same player actions should produce the same gameplay results unless a task explicitly changes RNG semantics.
+Do not silently modify:
+- placement legality,
+- route selection,
+- route comparator,
+- activation order,
+- zero/rebound behaviour,
+- doubles,
+- odd/even operations,
+- Double Double,
+- Double Echo,
+- Zero Memory,
+- T-split,
+- POWER arithmetic,
+- Circuit detection,
+- Circuit rewards/resonance,
+- Long Chain,
+- target progression.
 
-Do not use ad-hoc `Math.random()` calls for gameplay decisions when the seeded game RNG should be used.
+Always distinguish:
+1. placement legality,
+2. route selection,
+3. scoring operations,
+4. balance.
 
-Do not duplicate authoritative state in the UI. UI state may track transient interaction/animation state, but gameplay truth must come from the game/engine layers.
+A change in any of the above is a gameplay change, not an implementation detail.
 
----
-
-## Run telemetry and diagnostics
-
-Run data is an important development tool, not decorative UI.
-
-The prototype already records gameplay events and exposes run/snapshot information. Preserve this functionality.
-
-When adding or changing a gameplay mechanic:
-
-1. Ensure meaningful player/gameplay actions remain observable in run events or snapshots.
-2. Prefer structured values over prose-only logs.
-3. Include enough information to reconstruct why a placement scored, failed or changed state.
-4. Do not silently remove fields used by the run-summary / copy-run-data UI.
-
-For placement-related bugs, diagnostics should make it possible to identify at least:
-
-- tile values / tile id,
-- placement coordinates and rotation,
-- legal/illegal result and failure reason,
-- resulting score/output when applicable,
-- round and placement number.
-
----
-
-## UI / UX requirements
-
-ITERION is mobile-first.
-
-### Viewport
-
-Normal gameplay should not require page scrolling to reach the board, HUD, hand or primary controls.
-
-Prefer responsive sizing and composition over making the page larger than the viewport.
-
-### Hand
-
-The hand must remain compact and readable on mobile. Dominoes in the hand should be presented vertically unless a specific task changes that design.
-
-All hand tiles should remain accessible without horizontal page scrolling.
-
-### Board
-
-The board should remain readable and usable within the gameplay viewport. Do not fix a hand/layout problem by making the board impractically small or by introducing page-level scrolling.
-
-### Visual/game-state separation
-
-A domino can have two rendered halves, but visual DOM structure must never imply two independent gameplay tiles.
-
-Candidate/drag previews must use the same orientation and geometry semantics as committed pieces.
-
-### Touch / pointer input
-
-Changes must preserve mobile pointer interaction. Do not implement a mouse-only solution for drag, placement or rotation.
+Before changing scoring/routing, reconstruct current behaviour from engine code and supplied debug telemetry.
 
 ---
 
-## Balance values
+## Economy / progression protection
 
-Values such as targets, hand size, maximum placements, shop probability/costs and board sizes are design/balance parameters.
+Do not silently change:
+- Shop/Market cadence,
+- prices,
+- Inflation,
+- System Strain,
+- coins,
+- purchases,
+- tile acquisition,
+- rerolls/tools,
+- Endless progression,
+- mode unlocks,
+- board dimensions,
+- persistence,
+- Undo semantics.
 
-`data.js` is the source of truth for current defaults.
+Purchases of tiles must create new physical tile instances with unique IDs.
 
-Do not hard-code copies of these values elsewhere. Do not change them during unrelated engineering work.
-
-Current values are prototype values, not permanent design invariants.
+Economy changes require explicit design intent and targeted tests.
 
 ---
 
-## Working method
+## Presentation boundary
 
-For every task:
+Use the existing minimal presentation boundary rather than creating a large application-layer rewrite.
 
-1. Read the relevant implementation before editing it.
-2. Identify whether the task is gameplay logic, game state, UI/input, balance, or a combination.
-3. Keep the patch as small as reasonably possible.
-4. Preserve unrelated behaviour.
-5. Check call sites when changing shared engine/game APIs.
-6. Verify both the immediate fix and likely regression paths.
-7. Report what changed, which files changed and how the change was validated.
+`presentation.js` may expose display/view models such as:
+- `tileViewModel()`,
+- `hudViewModel()`,
+- `longChainViewModel()`.
 
-Do not perform opportunistic refactors during a focused bug fix unless they are necessary to make the fix safe.
+These functions may format or interpret state for display, but must not mutate gameplay state or influence engine decisions.
 
-If the existing implementation conflicts with an explicit user requirement, follow the user requirement and explain the conflict in the final summary.
+Do not attempt to migrate every `GAME.state()` access out of `ui.js` merely for architectural purity.
+
+Add presentation helpers only when they directly support current UI implementation.
+
+---
+
+## UI / UX rules
+
+MONOID should feel restrained, adult, graphic and product-design influenced.
+
+Use colour only when it communicates gameplay meaning.
+
+Maintain:
+- one-screen mobile gameplay,
+- board as primary visual focus,
+- vertical hand on the right,
+- highly legible Score and Target,
+- quiet secondary information,
+- accessible debug tools without visual dominance.
+
+Do not solve layout problems by:
+- adding page scrolling,
+- shrinking the board to irrelevance,
+- hiding essential game state,
+- changing gameplay geometry.
+
+Approved Figma layouts should be implemented incrementally against the current engine/game state.
+
+Do not rewrite gameplay to make a visual mockup easier to reproduce.
+
+---
+
+## Tutorial rules
+
+Tutorial behaviour may intentionally constrain or stage game state.
+
+Those exceptions belong in `tutorial-controller.js`.
+
+Do not patch `IterionGame`, `IterionEngine`, `game.finishPlacement`, `game.openShop` or placement candidate behaviour from generic presentation files.
+
+Tutorial-specific behaviour must:
+- be isolated from normal runs,
+- restore wrapped methods when the tutorial ends,
+- remain deterministic,
+- have regression coverage.
+
+---
+
+## Determinism and state
+
+`game.js` owns authoritative gameplay state.
+
+Preserve seeded reproducibility.
+
+Do not introduce gameplay `Math.random()` calls when seeded RNG should be used.
+
+UI may keep transient interaction/animation state only.
+
+Do not duplicate authoritative game state in presentation code.
+
+Persistent unique tile IDs must survive:
+- purchases,
+- Undo,
+- save/restore,
+- round transitions,
+- Endless,
+- debug export.
+
+---
+
+## Debug telemetry
+
+Debug exports are development evidence.
+
+Do not weaken them during unrelated work.
+
+For gameplay/system changes, keep enough structured information to reconstruct:
+- tile ID and values,
+- placement coordinates/rotation,
+- route/activation information,
+- output,
+- round/stage,
+- economy changes,
+- failure reason,
+- relevant modifier/Circuit/POWER state.
+
+When debugging scoring, reconstruct what happened before proposing a fix.
+
+---
+
+## Repository editing contract
+
+For every code task:
+
+1. Inspect current `main` and the relevant files before editing.
+2. Classify the task: gameplay, state, presentation, UX, economy, progression, persistence or infrastructure.
+3. Identify protected behaviour that must remain unchanged.
+4. Create the smallest coherent patch.
+5. Do not combine unrelated cleanup with the task.
+6. Add/update targeted regression coverage when practical.
+7. Run automated validation before merge.
+8. Merge only a green exact SHA.
+9. Verify post-merge `main` CI.
+10. Verify deployment when the change is deployable.
+11. Report exactly what was tested.
+12. Never claim physical-device/browser validation that did not happen.
+
+If a test fails, fix the implementation or the genuinely stale expectation. Never weaken a meaningful regression merely to make CI green.
+
+---
+
+## Branch / PR discipline
+
+Do not edit `main` directly for implementation work.
+
+Use a focused branch and PR.
+
+Before creating a branch, re-read current `main` SHA. If `main` advanced, reassess the patch instead of applying an old diff blindly.
+
+Prefer atomic commits.
+
+Do not let CI mutate source code.
+
+GitHub Actions must test the committed tree, not patch it.
+
+Merge only when:
+- syntax passes,
+- Node regressions pass,
+- Playwright passes where relevant,
+- committed tree remains unchanged by CI.
+
+After merge, verify the same checks on `main`.
+
+---
+
+## Version / build rules
+
+Versioning represents implemented software, not intent.
+
+- small fixes: patch version when a release/version bump is actually warranted,
+- gameplay/system additions: minor version,
+- documentation-only changes: no version bump,
+- internal deploy/cache changes may bump build metadata without changing semantic version.
+
+Do not change version numbers before the described build exists.
+
+Do not use a version bump as the implementation.
+
+When a runtime build changes, update all required cache/update references consistently and add/regress tests that catch stale references.
 
 ---
 
 ## Validation
 
-The repository has Node regression tests (`tests/*.test.js`) and Playwright browser tests (`tests/browser-smoke.spec.js`). Install the locked dependencies with `npm ci`. Run syntax checks on all root/test JavaScript files, every regression file with Node, and `npm run test:browser` against a local server on port 4173.
+Use the locked project dependencies.
 
-CI verifies committed code only. Never patch source, rewrite tests, bump versions, create commits or push from a workflow. Implement locally, test, commit and push; verify CI for that exact SHA. Version bumps are separate normal edits after the implementation SHA is green. Verify the version SHA before merging and then verify main CI and deployment. Keep workflow permissions read-only and do not persist checkout credentials.
+Minimum automated validation for code changes:
 
-For changes that can be checked without a browser, use Node-based smoke checks when practical because the core modules expose CommonJS exports.
+```sh
+npm ci
+for file in *.js tests/*.js; do node --check "$file" || exit 1; done
+for test in tests/*.test.js; do node "$test" || exit 1; done
+npm run test:browser
+```
 
-For gameplay logic changes, verify representative edge cases directly against the engine/game layer where possible.
+The Playwright suite is browser automation, not a physical mobile-device test.
 
-For UI/input/layout changes, inspect the actual browser behaviour at mobile dimensions and verify at minimum:
+For UI changes, validate the supported mobile fixture sizes and relevant flows.
 
-- tile selection,
-- dragging,
-- 90-degree rotation,
-- legal placement,
-- rejection of mismatched values,
-- doubles,
-- hand layout,
-- board fit,
-- round transition,
-- run-data/report access.
+For changes affecting scoring, routing, persistence, economy, shops, board dimensions or tile identity, add targeted regression coverage whenever practical.
 
-If browser interaction cannot be executed in the current environment, state that clearly rather than claiming visual validation.
+For docs-only changes, full browser validation is not normally necessary unless CI requires it; still verify repository CI before merge.
 
 ---
 
-## Regression-sensitive areas
+## PWA / caching
 
-Be especially careful around these boundaries:
+PWA caching has caused real user confusion before.
 
-- `engine.js` placement geometry vs `ui.js` piece rendering.
-- Drag candidate rotation vs final committed rotation.
-- Double contact geometry.
-- Matching-value validation when several pieces touch the candidate simultaneously.
-- Persistent board state across round/stage transitions.
-- Board resizing/recentering between stages.
-- Tile IDs and physical-copy semantics when buying additional dominoes.
-- Run event/snapshot compatibility after state changes.
+When runtime assets change:
+- keep cache/build references coherent,
+- preserve update detection,
+- verify service-worker/update tests,
+- provide a cache-busted test URL after deployment.
 
-A visual fix must not weaken placement validation. A placement-rule fix must not split the visual domino into independent halves.
+Do not tell a user they are on a new build merely because `main` changed; confirm the deployed build.
 
 ---
 
-## Product direction
+## Completion report
 
-ITERION should remain easy to read and interact with, but it should not be infantilised. Prefer clean, legible, restrained game UI over excessive decoration.
+For implementation work, report:
+- what changed,
+- what intentionally did not change,
+- files changed,
+- exact tests run,
+- PR/merge SHA,
+- deployed build/version when applicable,
+- cache-busted test URL,
+- any validation not performed.
 
-The prototype is used to discover the game. Avoid premature abstraction and infrastructure unless it solves a concrete problem or prevents a demonstrated class of regressions.
+Do not report success before CI/deployment actually confirms it.
+
+---
+
+## Current development posture
+
+Core MONOID gameplay is substantially built.
+
+From this point forward:
+- finish the game,
+- preserve proven emergent behaviour,
+- make remaining systems understandable,
+- implement the final UI,
+- improve onboarding,
+- playtest and balance,
+- harden for release.
+
+Do not start another broad cleanup phase unless a concrete production problem proves it is necessary.
