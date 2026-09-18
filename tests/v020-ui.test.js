@@ -5,7 +5,7 @@ const data=fs.readFileSync(path.join(__dirname,'..','data.js'),'utf8');
 const game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 const mods=fs.readFileSync(path.join(__dirname,'..','mods.js'),'utf8');
-assert.match(data,/VERSION:'0\.31\.1'/,'build must identify as the current release');
+assert.match(data,/VERSION:'0\.31\.2'/,'build must identify as the current release');
 assert.doesNotMatch(ui,/EXACT DOMINO/);
 assert.doesNotMatch(ui,/exactGridHtml|buyMarketExactTile|marketExactPrice/);
 assert.doesNotMatch(game,/buyMarketExactTile|marketExactPrice|MARKET_EXACT_TILE_COST/);
@@ -18,5 +18,5 @@ assert.match(ui,/mod\.displayName\|\|mod\.name/,'Market result copy must use mod
 assert.match(ui,/SUPPLY \$\{supply\} · \$\{nextMarket\}/);
 assert.match(game,/openingProtectionActive/);
 assert.match(game,/type:'opening-protection'/);
-assert.match(game,/ensureOpeningContinuation\('reroll'\)/);
+assert.match(game,/ensureOpeningContinuation\(automatic\?'auto-reroll':'reroll'\)/);
 console.log('v0.20 UI regression tests passed');

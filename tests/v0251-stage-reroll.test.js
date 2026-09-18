@@ -76,6 +76,7 @@ function readyAdvance(g,roundIndex){const s=g.state();s.round=roundIndex;s.clear
   assert.match(economy.rulesDescription,/Every round grants one free Reroll/);
   assert.match(economy.rulesDescription,/before stored Rerolls/);
   assert.match(economy.rulesDescription,/refreshes to one rather than accumulating/);
+  assert.match(economy.rulesDescription,/no-legal-moves state consumes available Rerolls automatically/);
 }
 
 {
