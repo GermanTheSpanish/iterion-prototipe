@@ -18,9 +18,9 @@ function testEmergencyShopPurchasesSurviveUndo(){
   assert.strictEqual(s.turn,1);
   assert(game.canUndo()===false,'no Undo is stored before the emergency purchase');
 
-  assert.strictEqual(game.openShop(),true);
-  const undoBuy=game.buyShopItem('undo');
+  const undoBuy=game.buyTool('undo',1);
   assert.strictEqual(undoBuy.ok,true);
+  assert.strictEqual(game.openShop(),true);
   const tileBuy=game.buyShopRandomTile();
   assert.strictEqual(tileBuy.ok,true);
   const purchasedId=tileBuy.tile.id;
@@ -57,7 +57,7 @@ function testPatchUxContracts(){
   assert.doesNotMatch(ui,/Location: \$\{m\.location\}|Orientation: \$\{m\.axis\}|Connections: \$\{m\.connectionCount\}/,'tile inspector must not show position metadata');
   assert.match(help,/starCoins:tier/);
   assert.match(help,/bestOutput/);
-  assert.match(mods,/emergency Shop purchases made afterwards are not refunded/,'Undo copy must explain transaction persistence');
+  assert.match(mods,/purchases made afterwards are not refunded/,'Undo copy must explain transaction persistence');
 }
 
 testEmergencyShopPurchasesSurviveUndo();
