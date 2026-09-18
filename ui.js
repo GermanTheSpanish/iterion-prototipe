@@ -308,7 +308,7 @@
     const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,lane,index);if(!c||e.value===0)return;
     clearLane(lane);const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
     d.className=`opfx signalValue ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;
-    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.type==='zero-memory'?' ZM':e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);
+    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);
     // One readable live number per signal. Prefer the physical activation point,
     // then nearby free positions, keeping overlapping Main/Echo labels apart.
     const w=Math.min(d.getBoundingClientRect().width,board.clientWidth-12),h=d.getBoundingClientRect().height;d.style.maxWidth=(board.clientWidth-12)+'px';
@@ -339,7 +339,7 @@
         if(pp){const ends=block.branches.map(b=>compact(b.end.output)),label=`${laneLabel(lane)} JOIN · ${ends.join(' + ')} = ${compact(block.join.output)}`,d=fx(E.G/2,E.H/2,label,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');d.dataset.family=lane.family;d.dataset.output=block.join.output;d.style.top=(lane.family==='echo'?62:42)+'%';await wait(Math.max(300,V.cascadeDelay(index+1)))}
         i=block.next;index+=2;continue
       }
-      if(e.type==='op'||e.type==='zero-memory'){if(e.type==='op')lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await wait(V.cascadeDelay(index));if(e.type!=='zero-memory')index++;i++;continue}
+      if(e.type==='op'){lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await wait(V.cascadeDelay(index));index++;i++;continue}
       if(e.type==='rebound'){
         const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
         if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle,index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(160,V.cascadeDelay(index)))}i++;continue
