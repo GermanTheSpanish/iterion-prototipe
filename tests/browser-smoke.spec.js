@@ -88,7 +88,7 @@ test('NO LEGAL MOVES auto-consumes the reroll and ends cleanly if it still canno
   await page.goto('http://127.0.0.1:4173/');await expect(page.locator('#overlayTitle')).toHaveText('ENDLESS OVER');await expect(page.locator('#downloadFailedRun')).toBeVisible();
   expect(await page.evaluate(()=>({rerolls:window.__iterionTestGame.state().consumables.reroll,waiting:window.__iterionTestGame.state().needsReroll,blocked:window.__iterionTestGame.state().blocked,recoverable:window.__iterionTestGame.snapshot().recovery.recoverable}))).toEqual({rerolls:0,waiting:false,blocked:true,recoverable:false});
   const debug=await page.evaluate(()=>window.__iterionTestGame.debugText());expect(debug).toContain('AUTO REROLL source=stored');expect(debug).toContain('Result: ENDLESS FAILED · no-legal-moves');
-  const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_DEBUG_v0\.31\.1_.+\.txt$/);expect(errors).toEqual([]);
+  const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_DEBUG_v0\.32\.0_.+\.txt$/);expect(errors).toEqual([]);
 });
 
 for(const viewport of [{width:390,height:844},{width:375,height:667}]){
@@ -103,7 +103,7 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
     const layout=await page.evaluate(()=>{const board=document.querySelector('#board').getBoundingClientRect(),hand=document.querySelector('#hand').getBoundingClientRect();return{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,viewportWidth:innerWidth,viewportHeight:innerHeight,boardRight:board.right,handLeft:hand.left,handBottom:hand.bottom}});expect(layout.width).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.height).toBeLessThanOrEqual(layout.viewportHeight);expect(layout.handLeft).toBeGreaterThanOrEqual(layout.boardRight);expect(layout.handBottom).toBeLessThanOrEqual(layout.viewportHeight);
     await page.evaluate(()=>{const g=window.__iterionTestGame,s=g.state();s.hand.fill(null);s.reserve=[];g.assessContinuation();g.save()});await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('#overlayTitle')).toHaveText('MACHINE STALLED');await expect(page.locator('#overlayBody')).toContainText('Base run complete');await expect(page.locator('#downloadFailedRun')).toHaveText('DOWNLOAD RUN .TXT');
-    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_DEBUG_v0\.31\.1_.+\.txt$/);
+    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_DEBUG_v0\.32\.0_.+\.txt$/);
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.latestRun.v9')).endless.baseComplete)).toBe(true);expect(errors).toEqual([]);
   });
 }
