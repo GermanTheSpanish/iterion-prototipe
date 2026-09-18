@@ -94,7 +94,7 @@
   function installLast(){
     if(!doc.getElementById('monoid-phase-a-ui')||!doc.getElementById('monoid-gameplay-ui-pass')){root.requestAnimationFrame(installLast);return}
     doc.head.appendChild(style);placeMachineStatus();syncBuildStamp();
-    new MutationObserver(()=>{placeMachineStatus();syncBuildStamp()}).observe(doc.body,{subtree:true,childList:true,characterData:true});
+    new MutationObserver(syncBuildStamp).observe(doc.body,{subtree:true,childList:true,characterData:true});
     root.addEventListener('pageshow',syncBuildStamp);root.addEventListener('resize',syncBuildStamp)
   }
   root.MonoidPhaseAMobileFix=Object.freeze({BUILD_ID,syncBuildStamp,placeMachineStatus});
