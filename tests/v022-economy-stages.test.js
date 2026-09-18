@@ -30,7 +30,7 @@ function forceClear(roundIndex){
   return{E,game,s}
 }
 
-assert.strictEqual(Data.VERSION,'0.33.0');
+assert.strictEqual(Data.VERSION,'0.34.0');
 assert.strictEqual(Data.STAGE_SIZE,3);
 assert.deepStrictEqual(Data.BOARD_SIZES,[[18,24],[21,28],[24,32],[27,36],[30,40]]);
 assert.strictEqual(Data.SHOP_CHANCE,undefined,'random inter-round Shop scheduling must be removed');
@@ -61,15 +61,17 @@ assert.strictEqual(forceClear(14).s.nextShopType,'none','final round must not sc
   assert.strictEqual(s.set.length,setBefore+1,'Shop random purchase creates a new physical tile');
   assert.strictEqual(game.availableTileCount(),availableBefore,'RANDOM DOMINO must not extend the current generation');
   assert.strictEqual(s.inflation,1);
-  assert.strictEqual(s.shopOpen,true,'Shop remains open after a purchase');
-  const tool=game.buyShopItem('move');
-  assert.strictEqual(tool.ok,true);
-  assert.strictEqual(tool.cost,4,'global Inflation applies to tool purchases');
-  assert.strictEqual(s.consumables.move,1);
-  assert.strictEqual(s.inflation,2);
-  assert.strictEqual(s.shopOpen,true,'multiple Shop purchases are allowed before closing');
+  assert.strictEqual(s.shopOpen,true,'Tile Shop remains open after a tile purchase');
+  assert.deepStrictEqual(s.shopOffers,[],'Tile Shop exposes no tool offers');
+  assert.strictEqual(game.buyShopItem('move').reason,'tools-moved','legacy Shop tool purchase path is disabled');
+  assert.strictEqual(game.canBuyTool('move'),false,'tool buying is unavailable while Tile Shop is open');
   assert.strictEqual(game.closeShop(),true);
   assert.strictEqual(s.shopOpen,false);
+  const tool=game.buyTool('move',1);
+  assert.strictEqual(tool.ok,true);
+  assert.strictEqual(tool.cost,4,'global Inflation from Tile Shop applies to direct tool purchases');
+  assert.strictEqual(s.consumables.move,1);
+  assert.strictEqual(s.inflation,2);
 }
 
 {

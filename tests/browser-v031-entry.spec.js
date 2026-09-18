@@ -75,7 +75,7 @@ test('Basics tutorial completes seven real legal placements and can retry',async
   await placeTutorialTile(page,'6/6');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');await placeTutorialTile(page,null);expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(6);
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await placeTutorialTile(page,null);
-  await expect(page.locator('#overlayTitle')).toHaveText('SHOP');await expect(page.locator('#overlayBody')).toContainText('real Shop');await expect(page.locator('#overlayBody')).toContainText('Market appears only between stages');await expect(page.locator('#nextGameMechanics')).toBeVisible();
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');await expect(page.locator('#overlayBody')).toContainText('real Tile Shop');await expect(page.locator('#overlayBody')).toContainText('Market appears only between stages');await expect(page.locator('#nextGameMechanics')).toBeVisible();
   expect(await page.evaluate(()=>{const s=window.__monoidGame.snapshot();return s.board.length===7&&s.shop.open})).toBe(true);
   await page.locator('#overlaySecondary').click();await finishTutorialTour(page);await expect(page.locator('#tutorialStep')).toContainText('1/6');
   await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
@@ -138,7 +138,7 @@ test('critical raised title and screen isolation survive a missing presentation 
   const centerY=title.y+title.height/2;expect(centerY).toBeGreaterThan(844*.40);expect(centerY).toBeLessThan(844*.48);
   const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
   expect(assets.length).toBeGreaterThan(1);
-  expect(assets.every(url=>url.includes('?v=entry-0311')||url==='ui-theme.css?v=20260918.10'||/^(?:data|game|ui)\.js\?v=20260918\.10$/.test(url)||url==='help.js?v=20260918.10'||/(?:pwa|ui-extras|ui-runtime-fixes|ui-late-polish|update-check|mode-carousel|qa-presets)\.js\?v=202609(?:17|18)\.\d+$/.test(url))).toBe(true);
+  expect(assets.every(url=>url.includes('?v=entry-0311')||url==='gesture.js?v=20260918.11'||url==='mods.js?v=20260918.11'||url==='ux-pass.js?v=20260918.11'||url==='ui-theme.css?v=20260918.11'||/^(?:data|game|ui)\.js\?v=20260918\.11$/.test(url)||url==='help.js?v=20260918.11'||/(?:pwa|ui-extras|ui-runtime-fixes|ui-late-polish|update-check|mode-carousel|qa-presets)\.js\?v=202609(?:17|18)\.\d+$/.test(url))).toBe(true);
   await page.mouse.click(12,12);
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();

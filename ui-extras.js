@@ -153,7 +153,7 @@
   function syncTutorialContinuations(){
     syncTutorialEntryButtons();
     const ux=root.__monoidUx||{};
-    const basicsDone=ux.tutorialKind==='basics'&&overlay?.classList.contains('show')&&overlayTitle?.textContent.trim()==='SHOP'&&overlayPrimary?.textContent.trim()==='FINISH';
+    const basicsDone=ux.tutorialKind==='basics'&&overlay?.classList.contains('show')&&overlayTitle?.textContent.trim()==='TILE SHOP'&&overlayPrimary?.textContent.trim()==='FINISH';
     let next=$('nextGameMechanics');
     if(basicsDone&&!next){next=doc.createElement('button');next.id='nextGameMechanics';next.className='secondary';next.textContent='NEXT · GAME MECHANICS';overlayPrimary.parentElement?.insertBefore(next,overlayPrimary.nextSibling);next.addEventListener('click',()=>waitForSelectionThen(()=>systems?.click()))}
     if(!basicsDone&&next)next.remove();

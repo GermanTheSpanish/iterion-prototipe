@@ -39,7 +39,7 @@ test('BASICS keeps placements canonical while teaching Zero, rebound and T-Split
   const reboundCount=await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length);expect(reboundCount).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
   await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.tutorialStep)).toBe(5);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await expect(page.locator('#monoidBoardCoach')).toContainText('7/7');expect(await page.evaluate(()=>window.__monoidGame.candidatesForIndex(0).length)).toBeGreaterThan(0);await placeCurrentTutorialTile(page);
-  await expect(page.locator('#overlayTitle')).toHaveText('SHOP');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(7);await assertCommerceIsDedicatedOverlay(page);await expect(page.locator('#nextGameMechanics')).toBeVisible()
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');expect(await page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(7);await assertCommerceIsDedicatedOverlay(page);await expect(page.locator('#nextGameMechanics')).toBeVisible()
 });
 
 test('SYSTEMS starts from a prepared real machine and teaches Circuit, Mod and POWER in sequence',async({page})=>{
@@ -68,7 +68,7 @@ test('CLASSIC selection uses a blank double-zero and player-facing branding is M
 
 test('Shop and Market use their dedicated overlay and keep the machine intact',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));await page.addInitScript(()=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const g=value.createGame(engine,{...options,seed:3200});g.state().coins=40;window.__uxGame=g;return g}}}})});await page.goto('http://127.0.0.1:4173/');
-  const machine=await page.evaluate(()=>({pieces:window.__uxGame.state().pieces,hand:window.__uxGame.state().hand,score:window.__uxGame.state().score}));await page.locator('#shopButton').click();await expect(page.locator('.commerceModal')).toBeVisible();await assertCommerceIsDedicatedOverlay(page);await expect(page.locator('.randomOffer p')).toHaveText('Adds one new physical domino to your set.');await page.locator('#overlayPrimary').click();expect(await page.evaluate(()=>({pieces:window.__uxGame.state().pieces,hand:window.__uxGame.state().hand,score:window.__uxGame.state().score}))).toEqual(machine)
+  const machine=await page.evaluate(()=>({pieces:window.__uxGame.state().pieces,hand:window.__uxGame.state().hand,score:window.__uxGame.state().score}));await page.locator('#shopButton').click();await expect(page.locator('.commerceModal')).toBeVisible();await assertCommerceIsDedicatedOverlay(page);await expect(page.locator('.randomOffer p')).toContainText('Add one random new physical domino to the current set.');await page.locator('#overlayPrimary').click();expect(await page.evaluate(()=>({pieces:window.__uxGame.state().pieces,hand:window.__uxGame.state().hand,score:window.__uxGame.state().score}))).toEqual(machine)
 });
 
 test('Endless briefing appears before canonical Endless state changes',async({page})=>{

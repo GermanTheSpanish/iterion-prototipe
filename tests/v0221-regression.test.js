@@ -18,9 +18,9 @@ function testEmergencyShopPurchasesSurviveUndo(){
   assert.strictEqual(s.turn,1);
   assert(game.canUndo()===false,'no Undo is stored before the emergency purchase');
 
-  assert.strictEqual(game.openShop(),true);
-  const undoBuy=game.buyShopItem('undo');
+  const undoBuy=game.buyTool('undo',1);
   assert.strictEqual(undoBuy.ok,true);
+  assert.strictEqual(game.openShop(),true);
   const tileBuy=game.buyShopRandomTile();
   assert.strictEqual(tileBuy.ok,true);
   const purchasedId=tileBuy.tile.id;
@@ -46,7 +46,7 @@ function testEmergencyShopPurchasesSurviveUndo(){
 function testPatchUxContracts(){
   const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
   const data=read('data.js'),ui=read('ui.js'),help=read('help.js'),mods=read('mods.js');
-  assert.match(data,/VERSION:'0\.33\.0'/);
+  assert.match(data,/VERSION:'0\.34\.0'/);
   assert.match(ui,/close\.textContent='CLOSE'/,'Data panel must have an internal close control');
   assert.match(ui,/className='runDataText'/,'Data panel must expose selectable run text');
   assert.match(ui,/board\.style\.backgroundImage='none'/,'visible board grid must be disabled');
@@ -57,7 +57,7 @@ function testPatchUxContracts(){
   assert.doesNotMatch(ui,/Location: \$\{m\.location\}|Orientation: \$\{m\.axis\}|Connections: \$\{m\.connectionCount\}/,'tile inspector must not show position metadata');
   assert.match(help,/starCoins:tier/);
   assert.match(help,/bestOutput/);
-  assert.match(mods,/emergency Shop purchases made afterwards are not refunded/,'Undo copy must explain transaction persistence');
+  assert.match(mods,/purchases made afterwards are not refunded/,'Undo copy must explain transaction persistence');
 }
 
 testEmergencyShopPurchasesSurviveUndo();
