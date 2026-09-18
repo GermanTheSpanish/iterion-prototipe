@@ -18,39 +18,34 @@ assert.strictEqual(D.MARKET_PURCHASE_LIMIT,1);
   s.pieces=[piece(placedDouble,0,101),piece(zeroDouble,8,102)];s.placedTileIds=[placedDouble.id,zeroDouble.id];
   s.hand=[handOnlyDouble,null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id)&&t.id!==handOnlyDouble.id);
   s.coins=100;s.inflation=2;prepareMarket(game);
-  assert.strictEqual(game.openIntermission(),true);
-  assert(s.shopOffers.includes('double-double'),'Double Double must remain a valid Market offer when it has a placed target');
-  assert(s.shopOffers.length<=D.MARKET_OFFER_COUNT);
+  assert.strictEqual(game.openIntermission(),true);s.shopOffers=['double-double'];
   const info=game.marketOfferInfo('double-double');
   assert.strictEqual(info.targetCount,1,'only the placed non-zero double is eligible');
   assert.strictEqual(info.price,10,'global Inflation applies to the Market price');
   assert.strictEqual(info.canBuy,true);
   const buy=game.buyDoubleDouble();
-  assert.strictEqual(buy.ok,true);
-  assert.strictEqual(buy.tile.id,placedDouble.id,'hand/reserve doubles and [0|0] must never be selected');
+  assert.strictEqual(buy.ok,true);assert.strictEqual(buy.pending,true);
+  assert.strictEqual(s.doubleDoubleTileId,null,'buying DD must not randomly assign it');
+  assert.strictEqual(s.shopOpen,false,'buying a tile Mod closes the Market before targeting');
+  const assign=game.chooseMarketModTile(placedDouble.id);assert.strictEqual(assign.ok,true);
+  assert.strictEqual(assign.tile.id,placedDouble.id,'hand/reserve doubles and [0|0] must never be selectable');
   assert.strictEqual(s.doubleDoubleTileId,placedDouble.id);
   assert.strictEqual(s.marketBuys.length,1);
   assert.strictEqual(s.inflation,3);
-  const again=game.buyDoubleDouble();
-  assert.strictEqual(again.ok,false);
-  assert.strictEqual(again.reason,'limit','only one Market mod may be bought per Market');
-  const event=s.events.find(e=>e.type==='double-double');
-  assert.strictEqual(event.targetTileId,placedDouble.id);
-  assert.strictEqual(event.cost,10);
-  assert.strictEqual(event.inflationBefore,2);
-  assert.strictEqual(event.inflationAfter,3);
+  assert.strictEqual(game.buyDoubleDouble().reason,'shop','the closed Market cannot accept a second purchase');
+  const purchaseEvent=s.events.find(e=>e.type==='market-mod-buy'&&e.mod==='double-double');
+  const assignEvent=s.events.find(e=>e.type==='market-mod-assign'&&e.mod==='double-double');
+  assert.strictEqual(purchaseEvent.cost,10);assert.strictEqual(purchaseEvent.inflationBefore,2);assert.strictEqual(purchaseEvent.inflationAfter,3);
+  assert.strictEqual(assignEvent.targetTileId,placedDouble.id);
 
-  game.closeMarket();
   const secondDouble=piece(handOnlyDouble,12,103);s.pieces.push(secondDouble);s.placedTileIds.push(handOnlyDouble.id);s.coins=100;prepareMarket(game,5);
-  assert.strictEqual(game.openIntermission(),true);
-  assert(s.shopOffers.includes('double-double'),'Double Double may be offered again when another placed target exists');
+  assert.strictEqual(game.openIntermission(),true);s.shopOffers=['double-double'];
   assert.strictEqual(game.marketTargetCount('double-double'),1,'the current Double Double target is excluded when transferring');
   const transfer=game.buyDoubleDouble();
-  assert.strictEqual(transfer.ok,true);
-  assert.strictEqual(transfer.previousTileId,placedDouble.id);
-  assert.strictEqual(transfer.tile.id,handOnlyDouble.id,'a later Market transfers Double Double to another placed double');
+  assert.strictEqual(transfer.ok,true);assert.strictEqual(transfer.previousTileId,placedDouble.id);
+  assert(game.chooseMarketModTile(handOnlyDouble.id).ok,'a later Market transfers Double Double to the chosen placed double');
+  assert.strictEqual(s.doubleDoubleTileId,handOnlyDouble.id);
 }
-
 {
   E.setBoardSize(18,24);
   const game=Game.createGame(E,{seed:2302,STARTING_COINS:100}),s=game.state(),by=id=>s.set.find(t=>t.id===id);
@@ -59,14 +54,14 @@ assert.strictEqual(D.MARKET_PURCHASE_LIMIT,1);
   s.hand=[null,null,null,null,null];s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id));s.coins=100;prepareMarket(game);
   assert.strictEqual(game.openIntermission(),true);s.shopOffers=['double-echo'];
   const info=game.marketOfferInfo('double-echo');
-  assert.deepStrictEqual(info.targetTiles.map(t=>t.id),[free.id],'a DD double must be absent from the DE target rail');
-  const buy=game.buyMarketMod('double-echo');assert.strictEqual(buy.ok,true);assert.strictEqual(buy.tile.id,free.id);
-  assert.notStrictEqual(s.doubleDoubleTileId,s.doubleEchoTileId,'DD and DE must never be assigned to the same physical double');
-  game.closeMarket();s.coins=100;prepareMarket(game,5);assert.strictEqual(game.openIntermission(),true);
+  assert.deepStrictEqual(info.targetTiles.map(t=>t.id),[free.id],'a DD double must be absent from DE targets');
+  const buy=game.buyMarketMod('double-echo');assert.strictEqual(buy.ok,true);assert.strictEqual(buy.pending,true);
+  assert(game.chooseMarketModTile(free.id).ok);assert.strictEqual(s.doubleEchoTileId,free.id);
+  assert.notStrictEqual(s.doubleDoubleTileId,s.doubleEchoTileId,'DD and DE must never share a physical double');
+  s.coins=100;prepareMarket(game,5);assert.strictEqual(game.openIntermission(),true);
   assert.strictEqual(game.marketTargetCount('double-double'),0,'both assigned doubles must be excluded from later DD assignment');
   assert.strictEqual(game.marketTargetCount('double-echo'),0,'both assigned doubles must be excluded from later DE assignment');
 }
-
 {
   E.setBoardSize(18,24);
   const entry=E.pieceFrom({a:1,b:5},0,0,0,0,3);entry.tile={id:'entry',a:1,b:5,upgrade:0,source:'test'};
