@@ -74,7 +74,9 @@ function readyAdvance(g,roundIndex){const s=g.state();s.round=roundIndex;s.clear
   const economy=Help.rulebookSections().find(section=>section.id==='economy');
   assert(economy,'Economy section must exist');
   assert.match(economy.rulesDescription,/Every round grants one free Reroll/);
-  assert.match(economy.rulesDescription,/before stored Rerolls/);
+  assert.match(economy.rulesDescription,/consumed automatically/);
+  assert.match(economy.rulesDescription,/free first and then stored/);
+  assert.match(economy.rulesDescription,/if none remain, the round ends immediately/);
   assert.match(economy.rulesDescription,/refreshes to one rather than accumulating/);
 }
 
