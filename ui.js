@@ -131,9 +131,16 @@
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
   function newRun(){clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();GAME.fresh();H.bindRun(GAME.state().runId);persistGame();handFx.fill('normal');hideOverlay();render()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
-  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} Shop purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render()}
+  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
-  function openPermanentShop(){shopRevealTile=null;if(!GAME.openShop()){toast('Shop unavailable');return}persistGame();render()}
+  function openPermanentShop(){shopRevealTile=null;if(!GAME.openShop()){toast('Tile Shop unavailable');return}persistGame();render()}
+  function openToolPurchase(id){
+    if(!GAME.canBuyTool(id)){toast(`${M.get(id)?.name||'Tool'} purchase unavailable`);return}
+    returnFocus=id==='move'?moveBtn:id==='reroll'?rerollBtn:undoBtn;press.cancel();auxOverlay={type:'tool-buy',id,quantity:1};renderAuxOverlay()
+  }
+  function activateMove(){if(GAME.canUseMove())useMove();else if(GAME.canBuyTool('move'))openToolPurchase('move');else toast('Move unavailable')}
+  function activateUndo(){if(GAME.canUndo())useUndo();else if(GAME.canBuyTool('undo'))openToolPurchase('undo');else toast('Undo unavailable')}
+  function activateReroll(){if(GAME.canUseReroll())doReroll();else if(GAME.canBuyTool('reroll'))openToolPurchase('reroll');else toast('Reroll unavailable')}
 
   function escapeHtml(value){return`${value}`.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
   function ruleVisual(section){return section.visual?`<div class="ruleVisual">${escapeHtml(section.visual)}</div>`:''}
