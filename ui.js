@@ -8,7 +8,7 @@
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
   const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version'),machineModStatusEl=$('machineModStatus');
-  let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null;
+  let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,autoRerollTask=null,auxOverlay=null,shopRevealTile=null;
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal');
   let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
@@ -225,13 +225,14 @@
   function showFailed(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
-    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or Shop Move can continue this round.':'You used every move for this round.'):(stalled?'No tile in your hand can continue the machine, but the Shop can sell a stored Reroll.':'No legal continuation remains.');
+    const noLegal=s.failureReason==='no-legal-moves';
+    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or Shop Move can continue this round.':'You used every move for this round.'):noLegal?'No legal continuation remains. All available Rerolls were consumed automatically.':(stalled?'The machine is stalled, but a recovery option remains.':'No legal continuation remains.');
     overlayBody.innerHTML=`<p>${endless?`Base run complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
     overlayBody.querySelector('#downloadFailedRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
     if(GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='SHOP';b.onclick=openPermanentShop}
     if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
-    if(GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
+    if(recovery.undo&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
     const b=buttons[slot++]||overlayTertiary;setNewRunButton(b)
   }
 
@@ -241,7 +242,7 @@
     hint.textContent=view.hint;renderLog();
     const pending=s.pendingCircuit;circuitChoice.hidden=!pending;if(pending){hint.textContent='Choose one outlined tile to develop.';circuitChoice.textContent=`CIRCUIT CLOSED · ${pending.size} TILES · +${pending.reward} RANK${pending.reward===1?'':'S'} · CHOOSE A TILE`}
     if(auxOverlay){renderAuxOverlay();return}if(pending){hideOverlay();return}if(uiBusy){hideOverlay();return}if(s.shopOpen){s.shopType==='market'?showMarket():showShop();return}if(tutorial)return;
-    if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.needsReroll)showNoMoves();else if(s.blocked)showFailed();else hideOverlay()}
+    if(!s.running){const waiting=(s.cleared||s.blocked)&&performance.now()<outcomeOverlayNotBefore;if(waiting)hideOverlay();else if(s.cleared)showClear();else if(s.needsReroll){hideOverlay();autoResolveRequiredRerolls()}else if(s.blocked)showFailed();else hideOverlay()}
   }
 
   function center(c,r){const p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);return{x:(p.rect.minx+p.rect.maxx)/2/E.G*r.width,y:(p.rect.miny+p.rect.maxy)/2/E.H*r.height}}
@@ -344,6 +345,24 @@
   }
 
   async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}persistGame();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render()}
+
+  async function autoResolveRequiredRerolls(){
+    if(autoRerollTask||tutorial||uiBusy||GAME.state().pendingCircuit||!GAME.state().needsReroll)return autoRerollTask;
+    autoRerollTask=(async()=>{
+      uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);
+      const result=GAME.resolveRequiredRerolls();persistGame();
+      if(result.rerolls){
+        handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);
+        for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}
+        await wait(260)
+      }
+      handFx.fill('normal');uiBusy=false;
+      if(result.rerolls)toast(result.rerolls===1?'NO LEGAL MOVES · REROLL USED':`NO LEGAL MOVES · ${result.rerolls} REROLLS USED`);
+      if(GAME.state().blocked)armOutcomeDelay();render();
+      return result
+    })().finally(()=>{autoRerollTask=null});
+    return autoRerollTask
+  }
 
   function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${H.debugTelemetryText()}`}
   function renderLog(){
