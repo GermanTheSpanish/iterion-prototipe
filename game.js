@@ -75,16 +75,15 @@ function createGame(E,opts={}){
   }
   function fail(reason){s.blocked=true;s.needsReroll=false;s.failureReason=reason;s.roundZero.endHand=countZero(s.hand.filter(Boolean));s.events.push({type:'failure',round:s.round+1,roundTurn:s.roundTurn,reason,hand:s.hand.filter(Boolean).map(cloneTile)})}
   function assessContinuation(){
-    const alreadyWaiting=!!s.needsReroll;s.needsReroll=false;if(s.cleared)return;
-    if(s.roundTurn>=maxPlacements()){fail('placement-limit');return}
-    if(!s.hand.some(Boolean)&&!s.reserve.length){if(replenishPowerSet('continuation')){s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne())}else{fail('no-tiles');return}}
-    if(hasLegal()){s.blocked=false;s.failureReason=null;return}
-    if((s.freeReroll||0)+(s.consumables?.reroll||0)>0){
-      s.blocked=false;s.failureReason=null;s.needsReroll=true;
-      if(!alreadyWaiting)s.events.push({type:'recovery-needed',round:s.round+1,roundTurn:s.roundTurn,reason:'no-legal-moves',hand:s.hand.filter(Boolean).map(cloneTile)});
-      return
+    const autoRerolls=[];s.needsReroll=false;if(s.cleared)return{autoRerolls};
+    if(s.roundTurn>=maxPlacements()){fail('placement-limit');return{autoRerolls}}
+    if(!s.hand.some(Boolean)&&!s.reserve.length){if(replenishPowerSet('continuation')){s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne())}else{fail('no-tiles');return{autoRerolls}}}
+    if(hasLegal()){s.blocked=false;s.failureReason=null;return{autoRerolls}}
+    while(!hasLegal()&&((s.freeReroll||0)+(s.consumables?.reroll||0)>0)){
+      const used=performReroll(true);if(!used)break;autoRerolls.push(used)
     }
-    fail('no-legal-moves')
+    if(hasLegal()){s.blocked=false;s.failureReason=null;return{autoRerolls}}
+    fail('no-legal-moves');return{autoRerolls}
   }
 
   function rebuildPiece(old,dx,dy){
@@ -204,10 +203,10 @@ function createGame(E,opts={}){
       s.wins.push({round:s.round+1,target:target(),output:s.score,turn:s.turn,placements:s.roundTurn,reward,rewardBreakdown,upgradeCoins:s.roundUpgradeCoins,anchor:cloneTile(tile),upgradeTier:tile.upgrade||0,machineSize:s.pieces.length,setSize:s.set.length,setGeneration:s.setGeneration||1,zeros:{...s.roundZero}});
       if(!s.standardComplete&&s.round===cfg.TOTAL_ROUNDS-1){s.standardComplete=true;s.events.push({type:'run-complete',round:s.round+1,target:target(),output:s.score,coins:s.coins,inflation:s.inflation})}
       s.events.push({type:'coins',round:s.round+1,amount:reward,breakdown:rewardBreakdown,coins:s.coins});scheduleIntermission()
-    }else{const protection=ensureOpeningContinuation('draw');if(protection)s.events.push(protection);assessContinuation()}
+    }else{const protection=ensureOpeningContinuation('draw');if(protection)s.events.push(protection);var continuation=assessContinuation()}
     s.events.push({type:'circuit-resonance',round:s.round+1,move:s.turn,...resonance});
     discoverCircuit(tile.id);
-    s.running=false;return{ok:true,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,nextShopType:s.nextShopType,upgradeCoins,pendingCircuit:!!s.pendingCircuit,resonance}
+    s.running=false;return{ok:true,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,nextShopType:s.nextShopType,upgradeCoins,pendingCircuit:!!s.pendingCircuit,resonance,autoRerolls:continuation?.autoRerolls||[]}
   }
 
   function moveResonance(sim,trigger=0){return C.resonance(sim.output??trigger,sim.events,s.pieces,s.circuitRanks,cfg)}
@@ -229,15 +228,22 @@ function createGame(E,opts={}){
     return{ok:true,tileId,before,after}
   }
 
-  function canUseReroll(){return !s.pendingCircuit&&((s.freeReroll||0)+(s.consumables?.reroll||0)>0)&&!s.running&&!s.cleared&&!s.shopOpen&&s.failureReason!=='no-tiles'&&s.failureReason!=='placement-limit'}
-  function reroll(){
-    if(!canUseReroll())return{ok:false,reason:'state'};
+  function performReroll(automatic=false){
+    if((s.freeReroll||0)+(s.consumables?.reroll||0)<=0)return null;
     const source=(s.freeReroll||0)>0?'free':'stored';
     if(source==='free')s.freeReroll--;else s.consumables.reroll--;
-    s.undoFrame=null;s.blocked=false;s.failureReason=null;
+    s.undoFrame=null;s.blocked=false;s.failureReason=null;s.needsReroll=false;
     const old=s.hand.filter(Boolean);s.reserve.push(...old);sh(s.reserve);s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne());
-    const protection=ensureOpeningContinuation('reroll');s.needsReroll=false;s.events.push({type:'reroll',round:s.round+1,roundTurn:s.roundTurn,source,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,hand:s.hand.filter(Boolean).map(cloneTile)});if(protection)s.events.push(protection);
-    assessContinuation();return{ok:true,source,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason}
+    const protection=ensureOpeningContinuation(automatic?'auto-reroll':'reroll');
+    const record={type:'reroll',round:s.round+1,roundTurn:s.roundTurn,source,automatic:!!automatic,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,hand:s.hand.filter(Boolean).map(cloneTile)};
+    s.events.push(record);if(protection)s.events.push(protection);
+    return{source,automatic:!!automatic,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,hand:record.hand}
+  }
+  function canUseReroll(){return !s.pendingCircuit&&((s.freeReroll||0)+(s.consumables?.reroll||0)>0)&&!s.running&&!s.cleared&&!s.shopOpen&&!(s.blocked&&s.failureReason==='no-legal-moves')&&s.failureReason!=='no-tiles'&&s.failureReason!=='placement-limit'}
+  function reroll(){
+    if(!canUseReroll())return{ok:false,reason:'state'};
+    const used=performReroll(false),continuation=assessContinuation();
+    return{ok:true,...used,autoRerolls:continuation?.autoRerolls||[],blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason}
   }
   function canUseMove(){return !s.pendingCircuit&&(s.consumables?.move||0)>0&&!s.running&&!s.cleared&&!s.shopOpen&&!s.needsReroll&&(!s.blocked||s.failureReason==='placement-limit')}
   function useMove(){
@@ -247,7 +253,7 @@ function createGame(E,opts={}){
     s.events.push({type:'consume',round:s.round+1,roundTurn:s.roundTurn,item:'move',remaining:s.consumables.move,maxPlacements:maxPlacements()});
     return{ok:true,maxPlacements:maxPlacements(),remaining:s.consumables.move}
   }
-  function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.running&&!s.shopOpen}
+  function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.running&&!s.shopOpen&&!(s.blocked&&s.failureReason==='no-legal-moves')}
   function preserveShopTransactions(frame,current){
     const tail=(current.events||[]).slice((frame.events||[]).length);
     const keptTypes=new Set(['shop-open','shop-buy','tile-buy','shop-close']);
@@ -297,7 +303,7 @@ function createGame(E,opts={}){
   }
 
   function availableShopItems(){return M.all().filter(m=>m.kind==='consumable')}
-  function canOpenShop(){return !s.pendingCircuit&&!s.running&&!s.cleared&&!s.shopOpen}
+  function canOpenShop(){return !s.pendingCircuit&&!s.running&&!s.cleared&&!s.shopOpen&&!(s.blocked&&s.failureReason==='no-legal-moves')}
   function openShop(){
     if(!canOpenShop())return false;
     s.shopOpen=true;s.shopType='shop';s.shopOffers=availableShopItems().map(m=>m.id);
@@ -404,11 +410,11 @@ function createGame(E,opts={}){
   function status(){if(s.pendingCircuit)return'CIRCUIT CHOICE';if(s.endlessMode)return s.blocked?'ENDLESS FAILED':s.cleared?'ENDLESS CLEAR':'ENDLESS';return s.standardComplete&&s.cleared&&s.round===cfg.TOTAL_ROUNDS-1?'COMPLETE':s.blocked?'ROUND FAILED':'IN PROGRESS'}
 
   function recoveryOptions(){
-    const failure=s.needsReroll?'no-legal-moves':s.failureReason,shopAvailable=canOpenShop(),undo=canUndo();
-    const ownedReroll=canUseReroll(),ownedMove=failure==='placement-limit'&&canUseMove();
-    const shopReroll=shopAvailable&&s.coins>=shopItemPrice('reroll'),shopMove=shopAvailable&&s.coins>=shopItemPrice('move'),shopTile=shopAvailable&&s.coins>=shopRandomPrice();
-    const shopRescue=failure==='no-legal-moves'?shopReroll:failure==='placement-limit'?shopMove:failure==='no-tiles'?shopTile:false;
-    const recoverable=failure==='no-legal-moves'?(ownedReroll||undo||shopRescue):failure==='placement-limit'?(ownedMove||undo||shopRescue):failure==='no-tiles'?(undo||shopRescue):undo;
+    const failure=s.failureReason,terminalNoLegal=failure==='no-legal-moves',shopAvailable=canOpenShop(),undo=canUndo();
+    const ownedReroll=terminalNoLegal?false:canUseReroll(),ownedMove=failure==='placement-limit'&&canUseMove();
+    const shopReroll=!terminalNoLegal&&shopAvailable&&s.coins>=shopItemPrice('reroll'),shopMove=shopAvailable&&s.coins>=shopItemPrice('move'),shopTile=shopAvailable&&s.coins>=shopRandomPrice();
+    const shopRescue=failure==='placement-limit'?shopMove:failure==='no-tiles'?shopTile:false;
+    const recoverable=terminalNoLegal?false:failure==='placement-limit'?(ownedMove||undo||shopRescue):failure==='no-tiles'?(undo||shopRescue):undo;
     return{recoverable,undo,ownedReroll,ownedMove,shopAvailable,shopRescue,shopReroll,shopMove,shopTile,prices:{reroll:shopItemPrice('reroll'),move:shopItemPrice('move'),randomTile:shopRandomPrice()}}
   }
 
@@ -435,7 +441,7 @@ function createGame(E,opts={}){
       if(v.type==='circuit-closed'){lines.push(`R${v.round} CIRCUIT CLOSED size=${v.size} reward=+${v.reward} limit=${v.circuitTileLimit||cfg.CIRCUIT_TILE_LIMIT} signature=${v.signature} eligible=${v.eligibleTileIds.join(',')||'-'} unavailable=${v.unavailable||'no'}`);continue}
       if(v.type==='circuit-upgrade'){lines.push(`R${v.round} CIRCUIT UPGRADE [${v.tile?.a}|${v.tile?.b}] id=${v.tileId} rank=${v.before}>${v.after} signature=${v.signature}`);continue}
       if(v.type==='circuit-resonance'){lines.push(`T${v.move} CIRCUIT(active=${v.active.map(t=>`${t.tileId}:C${t.rank}`).join(',')||'-'} resonance=+${v.bonus*100}% x${v.multiplier} base=${v.baseOutput} final=${v.output} safeInteger=${v.safeInteger})`);continue}
-      if(v.type==='reroll'){lines.push(`R${v.round} REROLL source=${v.source||'stored'} after move ${v.roundTurn} stored=${v.remaining} free=${v.freeRemaining??0} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
+      if(v.type==='reroll'){lines.push(`R${v.round} ${v.automatic?'AUTO REROLL':'REROLL'} source=${v.source||'stored'} after move ${v.roundTurn} stored=${v.remaining} free=${v.freeRemaining??0} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
       if(v.type==='opening-protection'){lines.push(`R1 OPENING PROTECTION ${v.source} -> [${v.tile.a}|${v.tile.b}]${v.replaced?` swapped=[${v.replaced.a}|${v.replaced.b}]`:''}`);continue}
       if(v.type==='consume'){lines.push(`R${v.round} USE ${v.item.toUpperCase()} after move ${v.roundTurn} remaining=${v.remaining}${v.maxPlacements?` maxMoves=${v.maxPlacements}`:''}`);continue}
       if(v.type==='undo'){lines.push(`R${v.round} UNDO after move ${v.roundTurn} remaining=${v.remaining}${v.undone?` reverted=T${v.undone.turn} [${v.undone.tile.a}|${v.undone.tile.b}] output=${v.undone.output}`:''}${v.preservedPurchases?` preservedShop=${v.preservedPurchases} spend=${v.preservedSpend}`:''}${v.coinShortfall?` fundingShortfall=${v.coinShortfall}`:''}`);continue}
@@ -470,7 +476,9 @@ function createGame(E,opts={}){
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
     s=deepClone(raw);const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
-    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});return true
+    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});
+    if(!s.running&&!s.cleared&&!s.shopOpen&&(s.needsReroll||(s.blocked&&s.failureReason==='no-legal-moves'&&((s.freeReroll||0)+(s.consumables?.reroll||0)>0))))assessContinuation();
+    return true
   }
   fresh(opts.seed);
   return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,shopItemPrice,shopRandomPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,openIntermission,buyMarketMod,buyDoubleDouble,closeMarket,resolveIntermission}
