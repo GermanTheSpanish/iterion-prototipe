@@ -9,7 +9,7 @@ assert.match(index,/<span class="wordmark">MONOID<\/span>/);
 assert.match(index,/ui-theme\.css\?v=20260918\.4/);
 assert.doesNotMatch(index,/ux-pass\.css/);
 assert.strictEqual(fs.existsSync(path.join(root,'ux-pass.css')),false);
-assert.match(index,/tutorial-controller\.js\?v=entry-0311/);assert.match(index,/tutorial-controller\.js\?v=entry-0311[\s\S]*ux-pass\.js\?v=entry-0311/);
+assert.match(index,/tutorial-controller\.js\?v=entry-0320/);assert.match(index,/tutorial-controller\.js\?v=entry-0320[\s\S]*ux-pass\.js\?v=entry-0320/);
 assert.match(index,/id="systemsTutorial"/);
 assert.match(index,/LEARN BASICS · 2 MIN/);
 assert.match(index,/SYSTEMS TUTORIAL · 3 MIN/);
