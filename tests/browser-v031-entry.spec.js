@@ -75,7 +75,7 @@ test('Basics tutorial completes seven real legal placements and can retry',async
   await placeTutorialTile(page,'6/6');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');await placeTutorialTile(page,null);expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(6);
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await placeTutorialTile(page,null);
-  await expect(page.locator('#overlayTitle')).toHaveText('SHOP');await expect(page.locator('#overlayBody')).toContainText('real Shop');await expect(page.locator('#overlayBody')).toContainText('Market appears only between stages');await expect(page.locator('#nextGameMechanics')).toBeVisible();
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');await expect(page.locator('#overlayBody')).toContainText('real Tile Shop');await expect(page.locator('#overlayBody')).toContainText('Market appears only between stages');await expect(page.locator('#nextGameMechanics')).toBeVisible();
   expect(await page.evaluate(()=>{const s=window.__monoidGame.snapshot();return s.board.length===7&&s.shop.open})).toBe(true);
   await page.locator('#overlaySecondary').click();await finishTutorialTour(page);await expect(page.locator('#tutorialStep')).toContainText('1/6');
   await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
