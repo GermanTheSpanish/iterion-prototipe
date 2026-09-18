@@ -31,7 +31,7 @@ assert.match(ux,/POWER/);
 assert.match(ux,/MACHINE EVOLUTION/);
 assert.match(controller,/primeSystemsGame/);
 assert.match(controller,/g2-d1-2/);
-assert.match(ux,/Adds one new physical domino to your set/);
+assert.match(ux,/title==='TILE SHOP'/,'UX pass must recognize the Tile Shop without restoring legacy Shop tool copy');assert.doesNotMatch(ux,/Stored until you use them\. Each round already gives one free Reroll\./);
 assert.match(controller,/game\.candidatesForIndex=function\(i\)\{if\(i!==0\)return\[\];return candidates\(i\)\}/,'Basics must expose every canonical legal candidate for the guided tile');
 assert.doesNotMatch(controller,/return list\.filter\(c=>c\.x===/,'Basics must not force a hidden tutorial coordinate');
 assert.doesNotMatch(ux,/IterionGame\.createGame\s*=|IterionEngine\.bestSignal\s*=|game\.finishPlacement\s*=function|game\.openShop\s*=function|game\.candidatesForIndex\s*=function/,'UX presentation layer must not own tutorial gameplay patches');
