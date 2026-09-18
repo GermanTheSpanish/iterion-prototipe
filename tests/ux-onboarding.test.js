@@ -1,11 +1,11 @@
 const fs=require('fs'),path=require('path'),assert=require('assert');
 const root=path.join(__dirname,'..');
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
-const css=fs.readFileSync(path.join(root,'ux-pass.css'),'utf8');
+const css=fs.readFileSync(path.join(root,'ui-theme.css'),'utf8');
 const ux=fs.readFileSync(path.join(root,'ux-pass.js'),'utf8');
 assert.match(index,/<title>MONOID<\/title>/);
 assert.match(index,/<span class="wordmark">MONOID<\/span>/);
-assert.match(index,/ux-pass\.css\?v=entry-0311/);
+assert.match(index,/ui-theme\.css\?v=20260918\.4/);\nassert.doesNotMatch(index,/ux-pass\.css/);\nassert.strictEqual(fs.existsSync(path.join(root,'ux-pass.css')),false);
 assert.match(index,/ux-pass\.js\?v=entry-0311/);
 assert.match(index,/id="systemsTutorial"/);
 assert.match(index,/LEARN BASICS · 2 MIN/);
