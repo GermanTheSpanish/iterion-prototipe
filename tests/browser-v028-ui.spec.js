@@ -30,7 +30,7 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','star1');
   await page.locator('#menuButton').click();await expect(page.locator('#copyrun')).toHaveText('Share debug .txt');await page.locator('#copyrun').click();
   await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^MONOID_DEBUG_v0\.33\.0_.+\.txt$/);
-  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.title).toBe('MONOID DEBUG');expect(shared.text).toContain('MONOID DEBUG v0.32.0');expect(shared.text).toContain('Run ID:');
+  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.title).toBe('MONOID DEBUG');expect(shared.text).toContain('MONOID DEBUG v0.33.0');expect(shared.text).toContain('Run ID:');
   await page.screenshot({path:testInfo.outputPath('score-progress-share.png'),fullPage:true});
 });
 
