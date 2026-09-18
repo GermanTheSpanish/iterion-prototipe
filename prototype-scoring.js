@@ -43,7 +43,7 @@
     let main=state(initialOutput),echo=null,echoActivated=false;
 
     for(const raw of result.events){
-      if(raw.type==='op'||raw.type==='zero-memory'){
+      if(raw.type==='op'){
         const applied=applyTerm(main,raw);main=applied.state;events.push(applied.event);continue
       }
       if(raw.type==='signal-fork'){
