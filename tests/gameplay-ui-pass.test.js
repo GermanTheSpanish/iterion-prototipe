@@ -1,8 +1,11 @@
 const fs=require('fs'),assert=require('assert');
 const path=require('path');
 const src=fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'utf8');
+const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.strictEqual(fs.existsSync(path.join(__dirname,'..','ui-phase-a.js')),false,'Phase A must be consolidated into the runtime UI layer');
 assert(src.includes('function installPhaseA()'),'runtime UI layer must own the consolidated Phase A installer');
+assert(ui.includes('V.hudViewModel('),'gameplay HUD must consume the presentation view model');
+assert(ui.includes('V.tileViewModel('),'tile rendering must consume the presentation view model');
 assert(src.includes('aspect-ratio:3 / 4!important'),'board must preserve canonical 3:4 geometry');
 for(const side of ['top','right','bottom','left'])assert(src.includes(`'${side}'`),`missing ${side} board marker`);
 assert(src.includes('left:50%;width:1px;height:10px;transform:translateX(-50%)'),'top/bottom marks must be mathematically centred');
