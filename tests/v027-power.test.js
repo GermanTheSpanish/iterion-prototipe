@@ -85,7 +85,7 @@ for(const power of [1,2,3,4])check(`initial trigger remains printed sum at x${po
   const g=G.createGame(E,{seed:27,TARGETS:Array(15).fill(1e12)}),s=g.state();let i=s.hand.findIndex(t=>t?.a===t?.b);s.hand[i].powerMultiplier=power;const t=s.hand[i],ctx=g.beginPlacement(i,g.candidatesForIndex(i)[0]);assert(ctx.ok);assert.equal(ctx.trigger,t.a+t.b);assert.equal(ctx.sim.output,t.a+t.b);
 });
 check('free Reroll refresh and stored purchases preserve coins and Inflation',()=>{
-  const g=stateGame(),s=g.state();s.coins=50;g.openShop();g.buyShopItem('reroll');g.closeShop();const money=[s.coins,s.inflation];assert.equal(g.reroll().source,'free');assert.deepEqual([s.coins,s.inflation],money);assert.equal(s.consumables.reroll,1);
+  const g=stateGame(),s=g.state();s.coins=50;s.freeReroll=0;assert(g.buyTool('reroll',1).ok);s.freeReroll=1;const money=[s.coins,s.inflation];assert.equal(g.reroll().source,'free');assert.deepEqual([s.coins,s.inflation],money);assert.equal(s.consumables.reroll,1);
   for(let round=0;round<18;round++){s.round=round;s.endlessMode=round>=14;s.cleared=true;s.shopOpen=false;s.intermissionResolved=true;assert(g.advance());assert.equal(s.freeReroll,1);assert.equal(s.consumables.reroll,1)}
 });
 check('long physical route with POWER and Echo pays Stars and Resonance once',()=>{
