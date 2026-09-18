@@ -50,7 +50,7 @@ check('straight Echo and zero double retain selected topology at every POWER lev
 // State-machine boundary fixtures deliberately isolate supply from board search.
 // Geometry, matching and routing above use the real engine and legal placements.
 const stateEngine={...E,hasLegalMove:()=>true};
-function stateGame(){return G.createGame(stateEngine,{seed:2701,TARGETS:Array(15).fill(1e12)})}
+function stateGame(){return G.createGame(stateEngine,{seed:2701,TARGETS:Array(15).fill(1e12),FIRST_TILE_MUST_BE_DOUBLE:false})}
 function consumeSupply(g){const s=g.state();s.placedTileIds=s.set.map(t=>t.id);s.hand=Array(5).fill(null);s.reserve=[];s.cleared=false;s.roundTurn=0;g.assessContinuation()}
 function uniqueLocations(s){const ids=[...s.placedTileIds,...s.hand.filter(Boolean).map(t=>t.id),...s.reserve.map(t=>t.id)];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,s.set.length);assert.equal(new Set(s.set.map(t=>t.id)).size,s.set.length)}
 check('complete sets I through VII, capped POWER, unique IDs and deterministic draws',()=>{
@@ -79,7 +79,7 @@ check('paid POWER purchase survives Undo across unlock, with coherent metadata',
   const g=lastTileGame(),ctx=g.beginPlacement(0,{x:10,y:8,rr:0});g.finishPlacement(ctx);assert(g.openShop());const r=g.buyShopRandomTile();g.closeShop();assert.equal(r.tile.powerMultiplier,3);assert(g.useUndo().ok);const s=g.state();assert.deepEqual(s.set.find(t=>t.id===r.tile.id),r.tile);assert.equal(s.coins,100-r.cost);assert.equal(s.inflation,1);uniqueLocations(s);
 });
 check('purchase before a POWER placement stays owned after its Undo',()=>{
-  const g=lastTileGame();g.finishPlacement(g.beginPlacement(0,{x:10,y:8,rr:0}));g.openShop();const r=g.buyShopRandomTile();g.closeShop();assert(g.reroll().ok);const s=g.state(),before=clone(s);let ctx;for(let i=0;i<5&&!ctx;i++){const c=g.candidatesForIndex(i)[0];if(c)ctx=g.beginPlacement(i,c)}assert(ctx?.ok);g.finishPlacement(ctx);assert(g.useUndo().ok);assert.deepEqual(g.state().set.find(t=>t.id===r.tile.id),r.tile);assert.equal(g.state().coins,before.coins);assert.equal(g.state().inflation,before.inflation);uniqueLocations(g.state());
+  const g=lastTileGame();g.finishPlacement(g.beginPlacement(0,{x:10,y:8,rr:0}));g.openShop();const r=g.buyShopRandomTile();g.closeShop();const s=g.state();assert(s.events.some(e=>e.type==='reroll'&&e.automatic),'the exhausted placement should already have resolved its blocked hand automatically');const before=clone(s);let ctx;for(let i=0;i<5&&!ctx;i++){const c=g.candidatesForIndex(i)[0];if(c)ctx=g.beginPlacement(i,c)}assert(ctx?.ok);g.finishPlacement(ctx);assert(g.useUndo().ok);assert.deepEqual(g.state().set.find(t=>t.id===r.tile.id),r.tile);assert.equal(g.state().coins,before.coins);assert.equal(g.state().inflation,before.inflation);uniqueLocations(g.state());
 });
 for(const power of [1,2,3,4])check(`initial trigger remains printed sum at x${power}`,()=>{
   const g=G.createGame(E,{seed:27,TARGETS:Array(15).fill(1e12)}),s=g.state();let i=s.hand.findIndex(t=>t?.a===t?.b);s.hand[i].powerMultiplier=power;const t=s.hand[i],ctx=g.beginPlacement(i,g.candidatesForIndex(i)[0]);assert(ctx.ok);assert.equal(ctx.trigger,t.a+t.b);assert.equal(ctx.sim.output,t.a+t.b);
