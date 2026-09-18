@@ -93,10 +93,10 @@ function clearNext(game){
   s.pieces=[E.pieceFrom(double,4,0,0,0,1),E.pieceFrom(zero,8,0,0,2,2)];
   s.pieces[0].tile={...double};s.pieces[1].tile={...zero};s.placedTileIds=[double.id,zero.id];
   s.hand=Array(D.HAND_SIZE).fill(null);s.reserve=s.set.filter(t=>!s.placedTileIds.includes(t.id));
-  s.mods=['long-run'];s.doubleDoubleTileId=double.id;s.doubleEchoTileId=double.id;s.zeroMemoryTileId=zero.id;
+  s.mods=['long-run'];s.doubleDoubleTileId=double.id;s.doubleEchoTileId=double.id;s.zeroPortTileIds=[zero.id];
   const before=g.snapshot();assert(g.startEndless());assert(g.closeMarket());assert(g.advance());
   const after=g.snapshot();
-  for(const key of ['board','set','mods','doubleDoubleTileId','doubleEchoTileId','zeroMemoryTileId'])assert.deepStrictEqual(after[key],before[key],key+' survives Endless');
+  for(const key of ['board','set','mods','doubleDoubleTileId','doubleEchoTileId','zeroPortTileIds'])assert.deepStrictEqual(after[key],before[key],key+' survives Endless');
   physicalIds(g);
 }
 console.log('v0.24 Endless progression, identity, Market and victory regression tests passed');
