@@ -41,7 +41,7 @@ function commitMove(move){
 }
 function recoverIfNeeded(){
   const s=game.state();
-  if(s.needsReroll){assert.strictEqual(game.canUseReroll(),true,'no-legal state must remain recoverable by the granted reroll');const result=game.reroll();assert.strictEqual(result.ok,true);return true}
+  if(s.needsReroll){assert.strictEqual(game.canUseReroll(),true,'no-legal state must remain recoverable by the granted reroll');const result=game.resolveRequiredRerolls();assert.strictEqual(result.ok,true);return true}
   if(s.blocked&&s.failureReason==='placement-limit'&&game.canUseMove()){const result=game.useMove();assert.strictEqual(result.ok,true);return true}
   return false
 }
