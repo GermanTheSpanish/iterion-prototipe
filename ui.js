@@ -185,7 +185,7 @@
   }
   function renderAuxOverlay(){
     if(!auxOverlay)return;resetOverlay();overlay.classList.add('aux');modalEl.classList.add('auxModal');overlay.onclick=e=>{if(e.target===overlay)closeAuxOverlay()};
-    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else renderInspector();
+    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else renderInspector();
     if(!overlay.contains(document.activeElement)){if(!returnFocus)returnFocus=document.activeElement;overlayPrimary.focus()}
   }
 
