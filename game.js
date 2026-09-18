@@ -79,7 +79,7 @@ function createGame(E,opts={}){
     if(!canUseReroll())return{ok:false,reason:'state'};
     const source=(s.freeReroll||0)>0?'free':'stored';
     if(source==='free')s.freeReroll--;else s.consumables.reroll--;
-    s.undoFrame=null;s.blocked=false;s.failureReason=null;s.needsReroll=false;
+    if(!automatic)s.undoFrame=null;s.blocked=false;s.failureReason=null;s.needsReroll=false;
     const old=s.hand.filter(Boolean);s.reserve.push(...old);sh(s.reserve);s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne());
     const protection=ensureOpeningContinuation('reroll');
     s.events.push({type:'reroll',round:s.round+1,roundTurn:s.roundTurn,source,automatic:!!automatic,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,hand:s.hand.filter(Boolean).map(cloneTile)});if(protection)s.events.push(protection);
