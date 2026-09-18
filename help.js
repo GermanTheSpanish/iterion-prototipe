@@ -73,18 +73,26 @@
   }
 
   function resolveTile(state,tileId){return(state?.set||[]).find(t=>t.id===tileId)||null}
-  function tileModifiers(state,tile){
+  function tileModifierIds(state,tileId){
     const ids=[];
-    if(state.doubleDoubleTileId===tile.id)ids.push('double-double');
-    if(state.doubleEchoTileId===tile.id)ids.push('double-echo');
-    if(state.zeroMemoryTileId===tile.id)ids.push('zero-memory');
-    return ids.map(id=>M.get(id)).filter(Boolean).map(mod=>Object.freeze({id:mod.id,displayName:mod.displayName||mod.name,shortDescription:mod.shortDescription||mod.description,rulesDescription:mod.rulesDescription||mod.description,kind:mod.kind}))
+    if(state.doubleDoubleTileId===tileId)ids.push('double-double');
+    if(state.doubleEchoTileId===tileId)ids.push('double-echo');
+    if((state.zeroPortTileIds||[]).includes(tileId))ids.push('zero-port');
+    if(state.parityExchangeTileId===tileId)ids.push('parity-exchange');
+    if(state.cornerTileId===tileId)ids.push('corner');
+    if(state.longLineTileId===tileId)ids.push('long-line');
+    if(state.overloadTileId===tileId)ids.push('overload');
+    if(state.terminalTileId===tileId)ids.push('terminal');
+    return ids
+  }
+  function tileModifiers(state,tile){
+    return tileModifierIds(state,tile.id).map(id=>M.get(id)).filter(Boolean).map(mod=>Object.freeze({id:mod.id,displayName:mod.displayName||mod.name,shortDescription:mod.shortDescription||mod.description,rulesDescription:mod.rulesDescription||mod.description,kind:mod.kind}))
   }
   function machineModifiers(state){return(state.mods||[]).map(id=>M.get(id)).filter(Boolean).map(mod=>Object.freeze({id:mod.id,displayName:mod.displayName||mod.name,shortDescription:mod.shortDescription||mod.description,rulesDescription:mod.rulesDescription||mod.description,kind:mod.kind}))}
   function tileRecord(state,tileId,tier){
     const turns=(state.events||[]).filter(e=>Number.isInteger(e.turn)&&Number.isFinite(Number(e.output))&&(e.tile?.id===tileId||(e.activatedTileIds||[]).includes(tileId)));
     const bestOutput=turns.reduce((best,e)=>best==null||Number(e.output)>best?Number(e.output):best,null);
-    return Object.freeze({upgradeTier:tier,starCoins:tier,bestOutput,activations:turns.length,doubleDoubleActive:state.doubleDoubleTileId===tileId,doubleEchoActive:state.doubleEchoTileId===tileId,zeroMemoryActive:state.zeroMemoryTileId===tileId,longRunOwned:(state.mods||[]).includes('long-run')})
+    return Object.freeze({upgradeTier:tier,starCoins:tier,bestOutput,activations:turns.length,modifierIds:Object.freeze(tileModifierIds(state,tileId)),doubleDoubleActive:state.doubleDoubleTileId===tileId,doubleEchoActive:state.doubleEchoTileId===tileId,zeroPortActive:(state.zeroPortTileIds||[]).includes(tileId),longRunOwned:(state.mods||[]).includes('long-run')})
   }
   function inspectTile(state,tileId){
     const tile=resolveTile(state,tileId);if(!tile)return null;
