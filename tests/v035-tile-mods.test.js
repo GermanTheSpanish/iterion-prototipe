@@ -9,9 +9,9 @@ function fakeMarket(g,id){
 }
 E.setBoardSize(30,40);
 
-check('registry exposes eight targeted tile Mods and removes Zero Memory',()=>{
+check('registry exposes nine targeted tile Mods and removes Zero Memory',()=>{
   const tileMods=M.all().filter(m=>m.kind==='market-tile-mod').map(m=>m.id).sort();
-  assert.deepEqual(tileMods,['corner','double-double','double-echo','long-line','overload','parity-exchange','terminal','zero-port']);
+  assert.deepEqual(tileMods,['corner','double-double','double-echo','long-line','overload','parity-exchange','terminal','triple-double','zero-port']);
   assert.equal(M.get('zero-memory'),null);
   assert.equal(D.MARKET_ZERO_MEMORY_COST,undefined);
 });
@@ -26,12 +26,13 @@ check('Market purchase closes before exact player assignment',()=>{
   assert.equal(s.inflation,1);assert.equal(s.coins,92);
 });
 
-check('DD and DE remain exclusive while ordinary tile Mods are explicitly targeted',()=>{
-  const g=G.createGame(E,{seed:3502,STARTING_COINS:100}),s=g.state(),ids=['d3-3','d5-5','d2-4'];
-  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.doubleDoubleTileId='d3-3';
-  fakeMarket(g,'corner');const info=g.marketOfferInfo('corner');assert(!info.targetTiles.some(t=>t.id==='d3-3'));
-  const r=g.buyMarketMod('corner');assert(r.ok);assert(g.chooseMarketModTile('d2-4').ok);assert.equal(s.cornerTileId,'d2-4');
-  fakeMarket(g,'double-echo');assert(!g.marketOfferInfo('double-echo').targetTiles.some(t=>t.id==='d3-3'));
+check('one physical tile can hold only one Tile Mod',()=>{
+  const g=G.createGame(E,{seed:3502,STARTING_COINS:100}),s=g.state(),ids=['d3-3','d5-5','d2-4','d0-3'];
+  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.doubleDoubleTileId='d3-3';s.parityExchangeTileId='d2-4';s.terminalTileId='d0-3';
+  fakeMarket(g,'corner');const info=g.marketOfferInfo('corner');assert(!info.targetTiles.some(t=>['d3-3','d2-4','d0-3'].includes(t.id)));assert(info.targetTiles.some(t=>t.id==='d5-5'));
+  const r=g.buyMarketMod('corner');assert(r.ok);assert(g.chooseMarketModTile('d5-5').ok);assert.equal(s.cornerTileId,'d5-5');
+  fakeMarket(g,'triple-double');assert.equal(g.marketOfferInfo('triple-double').targetCount,0);
+  fakeMarket(g,'zero-port');assert(!g.marketOfferInfo('zero-port').targetTiles.some(t=>t.id==='d0-3'));
 });
 
 check('Zero Port builds a pair then relocates exactly one chosen endpoint',()=>{
@@ -68,16 +69,23 @@ check('Parity Exchange swaps operation families without changing printed value',
   const odd=replay([op(1,3)],ps,mods);assert.equal(odd.events[0].op,'add');assert.equal(odd.events[0].add,3);assert.equal(odd.output,8);
 });
 
-check('Corner gives x2 operation magnitude only on a 90 degree routed turn',()=>{
-  const ps=[piece(3,3,6,8,0,1)],mods=new Map([[1,new Set(['corner'])]]);
-  const turn=replay([op(1,3,'L','D')],ps,mods),straight=replay([op(1,3,'L','R')],ps,mods);
-  assert.equal(turn.events[0].modMultiplier,2);assert.equal(turn.output,30);assert.equal(straight.events[0].modMultiplier,1);assert.equal(straight.output,15);
+check('Corner is x3 for exactly two perpendicular physical neighbours regardless of routed turn',()=>{
+  const elbow=[piece(3,4,6,8,0,1),piece(5,3,2,8,0,2),piece(4,2,8,10,1,3)],mods=new Map([[1,new Set(['corner'])]]);
+  const active=replay([op(1,3,'L','R')],elbow,mods);assert.equal(active.events[0].connectionCount,2);assert.equal(active.events[0].corner,true);assert.equal(active.events[0].modMultiplier,3);assert.equal(active.output,45);
+  const three=[...elbow,piece(4,6,10,8,0,4)],inactive=replay([op(1,3,'L','D')],three,mods);assert.equal(inactive.events[0].connectionCount,3);assert.equal(inactive.events[0].corner,false);assert.equal(inactive.events[0].modMultiplier,1);
 });
 
-check('Long Line gives x2 at three straight traversals and x3 from five',()=>{
-  const ps=[1,2,3,4,5].map((id,i)=>piece(2,2,2+i*4,20,0,id)),events=[1,2,3,4,5].map(id=>op(id,2));
-  const at3=replay(events,ps,new Map([[3,new Set(['long-line'])]]),0),at5=replay(events,ps,new Map([[5,new Set(['long-line'])]]),0);
-  assert.equal(at3.events.find(e=>e.piece===3).modMultiplier,2);assert.equal(at5.events.find(e=>e.piece===5).modMultiplier,3);
+check('Long Line reads the physical straight chain instead of route history',()=>{
+  const line3=[1,2,3].map((id,i)=>piece(2,2,2+i*4,20,0,id)),line5=[1,2,3,4,5].map((id,i)=>piece(2,2,2+i*4,20,0,id));
+  const at3=replay([op(2,2,'L','D')],line3,new Map([[2,new Set(['long-line'])]]),0),at5=replay([op(3,2,'U','R')],line5,new Map([[3,new Set(['long-line'])]]),0);
+  assert.equal(at3.events[0].straightLineLength,3);assert.equal(at3.events[0].modMultiplier,2);assert.equal(at5.events[0].straightLineLength,5);assert.equal(at5.events[0].modMultiplier,3);
+});
+
+check('Triple Double forks a complete non-zero double cross through the other three exits once',()=>{
+  const cross=[piece(3,3,6,8,0,1),piece(5,3,2,8,0,2),piece(3,4,10,8,0,3),piece(3,2,7,10,1,4),piece(2,3,7,4,1,5)];
+  const active=E.bestSignal(4,cross,{initialOutput:5,bifurcate:true,tripleDoublePieceId:1});
+  assert.equal(active.events.filter(e=>e.type==='signal-fork'&&e.piece===1&&e.splitKind==='triple-double').length,1);assert.equal(active.events.filter(e=>e.type==='signal-start'&&e.fork===1).length,3);
+  const incomplete=E.bestSignal(4,cross.slice(0,4),{initialOutput:5,bifurcate:true,tripleDoublePieceId:1});assert(!incomplete.events.some(e=>e.type==='signal-fork'&&e.splitKind==='triple-double'));
 });
 
 check('Overload uses physical neighbour count and a cross double reaches x4',()=>{
@@ -94,11 +102,11 @@ check('Terminal is x3 with exactly one physical neighbour and inactive otherwise
 });
 
 check('snapshot and restore persist physical Mod assignments and pending targeting',()=>{
-  const g=G.createGame(E,{seed:3504,STARTING_COINS:100}),s=g.state(),ids=['d0-2','d3-3','d2-4'];
-  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.cornerTileId='d2-4';s.zeroPortTileIds=['d0-2'];s.pendingModPlacement={mod:'terminal',stage:'target',eligibleTileIds:['d2-4'],sourceTileId:null,previousTileId:null,recordIndex:0};
+  const g=G.createGame(E,{seed:3504,STARTING_COINS:100}),s=g.state(),ids=['d0-2','d3-3','d2-4','d4-5'];
+  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.cornerTileId='d2-4';s.tripleDoubleTileId='d3-3';s.zeroPortTileIds=['d0-2'];s.pendingModPlacement={mod:'terminal',stage:'target',eligibleTileIds:['d4-5'],sourceTileId:null,previousTileId:null,recordIndex:0};
   const exported=g.exportState(),restored=G.createGame(E,{seed:99});assert(restored.restoreState(exported));
-  assert.equal(restored.state().cornerTileId,'d2-4');assert.deepEqual(restored.state().zeroPortTileIds,['d0-2']);assert.deepEqual(restored.state().pendingModPlacement,s.pendingModPlacement);
-  assert(restored.snapshot().board.find(p=>p.tileId==='d2-4').modifiers.includes('corner'));assert.match(restored.debugText(),/ZP=d0-2/);assert.doesNotMatch(restored.debugText(),/ZM=/);
+  assert.equal(restored.state().cornerTileId,'d2-4');assert.equal(restored.state().tripleDoubleTileId,'d3-3');assert.deepEqual(restored.state().zeroPortTileIds,['d0-2']);assert.deepEqual(restored.state().pendingModPlacement,s.pendingModPlacement);
+  assert(restored.snapshot().board.find(p=>p.tileId==='d2-4').modifiers.includes('corner'));assert(restored.snapshot().board.find(p=>p.tileId==='d3-3').modifiers.includes('triple-double'));assert.match(restored.debugText(),/TD=d3-3/);assert.match(restored.debugText(),/ZP=d0-2/);assert.doesNotMatch(restored.debugText(),/ZM=/);
 });
 
-console.log(`${checks} MONOID tile Mod checks passed`);
+console.log(`${checks} MONOID topology Tile Mod checks passed`);

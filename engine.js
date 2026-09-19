@@ -32,7 +32,17 @@
   const connectionKey=c=>`${c.toPieceId}:${c.toHalf}:${c.fromSide}>${c.toSide}`;
   const oppositeSides=(a,b)=>!!a&&!!b&&((a==='L'&&b==='R')||(a==='R'&&b==='L')||(a==='U'&&b==='D')||(a==='D'&&b==='U'));
   const perpendicularSides=(a,b)=>!!a&&!!b&&!oppositeSides(a,b)&&a!==b;
-  function uniqueConnectionCount(piece,pieces){return new Set(connectionsForPiece(piece,pieces).map(c=>c.toPieceId)).size}
+  const oppositeSide=side=>side==='L'?'R':side==='R'?'L':side==='U'?'D':side==='D'?'U':null;
+  function uniquePhysicalConnections(piece,pieces){const byPiece=new Map();for(const c of connectionsForPiece(piece,pieces))if(!byPiece.has(c.toPieceId))byPiece.set(c.toPieceId,c);return[...byPiece.values()]}
+  function uniqueConnectionCount(piece,pieces){return uniquePhysicalConnections(piece,pieces).length}
+  function isCornerTopology(piece,pieces){const conns=uniquePhysicalConnections(piece,pieces);return conns.length===2&&perpendicularSides(conns[0].fromSide,conns[1].fromSide)}
+  function straightLineLength(piece,pieces){
+    const origin=uniquePhysicalConnections(piece,pieces);if(origin.length!==2||!oppositeSides(origin[0].fromSide,origin[1].fromSide))return 0;
+    const visited=new Set([piece.id]);let total=1;
+    for(const first of origin){let current=pieceById(pieces,first.toPieceId),incoming=first.toSide;while(current&&!visited.has(current.id)){visited.add(current.id);total++;const exit=oppositeSide(incoming);if(!exit)break;const next=uniquePhysicalConnections(current,pieces).filter(c=>c.fromSide===exit&&!visited.has(c.toPieceId));if(next.length!==1)break;incoming=next[0].toSide;current=pieceById(pieces,next[0].toPieceId)}}
+    return total
+  }
+  function isFullCross(piece,pieces){const conns=uniquePhysicalConnections(piece,pieces);return!!piece?.double&&piece.tile?.a>0&&conns.length===4&&new Set(conns.map(c=>c.fromSide)).size===4}
   function applyOp(v,isDouble,state,doubleDouble=false,powerMultiplier=1){
     const before=state.output||0,power=Math.max(1,Number(powerMultiplier)||1);
     if(v===0)return{type:'zero',before,after:before,delta:0,doubleDouble:false,powerMultiplier:power};
@@ -49,25 +59,25 @@
   function replaySelectedScoring(result,initialOutput,opts={}){
     const powers=opts.powerByPiece||new Map(),pieces=opts.pieces||[],modsByPiece=opts.modIdsByPiece||new Map(),powered=[...powers.values()].some(p=>p>1),modified=[...modsByPiece.values()].some(v=>v&&v.size);
     if(!powered&&!modified)return result;
-    let output=initialOutput,lineRun=0;const events=[],forks=new Map();
+    let output=initialOutput;const events=[],forks=new Map();
     const pieceMap=new Map(pieces.map(p=>[p.id,p]));
     for(const raw of result.events||[]){
-      if(raw.type==='signal-fork'){forks.set(raw.piece,{output,lineRun,results:[]});events.push({...raw,output});continue}
-      if(raw.type==='signal-start'){const fork=forks.get(raw.fork);output=fork.output;lineRun=fork.lineRun;events.push({...raw,output});continue}
-      if(raw.type==='signal-end'){const fork=forks.get(raw.fork);fork.results.push({output,lineRun});events.push({...raw,output});continue}
-      if(raw.type==='signal-join'){const fork=forks.get(raw.piece);output=fork.results.reduce((a,b)=>a+b.output,0);lineRun=0;events.push({...raw,output});forks.delete(raw.piece);continue}
+      if(raw.type==='signal-fork'){forks.set(raw.piece,{output,results:[]});events.push({...raw,output});continue}
+      if(raw.type==='signal-start'){const fork=forks.get(raw.fork);output=fork.output;events.push({...raw,output});continue}
+      if(raw.type==='signal-end'){const fork=forks.get(raw.fork);fork.results.push(output);events.push({...raw,output});continue}
+      if(raw.type==='signal-join'){const fork=forks.get(raw.piece);output=fork.results.reduce((a,b)=>a+b,0);events.push({...raw,output});forks.delete(raw.piece);continue}
       if(raw.type==='op'){
         const e={...raw,before:output},mods=modsByPiece.get(e.piece)||new Set(),piece=pieceMap.get(e.piece),power=Math.max(1,Number(powers.get(e.piece))||1);
-        const straight=oppositeSides(e.entrySide,e.exitSide),corner=perpendicularSides(e.entrySide,e.exitSide);lineRun=straight?lineRun+1:0;
-        let modMultiplier=1,operation=e.op,connections=piece?uniqueConnectionCount(piece,pieces):0;
+        const connections=piece?uniqueConnectionCount(piece,pieces):0,cornerTopology=piece?isCornerTopology(piece,pieces):false,straightLine=piece?straightLineLength(piece,pieces):0;
+        let modMultiplier=1,operation=e.op;
         if(mods.has('parity-exchange')&&e.value!==0)operation=e.value%2===0?'multiply':'add';
-        if(mods.has('corner')&&corner)modMultiplier*=Math.max(1,Number(opts.cornerMultiplier)||2);
-        if(mods.has('long-line')&&lineRun>=Math.max(1,Number(opts.longLineThreshold)||3))modMultiplier*=lineRun>=Math.max(1,Number(opts.longLineHighThreshold)||5)?Math.max(1,Number(opts.longLineHighMultiplier)||3):Math.max(1,Number(opts.longLineMultiplier)||2);
+        if(mods.has('corner')&&cornerTopology)modMultiplier*=Math.max(1,Number(opts.cornerMultiplier)||3);
+        if(mods.has('long-line')&&straightLine>=Math.max(1,Number(opts.longLineThreshold)||3))modMultiplier*=straightLine>=Math.max(1,Number(opts.longLineHighThreshold)||5)?Math.max(1,Number(opts.longLineHighMultiplier)||3):Math.max(1,Number(opts.longLineMultiplier)||2);
         if(mods.has('overload'))modMultiplier*=Math.max(1,Math.min(Math.max(1,Number(opts.overloadMaxMultiplier)||4),connections||1));
         if(mods.has('terminal')&&connections===1)modMultiplier*=Math.max(1,Number(opts.terminalMultiplier)||3);
         const magnitude=power*modMultiplier,v=e.value,baseAdd=v*(e.doubleDouble?2:1),baseFactor=e.doubleDouble?v*v:v;
         const normalAdd=v*magnitude,normalFactor=v*magnitude;
-        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=corner;e.straightRun=lineRun;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
+        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
         if(operation==='multiply'){e.factor=baseFactor*magnitude;e.add=0;e.after=output*(e.factor||1);e.delta=e.after-output;output=e.after}
         else if(operation==='add'){e.add=baseAdd*magnitude;e.factor=0;e.after=output+(e.add||0);e.delta=e.after-output;output=e.after}
         else{e.add=0;e.factor=0;e.after=output;e.delta=0}
@@ -145,6 +155,23 @@
       }
       return selected||finish(s,'search-limit')
     }
+    function tripleDoubleFork(s,cur,connections){
+      if(!opts.bifurcate||cur.id!==opts.tripleDoublePieceId||s.splitUsed.has(cur.id)||!isFullCross(cur,pieces))return null;
+      const byPiece=new Map();for(const c of connections)if(!byPiece.has(c.toPieceId))byPiece.set(c.toPieceId,c);const arms=[...byPiece.values()].sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
+      if(arms.length!==3)return null;
+      if(searchLimit-expanded<3){truncated=true;return null}
+      const seed=cloneState(s);seed.splitUsed.add(cur.id);
+      const results=[],parentLimit=searchLimit;let spent=seed.splitUsed,ddUsed=seed.doubleDoubleUsed;
+      for(let arm=0;arm<arms.length;arm++){
+        searchLimit=parentLimit-Math.max(0,arms.length-1-arm);
+        const branch=cloneState(seed);branch.splitUsed=new Set(spent);branch.doubleDoubleUsed=ddUsed;branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
+        const c=arms[arm],r=follow(branch,[c],c.fromHalf);results.push(r);spent=r.splitUsed;ddUsed=r.doubleDoubleUsed
+      }
+      searchLimit=parentLimit;
+      const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:cur.id,output:s.output,splitKind:'triple-double'}];
+      results.forEach((r,arm)=>events.push({type:'signal-start',fork:cur.id,arm,output:s.output},...r.events,{type:'signal-end',fork:cur.id,arm,output:r.output}));events.push({type:'signal-join',piece:cur.id,output});
+      return{output,gain:output-s.initialOutput,events,reason:'triple-double-split',path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),splitUsed:spent,doubleDoubleUsed:ddUsed,zeroCharges:s.zeroCharges}
+    }
     function fork(s,cur,connections){
       if(!opts.bifurcate||!cur.double||cur.tile.a===0||s.splitUsed.has(cur.id))return null;
       const previous=pieceById(pieces,s.current.fromPieceId),relation=previous&&pieceEdgeRelation(cur,previous);
@@ -199,6 +226,7 @@
       if(s.mode===-1){if(!s.back.length)return finish(s,'back-at-origin');const prev=s.back[s.back.length-1],k=extKey(cur.id,outC.half,prev.pieceId,1-prev.entryHalf);s.forward.push({...s.current});s.current=s.back.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:1-s.current.entryHalf,reverse:true,retrace:true,key:k});return walk(s)}
       if(s.forward.length){const nxt=s.forward[s.forward.length-1],k=extKey(cur.id,outC.half,nxt.pieceId,nxt.entryHalf);s.back.push({...s.current});s.current=s.forward.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:s.current.entryHalf,reverse:false,replay:true,retrace:true,key:k});return walk(s)}
       const available=connectionsForPiece(cur,pieces).filter(c=>c.toPieceId!==s.current.fromPieceId).map(c=>({...c,key:extKey(cur.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!s.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
+      const tripleSplit=tripleDoubleFork(s,cur,available);if(tripleSplit)return tripleSplit;
       const split=fork(s,cur,available);if(split)return split;
       const conns=available.filter(c=>c.fromHalf===outC.half);if(!conns.length)return finish(s,'no-exit');
       return follow(s,conns,outC.half)
