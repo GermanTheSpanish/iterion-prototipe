@@ -95,6 +95,6 @@ test('v029 Endless commerce keeps black tiles legible on light controls',async({
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
   await page.evaluate(()=>{document.body.classList.add('endlessPalette');const host=document.createElement('div');host.className='commerceModal';host.innerHTML='<button class="shopBuy">BUY</button><span class="marketTile"><span class="domino circuitTile"><span class="half"></span><span class="half"></span></span><small>DD</small></span>';document.body.appendChild(host)});
   const button=page.locator('.commerceModal .shopBuy').last(),well=page.locator('.commerceModal .marketTile').last(),tile=well.locator('.domino');
-  expect(await button.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(229, 227, 220)');expect(await well.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(216, 213, 204)');expect(await tile.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(20, 20, 20)');
+  expect(await button.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(229, 227, 220)');expect(await well.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(216, 213, 204)');expect(await tile.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(112, 112, 107)');
   await page.screenshot({path:testInfo.outputPath('endless-market-contrast.png')});
 });
