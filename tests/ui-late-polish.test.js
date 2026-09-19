@@ -31,3 +31,5 @@ assert.match(runtime,/Circuit material is grey/,'Circuit tiles must use the agre
 assert.match(runtime,/Existing Star tier line moves from the physical centre to the whole perimeter/,'Star tier must move to the perimeter on Mod tiles');
 assert.match(runtime,/\.modTile>\.zeroEndpoint::after/,'Zero must remain readable as a white endpoint line');
 assert.match(runtime,/\.commerceModal \.domino\.compactPreview\.modTile>\.tileModMark/,'Compact Market Mods must keep the reverse-face white label');
+assert.match(runtime,/\.app \.piece\.modTile:has\(>\.tileModMark\) \.pips/,'Mod reverse must outrank legacy visible-pip styling');
+assert.match(runtime,/body\.endlessPalette \.app \.domino\.modTile>\.half\+\.half/,'Endless POWER styling must not restore the Mod divider');
