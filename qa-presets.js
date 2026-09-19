@@ -5,7 +5,7 @@
   if(root?.document){api.installMenuAccess(root);api.autoStart(root);api.autoResumeReturn(root);}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const BUILD_ID='20260918.9';
+  const BUILD_ID='20260919.2';
   const ACTIVE_RUN_KEY='iterion.activeRun.v1';
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
   const LATEST_RUN_KEY='iterion.latestRun.v9';
@@ -13,7 +13,7 @@
   const PROTECTED_KEYS=new Set([ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY]);
   const PRESETS=Object.freeze({
     classic14:Object.freeze({id:'classic14',mode:'classic',round:13,generation:2,score:0,best:57863119300,coins:165,inflation:8,endless:false,powerGeneration:2,sourceRunId:'mu66e4fp-116me8o'}),
-    prototype16:Object.freeze({id:'prototype16',mode:'prototype',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3})
+    infinite16:Object.freeze({id:'infinite16',mode:'infinite-endless',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3})
   });
 
   const REAL_CLASSIC14=Object.freeze({
@@ -114,7 +114,7 @@
     s.circuitRanks={'d4-4':2,'d5-5':3,[`g${preset.powerGeneration}-d6-6`]:5};s.circuitSignatures=['qa-loop-a','qa-loop-b'];s.pendingCircuit=null;
     s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
     s.standardComplete=true;s.endlessMode=true;s.endlessStartedRound=15;s.systemStrain=8;s.endlessLongRunActivations=3;
-    s.runId=`qa-${preset.id}`;s.startedAt='2026-09-17T20:00:00.000Z';s.tileSerial=0;s.gameMode='prototype';s.scoringModel='deferred-v1';s.scoringFormula='(Trigger + Σ additions) × Π multipliers';
+    s.runId=`qa-${preset.id}`;s.startedAt='2026-09-17T20:00:00.000Z';s.tileSerial=0;s.gameMode='infinite-endless';delete s.scoringModel;delete s.scoringFormula;
     if(!game.restoreState(saved))throw new Error(`Could not restore QA preset ${presetId}`);
     return game
   }
@@ -175,7 +175,7 @@
     dialog.innerHTML=`<div class="menuHead"><h2>QA / Test runs</h2><button class="iconButton" aria-label="Close QA test runs">×</button></div>
       <p class="qaMenuIntro">Prepared late-game states. Your real saved run is protected.</p>
       <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Real R14 · 30 tiles · DD · DE · C5 · POWER ×2 · 2 clears from Endless</small></button>
-      <button class="qaPresetChoice" data-qa-preset="prototype16"><strong>PROTOTYPE · ENDLESS R16</strong><small>Deferred scoring · Endless palette · POWER ×3</small></button>
+      <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>INFINITE ENDLESS · ROUND 16</strong><small>Classic scoring · 33 × 44 board · POWER ×3</small></button>
       ${inQa?`<a class="menuAction qaReturn" data-qa-return href="${normalUrl(root)}">RETURN TO SAVED RUN</a>`:''}`;
     doc.body.appendChild(dialog);
     const close=()=>dialog.close();dialog.querySelector('.iconButton').addEventListener('click',close);
@@ -193,16 +193,16 @@
     root.__monoidQa={preset:id,mode:preset.mode,build:BUILD_ID,sourceRunId:preset.sourceRunId||null,savedRunProtected:true,originalStorage:sandbox.original};
     let tries=0;
     const start=()=>{
-      const modes=root.__monoidModes,flow=root.__monoidFlow,ready=modes?.select&&root.IterionGame?.createGame&&root.__monoidPrototypeScoringInstalled&&flow;
+      const modes=root.__monoidModes,flow=root.__monoidFlow,ready=modes?.select&&root.IterionGame?.createGame&&flow;
       if(!ready){if(tries++<360)root.requestAnimationFrame(start);return}
-      modes.select(preset.mode==='prototype'?1:0);root.__monoidActiveMode=preset.mode;
+      modes.select(preset.mode==='infinite-endless'?1:0);root.__monoidActiveMode=preset.mode;
       const baseCreate=root.IterionGame.createGame;let armed=true;
       root.IterionGame.createGame=function(engine,options){
         const game=baseCreate.call(this,engine,options);
         if(!armed)return game;armed=false;root.IterionGame.createGame=baseCreate;return applyPreset(game,engine,id)
       };
       const title=root.document.getElementById('titleCard'),startButton=root.document.getElementById('startRun');
-      if(!title?.hidden)title.click();modes.select(preset.mode==='prototype'?1:0);root.__monoidActiveMode=preset.mode;startButton?.click();
+      if(!title?.hidden)title.click();modes.select(preset.mode==='infinite-endless'?1:0);root.__monoidActiveMode=preset.mode;startButton?.click();
       const finish=()=>{const app=root.document.querySelector('.app');if(app&&!app.hidden){addQaStamp(root,preset);root.MonoidPhaseA?.sync?.();root.MonoidPhaseAMobileFix?.syncBuildStamp?.();return}root.requestAnimationFrame(finish)};finish()
     };
     root.requestAnimationFrame(start);return true

@@ -1,6 +1,9 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
-  let GAME=window.IterionGame.createGame(E);
+  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1',INFINITE_MODE='infinite-endless';
+  const normalizeMode=mode=>mode==='prototype'?INFINITE_MODE:mode===INFINITE_MODE?INFINITE_MODE:'classic';
+  const gameOptions=mode=>normalizeMode(mode)===INFINITE_MODE?{GAME_MODE:INFINITE_MODE,INFINITE_ENDLESS:true}:{GAME_MODE:'classic'};
+  let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
   const V=window.IterionPresentation,gameMenu=$('gameMenu'),menuButton=$('menuButton');
@@ -22,6 +25,7 @@
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
 
   function storedState(){try{return JSON.parse(localStorage.getItem('iterion.activeRun.v1')||'null')}catch(_){return null}}
+  function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function persistGame(){if(tutorial)return GAME.snapshot();const snap=GAME.save();try{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(GAME.exportState()))}catch(_){}return snap}
   function showGame(){entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render()}
   function showSelection(){
@@ -29,7 +33,8 @@
     const saved=storedState(),choiceMade=localStorage.getItem('iterion.tutorialChoice.v1')==='made';continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
   function startNormal(continueSaved=false){
-    tutorial=null;tutorialPanel.hidden=true;const next=window.IterionGame.createGame(E);if(continueSaved&&!next.restoreState(storedState()))return;
+    tutorial=null;tutorialPanel.hidden=true;const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
+    localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
     GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');persistGame();handFx.fill('normal');showGame()
   }
@@ -225,7 +230,7 @@
     overlayPrimary.textContent='CLOSE TILE SHOP';overlayPrimary.onclick=()=>{shopRevealTile=null;GAME.closeShop();persistGame();render()}
   }
   function showMarket(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=D.BOARD_SIZES[Math.min(nextStage-1,D.BOARD_SIZES.length-1)],strain=s.systemStrain||0;overlayTitle.textContent='MARKET';modalEl.classList.add('commerceModal');
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=GAME.boardSizeForStage(nextStage-1),strain=s.systemStrain||0;overlayTitle.textContent='MARKET';modalEl.classList.add('commerceModal');
     const supply=x.availableTileCount,nextMarket=x.endless?.active?`Next Market in ${D.STAGE_SIZE||3} rounds`:x.round.index<D.TOTAL_ROUNDS-(D.STAGE_SIZE||3)?`Next Market in ${D.STAGE_SIZE||3} rounds`:'Final stage · no later Market',offers=s.shopOffers.map(id=>GAME.marketOfferInfo(id)),tileById=id=>s.set.find(t=>t.id===id);
     const labels={'double-double':'DD','double-echo':'DE','triple-double':'TD','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE'},assignments=[];
     for(const [id,ids] of Object.entries(x.tileMods||{}))for(const tileId of ids||[]){const tile=tileById(tileId);if(tile)assignments.push([labels[id]||id.toUpperCase(),tile])}

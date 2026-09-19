@@ -23,7 +23,7 @@
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'The original machine',available:true,kind:'classic'}),
-    Object.freeze({id:'prototype',name:'PROTOTYPE',description:'Experimental rules',available:true,kind:'prototype'}),
+    Object.freeze({id:'infinite-endless',name:'INFINITE ENDLESS',description:'Classic rules · board grows after Markets',available:true,kind:'infinite'}),
     ...Array.from({length:6},(_,i)=>Object.freeze({id:`locked-${i+1}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
@@ -62,10 +62,10 @@
 .modeCarouselViewport.isDragging .modeTile,.modeCarouselViewport.isRebasing .modeTile{transition:none!important}
 .modeCarouselViewport.isPulling .modeTile{transition:transform var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1)}
 .modeCarouselViewport.isLanding .modeTile{transition:transform var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1)}
-.modeTilePrototype,.modeTileLocked{position:relative;overflow:hidden}
-.modeTilePrototype{background:#151515!important;border-color:#151515!important;color:#fff}
-.modeTilePrototype::after,.modeTileLocked::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);background:currentColor;opacity:.9}
-.modeTilePrototype b{position:absolute;inset:0;z-index:2;display:grid;place-items:center;color:#fff;font-size:48px;font-weight:500;line-height:1}
+.modeTileInfinite,.modeTileLocked{position:relative;overflow:hidden}
+.modeTileInfinite{background:#151515!important;border-color:#151515!important;color:#fff}
+.modeTileInfinite::after,.modeTileLocked::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);background:currentColor;opacity:.9}
+.modeTileInfinite b{position:absolute;inset:0;z-index:2;display:grid;place-items:center;color:#fff;font-size:42px;font-weight:500;line-height:1}
 .modeTileLocked{background:#b9b9b3!important;border-color:#8f8f8a!important;color:#8f8f8a}
 .modeCarouselFrame>strong{font-size:15px;letter-spacing:.13em;line-height:1.1}
 .modeCarouselFrame>small{min-height:16px;color:#61615b;line-height:1.2}
@@ -76,7 +76,7 @@
   }
   function tileMarkup(mode){
     if(mode.kind==='classic')return '<span class="selectionDouble modeTile modeTileClassic" aria-hidden="true"><i></i><i></i></span>';
-    if(mode.kind==='prototype')return '<span class="selectionDouble modeTile modeTilePrototype" aria-hidden="true"><b>?</b></span>';
+    if(mode.kind==='infinite')return '<span class="selectionDouble modeTile modeTileInfinite" aria-hidden="true"><b>∞</b></span>';
     return '<span class="selectionDouble modeTile modeTileLocked" aria-hidden="true"></span>'
   }
   function mount(root){
@@ -89,7 +89,7 @@
     const frame=doc.createElement('div');frame.id='modeCarouselFrame';frame.className='modeCard modeCarouselFrame';frame.tabIndex=0;frame.setAttribute('role','group');frame.setAttribute('aria-label','Game mode selector');
     const viewport=doc.createElement('div');viewport.id='modeCarouselViewport';viewport.className='modeCarouselViewport';
     const slides=MODES.map((mode,index)=>{const button=doc.createElement('button');button.type='button';button.className='modeSlide';button.dataset.mode=mode.id;button.dataset.index=String(index);button.setAttribute('aria-label',mode.available?mode.name:`Unavailable mode ${index-1}`);if(!mode.available)button.setAttribute('aria-disabled','true');button.innerHTML=tileMarkup(mode);viewport.appendChild(button);return button});
-    slides[0].id='modeClassic';slides[1].id='modePrototype';
+    slides[0].id='modeClassic';slides[1].id='modeInfiniteEndless';
     const name=doc.createElement('strong');name.id='modeName';
     const description=doc.createElement('small');description.id='modeDescription';
     frame.append(viewport,name,description);oldClassic.replaceWith(frame);

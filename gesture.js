@@ -45,7 +45,7 @@
 // behaviour cannot alter deterministic gameplay or saved runs.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pwa]')){
   const script=document.createElement('script');
-  script.src='pwa.js?v=20260919.1';
+  script.src='pwa.js?v=20260919.2';
   script.async=false;
   script.dataset.monoidPwa='true';
   document.head.appendChild(script)
@@ -55,30 +55,19 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pw
 // be removed with the visible build marker once external playtesting stabilises.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-update]')){
   const script=document.createElement('script');
-  script.src='update-check.js?v=20260919.1';
+  script.src='update-check.js?v=20260919.2';
   script.async=false;
   script.dataset.monoidUpdate='true';
   document.head.appendChild(script)
 }
 
-// Prototype game-mode carousel. Loaded as a presentation/input layer so it can
+// Game-mode carousel. Loaded as a presentation/input layer so it can
 // be removed or iterated without touching deterministic engine/game rules.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-modes]')){
   const script=document.createElement('script');
-  script.src='mode-carousel.js?v=20260917.6';
+  script.src='mode-carousel.js?v=20260919.2';
   script.async=false;
   script.dataset.monoidModes='true';
-  document.head.appendChild(script)
-}
-
-// Experimental scoring is isolated behind the black ? mode. Classic continues
-// to use the canonical engine unchanged; this runtime only wraps newly-created
-// prototype runs after the route has already been selected by the classic comparator.
-if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-prototype-scoring]')){
-  const script=document.createElement('script');
-  script.src='prototype-scoring.js?v=20260919.1';
-  script.async=false;
-  script.dataset.monoidPrototypeScoring='true';
   document.head.appendChild(script)
 }
 
@@ -86,7 +75,7 @@ if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-pr
  // the same script autostarts the requested sandboxed late-game fixture.
 if(typeof document!=='undefined'&&!document.querySelector('script[data-monoid-qa-presets]')){
   const script=document.createElement('script');
-  script.src='qa-presets.js?v=20260919.1';
+  script.src='qa-presets.js?v=20260919.2';
   script.async=false;
   script.dataset.monoidQaPresets='true';
   document.head.appendChild(script)
