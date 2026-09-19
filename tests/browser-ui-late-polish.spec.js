@@ -9,15 +9,14 @@ async function compactGeometry(locator){
       const h=half.getBoundingClientRect(),p=half.querySelector('.spips'),r=p.getBoundingClientRect(),css=getComputedStyle(half);
       const pips=[...p.children].map(dot=>dot.getBoundingClientRect());
       return{count:pips.length,dx:Math.abs(r.x+r.width/2-h.x-h.width/2),dy:Math.abs(r.y+r.height/2-h.y-h.height/2),opacity:getComputedStyle(p).opacity,
-        border:parseFloat(css.borderTopWidth),fits:pips.every(d=>d.left>=h.left&&d.right<=h.right&&d.top>=h.top&&d.bottom<=h.bottom),
+        border:parseFloat(css.borderTopWidth),borderColor:css.borderTopColor,zero:half.classList.contains('zeroEndpoint'),zeroMark:getComputedStyle(half,'::after').content,fits:pips.every(d=>d.left>=h.left&&d.right<=h.right&&d.top>=h.top&&d.bottom<=h.bottom),
         overlapsMark:!!m&&pips.some(d=>d.left<m.right&&d.right>m.left&&d.top<m.bottom&&d.bottom>m.top),
         pipColor:p.children[0]?getComputedStyle(p.children[0]).backgroundColor:null};
     });
-    const pseudo=getComputedStyle(tile,'::before');
+    const pseudo=getComputedStyle(tile,'::before'),pseudoBg=pseudo.backgroundColor,background=pseudo.content==='""'&&pseudoBg!=='rgba(0, 0, 0, 0)'?pseudoBg:getComputedStyle(tile).backgroundColor;
     return{label:tile.parentElement.getAttribute('aria-label'),halves,compact:tile.classList.contains('compactPreview'),
       mark:mark?{text:mark.textContent,color:getComputedStyle(mark).color,size:parseFloat(getComputedStyle(mark).fontSize),dx:Math.abs(m.x+m.width/2-box.x-box.width/2),dy:Math.abs(m.y+m.height/2-box.y-box.height/2)}:null,
-      circuit:tile.classList.contains('circuitTile'),power:tile.classList.contains('powerTile'),
-      background:pseudo.content==='""'?pseudo.backgroundColor:getComputedStyle(tile).backgroundColor};
+      circuit:tile.classList.contains('circuitTile'),power:tile.classList.contains('powerTile'),mod:tile.classList.contains('modTile'),background};
   }));
 }
 
@@ -32,14 +31,15 @@ function assertCompactValues(tiles){
       expect(half.dx).toBeLessThan(0.6);
       // Border belongs to the lower half; its content remains centred below it.
       expect(half.dy).toBeLessThanOrEqual(half.border/2+0.6);
-      expect(half.opacity).toBe('1');expect(half.fits).toBe(true);expect(half.overlapsMark).toBe(false);
-      if(half.pipColor){
+      expect(half.fits).toBe(true);expect(half.overlapsMark).toBe(false);
+      if(tile.mod){expect(half.opacity).toBe('0');if(index===1)expect(half.borderColor).toBe('rgba(0, 0, 0, 0)');if(half.zero)expect(half.zeroMark).toBe('""')}else expect(half.opacity).toBe('1');
+      if(half.pipColor&&!tile.mod){
         const luminance=color=>{const rgb=color.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722};
         const a=luminance(half.pipColor),b=luminance(tile.background);
         expect((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toBeGreaterThan(4.5);
       }
     }
-    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|ZP|PX|CR|LN|OV|TE)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.circuit)expect(tile.mark.color).toBe('rgba(255, 255, 255, 0.3)')}
+    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|TD|ZP|PX|CR|LN|OV|TE)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.mod)expect(tile.mark.color).toBe('rgba(255, 255, 255, 0.92)')}
   }
 }
 
@@ -70,9 +70,9 @@ for(const width of [375,430])for(const endless of [false,true]){
     await expect(page.locator('.app .compactPreview')).toHaveCount(0);
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
     expect(await boardMark.locator('.tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(15);
-    expect(await boardMark.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
+    await expect(boardMark).toHaveClass(/modTile/);expect(await boardMark.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
     const boardMarkStyle=await boardMark.evaluate(el=>({circuit:el.classList.contains('circuitTile'),color:getComputedStyle(el.querySelector('.tileModMark')).color}));
-    expect(boardMarkStyle.color).toBe(boardMarkStyle.circuit?'rgba(255, 255, 255, 0.3)':'rgba(17, 17, 17, 0.2)');
+    expect(boardMarkStyle.color).toBe('rgba(255, 255, 255, 0.92)');
     expect(await page.evaluate(()=>{const g=window.__monoidGame,before=JSON.stringify(g.exportState());window.MonoidLatePolish.sync();window.MonoidPhaseA.sync();return before===JSON.stringify(g.exportState())})).toBe(true);
     expect(await page.locator('.commerceModal').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
     if(endless){
@@ -102,7 +102,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260919.2');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260919.3');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -129,7 +129,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   const overflow=await page.locator('.commerceModal').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth}));expect(overflow.sw).toBeLessThanOrEqual(overflow.cw+1);
 
   const circuitMarkColor=await dd.locator('.marketAssignedTile .tileModMark').evaluate(el=>getComputedStyle(el).color);
-  expect(circuitMarkColor).toBe('rgba(255, 255, 255, 0.3)');
+  expect(circuitMarkColor).toBe('rgba(255, 255, 255, 0.92)');
   const markSize=await dd.locator('.marketAssignedTile .tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));expect(markSize).toBe(11);
 
   await dd.locator('.marketOfferAction .shopBuy').click();
