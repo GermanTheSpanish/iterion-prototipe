@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.37.1');
+assert.strictEqual(D.VERSION,'0.37.2');
 
 function purchase(seed){
   E.setBoardSize(18,24);
@@ -65,4 +65,4 @@ function purchase(seed){
   assert.strictEqual(restored.rngState,s.rngState,'Undo preserves RNG consumed by the purchase');
 }
 
-console.log('v0.37.1 RANDOM DOMINO regression tests passed');
+console.log('v0.37.2 RANDOM DOMINO regression tests passed');
