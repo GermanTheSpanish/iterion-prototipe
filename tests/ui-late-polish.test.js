@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20260919\.2'/);
+assert.match(source,/BUILD_ID='20260919\.3'/);
 assert.match(source,/marketAssignments \.marketTile/,'Assigned physical modifiers must come from canonical Market state');
 assert.match(source,/marketAssignedGroup/);assert.match(source,/marketPoolGroup/,'Installed and compatible groups must remain distinct');assert.match(source,/COMPATIBLE · \$\{count\}/);
 assert.match(source,/offer\.replaceChildren\(head,description,context\)/,'Each offer must be rebuilt into one authoritative three-band structure');
@@ -20,3 +20,16 @@ assert.match(source,/EXTREME_THRESHOLD=1e27/);assert.match(source,/toExponential
 assert.match(source,/width:clamp\(108px,29\.3vw,126px\)/,'MONOID header width should tune to the 14 Pro Max Dynamic Island reference');
 assert.doesNotMatch(source,/IterionEngine|finishPlacement|buyMarketMod\s*=/,'Late polish must not redefine engine, placement or commerce behaviour');
 console.log('MONOID late UI polish source regression: ok');
+
+const runtime=fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'utf8');
+assert.match(ui,/function modClass\(t\)\{return tileView\(t\)\.modifiers\.length\?' modTile':''\}/,'Tiles with a physical Mod need one explicit presentation class');
+assert.match(ui,/zeroEndpoint/,'Zero endpoints must survive the reverse-face abstraction');
+assert.match(runtime,/\.app \.modTile.*--mod-body:#11110f/s,'Mod reverse must be black');
+assert.match(runtime,/\.piece\.modTile:has\(>\.tileModMark\) \.pips[\s\S]*opacity:0!important/,'Mod reverse must hide printed values');
+assert.match(runtime,/\.domino\.modTile>\.half\+\.half\{border-top-color:transparent!important\}/,'Mod reverse must remove the centre divider visually');
+assert.match(runtime,/Circuit material is grey/,'Circuit tiles must use the agreed grey material');
+assert.match(runtime,/Existing Star tier line moves from the physical centre to the whole perimeter/,'Star tier must move to the perimeter on Mod tiles');
+assert.match(runtime,/\.modTile>\.zeroEndpoint::after/,'Zero must remain readable as a white endpoint line');
+assert.match(runtime,/\.commerceModal \.domino\.compactPreview\.modTile>\.tileModMark/,'Compact Market Mods must keep the reverse-face white label');
+assert.match(runtime,/\.app \.piece\.modTile:has\(>\.tileModMark\) \.pips/,'Mod reverse must outrank legacy visible-pip styling');
+assert.match(runtime,/body\.endlessPalette \.app \.domino\.modTile>\.half\+\.half/,'Endless POWER styling must not restore the Mod divider');

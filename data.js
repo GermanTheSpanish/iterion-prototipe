@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.37.0',
+    VERSION:'0.37.1',
     ENGINE_VERSION:'0.15.0-l-split',
     BIFURCATION_ENABLED:true,
     TARGETS:[

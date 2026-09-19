@@ -147,7 +147,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20260919.2';
+    const BUILD_ID='20260919.3';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);
@@ -308,6 +308,63 @@
       body.endlessPalette .piece.powerTile:not(.circuitTile).h .cube+.cube,
       body.endlessPalette .piece.powerTile:not(.circuitTile).v .cube+.cube{border-color:#5f5d57!important}
       body.endlessPalette .domino.powerTile.circuitTile,body.endlessPalette .piece.powerTile.circuitTile{background:var(--power-circuit)!important}
+
+
+      /* Tile Mods read as the reverse face of the same physical domino.
+         Values remain in state/ARIA but disappear visually; zero endpoints retain one white datum. */
+      .app .modTile,.commerceModal .domino.modTile{
+        --mod-body:#11110f;--mod-ink:#f4f3ee;background:var(--mod-body)!important;color:var(--mod-ink)!important;border-color:#2e2e2a!important
+      }
+      .app .piece.modTile>.tileModMark,
+      .app .domino.modTile>.tileModMark,
+      .app .piece.modTile.powerTile:not(.circuitTile)>.tileModMark,
+      .app .domino.modTile.powerTile:not(.circuitTile)>.tileModMark,
+      .app .circuitTile.modTile>.tileModMark,
+      .commerceModal .domino.modTile>.tileModMark,
+      .commerceModal .domino.compactPreview.modTile>.tileModMark,
+      .commerceModal .domino.compactPreview.circuitTile.modTile>.tileModMark{
+        color:rgba(255,255,255,.92)!important;text-shadow:none!important;z-index:9!important
+      }
+      .app .piece.modTile:has(>.tileModMark) .pips,
+      .app .domino.modTile:has(>.tileModMark) .spips,
+      .commerceModal .domino.compactPreview.modTile:has(>.tileModMark) .spips{opacity:0!important}
+      .app .domino.modTile>.half+.half,
+      body.endlessPalette .app .domino.modTile>.half+.half,
+      .commerceModal .domino.modTile>.half+.half,
+      body.endlessPalette .commerceModal .domino.modTile>.half+.half{border-top-color:transparent!important}
+      .app .piece.modTile.h>.cube+.cube,
+      body.endlessPalette .app .piece.modTile.h>.cube+.cube{border-left-color:transparent!important}
+      .app .piece.modTile.v>.cube+.cube,
+      body.endlessPalette .app .piece.modTile.v>.cube+.cube{border-top-color:transparent!important}
+      .app .domino.powerTile.modTile::before,.app .piece.powerTile.modTile::before,.commerceModal .domino.powerTile.modTile::before{background:transparent!important}
+
+      /* POWER survives on a Mod as a near-black material tint; it does not restore face values. */
+      .app .modTile.power2,.commerceModal .domino.modTile.power2{--mod-body:#172127}
+      .app .modTile.power3,.commerceModal .domino.modTile.power3{--mod-body:#211a24}
+      .app .modTile.power4,.commerceModal .domino.modTile.power4{--mod-body:#292516}
+
+      /* Circuit material is grey. A Circuit that also carries a Mod becomes the darker reverse. */
+      .app .piece.circuitTile:not(.modTile),.app .domino.circuitTile:not(.modTile),.commerceModal .domino.circuitTile:not(.modTile){
+        background:#70706b!important;border-color:#565652!important
+      }
+      .app .circuitTile.modTile,.commerceModal .domino.circuitTile.modTile{--mod-body:#383835}
+      .app .circuitTile.modTile.power2,.commerceModal .domino.circuitTile.modTile.power2{--mod-body:#323a3e}
+      .app .circuitTile.modTile.power3,.commerceModal .domino.circuitTile.modTile.power3{--mod-body:#39333b}
+      .app .circuitTile.modTile.power4,.commerceModal .domino.circuitTile.modTile.power4{--mod-body:#3d392d}
+
+      /* Existing Star tier line moves from the physical centre to the whole perimeter. */
+      .app .modTile:has(>.upgradeDot.u1),.commerceModal .domino.modTile:has(>.upgradeDot.u1){border-color:#4f86b7!important;border-width:2px!important}
+      .app .modTile:has(>.upgradeDot.u2),.commerceModal .domino.modTile:has(>.upgradeDot.u2){border-color:#9a70b5!important;border-width:2px!important}
+      .app .modTile:has(>.upgradeDot.u3),.commerceModal .domino.modTile:has(>.upgradeDot.u3){border-color:#d39a2f!important;border-width:2px!important}
+
+      /* Zero is the only printed value retained on the reverse: one short white endpoint line. */
+      .modTile>.zeroEndpoint::after{content:"";position:absolute;display:block;background:#f4f3ee;z-index:8;border-radius:999px;pointer-events:none}
+      .domino.modTile>.half.zeroEndpoint:first-child::after{left:20%;right:20%;top:2px;height:2px}
+      .domino.modTile>.half.zeroEndpoint:last-child::after{left:20%;right:20%;bottom:2px;height:2px}
+      .piece.modTile.h>.cube.zeroEndpoint:first-child::after{top:20%;bottom:20%;left:2px;width:2px}
+      .piece.modTile.h>.cube.zeroEndpoint:last-child::after{top:20%;bottom:20%;right:2px;width:2px}
+      .piece.modTile.v>.cube.zeroEndpoint:first-child::after{left:20%;right:20%;top:2px;height:2px}
+      .piece.modTile.v>.cube.zeroEndpoint:last-child::after{left:20%;right:20%;bottom:2px;height:2px}
   
       @media(max-height:720px){
         .gameHeader .wordmark{top:calc(5px + env(safe-area-inset-top) + 20px)!important}
