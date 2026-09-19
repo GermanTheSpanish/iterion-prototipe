@@ -31,5 +31,5 @@ test('late Endless board supports pinch, pan and cell-relative Mod labels withou
 
 test('debug export exposes calculation and animation telemetry sections',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto(`${BASE}?qa=infinite16&ci=1`);await expect(page.locator('.app')).toBeVisible({timeout:12000});
-  await page.locator('#viewrun').click();await expect(page.locator('#runlog textarea')).toContainText('PERFORMANCE TELEMETRY');await expect(page.locator('#runlog textarea')).toContainText('No recorded placements this session.');
+  await page.locator('#menuButton').click();await page.locator('#viewrun').click();await expect(page.locator('#runlog textarea')).toContainText('PERFORMANCE TELEMETRY');await expect(page.locator('#runlog textarea')).toContainText('No recorded placements this session.');
 });
