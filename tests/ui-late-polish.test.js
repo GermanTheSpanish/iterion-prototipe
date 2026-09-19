@@ -30,3 +30,4 @@ assert.match(runtime,/\.domino\.modTile>\.half\+\.half\{border-top-color:transpa
 assert.match(runtime,/Circuit material is grey/,'Circuit tiles must use the agreed grey material');
 assert.match(runtime,/Existing Star tier line moves from the physical centre to the whole perimeter/,'Star tier must move to the perimeter on Mod tiles');
 assert.match(runtime,/\.modTile>\.zeroEndpoint::after/,'Zero must remain readable as a white endpoint line');
+assert.match(runtime,/\.commerceModal \.domino\.compactPreview\.modTile>\.tileModMark/,'Compact Market Mods must keep the reverse-face white label');
