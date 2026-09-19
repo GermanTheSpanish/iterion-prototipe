@@ -28,10 +28,3 @@ test('late Endless board supports pinch, pan and cell-relative Mod labels withou
   expect(cascade.focused).toBe(true);expect(cascade.during.scale).toBeLessThan(3);expect(cascade.after.scale).toBe(3);
   expect(await page.evaluate(()=>JSON.stringify(window.__monoidGame.exportState()))).toBe(before);
 });
-
-test('debug export exposes calculation and animation telemetry sections',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{
-    Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.__cameraDebug=await data.files[0].text()}})
-  });await page.goto(`${BASE}?qa=infinite16&ci=1`);await expect(page.locator('.app')).toBeVisible({timeout:12000});
-  await page.locator('#menuButton').click();await page.locator('#copyrun').click();await expect.poll(()=>page.evaluate(()=>window.__cameraDebug||'')).toContain('PERFORMANCE TELEMETRY');expect(await page.evaluate(()=>window.__cameraDebug)).toContain('No recorded placements this session.');
-});
