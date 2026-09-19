@@ -315,17 +315,27 @@
       .app .modTile,.commerceModal .domino.modTile{
         --mod-body:#11110f;--mod-ink:#f4f3ee;background:var(--mod-body)!important;color:var(--mod-ink)!important;border-color:#2e2e2a!important
       }
-      .app .modTile>.tileModMark,.commerceModal .domino.modTile>.tileModMark{
-        color:rgba(255,255,255,.92)!important;text-shadow:none!important;z-index:9!important
-      }
+      .app .piece.modTile>.tileModMark,
+      .app .domino.modTile>.tileModMark,
+      .app .piece.modTile.powerTile:not(.circuitTile)>.tileModMark,
+      .app .domino.modTile.powerTile:not(.circuitTile)>.tileModMark,
+      .app .circuitTile.modTile>.tileModMark,
+      .commerceModal .domino.modTile>.tileModMark,
       .commerceModal .domino.compactPreview.modTile>.tileModMark,
       .commerceModal .domino.compactPreview.circuitTile.modTile>.tileModMark{
-        color:rgba(255,255,255,.92)!important;text-shadow:none!important
+        color:rgba(255,255,255,.92)!important;text-shadow:none!important;z-index:9!important
       }
-      .app .modTile .pips,.app .modTile .spips,.commerceModal .domino.modTile .spips{opacity:0!important}
-      .app .domino.modTile>.half+.half,.commerceModal .domino.modTile>.half+.half{border-top-color:transparent!important}
-      .app .piece.modTile.h>.cube+.cube{border-left-color:transparent!important}
-      .app .piece.modTile.v>.cube+.cube{border-top-color:transparent!important}
+      .app .piece.modTile:has(>.tileModMark) .pips,
+      .app .domino.modTile:has(>.tileModMark) .spips,
+      .commerceModal .domino.compactPreview.modTile:has(>.tileModMark) .spips{opacity:0!important}
+      .app .domino.modTile>.half+.half,
+      body.endlessPalette .app .domino.modTile>.half+.half,
+      .commerceModal .domino.modTile>.half+.half,
+      body.endlessPalette .commerceModal .domino.modTile>.half+.half{border-top-color:transparent!important}
+      .app .piece.modTile.h>.cube+.cube,
+      body.endlessPalette .app .piece.modTile.h>.cube+.cube{border-left-color:transparent!important}
+      .app .piece.modTile.v>.cube+.cube,
+      body.endlessPalette .app .piece.modTile.v>.cube+.cube{border-top-color:transparent!important}
       .app .domino.powerTile.modTile::before,.app .piece.powerTile.modTile::before,.commerceModal .domino.powerTile.modTile::before{background:transparent!important}
 
       /* POWER survives on a Mod as a near-black material tint; it does not restore face values. */
