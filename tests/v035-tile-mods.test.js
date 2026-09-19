@@ -35,6 +35,13 @@ check('one physical tile can hold only one Tile Mod',()=>{
   fakeMarket(g,'zero-port');assert(!g.marketOfferInfo('zero-port').targetTiles.some(t=>t.id==='d0-3'));
 });
 
+check('Triple Double Market purchase targets one exact non-zero double',()=>{
+  const g=G.createGame(E,{seed:3505,STARTING_COINS:100}),s=g.state(),ids=['d0-0','d3-3','d5-5'];
+  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.doubleEchoTileId='d3-3';
+  fakeMarket(g,'triple-double');const info=g.marketOfferInfo('triple-double');assert.deepEqual(info.targetTiles.map(t=>t.id),['d5-5']);assert.equal(info.price,12);
+  const bought=g.buyMarketMod('triple-double');assert(bought.ok&&bought.pending);assert.deepEqual(bought.eligibleTileIds,['d5-5']);assert(g.chooseMarketModTile('d5-5').ok);assert.equal(s.tripleDoubleTileId,'d5-5');
+});
+
 check('Zero Port builds a pair then relocates exactly one chosen endpoint',()=>{
   const g=G.createGame(E,{seed:3503,STARTING_COINS:200}),s=g.state(),ids=['d0-2','d0-3','d0-4','d5-5'];
   s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];
@@ -83,8 +90,9 @@ check('Long Line reads the physical straight chain instead of route history',()=
 
 check('Triple Double forks a complete non-zero double cross through the other three exits once',()=>{
   const cross=[piece(3,3,6,8,0,1),piece(5,3,2,8,0,2),piece(3,4,10,8,0,3),piece(3,2,7,10,1,4),piece(2,3,7,4,1,5)];
-  const active=E.bestSignal(4,cross,{initialOutput:5,bifurcate:true,tripleDoublePieceId:1});
-  assert.equal(active.events.filter(e=>e.type==='signal-fork'&&e.piece===1&&e.splitKind==='triple-double').length,1);assert.equal(active.events.filter(e=>e.type==='signal-start'&&e.fork===1).length,3);
+  cross[0].tile.powerMultiplier=2;
+  const active=E.bestSignal(2,cross,{initialOutput:5,bifurcate:true,tripleDoublePieceId:1,modIdsByPiece:new Map([[1,new Set(['triple-double'])]])});
+  assert.equal(active.events.filter(e=>e.type==='signal-fork'&&e.piece===1&&e.splitKind==='triple-double').length,1);assert.equal(active.events.filter(e=>e.type==='signal-start'&&e.fork===1).length,3);assert.equal(active.selectionOutput,53);assert.equal(active.output,98);
   const incomplete=E.bestSignal(4,cross.slice(0,4),{initialOutput:5,bifurcate:true,tripleDoublePieceId:1});assert(!incomplete.events.some(e=>e.type==='signal-fork'&&e.splitKind==='triple-double'));
 });
 
