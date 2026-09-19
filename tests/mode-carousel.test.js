@@ -4,7 +4,7 @@ const path=require('path');
 const C=require('../mode-carousel.js');
 
 assert.strictEqual(C.MODES.length,8);
-assert.deepStrictEqual(C.MODES.slice(0,2).map(m=>[m.id,m.available]),[['classic',true],['prototype',true]]);
+assert.deepStrictEqual(C.MODES.slice(0,2).map(m=>[m.id,m.available]),[['classic',true],['infinite-endless',true]]);
 assert.strictEqual(C.MODES.slice(2).length,6);
 assert(C.MODES.slice(2).every(m=>m.available===false&&m.description==='Not available'));
 assert.strictEqual(C.clampIndex(-3),0);
@@ -35,7 +35,7 @@ assert.ok(near.landMs<medium.landMs&&medium.landMs<far.landMs,'landing duration 
 const src=fs.readFileSync(path.join(__dirname,'..','mode-carousel.js'),'utf8');
 assert.match(src,/id='modeCarouselFrame'|frame\.id='modeCarouselFrame'/);
 assert.match(src,/slides\[0\]\.id='modeClassic'/);
-assert.match(src,/modeTilePrototype/);
+assert.match(src,/modeTileInfinite/);
 assert.doesNotMatch(src,/modeCenterBounce/,'snap must not use a scale/click bounce');
 assert.match(src,/\.isPulling \.modeSlide\{transition:translate var\(--settle-approach-ms/,'release timing must be adaptive');
 assert.match(src,/\.isLanding \.modeSlide\{transition:translate var\(--settle-land-ms/,'landing timing must be adaptive');
@@ -46,6 +46,6 @@ assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circul
 assert.match(src,/startRun\.disabled=!mode\.available/);
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20260917\.6/);
+assert.match(gesture,/mode-carousel\.js\?v=20260919\.2/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');

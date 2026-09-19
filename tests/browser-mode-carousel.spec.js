@@ -33,13 +33,13 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   const farProfile=await page.evaluate(()=>window.MonoidModeCarousel.settleProfile(-34,-window.MonoidModeCarousel.SPACING));
   expect(farProfile.overshoot).toBeGreaterThan(closeProfile.overshoot*4);
   const trace=await page.evaluate(async()=>{
-    const slide=document.querySelector('#modePrototype'),viewport=document.querySelector('#modeCarouselViewport'),center=viewport.getBoundingClientRect().left+viewport.getBoundingClientRect().width/2,start=performance.now(),samples=[];
+    const slide=document.querySelector('#modeInfiniteEndless'),viewport=document.querySelector('#modeCarouselViewport'),center=viewport.getBoundingClientRect().left+viewport.getBoundingClientRect().width/2,start=performance.now(),samples=[];
     await new Promise(resolve=>{function tick(now){const r=slide.getBoundingClientRect();samples.push(r.left+r.width/2-center);if(now-start<470)requestAnimationFrame(tick);else resolve()}requestAnimationFrame(tick)});
     return samples
   });
   expect(Math.min(...trace)).toBeLessThan(-3,'a far release must carry the incoming tile slightly through centre');
   expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
-  await expect(page.locator('#modeName')).toHaveText('PROTOTYPE',{timeout:900});
+  await expect(page.locator('#modeName')).toHaveText('INFINITE ENDLESS',{timeout:900});
 
   // Two places before the loop boundary, Classic is physically present offscreen
   // and enters through the clip while the finger is still dragging.
@@ -68,10 +68,10 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await expect(page.locator('#modeDescription')).toHaveText('The original machine');
 });
 
-test('black prototype mode enables deferred scoring while Classic stays canonical',async({page})=>{
+test('Infinite Endless keeps Classic scoring and enables uncapped Market growth',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
-  await page.waitForFunction(()=>!!window.MonoidPrototypeScoring&&!!window.__monoidModes);
+  await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
 
   // Classic creates the untouched canonical game.
@@ -80,30 +80,18 @@ test('black prototype mode enables deferred scoring while Classic stays canonica
   expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel??null)).toBeNull();
   expect(await page.evaluate(()=>window.__monoidGame.config.SCORING_MODEL??null)).toBeNull();
 
-  // Use a clean page to start the black ? mode as a real run.
+  // Use a clean page to start Infinite Endless as a real run.
   await page.evaluate(()=>localStorage.clear());
   await page.reload();
-  await page.waitForFunction(()=>!!window.MonoidPrototypeScoring&&!!window.__monoidModes);
+  await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
   await page.evaluate(()=>window.__monoidModes.select(1));
-  await expect(page.locator('#modeName')).toHaveText('PROTOTYPE');
+  await expect(page.locator('#modeName')).toHaveText('INFINITE ENDLESS');
   await page.locator('#startRun').click();
-  expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('prototype');
-  expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel)).toBe('deferred-v1');
-  expect(await page.evaluate(()=>window.__monoidGame.config.SCORING_MODEL)).toBe('deferred-v1');
-  expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('prototype');
-
-  // Browser-level arithmetic check for the exact experiment wired to the mode.
-  const comparison=await page.evaluate(()=>{
-    const P=window.MonoidPrototypeScoring;
-    const result=P.replayDeferredScoring({output:290,events:[
-      {type:'op',piece:1,value:6,op:'add',add:6},
-      {type:'op',piece:2,value:3,op:'multiply',factor:3},
-      {type:'op',piece:3,value:4,op:'add',add:4},
-      {type:'op',piece:4,value:5,op:'multiply',factor:5}
-    ]},12);
-    return{classic:result.classicOutput,deferred:result.output,formula:result.deferredScoring.formula,route:result.deferredScoring.routeSelection}
-  });
-  expect(comparison).toEqual({classic:290,deferred:330,formula:'(Trigger + Σ additions) × Π multipliers',route:'classic-comparator'});
-  expect(await page.evaluate(()=>window.__monoidGame.debugText())).toContain('Scoring Model: deferred-v1');
+  expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('infinite-endless');
+  expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel??null)).toBeNull();
+  expect(await page.evaluate(()=>window.__monoidGame.config.SCORING_MODEL??null)).toBeNull();
+  expect(await page.evaluate(()=>window.__monoidGame.config.INFINITE_ENDLESS)).toBe(true);
+  expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('infinite-endless');
+  expect(await page.evaluate(()=>window.__monoidGame.debugText())).toContain('Mode: INFINITE-ENDLESS');
 });

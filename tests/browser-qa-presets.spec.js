@@ -36,7 +36,7 @@ async function assertLateGameSurface(page,id,{expectZp=2,minPieces=19,minPower=5
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260919.1');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260919.2');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -55,15 +55,15 @@ test('Classic R14 QA link exposes Phase A late-game states without touching the 
   await assertRealSaveSurvived(page)
 });
 
-test('Prototype first-Endless QA link exposes deferred mode, Endless and POWER x3 without touching the saved run',async({page},testInfo)=>{
+test('Infinite Endless R16 QA link exposes the expanded board, Endless and POWER x3 without touching the saved run',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await seedRealSave(page);
-  await page.goto(`${BASE}?qa=prototype16&ci=1`);
-  await assertLateGameSurface(page,'prototype16');
+  await page.goto(`${BASE}?qa=infinite16&ci=1`);
+  await assertLateGameSurface(page,'infinite16');
   await expect(page.locator('#roundstat')).toHaveText('16/∞');await expect(page.locator('#stagestat')).toHaveText('6/∞');
   await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('125B');
   await expect(page.locator('body')).toHaveClass(/endlessPalette/);
   await expect.poll(()=>page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(41, 41, 39)');
-  expect(await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,model:window.__monoidGame.state().scoringModel,active:window.__monoidActiveMode,generation:window.__monoidGame.state().setGeneration}))).toEqual({mode:'prototype',model:'deferred-v1',active:'prototype',generation:3});
+  expect(await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,model:window.__monoidGame.state().scoringModel??null,active:window.__monoidActiveMode,generation:window.__monoidGame.state().setGeneration,board:window.__monoidGame.snapshot().boardSize}))).toEqual({mode:'infinite-endless',model:null,active:'infinite-endless',generation:3,board:{width:33,height:44}});
   expect(await page.locator('#board .power3').count()).toBeGreaterThanOrEqual(5);
   const normalPower=page.locator('#board .power3:not(.circuitTile)').first();
   const circuitPower=page.locator('#board .power3.circuitTile').first();
@@ -74,7 +74,7 @@ test('Prototype first-Endless QA link exposes deferred mode, Endless and POWER x
   if(await circuitPower.count()){
     expect(await circuitPower.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(44, 32, 51)')
   }
-  await page.screenshot({path:testInfo.outputPath('qa-prototype-endless-r16.png'),fullPage:true});
+  await page.screenshot({path:testInfo.outputPath('qa-infinite-endless-r16.png'),fullPage:true});
   await assertRealSaveSurvived(page)
 });
 
@@ -90,7 +90,7 @@ test('PWA menu opens QA test runs and returns to the untouched saved run',async(
   await page.locator('#qaTestRunsButton').click();
   await expect(page.locator('#qaTestRunsDialog')).toBeVisible();
   await expect(page.locator('#qaTestRunsDialog')).toContainText('CLASSIC · ROUND 14');
-  await expect(page.locator('#qaTestRunsDialog')).toContainText('PROTOTYPE · ENDLESS R16');
+  await expect(page.locator('#qaTestRunsDialog')).toContainText('INFINITE ENDLESS · ROUND 16');
   await page.locator('[data-qa-preset="classic14"]').click();
   await expect(page.locator('body')).toHaveAttribute('data-qa-preset','classic14',{timeout:12000});
   expect(await page.evaluate(()=>window.__monoidQa?.savedRunProtected)).toBe(true);

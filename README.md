@@ -25,10 +25,9 @@ The repository should not undergo another broad architectural cleanup unless a c
 
 - `data.js` — configuration, version and balance values.
 - `engine.js` — placement legality, geometry, routing and scoring.
-- `game.js` — authoritative run state, seeded RNG, economy, progression, persistence and Undo.
+- `game.js` — authoritative run state, seeded RNG, economy, progression, persistence, Undo and opt-in Infinite Endless board growth.
 - `circuits.js` — Circuit helpers.
 - `mods.js` — modifier definitions.
-- `prototype-scoring.js` — Prototype-mode scoring experiment.
 
 ### Presentation
 
