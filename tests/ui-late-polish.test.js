@@ -25,7 +25,7 @@ const runtime=fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'u
 assert.match(ui,/function modClass\(t\)\{return tileView\(t\)\.modifiers\.length\?' modTile':''\}/,'Tiles with a physical Mod need one explicit presentation class');
 assert.match(ui,/zeroEndpoint/,'Zero endpoints must survive the reverse-face abstraction');
 assert.match(runtime,/\.app \.modTile.*--mod-body:#11110f/s,'Mod reverse must be black');
-assert.match(runtime,/\.modTile \.pips.*opacity:0!important/s,'Mod reverse must hide printed values');
+assert.match(runtime,/\.piece\.modTile:has\(>\.tileModMark\) \.pips[\s\S]*opacity:0!important/,'Mod reverse must hide printed values');
 assert.match(runtime,/\.domino\.modTile>\.half\+\.half\{border-top-color:transparent!important\}/,'Mod reverse must remove the centre divider visually');
 assert.match(runtime,/Circuit material is grey/,'Circuit tiles must use the agreed grey material');
 assert.match(runtime,/Existing Star tier line moves from the physical centre to the whole perimeter/,'Star tier must move to the perimeter on Mod tiles');
