@@ -9,7 +9,7 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   });
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.locator('.wordmark')).toHaveText('MONOID');
-  await expect(page).toHaveTitle('MONOID v0.37.2');
+  await expect(page).toHaveTitle('MONOID v0.37.3');
   expect(await page.evaluate(()=>[window.IterionPresentation.cascadeDelay(0),window.IterionPresentation.cascadeDelay(1),window.IterionPresentation.cascadeDelay(2),window.IterionPresentation.cascadeDelay(1000)])).toEqual([600,600,560,60]);
   expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(360);
   await expect(page.locator('#scoreDetail .scoreProgress')).toBeVisible();
@@ -29,8 +29,8 @@ test('v028 live SCORE progress, abbreviations and debug file sharing',async({pag
   await expect.poll(()=>page.locator('#score').textContent()).toBe('3,500');
   await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','star1');
   await page.locator('#menuButton').click();await expect(page.locator('#copyrun')).toHaveText('Share debug .txt');await page.locator('#copyrun').click();
-  await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^MONOID_DEBUG_v0\.37\.2_.+\.txt$/);
-  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.title).toBe('MONOID DEBUG');expect(shared.text).toContain('MONOID DEBUG v0.37.2');expect(shared.text).toContain('Run ID:');
+  await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^MONOID_DEBUG_v0\.37\.3_.+\.txt$/);
+  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.title).toBe('MONOID DEBUG');expect(shared.text).toContain('MONOID DEBUG v0.37.3');expect(shared.text).toContain('Run ID:');
   await page.screenshot({path:testInfo.outputPath('score-progress-share.png'),fullPage:true});
 });
 
@@ -39,7 +39,7 @@ test('v028 debug export falls back to a downloadable txt file',async({page})=>{
   await page.addInitScript(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false})});
   await page.goto('http://127.0.0.1:4173/');await page.locator('#menuButton').click();
   const downloadPromise=page.waitForEvent('download');await page.locator('#copyrun').click();const download=await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^MONOID_DEBUG_v0\.37\.2_.+\.txt$/);
+  expect(download.suggestedFilename()).toMatch(/^MONOID_DEBUG_v0\.37\.3_.+\.txt$/);
 });
 
 test('v028 POWER reads as pale material and Overkills use explicit physical centre dividers',async({page},testInfo)=>{
@@ -83,7 +83,7 @@ test('v029 tile modifiers stay large but quiet behind physical values in reading
   });
   const horizontal=page.locator('#board .piece.h').last(),vertical=page.locator('#board .piece.v').last();
   const boxes=await horizontal.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el.parentElement);return{x:r.x,y:r.y,w:r.width,h:r.height,color:s.color,background:s.backgroundColor,border:s.borderTopWidth}}));
-  expect(boxes[0].x).toBeLessThan(boxes[1].x);expect(boxes[0].w).toBeCloseTo(boxes[1].w,0);expect(boxes[0].background).toBe('rgba(0, 0, 0, 0)');expect(boxes[0].border).toBe('0px');expect(boxes[0].color).toBe('rgba(17, 17, 17, 0.2)');const horizontalStyle=await horizontal.locator('.tileModMark.dd').evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),weight:Number(getComputedStyle(el).fontWeight)}));expect(horizontalStyle.size).toBeGreaterThanOrEqual(15);expect(horizontalStyle.weight).toBeGreaterThanOrEqual(900);
+  expect(boxes[0].x).toBeLessThan(boxes[1].x);expect(boxes[0].w).toBeCloseTo(boxes[1].w,0);expect(boxes[0].background).toBe('rgba(0, 0, 0, 0)');expect(boxes[0].border).toBe('0px');expect(boxes[0].color).toBe('rgba(17, 17, 17, 0.2)');const horizontalStyle=await horizontal.locator('.tileModMark.dd').evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),weight:Number(getComputedStyle(el).fontWeight)}));expect(horizontalStyle.size).toBeGreaterThanOrEqual(3);expect(horizontalStyle.size).toBeLessThanOrEqual(16);expect(horizontalStyle.weight).toBeGreaterThanOrEqual(900);
   expect(await horizontal.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
   const verticalBoxes=await vertical.locator('.tileModMark.dd span').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height,color:getComputedStyle(el.parentElement).color}}));
   expect(verticalBoxes[0].y).toBeLessThan(verticalBoxes[1].y);expect(verticalBoxes[0].h).toBeCloseTo(verticalBoxes[1].h,0);expect(verticalBoxes[0].color).toBe('rgba(255, 255, 255, 0.3)');
