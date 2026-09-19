@@ -68,6 +68,7 @@
 
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function tileView(t){return V.tileViewModel(t,GAME.state())}
+  function modClass(t){return tileView(t).modifiers.length?' modTile':''}
   function tierFor(t){return tileView(t).upgrade}
   function powerMultiplier(t){return tileView(t).powerMultiplier}
   function powerClass(t){const power=powerMultiplier(t);return power>1?` powerTile power${Math.min(4,power)}`:''}
@@ -79,11 +80,11 @@
   function powerInspectorHtml(power){return power?`<section class="inspectSection"><div class="inspectLabel">POWER SET</div><strong>SET ${power.generation} · ×${power.powerMultiplier}</strong><p>Printed values, matching and parity stay unchanged. Scoring operations use ×${power.powerMultiplier} magnitude.</p></section>`:''}
   function upgradeDot(t){const tier=tierFor(t);return tier?`<i class="upgradeDot u${tier}" aria-hidden="true"></i>`:''}
   function tileModMarks(t){const marks=tileView(t).modifiers;return marks.map((mark,i)=>`<i class="tileModMark ${mark.className}" style="--mod-shift:${(i-(marks.length-1)/2)*5}px" aria-hidden="true"><span>${mark.label[0]}</span><span>${mark.label[1]}</span></i>`).join('')}
-  function mini(t,fx='normal',compact=false){const cls=(fx==='back'?' back':fx==='reveal'?' reveal':'')+(compact?' compactPreview':''),mark=fx==='back'?'':upgradeDot(t)+tileModMarks(t)+circuitMark(t)+powerMark(t);return`<div class="domino${cls}${powerClass(t)}${circuitClass(t)}"><div class="half"><div class="spips">${dots(t?.a??0,true)}</div></div><div class="half"><div class="spips">${dots(t?.b??0,true)}</div></div>${mark}</div>`}
+  function mini(t,fx='normal',compact=false){const cls=(fx==='back'?' back':fx==='reveal'?' reveal':'')+(compact?' compactPreview':''),mark=fx==='back'?'':upgradeDot(t)+tileModMarks(t)+circuitMark(t)+powerMark(t);return`<div class="domino${cls}${powerClass(t)}${circuitClass(t)}${modClass(t)}"><div class="half${t?.a===0?' zeroEndpoint':''}"><div class="spips">${dots(t?.a??0,true)}</div></div><div class="half${t?.b===0?' zeroEndpoint':''}"><div class="spips">${dots(t?.b??0,true)}</div></div>${mark}</div>`}
   function marketTileHtml(t,label=''){return`<span class="marketTile" aria-label="Domino ${t.a}|${t.b}${label?` · ${label}`:''}">${mini(t,'normal',true)}${label?`<small>${escapeHtml(label)}</small>`:''}</span>`}
   function renderMachineModStatus(model){machineModStatusEl.hidden=!model.visible;if(!model.visible){machineModStatusEl.innerHTML='';return}machineModStatusEl.innerHTML=`<span>LONG CHAIN</span><i><b style="width:${model.ratio*100}%"></b></i>`;machineModStatusEl.setAttribute('aria-label',model.ariaLabel)}
   function ordered(p){return[...p.cubes].sort((a,b)=>p.axis==='H'?a.x-b.x:a.y-b.y)}
-  function pieceEl(p,cls='piece'){const d=document.createElement('div');d.className=cls+' '+(p.axis==='H'?'h':'v')+powerClass(p.tile)+circuitClass(p.tile);d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+tileModMarks(p.tile)+circuitMark(p.tile)+powerMark(p.tile);return d}
+  function pieceEl(p,cls='piece'){const d=document.createElement('div');d.className=cls+' '+(p.axis==='H'?'h':'v')+powerClass(p.tile)+circuitClass(p.tile)+modClass(p.tile);d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube${c.v===0?' zeroEndpoint':''}"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+tileModMarks(p.tile)+circuitMark(p.tile)+powerMark(p.tile);return d}
   function toast(t){toastEl.textContent=t;toastEl.classList.add('show');setTimeout(()=>toastEl.classList.remove('show'),1300)}
   function boardMessage(text,ms=900){const d=document.createElement('div');d.className='boardMessage';d.textContent=text;board.appendChild(d);setTimeout(()=>d.remove(),ms)}
   function addBoardCenterTicks(){
