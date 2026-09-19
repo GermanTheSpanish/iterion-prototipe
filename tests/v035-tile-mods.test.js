@@ -59,7 +59,7 @@ check('Zero Port into [0|0] duplicates through both physical ends',()=>{
 });
 
 function replay(events,pieces,mods,initial=5){
-  return E.replaySelectedScoring({output:0,gain:0,path:[],segments:[],events,reason:'fixture',traversals:events.length,rebounds:0},initial,{pieces,modIdsByPiece:mods,cornerMultiplier:2,longLineThreshold:3,longLineHighThreshold:5,longLineMultiplier:2,longLineHighMultiplier:3,overloadMaxMultiplier:4,terminalMultiplier:3});
+  return E.replaySelectedScoring({output:0,gain:0,path:[],segments:[],events,reason:'fixture',traversals:events.length,rebounds:0},initial,{pieces,modIdsByPiece:mods,cornerMultiplier:3,longLineThreshold:3,longLineHighThreshold:5,longLineMultiplier:2,longLineHighMultiplier:3,overloadMaxMultiplier:4,terminalMultiplier:3});
 }
 const op=(piece,value,entrySide='L',exitSide='R')=>({type:'op',piece,entryHalf:0,exitHalf:1,entrySide,exitSide,value,op:value===0?'zero':value%2?'multiply':'add',before:0,after:0,add:0,factor:0,powerMultiplier:1});
 
