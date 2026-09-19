@@ -318,6 +318,10 @@
       .app .modTile>.tileModMark,.commerceModal .domino.modTile>.tileModMark{
         color:rgba(255,255,255,.92)!important;text-shadow:none!important;z-index:9!important
       }
+      .commerceModal .domino.compactPreview.modTile>.tileModMark,
+      .commerceModal .domino.compactPreview.circuitTile.modTile>.tileModMark{
+        color:rgba(255,255,255,.92)!important;text-shadow:none!important
+      }
       .app .modTile .pips,.app .modTile .spips,.commerceModal .domino.modTile .spips{opacity:0!important}
       .app .domino.modTile>.half+.half,.commerceModal .domino.modTile>.half+.half{border-top-color:transparent!important}
       .app .piece.modTile.h>.cube+.cube{border-left-color:transparent!important}
