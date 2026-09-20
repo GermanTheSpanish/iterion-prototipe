@@ -26,6 +26,12 @@ check('Rulebook retains semantic free Reroll and POWER progression coverage',()=
 check('Inspector exposes original values, generation, actual operations and Circuit rank together',()=>{
   for(const power of [2,3,4]){const t={id:'physical',a:3,b:5,generation:power,powerMultiplier:power},model=H.inspectTile({set:[t],events:[],mods:[],circuitRanks:{physical:3}},t.id);assert.deepEqual(model.baseTile.values,[3,5]);assert.equal(model.power.generation,power);assert.equal(model.power.powerMultiplier,power);assert.equal(model.baseTile.operations[1].factor,5*power);assert.equal(model.circuit.roman,'III')}
 });
+check('Batch B Tile Mods expose distinct physical board marks',()=>{
+  const tile={id:'physical',a:2,b:3},base={set:[tile],circuitRanks:{}};
+  for(const [field,label] of [['bridgeTileId','BR'],['gateTileId','GT'],['fanTileId','FN'],['frameTileId','FM'],['crownTileId','CW'],['frontierTileId','FT']]){
+    const model=V.tileViewModel(tile,{...base,[field]:'physical'});assert.equal(model.modifiers.length,1);assert.equal(model.modifiers[0].label,label)
+  }
+});
 check('presentation separates Main and Echo events without losing selected nested branches',()=>{
   const ps=[[3,3,12,14,0],[5,3,8,14,0],[3,4,16,14,0],[5,5,6,13,1],[2,5,6,9,1],[5,4,6,17,1],[3,2,13,16,1]].map(([a,b,x,y,r],i)=>{const p=E.pieceFrom({a,b},x,y,0,r,i+1);p.tile={a,b,id:'p'+i};return p});
   const r=E.bestSignal(7,ps,{bifurcate:true,initialOutput:5,doubleEchoPieceId:1}),plan=V.signalPlan(r.events);
