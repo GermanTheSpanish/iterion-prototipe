@@ -40,12 +40,24 @@
     }
     return best
   }
+  function shortestPathWithoutEdge(graph,start,end,excluded,blockedA,blockedB){
+    const queue=[start],parent=new Map([[start,null]]);
+    for(let i=0;i<queue.length;i++){
+      const current=queue[i];
+      if(current===end){const path=[];for(let p=end;p!==null;p=parent.get(p))path.push(p);return path.reverse()}
+      for(const next of [...(graph.get(current)||[])].sort(compare)){
+        const blocked=current===blockedA&&next===blockedB||current===blockedB&&next===blockedA;
+        if(next!==excluded&&!blocked&&!parent.has(next)){parent.set(next,current);queue.push(next)}
+      }
+    }
+    return null
+  }
   function cycleSignaturesThrough(graph,tileId,minSize=4){
-    const neighbours=[...(graph.get(tileId)||[])].sort(compare),found=new Set();
+    const neighbours=[...(graph.get(tileId)||[])].sort(compare),found=new Set(),minimum=Math.max(3,Number(minSize)||4);
+    const add=path=>{if(path&&path.length+1>=minimum)found.add(signature([tileId,...path]))};
     for(let i=0;i<neighbours.length;i++)for(let j=i+1;j<neighbours.length;j++){
-      const path=shortestPath(graph,neighbours[i],neighbours[j],tileId);if(!path)continue;
-      const ids=[tileId,...path];if(ids.length<Math.max(3,Number(minSize)||4))continue;
-      found.add(signature(ids))
+      const first=shortestPath(graph,neighbours[i],neighbours[j],tileId);if(!first)continue;add(first);
+      for(let edge=0;edge<first.length-1;edge++)add(shortestPathWithoutEdge(graph,neighbours[i],neighbours[j],tileId,first[edge],first[edge+1]))
     }
     return[...found].sort(compare)
   }
