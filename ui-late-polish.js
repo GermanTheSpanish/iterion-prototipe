@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260920.3',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
+  const BUILD_ID='20260920.4',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={
     'double-double':'First activation each Move applies both halves; later passes are normal.',
@@ -19,6 +19,12 @@
     'complement':'Printed values summing to 6 give ×2 operation magnitude.',
     'twin':'Direct contact with an identical printed domino gives ×3 operation magnitude.',
     'pair':'An exact parallel 2×2 domino block gives ×3 operation magnitude.',
+    'bridge':'A physical articulation point gives ×3 operation magnitude.',
+    'gate':'Exactly one physical neighbour on each half gives ×2.',
+    'fan':'Three neighbours around one half give ×4 operation magnitude.',
+    'frame':'Membership in a closed physical cycle gives ×2 operation magnitude.',
+    'crown':'Three exterior sides spanning both halves give ×4 operation magnitude.',
+    'frontier':'Two or more neighbours plus one clear long side give ×2.',
     'long-run':'10+ unique routed tiles: all activated Stars pay once.'
   };
 
@@ -126,7 +132,7 @@
     for(const[el,value]of pairs){if(!el||!Number.isFinite(Number(value)))continue;const extreme=Math.abs(Number(value))>=EXTREME_THRESHOLD;el.classList.toggle('extremeValue',extreme);if(extreme){const text=scientific(value);if(el.textContent!==text)el.textContent=text}}
     const final=doc.querySelector('.finalfx>span');if(final&&Math.abs(Number(s.score))>=EXTREME_THRESHOLD){const text=scientific(s.score);if(final.textContent!==text)final.textContent=text}
   }
-  const OFFER_LABELS=Object.freeze({'double-double':'DD','double-echo':'DE','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','sequence':'SQ','complement':'C6','twin':'TW','pair':'PR'});
+  const OFFER_LABELS=Object.freeze({'double-double':'DD','double-echo':'DE','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','sequence':'SQ','complement':'C6','twin':'TW','pair':'PR','bridge':'BR','gate':'GT','fan':'FN','frame':'FM','crown':'CW','frontier':'FT'});
   const offerLabel=id=>OFFER_LABELS[id]||null;
   function assignedTiles(){
     const map=new Map();

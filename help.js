@@ -87,6 +87,12 @@
     if(state.complementTileId===tileId)ids.push('complement');
     if(state.twinTileId===tileId)ids.push('twin');
     if(state.pairTileId===tileId)ids.push('pair');
+    if(state.bridgeTileId===tileId)ids.push('bridge');
+    if(state.gateTileId===tileId)ids.push('gate');
+    if(state.fanTileId===tileId)ids.push('fan');
+    if(state.frameTileId===tileId)ids.push('frame');
+    if(state.crownTileId===tileId)ids.push('crown');
+    if(state.frontierTileId===tileId)ids.push('frontier');
     return ids
   }
   function tileModifiers(state,tile){

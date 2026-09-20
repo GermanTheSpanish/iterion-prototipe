@@ -22,6 +22,12 @@ function testModifierBelongsToExactPhysicalInstance(){
   s.set.push(copy);s.doubleDoubleTileId=original.id;const a=Help.inspectTile(s,original.id),b=Help.inspectTile(s,copy.id);
   assert.strictEqual(a.modifiers.length,1);assert.strictEqual(a.modifiers[0].id,'double-double');assert.strictEqual(b.modifiers.length,0);assert.notStrictEqual(a.baseTile.id,b.baseTile.id);
 }
+function testBatchBModifierBelongsToExactPhysicalInstance(){
+  const game=Game.createGame(E,{seed:230}),s=game.state(),tile=s.set.find(t=>t.id==='d0-4'),other=s.set.find(t=>t.id==='d0-5');
+  s.bridgeTileId=tile.id;s.gateTileId=other.id;
+  assert.deepStrictEqual(Help.inspectTile(s,tile.id).modifiers.map(m=>m.id),['bridge']);
+  assert.deepStrictEqual(Help.inspectTile(s,other.id).modifiers.map(m=>m.id),['gate']);
+}
 function testTileRecordTracksBestOutputAndStarsWithoutPositionData(){
   const game=Game.createGame(E,{seed:24}),s=game.state(),tile=s.set.find(t=>t.id==='d2-2');tile.upgrade=2;
   s.events.push({turn:1,round:1,roundTurn:1,tile:{...tile},output:120},{turn:2,round:1,roundTurn:2,tile:{...tile},output:450});
@@ -38,5 +44,5 @@ function testLongPressInspectsWithoutStartingDragOrPlacement(){
 function testMovementBeforeHoldStartsDragOnly(){let timer=null,inspects=0,drags=0;const gesture=Gesture.createPressGesture({delay:500,tolerance:10,setTimer:fn=>{timer=fn;return 1},clearTimer:()=>{},onLongPress:()=>{inspects++},onDragStart:()=>{drags++}});gesture.begin({pointerId:8,clientX:0,clientY:0},{kind:'hand',allowDrag:true});assert.strictEqual(gesture.move({pointerId:8,clientX:20,clientY:0}),'drag');timer();assert.strictEqual(drags,1);assert.strictEqual(inspects,0);assert.strictEqual(gesture.end({pointerId:8}),'drag')}
 function testRulebookShape(){const sections=Help.rulebookSections();assert.deepStrictEqual(sections.map(s=>s.id),['goal','placement','rotation','hand','scoring','routing','doubles','zeros','parity','persistence','power','economy','modifiers','circuits']);for(const section of sections)assert(section.displayName&&section.shortDescription&&section.rulesDescription);assert.match(sections.find(s=>s.id==='economy').rulesDescription,/Shop is available during active rounds/);const power=sections.find(s=>s.id==='power');assert.match(power.rulesDescription,/POWER/);assert.match(power.rulesDescription,/MONOID automatically adds another complete 28-tile set/);assert.doesNotMatch(power.rulesDescription,/NOMON/);const dd=M.get('double-double');assert(dd.displayName&&dd.shortDescription&&dd.rulesDescription)}
 
-testRulebookTelemetryDoesNotMutateGameState();testInspectorIsReadOnlyAndPreservesPhysicalId();testModifierBelongsToExactPhysicalInstance();testTileRecordTracksBestOutputAndStarsWithoutPositionData();testOperationProfileUsesEngineSemantics();testLongPressInspectsWithoutStartingDragOrPlacement();testMovementBeforeHoldStartsDragOnly();testRulebookShape();
+testRulebookTelemetryDoesNotMutateGameState();testInspectorIsReadOnlyAndPreservesPhysicalId();testModifierBelongsToExactPhysicalInstance();testBatchBModifierBelongsToExactPhysicalInstance();testTileRecordTracksBestOutputAndStarsWithoutPositionData();testOperationProfileUsesEngineSemantics();testLongPressInspectsWithoutStartingDragOrPlacement();testMovementBeforeHoldStartsDragOnly();testRulebookShape();
 console.log('v0.21 help / inspector regression tests passed');
