@@ -15,6 +15,7 @@
   const performanceSamples=[];
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal');
+  const MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
   let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const px=n=>n/E.G*100+'%',py=n=>n/E.H*100+'%';
@@ -34,7 +35,7 @@
     const saved=storedState(),choiceMade=localStorage.getItem('iterion.tutorialChoice.v1')==='made';continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
   function startNormal(continueSaved=false){
-    tutorial=null;tutorialPanel.hidden=true;const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
+    clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
     localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
     GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');persistGame();handFx.fill('normal');showGame()
@@ -54,10 +55,10 @@
   }
   function updateTutorial(){if(!tutorial)return;tutorialStep.textContent=`LEARN MONOID · ${tutorial.step+1}/6`;tutorialInstruction.textContent=tutorialCopy[tutorial.step];tutorialPanel.hidden=false;renderHand();renderBoard()}
   function startTutorial(){
-    if(!tutorial)activeRun=GAME;tutorial={step:0,exitPending:false};GAME=window.IterionGame.createGame(E,{seed:3100,TARGETS:[1e9],STARTING_COINS:30});prepareTutorialHand('d2-2');H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');handFx.fill('normal');showGame();updateTutorial()
+    clearModFaceReveals();if(!tutorial)activeRun=GAME;tutorial={step:0,exitPending:false};GAME=window.IterionGame.createGame(E,{seed:3100,TARGETS:[1e9],STARTING_COINS:30});prepareTutorialHand('d2-2');H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');handFx.fill('normal');showGame();updateTutorial()
   }
   function leaveTutorial(completed=false){
-    tutorial=null;tutorialPanel.hidden=true;GAME=activeRun||window.IterionGame.createGame(E);activeRun=null;H.bindRun(GAME.state().runId);showSelection();if(completed)toast('Tutorial complete')
+    clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;GAME=activeRun||window.IterionGame.createGame(E);activeRun=null;H.bindRun(GAME.state().runId);showSelection();if(completed)toast('Tutorial complete')
   }
   function advanceTutorial(result){
     if(!tutorial)return;const sequence=['d2-3','d3-4','d0-4','d0-0'];
@@ -69,6 +70,9 @@
 
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function tileView(t){return V.tileViewModel(t,GAME.state())}
+  function clearModFaceReveals(){for(const timer of modFaceRevealTimers.values())clearTimeout(timer);modFaceRevealTimers.clear();modFaceRevealUntil.clear()}
+  function modFaceRevealed(tileId){const until=modFaceRevealUntil.get(tileId)||0;if(until<=performance.now()){if(until)modFaceRevealUntil.delete(tileId);return false}return true}
+  function revealModFace(tileId){const piece=GAME.state().pieces.find(p=>p.tile?.id===tileId);if(!piece||!tileView(piece.tile).modifiers.length)return false;const already=modFaceRevealed(tileId),previous=modFaceRevealTimers.get(tileId);if(previous)clearTimeout(previous);modFaceRevealUntil.set(tileId,performance.now()+MOD_FACE_REVEAL_MS);modFaceRevealTimers.set(tileId,setTimeout(()=>{modFaceRevealTimers.delete(tileId);modFaceRevealUntil.delete(tileId);renderBoard()},MOD_FACE_REVEAL_MS));if(!already)renderBoard();return true}
   function modClass(t){return tileView(t).modifiers.length?' modTile':''}
   function tierFor(t){return tileView(t).upgrade}
   function powerMultiplier(t){return tileView(t).powerMultiplier}
@@ -85,7 +89,7 @@
   function marketTileHtml(t,label=''){return`<span class="marketTile" aria-label="Domino ${t.a}|${t.b}${label?` · ${label}`:''}">${mini(t,'normal',true)}${label?`<small>${escapeHtml(label)}</small>`:''}</span>`}
   function renderMachineModStatus(model){machineModStatusEl.hidden=!model.visible;if(!model.visible){machineModStatusEl.innerHTML='';return}machineModStatusEl.innerHTML=`<span>LONG CHAIN</span><i><b style="width:${model.ratio*100}%"></b></i>`;machineModStatusEl.setAttribute('aria-label',model.ariaLabel)}
   function ordered(p){return[...p.cubes].sort((a,b)=>p.axis==='H'?a.x-b.x:a.y-b.y)}
-  function pieceEl(p,cls='piece'){const d=document.createElement('div');d.className=cls+' '+(p.axis==='H'?'h':'v')+powerClass(p.tile)+circuitClass(p.tile)+modClass(p.tile);d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube${c.v===0?' zeroEndpoint':''}"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+tileModMarks(p.tile)+circuitMark(p.tile)+powerMark(p.tile);return d}
+  function pieceEl(p,cls='piece'){const d=document.createElement('div'),revealed=tileView(p.tile).modifiers.length>0&&modFaceRevealed(p.tile.id);d.className=cls+' '+(p.axis==='H'?'h':'v')+powerClass(p.tile)+circuitClass(p.tile)+(revealed?' modFaceRevealed':modClass(p.tile));d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube${c.v===0?' zeroEndpoint':''}"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+(revealed?'':tileModMarks(p.tile))+circuitMark(p.tile)+powerMark(p.tile);return d}
   function toast(t){toastEl.textContent=t;toastEl.classList.add('show');setTimeout(()=>toastEl.classList.remove('show'),1300)}
   function boardMessage(text,ms=900){const d=document.createElement('div');d.className='boardMessage';d.textContent=text;board.appendChild(d);setTimeout(()=>d.remove(),ms)}
   function addBoardCenterTicks(){
@@ -105,9 +109,9 @@
   function renderBoard(){
     const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
     s.pieces.forEach(p=>{
-      const el=pieceEl(p),circuitPending=s.pendingCircuit,modPending=s.pendingModPlacement,pending=circuitPending||modPending,eligible=!!pending?.eligibleTileIds?.includes(p.tile.id),power=powerMultiplier(p.tile);
+      const el=pieceEl(p),circuitPending=s.pendingCircuit,modPending=s.pendingModPlacement,pending=circuitPending||modPending,eligible=!!pending?.eligibleTileIds?.includes(p.tile.id),power=powerMultiplier(p.tile),modded=tileView(p.tile).modifiers.length>0;
       el.classList.add('inspectable');el.setAttribute('role','button');
-      el.setAttribute('aria-label',`${pending?'Choose':'Inspect'} domino ${p.tile.a}|${p.tile.b}${power>1?` · POWER ×${power}`:''}${circuitRank(p.tile)?` · Circuit rank ${D.CIRCUIT_RANKS[circuitRank(p.tile)-1].roman}`:''}`);
+      el.setAttribute('aria-label',pending?`Choose domino ${p.tile.a}|${p.tile.b}${power>1?` · POWER ×${power}`:''}${circuitRank(p.tile)?` · Circuit rank ${D.CIRCUIT_RANKS[circuitRank(p.tile)-1].roman}`:''}`:`Domino ${p.tile.a}|${p.tile.b}${power>1?` · POWER ×${power}`:''}${circuitRank(p.tile)?` · Circuit rank ${D.CIRCUIT_RANKS[circuitRank(p.tile)-1].roman}`:''}.${modded?' Tap to reveal values.':''} Hold to inspect.`);
       if(pending){
         const member=circuitPending?circuitPending.tileIds.includes(p.tile.id):eligible;
         el.classList.toggle('circuitMember',!!member);el.classList.toggle('circuitEligible',eligible);el.classList.toggle('circuitDim',circuitPending?!member:!eligible);
@@ -138,7 +142,7 @@
   function resetOverlay(){overlay.className='overlay show';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
-  function newRun(){clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();GAME.fresh();H.bindRun(GAME.state().runId);persistGame();handFx.fill('normal');hideOverlay();render()}
+  function newRun(){clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);persistGame();handFx.fill('normal');hideOverlay();render()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
@@ -283,7 +287,7 @@
 
   function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
   function chooseMarketModTile(tileId){const pending=GAME.state().pendingModPlacement,mod=M.get(pending?.mod),r=GAME.chooseMarketModTile(tileId);if(!r.ok){toast(r.reason==='no-target'?'No compatible relocation target':'Invalid Mod target');return}press.cancel();persistGame();clearOutcomeDelay();render();if(r.pending)toast(`${mod?.displayName||r.mod} · CHOOSE NEW ZERO`);else toast(`${mod?.displayName||r.mod} → [${r.tile?.a}|${r.tile?.b}]`)}
-  const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId);else if(meta.kind==='mod-target')chooseMarketModTile(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit'||meta.kind==='mod-target')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
+  const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId);else if(meta.kind==='mod-target')chooseMarketModTile(meta.tileId);else if(meta.kind==='board')revealModFace(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit'||meta.kind==='mod-target')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
   function handlePointerMove(e){press.move(e);if(drag.active)moveDrag(e)}
   async function handlePointerUp(e){press.end(e);if(drag.active)await endDrag(e)}
   function handlePointerCancel(e){press.cancel();if(drag.active)endDrag(e)}

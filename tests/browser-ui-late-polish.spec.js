@@ -39,7 +39,7 @@ function assertCompactValues(tiles){
         expect((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toBeGreaterThan(4.5);
       }
     }
-    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|TD|ZP|PX|CR|LN|OV|TE)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.mod)expect(tile.mark.color).toBe('rgba(255, 255, 255, 0.92)')}
+    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|TD|ZP|PX|CR|LN|OV|TE)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.mod)expect(tile.mark.color).toBe(tile.circuit?tile.halves.find(h=>h.pipColor)?.pipColor:'rgba(255, 255, 255, 0.92)')}
   }
 }
 
@@ -72,7 +72,7 @@ for(const width of [375,430])for(const endless of [false,true]){
     const boardModGeometry=await boardMark.evaluate(el=>{const box=el.getBoundingClientRect();return{font:parseFloat(getComputedStyle(el.querySelector('.tileModMark')).fontSize),short:Math.min(box.width,box.height)}});expect(boardModGeometry.font).toBeLessThan(boardModGeometry.short*.55);
     await expect(boardMark).toHaveClass(/modTile/);expect(await boardMark.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
     const boardMarkStyle=await boardMark.evaluate(el=>({circuit:el.classList.contains('circuitTile'),color:getComputedStyle(el.querySelector('.tileModMark')).color}));
-    expect(boardMarkStyle.color).toBe('rgba(255, 255, 255, 0.92)');
+    expect(boardMarkStyle.color).toBe('rgb(171, 215, 255)');
     expect(await page.evaluate(()=>{const g=window.__monoidGame,before=JSON.stringify(g.exportState());window.MonoidLatePolish.sync();window.MonoidPhaseA.sync();return before===JSON.stringify(g.exportState())})).toBe(true);
     expect(await page.locator('.commerceModal').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
     if(endless){
@@ -82,6 +82,24 @@ for(const width of [375,430])for(const endless of [false,true]){
     await page.screenshot({path:testInfo.outputPath(`compact-market-${width}-${endless}.png`)});
   });
 }
+
+test('board Mod tap reveals canonical values for 3 seconds with independent timers',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const game=value.createGame(engine,{...options,seed:3801}),s=game.state(),specs=[['d5-5',6,8,0],['d0-5',10,8,0],['d0-4',14,8,0]];s.pieces=specs.map(([id,x,y,rr],i)=>{const tile=s.set.find(t=>t.id===id),p=engine.pieceFrom(tile,x,y,0,rr,i+1);p.tile={...tile};return p});s.placedTileIds=specs.map(v=>v[0]);s.hand=s.hand.map(t=>t&&s.placedTileIds.includes(t.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));s.doubleDoubleTileId='d5-5';s.zeroPortTileIds=['d0-5','d0-4'];s.circuitRanks={'d5-5':3,'d0-5':5};window.__iterionTestGame=game;return game}}}})});
+  await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  const blue=page.locator('.piece[data-tile-id="d5-5"]'),gold=page.locator('.piece[data-tile-id="d0-5"]');
+  await expect(blue).toHaveClass(/modTile/);await expect(gold).toHaveClass(/modTile/);
+  expect(await blue.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
+  expect(await blue.locator('.tileModMark').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(171, 215, 255)');
+  expect(await gold.locator('.tileModMark').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(255, 229, 154)');
+  const before=await page.evaluate(()=>JSON.stringify(window.__iterionTestGame.exportState()));
+  await blue.click();await expect(blue).toHaveClass(/modFaceRevealed/);await expect(blue).not.toHaveClass(/modTile/);await expect(blue.locator('.tileModMark')).toHaveCount(0);expect(await blue.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
+  await page.waitForTimeout(600);await gold.click();await expect(blue).toHaveClass(/modFaceRevealed/);await expect(gold).toHaveClass(/modFaceRevealed/);
+  await page.waitForTimeout(2600);await expect(blue).toHaveClass(/modTile/);await expect(gold).toHaveClass(/modFaceRevealed/);
+  await page.waitForTimeout(600);await expect(gold).toHaveClass(/modTile/);await expect(gold.locator('.tileModMark')).toHaveText('ZP');
+  expect(await page.evaluate(()=>JSON.stringify(window.__iterionTestGame.exportState()))).toBe(before);
+  const box=await gold.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();await expect(page.locator('#overlay')).toHaveClass(/show/);await expect(gold).toHaveClass(/modTile/);
+});
 
 test('Shop uses compact geometry without revealing its face-down domino',async({page})=>{
   await page.setViewportSize({width:375,height:667});
@@ -102,7 +120,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260920.2');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260920.3');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -129,7 +147,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   const overflow=await page.locator('.commerceModal').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth}));expect(overflow.sw).toBeLessThanOrEqual(overflow.cw+1);
 
   const circuitMarkColor=await dd.locator('.marketAssignedTile .tileModMark').evaluate(el=>getComputedStyle(el).color);
-  expect(circuitMarkColor).toBe('rgba(255, 255, 255, 0.92)');
+  expect(circuitMarkColor).toBe('rgb(255, 255, 255)');
   const markSize=await dd.locator('.marketAssignedTile .tileModMark').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));expect(markSize).toBe(11);
 
   await dd.locator('.marketOfferAction .shopBuy').click();
