@@ -8,10 +8,10 @@
   const pointers=new Map();
   let gesture=null,cascadeRestore=null,lastEmptyTap=0;
 
-  frame.style.setProperty('overflow','clip','important');
   const style=doc.createElement('style');style.id='monoid-board-camera-style';style.textContent=`
-    .boardFrame{position:relative;touch-action:none;isolation:isolate;overflow:clip!important}
-    .board{transform-origin:50% 50%;transform:translate3d(var(--camera-x,0px),var(--camera-y,0px),0) scale(var(--camera-scale,1));transition:transform 180ms cubic-bezier(.2,.75,.25,1);will-change:transform}
+    .boardFrame{position:relative;touch-action:none;isolation:isolate;overflow:visible!important}
+    .boardFrame.cameraZoomed{overflow:clip!important}
+    .board{transform-origin:0 0;transition:transform 180ms cubic-bezier(.2,.75,.25,1);will-change:transform}
     .boardFrame.cameraGesture .board{transition:none}
     .app .board .piece>.tileModMark{font-size:clamp(3px,calc(var(--board-cell-px,16px) * .82),16px)!important}
     .app .board .piece.v>.tileModMark{transform:translateX(calc(var(--mod-offset,0) * var(--board-cell-px,16px) * .28))!important}
@@ -25,7 +25,8 @@
   function limits(scale=state.scale){const b={w:board.offsetWidth,h:board.offsetHeight},f={w:frame.clientWidth,h:frame.clientHeight};return{x:Math.max(0,(b.w*scale-f.w)/2),y:Math.max(0,(b.h*scale-f.h)/2)}}
   function apply(next={},animate=true){
     state.scale=clamp(Number(next.scale??state.scale),MIN_SCALE,boardRatioLimit());const limit=limits();state.x=clamp(Number(next.x??state.x),-limit.x,limit.x);state.y=clamp(Number(next.y??state.y),-limit.y,limit.y);
-    frame.classList.toggle('cameraGesture',!animate);board.style.setProperty('--camera-scale',state.scale.toFixed(4));board.style.setProperty('--camera-x',`${state.x.toFixed(2)}px`);board.style.setProperty('--camera-y',`${state.y.toFixed(2)}px`);frame.classList.toggle('cameraZoomed',state.scale>1.001);return snapshot()
+    const tx=state.x-(state.scale-1)*board.offsetWidth/2,ty=state.y-(state.scale-1)*board.offsetHeight/2;
+    frame.classList.toggle('cameraGesture',!animate);board.style.setProperty('--camera-scale',state.scale.toFixed(4));board.style.setProperty('--camera-x',`${state.x.toFixed(2)}px`);board.style.setProperty('--camera-y',`${state.y.toFixed(2)}px`);board.style.transform=`matrix(${state.scale.toFixed(6)},0,0,${state.scale.toFixed(6)},${tx.toFixed(2)},${ty.toFixed(2)})`;frame.classList.toggle('cameraZoomed',state.scale>1.001);return snapshot()
   }
   function snapshot(){return{scale:state.scale,x:state.x,y:state.y,maxScale:boardRatioLimit(),temporary:state.temporary}}
   function reset(animate=true){state.temporary=false;return apply({scale:1,x:0,y:0},animate)}
@@ -33,7 +34,7 @@
   function canUse(){const game=root.__monoidGame?.state?.();return!board.classList.contains('dragging')&&!game?.running&&!game?.pendingCircuit&&!game?.pendingModPlacement&&!doc.querySelector('.overlay.show')}
   function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
   function midpoint(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
-  function startPinch(){const [a,b]=[...pointers.values()],mid=midpoint(a,b),box=board.getBoundingClientRect(),scale=Math.max(.0001,state.scale),baseLeft=box.left-state.x+(scale-1)*board.offsetWidth/2,baseTop=box.top-state.y+(scale-1)*board.offsetHeight/2;gesture={kind:'pinch',distance:Math.max(1,distance(a,b)),mid,anchorX:(mid.x-baseLeft-state.x+(scale-1)*board.offsetWidth/2)/scale,anchorY:(mid.y-baseTop-state.y+(scale-1)*board.offsetHeight/2)/scale,baseLeft,baseTop};frame.classList.add('cameraGesture')}
+  function startPinch(){const [a,b]=[...pointers.values()],mid=midpoint(a,b),box=board.getBoundingClientRect(),scale=Math.max(.0001,state.scale),tx=state.x-(scale-1)*board.offsetWidth/2,ty=state.y-(scale-1)*board.offsetHeight/2,baseLeft=box.left-tx,baseTop=box.top-ty;gesture={kind:'pinch',distance:Math.max(1,distance(a,b)),mid,anchorX:(mid.x-box.left)/scale,anchorY:(mid.y-box.top)/scale,baseLeft,baseTop};frame.classList.add('cameraGesture')}
   function onDown(event){
     if(event.pointerType==='mouse'&&event.button!==0||!canUse())return;
     pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,empty:event.target===board||event.target===frame});
