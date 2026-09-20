@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const BUILD='20260920.3',NEXT_BUILD='20260920.4';
+const BUILD='20260920.4',NEXT_BUILD='20260920.5';
 
 async function openTutorialHub(page){const persistent=page.locator('#tutorialHubButton');if(await persistent.isVisible())await persistent.click();else await page.locator('#learnMonoid').click();await expect(page.locator('#tutorialHub')).toBeVisible()}
 async function startTutorialFromHub(page,kind){await openTutorialHub(page);await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
@@ -33,7 +33,7 @@ test('installed mode intercepts Android-style Back and opens the run menu instea
 
 test('title reveal follows DOMINO order without a pre-animation flash',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260920.3');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260920.4');
   await expect(page.locator('#devBuildStamp')).toContainText(`v0.39.0 · build ${BUILD}`);
   const letters=page.locator('#titleCard .titleLetter');await expect(letters).toHaveCount(6);const title=page.locator('#titleCard h1');await expect(title).toHaveAttribute('aria-label','MONOID');
   expect(await title.evaluate(el=>getComputedStyle(el).visibility)).toBe('visible');

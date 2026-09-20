@@ -147,7 +147,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20260920.3';
+    const BUILD_ID='20260920.4';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);
@@ -319,11 +319,14 @@
       .app .domino.modTile>.tileModMark,
       .app .piece.modTile.powerTile:not(.circuitTile)>.tileModMark,
       .app .domino.modTile.powerTile:not(.circuitTile)>.tileModMark,
-      .app .circuitTile.modTile>.tileModMark,
       .commerceModal .domino.modTile>.tileModMark,
-      .commerceModal .domino.compactPreview.modTile>.tileModMark,
-      .commerceModal .domino.compactPreview.circuitTile.modTile>.tileModMark{
+      .commerceModal .domino.compactPreview.modTile>.tileModMark{
         color:rgba(255,255,255,.92)!important;text-shadow:none!important;z-index:9!important
+      }
+      /* Circuit rank colour remains visible on the Mod reverse without changing its material. */
+      .app .circuitTile.modTile>.tileModMark,
+      .commerceModal .domino.compactPreview.circuitTile.modTile>.tileModMark{
+        color:var(--circuit-pip,#fff)!important;text-shadow:none!important;z-index:10!important
       }
       .app .piece.modTile:has(>.tileModMark) .pips,
       .app .domino.modTile:has(>.tileModMark) .spips,
