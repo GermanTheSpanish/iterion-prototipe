@@ -18,7 +18,7 @@ test('late Endless board camera keeps a fixed viewport, anchors pinch midpoint a
     return{frame:{left:fr.left,top:fr.top,width:fr.width,height:fr.height},mid,uv:{x:(mid.x-br.left)/br.width,y:(mid.y-br.top)/br.height},max:camera.snapshot().maxScale,overflow:getComputedStyle(frame).overflow}
   });
   expect(baseline.max).toBeGreaterThan(1.1);
-  expect(baseline.overflow).toBe('hidden');
+  expect(baseline.overflow).toBe('clip');
 
   await page.locator('.boardFrame').evaluate((frame,mid)=>{
     const fire=(type,id,x,y)=>frame.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',clientX:x,clientY:y,buttons:type==='pointerup'?0:1}));

@@ -11,7 +11,7 @@ const pwa=fs.readFileSync(path.join(root,'pwa.js'),'utf8');
 test('board camera remains a presentation-only runtime layer',()=>{
   assert.match(camera,/MIN_SCALE=1,PINCH_SENSITIVITY=\.6/);
   assert.match(camera,/Math\.min\(gx\/bg,hy\/bh\)/);
-  assert.match(camera,/overflow:hidden!important/);
+  assert.match(camera,/overflow:clip!important/);
   assert.doesNotMatch(camera,/MAX_SCALE|EDGE_PAD/);
   assert.match(camera,/pointerType/);
   assert.match(camera,/signal-fork/);

@@ -8,9 +8,9 @@
   const pointers=new Map();
   let gesture=null,cascadeRestore=null,lastEmptyTap=0;
 
-  frame.style.setProperty('overflow','hidden','important');
+  frame.style.setProperty('overflow','clip','important');
   const style=doc.createElement('style');style.id='monoid-board-camera-style';style.textContent=`
-    .boardFrame{position:relative;touch-action:none;isolation:isolate;overflow:hidden!important}
+    .boardFrame{position:relative;touch-action:none;isolation:isolate;overflow:clip!important}
     .board{transform-origin:50% 50%;transform:translate3d(var(--camera-x,0px),var(--camera-y,0px),0) scale(var(--camera-scale,1));transition:transform 180ms cubic-bezier(.2,.75,.25,1);will-change:transform}
     .boardFrame.cameraGesture .board{transition:none}
     .app .board .piece>.tileModMark{font-size:clamp(3px,calc(var(--board-cell-px,16px) * .82),16px)!important}
@@ -33,7 +33,7 @@
   function canUse(){const game=root.__monoidGame?.state?.();return!board.classList.contains('dragging')&&!game?.running&&!game?.pendingCircuit&&!game?.pendingModPlacement&&!doc.querySelector('.overlay.show')}
   function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
   function midpoint(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
-  function startPinch(){const [a,b]=[...pointers.values()];gesture={kind:'pinch',distance:Math.max(1,distance(a,b)),mid:midpoint(a,b)};frame.classList.add('cameraGesture')}
+  function startPinch(){const [a,b]=[...pointers.values()],mid=midpoint(a,b),box=board.getBoundingClientRect(),scale=Math.max(.0001,state.scale),baseLeft=box.left-state.x+(scale-1)*board.offsetWidth/2,baseTop=box.top-state.y+(scale-1)*board.offsetHeight/2;gesture={kind:'pinch',distance:Math.max(1,distance(a,b)),mid,anchorX:(mid.x-baseLeft-state.x+(scale-1)*board.offsetWidth/2)/scale,anchorY:(mid.y-baseTop-state.y+(scale-1)*board.offsetHeight/2)/scale,baseLeft,baseTop};frame.classList.add('cameraGesture')}
   function onDown(event){
     if(event.pointerType==='mouse'&&event.button!==0||!canUse())return;
     pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,empty:event.target===board||event.target===frame});
@@ -43,7 +43,7 @@
   function onMove(event){
     if(!pointers.has(event.pointerId))return;const point=pointers.get(event.pointerId);point.x=event.clientX;point.y=event.clientY;
     if(pointers.size>=2){if(gesture?.kind!=='pinch')startPinch();const [a,b]=[...pointers.values()],mid=midpoint(a,b),nextDistance=Math.max(1,distance(a,b)),current=snapshot(),step=Math.pow(nextDistance/gesture.distance,PINCH_SENSITIVITY),scale=clamp(current.scale*step,MIN_SCALE,boardRatioLimit()),ratio=scale/current.scale;
-      const boardBox=board.getBoundingClientRect(),originX=boardBox.left+boardBox.width/2-current.x,originY=boardBox.top+boardBox.height/2-current.y,x=current.x*ratio+(mid.x-originX)-ratio*(gesture.mid.x-originX),y=current.y*ratio+(mid.y-originY)-ratio*(gesture.mid.y-originY);
+      const x=mid.x-gesture.baseLeft+(scale-1)*board.offsetWidth/2-gesture.anchorX*scale,y=mid.y-gesture.baseTop+(scale-1)*board.offsetHeight/2-gesture.anchorY*scale;
       apply({scale,x,y},false);gesture.distance=nextDistance;gesture.mid=mid;event.preventDefault();return}
     if(gesture?.kind==='pan'&&gesture.pointerId===event.pointerId){const dx=event.clientX-gesture.lastX,dy=event.clientY-gesture.lastY;gesture.lastX=event.clientX;gesture.lastY=event.clientY;gesture.travel+=Math.hypot(dx,dy);if(gesture.travel>4)gesture.moved=true;apply({x:state.x+dx,y:state.y+dy},false);if(gesture.moved)event.preventDefault()}
   }
