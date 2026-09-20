@@ -85,7 +85,7 @@
   function isBridgeTopology(piece,graph){const neighbours=[...(graph.get(piece?.id)||[])];if(neighbours.length<2)return false;const seen=reachableWithout(graph,neighbours[0],piece.id);return neighbours.slice(1).some(id=>!seen.has(id))}
   function isFrameTopology(piece,graph){
     const neighbours=[...(graph.get(piece?.id)||[])];if(neighbours.length<2)return false;
-    for(let i=0;i<neighbours.length;i++)for(let j=i+1;j<neighbours.length;j++)if(shortestDistanceWithout(graph,neighbours[i],neighbours[j],piece.id)>=2&&Number.isFinite(shortestDistanceWithout(graph,neighbours[i],neighbours[j],piece.id)))return true;
+    for(let i=0;i<neighbours.length;i++)for(let j=i+1;j<neighbours.length;j++){const d=shortestDistanceWithout(graph,neighbours[i],neighbours[j],piece.id);if(d>=2&&Number.isFinite(d))return true}
     return false
   }
   function isGateTopology(piece,profiles){
