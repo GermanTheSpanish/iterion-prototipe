@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260920.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
+  const BUILD_ID='20260920.2',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={
     'double-double':'First activation each Move applies both halves; later passes are normal.',
