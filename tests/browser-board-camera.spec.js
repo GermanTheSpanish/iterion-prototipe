@@ -31,6 +31,7 @@ test('late Endless board camera keeps a fixed viewport, anchors pinch midpoint a
     const frame=document.querySelector('.boardFrame'),board=document.getElementById('board'),fr=frame.getBoundingClientRect(),br=board.getBoundingClientRect(),camera=window.MonoidBoardCamera.snapshot();
     return{camera,frame:{left:fr.left,top:fr.top,width:fr.width,height:fr.height},uv:{x:(mid.x-br.left)/br.width,y:(mid.y-br.top)/br.height}}
   },baseline.mid);
+  console.log('CAMERA_DIAG',JSON.stringify({baseline,afterPinch}));
   expect(afterPinch.camera.scale).toBeGreaterThan(1.2);
   expect(afterPinch.camera.scale).toBeLessThan(1.5);
   expect(afterPinch.camera.scale).toBeLessThanOrEqual(baseline.max+0.001);
