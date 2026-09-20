@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.39.0');
+assert.strictEqual(D.VERSION,'0.40.0');
 assert.strictEqual(D.SHOP_TILE_OFFER_COUNT,4);
 assert.strictEqual(D.SHOP_TILE_OFFER_COST,2);
 
@@ -95,4 +95,4 @@ function create(seed,opts={}){
   assert.match(ui,/GAME\.buyShopTileOffer\(/);
 }
 
-console.log('v0.39.0 next-set Shop tile offer regression tests passed');
+console.log('v0.40.0 next-set Shop tile offer regression tests passed');

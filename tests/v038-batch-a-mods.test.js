@@ -19,7 +19,7 @@ function placeStateTiles(g,ids){
   const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*8,8+Math.floor(i/3)*8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s
 }
 
-assert.equal(D.VERSION,'0.39.0');
+assert.equal(D.VERSION,'0.40.0');
 assert.deepEqual([D.MARKET_SEQUENCE_COST,D.MARKET_COMPLEMENT_COST,D.MARKET_TWIN_COST,D.MARKET_PAIR_COST],[8,8,8,8]);
 assert.deepEqual([D.SEQUENCE_MOD_MULTIPLIER,D.COMPLEMENT_MOD_MULTIPLIER,D.TWIN_MOD_MULTIPLIER,D.PAIR_MOD_MULTIPLIER],[2,2,3,3]);
 assert.deepEqual(['sequence','complement','twin','pair'].map(id=>M.get(id).collectionCode),['SQ','C6','TW','PR']);

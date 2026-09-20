@@ -93,6 +93,10 @@
     if(state.frameTileId===tileId)ids.push('frame');
     if(state.crownTileId===tileId)ids.push('crown');
     if(state.frontierTileId===tileId)ids.push('frontier');
+    if(state.relayTileId===tileId)ids.push('relay');
+    if(state.couplerTileId===tileId)ids.push('coupler');
+    if(state.resonatorTileId===tileId)ids.push('resonator');
+    if(state.forgeTileId===tileId)ids.push('forge');
     return ids
   }
   function tileModifiers(state,tile){

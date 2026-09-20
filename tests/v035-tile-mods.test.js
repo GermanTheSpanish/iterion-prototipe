@@ -9,9 +9,9 @@ function fakeMarket(g,id){
 }
 E.setBoardSize(30,40);
 
-check('registry exposes nineteen targeted tile Mods and removes Zero Memory',()=>{
+check('registry exposes twenty-three targeted tile Mods and removes Zero Memory',()=>{
   const tileMods=M.all().filter(m=>m.kind==='market-tile-mod').map(m=>m.id).sort();
-  assert.deepEqual(tileMods,['bridge','complement','corner','crown','double-double','double-echo','fan','frame','frontier','gate','long-line','overload','pair','parity-exchange','sequence','terminal','triple-double','twin','zero-port']);
+  assert.deepEqual(tileMods,['bridge','complement','corner','coupler','crown','double-double','double-echo','fan','forge','frame','frontier','gate','long-line','overload','pair','parity-exchange','relay','resonator','sequence','terminal','triple-double','twin','zero-port']);
   assert.equal(M.get('zero-memory'),null);
   assert.equal(D.MARKET_ZERO_MEMORY_COST,undefined);
 });
