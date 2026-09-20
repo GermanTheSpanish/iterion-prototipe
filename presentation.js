@@ -9,7 +9,7 @@
   const UNITS=['M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
   // Hold the opening activations long enough to teach the arithmetic, then accelerate.
   // The tail still reaches the historic 60 ms floor so large Endless machines stay practical.
-  const CASCADE=Object.freeze({introMs:Object.freeze([600,600,560,520,480,440]),tailMs:320,minMs:60,decay:0.70,maxLabels:8,retainedLabels:10,settleMs:300,resolveHoldMs:190,resolveFadeMs:180,finalMs:450,scoreTweenMs:360});
+  const CASCADE=Object.freeze({introMs:Object.freeze([600,600,560,520,480,440]),tailMs:320,minMs:60,decay:0.70,maxLabels:8,retainedLabels:10,settleMs:300,resolveHoldMs:190,resolveFadeMs:180,finalMs:500,scoreTweenMs:360});
   function exact(value){return Number.isFinite(value)?Math.round(value).toLocaleString('en-US',{maximumFractionDigits:0}):String(value)}
   function scaledText(value){const decimals=value<10?2:value<1000?1:0,rounded=Number(value.toFixed(decimals));return rounded.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:decimals})}
   function compact(value){if(!Number.isFinite(value))return String(value);const whole=Math.round(value),sign=whole<0?'-':'',n=Math.abs(whole);if(n<1000000)return exact(whole);let tier=0;while(tier<UNITS.length-1&&n>=100*(10**(6+3*(tier+1))))tier++;const divisor=10**(6+3*tier),scaled=n/divisor;if(tier===UNITS.length-1&&scaled>=100000)return whole.toExponential(2).replace(/\.00e/,'e').replace(/(\.\d)0e/,'$1e').replace('e+','e');return sign+scaledText(scaled)+UNITS[tier]}
@@ -75,7 +75,7 @@
       .signalValue[data-lane*="."] small{display:block!important;grid-column:1/-1!important;font-size:8px!important}.signalValue[data-lane*="."] strong{display:inline!important;font-size:13px!important}.signalValue[data-lane*="."] span{border:0!important;background:transparent!important;padding:0!important;font-size:11px!important}
       .signalValue.cascadeActive{animation:cascadeChipIn 100ms ease-out both!important}
       .signalValue.cascadeRetained{animation:none!important;opacity:.74!important}
-      .cascadeResolveItem{animation:none!important;transition:opacity 190ms linear!important}
+      .cascadeResolveItem{animation:none!important;transition:opacity 180ms linear!important}
       .cascadeResolveItem.cascadeClearing{opacity:0!important}
       .signalValue.echoLane{border-style:dashed!important;opacity:.78}.joinFx,.echoJoin,.resonanceFx{font-size:15px!important;background:rgba(251,250,246,.94)!important;box-shadow:none!important;padding:5px 7px!important}
       .joinFx.cascadeRetained,.echoJoin.cascadeRetained,.resonanceFx.cascadeRetained{animation:none!important;opacity:.78!important}
