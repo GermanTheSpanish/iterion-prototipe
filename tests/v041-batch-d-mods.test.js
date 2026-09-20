@@ -28,6 +28,8 @@ assert.deepEqual([D.FOUNDATION_LOW_MOD_MULTIPLIER,D.FOUNDATION_HIGH_MOD_MULTIPLI
 {
   const graph=new Map([['k',new Set(['a','b','c'])],['a',new Set(['k','x'])],['b',new Set(['k','x'])],['c',new Set(['k','y'])],['x',new Set(['a','b','y'])],['y',new Set(['x','c'])]]);
   const sigs=C.cycleSignaturesThrough(graph,'k',4);assert(sigs.length>=2,'KNOT helper must expose two deterministic overlapping cycle signatures');assert.deepEqual(sigs,[...sigs].sort());
+  const sharedPair=new Map([['k',new Set(['a','b'])],['a',new Set(['k','x','y'])],['b',new Set(['k','x','y'])],['x',new Set(['a','b'])],['y',new Set(['a','b'])]]);
+  assert.equal(C.cycleSignaturesThrough(sharedPair,'k',4).length,2,'KNOT must count two distinct cycles even when they share the same two neighbours at the tile');
   let r=replay([piece(1,5,6,8,0,1)],'knot',1,{knotCycles:1});assert.equal(r.events[0].knot,false);assert.equal(r.events[0].modMultiplier,1);
   r=replay([piece(1,5,6,8,0,1)],'knot',1,{knotCycles:2});assert.equal(r.events[0].knot,true);assert.equal(r.events[0].modMultiplier,4);assert.equal(r.output,18);
 }
