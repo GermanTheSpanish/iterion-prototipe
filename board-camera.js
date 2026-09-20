@@ -22,7 +22,7 @@
 
   function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
   function boardRatioLimit(){const engine=root.IterionEngine,size=engine?.getBoardSize?.()||{G:Number(engine?.G)||18,H:Number(engine?.H)||24},base=root.IterionData?.BOARD_SIZES?.[0]||[18,24],gx=Math.max(1,Number(size.G)||18),hy=Math.max(1,Number(size.H)||24),bg=Math.max(1,Number(base[0])||18),bh=Math.max(1,Number(base[1])||24);return Math.max(MIN_SCALE,Math.min(gx/bg,hy/bh))}
-  function limits(scale=state.scale){const b={w:board.offsetWidth,h:board.offsetHeight},f={w:frame.clientWidth,h:frame.clientHeight};return{x:Math.max(0,(b.w*scale-f.w)/2),y:Math.max(0,(b.h*scale-f.h)/2)}}
+  function limits(scale=state.scale){const w=board.offsetWidth,h=board.offsetHeight;return{x:Math.max(0,w*(scale-1)/2),y:Math.max(0,h*(scale-1)/2)}}
   function apply(next={},animate=true){
     state.scale=clamp(Number(next.scale??state.scale),MIN_SCALE,boardRatioLimit());const limit=limits();state.x=clamp(Number(next.x??state.x),-limit.x,limit.x);state.y=clamp(Number(next.y??state.y),-limit.y,limit.y);
     const tx=state.x-(state.scale-1)*board.offsetWidth/2,ty=state.y-(state.scale-1)*board.offsetHeight/2;
