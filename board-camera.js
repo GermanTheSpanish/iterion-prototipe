@@ -42,7 +42,7 @@
   function onMove(event){
     if(!pointers.has(event.pointerId))return;const point=pointers.get(event.pointerId);point.x=event.clientX;point.y=event.clientY;
     if(pointers.size>=2){if(gesture?.kind!=='pinch')startPinch();const [a,b]=[...pointers.values()],mid=midpoint(a,b),nextDistance=Math.max(1,distance(a,b)),current=snapshot(),step=Math.pow(nextDistance/gesture.distance,PINCH_SENSITIVITY),scale=clamp(current.scale*step,MIN_SCALE,boardRatioLimit()),ratio=scale/current.scale;
-      const frameBox=frame.getBoundingClientRect(),centerX=frameBox.left+frameBox.width/2,centerY=frameBox.top+frameBox.height/2,x=current.x*ratio+(mid.x-centerX)-ratio*(gesture.mid.x-centerX),y=current.y*ratio+(mid.y-centerY)-ratio*(gesture.mid.y-centerY);
+      const boardBox=board.getBoundingClientRect(),originX=boardBox.left+boardBox.width/2-current.x,originY=boardBox.top+boardBox.height/2-current.y,x=current.x*ratio+(mid.x-originX)-ratio*(gesture.mid.x-originX),y=current.y*ratio+(mid.y-originY)-ratio*(gesture.mid.y-originY);
       apply({scale,x,y},false);gesture.distance=nextDistance;gesture.mid=mid;event.preventDefault();return}
     if(gesture?.kind==='pan'&&gesture.pointerId===event.pointerId){const dx=event.clientX-gesture.lastX,dy=event.clientY-gesture.lastY;gesture.lastX=event.clientX;gesture.lastY=event.clientY;gesture.travel+=Math.hypot(dx,dy);if(gesture.travel>4)gesture.moved=true;apply({x:state.x+dx,y:state.y+dy},false);if(gesture.moved)event.preventDefault()}
   }
