@@ -8,6 +8,7 @@
   const pointers=new Map();
   let gesture=null,cascadeRestore=null,lastEmptyTap=0;
 
+  frame.style.setProperty('overflow','hidden','important');
   const style=doc.createElement('style');style.id='monoid-board-camera-style';style.textContent=`
     .boardFrame{position:relative;touch-action:none;isolation:isolate;overflow:hidden!important}
     .board{transform-origin:50% 50%;transform:translate3d(var(--camera-x,0px),var(--camera-y,0px),0) scale(var(--camera-scale,1));transition:transform 180ms cubic-bezier(.2,.75,.25,1);will-change:transform}
