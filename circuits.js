@@ -40,6 +40,15 @@
     }
     return best
   }
+  function cycleSignaturesThrough(graph,tileId,minSize=4){
+    const neighbours=[...(graph.get(tileId)||[])].sort(compare),found=new Set();
+    for(let i=0;i<neighbours.length;i++)for(let j=i+1;j<neighbours.length;j++){
+      const path=shortestPath(graph,neighbours[i],neighbours[j],tileId);if(!path)continue;
+      const ids=[tileId,...path];if(ids.length<Math.max(3,Number(minSize)||4))continue;
+      found.add(signature(ids))
+    }
+    return[...found].sort(compare)
+  }
   function eligibleTiles(circuit,ranks,placedIds,cfg,tileLimit=cfg.CIRCUIT_TILE_LIMIT){
     const count=placedIds.filter(id=>(ranks[id]||0)>0).length;
     return circuit.tileIds.filter(id=>(ranks[id]||0)<cfg.CIRCUIT_MAX_RANK&&(count<tileLimit||(ranks[id]||0)>0)).sort(compare)
@@ -56,5 +65,5 @@
     const output=Math.floor(baseOutput*multiplier);
     return{active,bonus,multiplier,baseOutput,output,safeInteger:Number.isSafeInteger(baseOutput)&&Number.isSafeInteger(output)}
   }
-  return{adjacency,signature,reward,shortestPath,primaryCircuit,eligibleTiles,upgradedRank,rankInfo,resonance};
+  return{adjacency,signature,reward,shortestPath,primaryCircuit,cycleSignaturesThrough,eligibleTiles,upgradedRank,rankInfo,resonance};
 });
