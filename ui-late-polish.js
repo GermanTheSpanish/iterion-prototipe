@@ -37,7 +37,10 @@
     .app .piece>.tileModMark{font-size:clamp(12px,3.4vw,15px)!important}
     .app .domino>.tileModMark{font-size:20px!important}
     .app .piece:has(>.tileModMark) .pips,.app .domino:has(>.tileModMark) .spips{opacity:.28}
-    .app .circuitTile>.tileModMark{color:rgba(255,255,255,.96)!important;text-shadow:0 0 1px #000!important}
+    .app .circuitTile>.tileModMark{color:var(--circuit-pip,#f4f3ee)!important;text-shadow:none!important}
+    .app .piece.modFaceRevealed{animation:modFaceReveal .24s cubic-bezier(.2,.75,.25,1);backface-visibility:hidden;transform-style:preserve-3d}
+    @keyframes modFaceReveal{0%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+    @media(prefers-reduced-motion:reduce){.app .piece.modFaceRevealed{animation:none!important}}
     .modifierTutorGameTile .domino>.tileModMark{font-size:23px!important;font-weight:950!important;color:rgba(17,17,17,.96)!important}
     /* Compact commerce previews: equal halves, centred values, secondary seam code.
        Board/hand miniatures do not opt into this mode. Keep material and tier edges. */
@@ -46,7 +49,7 @@
     .domino.compactPreview>.half>.spips{inset:16%!important;opacity:1!important;transform:none!important}
     .domino.compactPreview>.tileModMark{inset:auto!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;display:flex!important;align-items:center;justify-content:center;gap:0;padding:0 1px!important;height:10px;white-space:nowrap;font-size:9px!important;font-weight:800!important;line-height:1!important;letter-spacing:0!important;font-style:normal;color:rgba(17,17,17,.96)!important;background:inherit!important;text-shadow:none!important}
     .domino.compactPreview.powerTile:not(.circuitTile)>.tileModMark{background:var(--power-pale)!important}
-    .domino.compactPreview.circuitTile>.tileModMark{color:rgba(255,255,255,.98)!important}
+    .domino.compactPreview.circuitTile>.tileModMark{color:var(--circuit-pip,#f4f3ee)!important}
 
     /* Long Chain is a machine state: one quiet horizontal instrument above the board. */
     .boardTop:has(.machineModStatus:not([hidden])){display:flex!important;justify-content:center!important}
