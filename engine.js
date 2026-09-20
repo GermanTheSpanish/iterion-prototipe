@@ -53,6 +53,62 @@
       return piece.rect.miny===other.rect.miny&&piece.rect.maxy===other.rect.maxy&&(piece.rect.maxx===other.rect.minx||other.rect.maxx===piece.rect.minx)
     })
   }
+  function physicalNeighbourProfiles(piece,pieces){
+    const map=new Map();
+    for(const c of connectionsForPiece(piece,pieces)){
+      let p=map.get(c.toPieceId);
+      if(!p){p={toPieceId:c.toPieceId,fromHalves:new Set(),fromSides:new Set()};map.set(c.toPieceId,p)}
+      p.fromHalves.add(c.fromHalf);p.fromSides.add(c.fromSide)
+    }
+    return[...map.values()]
+  }
+  function physicalAdjacencyGraph(pieces){
+    const graph=new Map(pieces.map(p=>[p.id,new Set()]));
+    for(let i=0;i<pieces.length;i++)for(let j=i+1;j<pieces.length;j++){
+      const r=contactBetweenPieces(pieces[i],pieces[j]);
+      if(r.touch&&r.ok){graph.get(pieces[i].id).add(pieces[j].id);graph.get(pieces[j].id).add(pieces[i].id)}
+    }
+    return graph
+  }
+  function reachableWithout(graph,start,blocked){
+    const seen=new Set();if(start===blocked||!graph.has(start))return seen;
+    const queue=[start];seen.add(start);
+    for(let i=0;i<queue.length;i++)for(const next of graph.get(queue[i])||[])if(next!==blocked&&!seen.has(next)){seen.add(next);queue.push(next)}
+    return seen
+  }
+  function shortestDistanceWithout(graph,start,end,blocked){
+    if(start===blocked||end===blocked||!graph.has(start)||!graph.has(end))return Infinity;
+    const queue=[start],distance=new Map([[start,0]]);
+    for(let i=0;i<queue.length;i++){const current=queue[i],d=distance.get(current);if(current===end)return d;for(const next of graph.get(current)||[])if(next!==blocked&&!distance.has(next)){distance.set(next,d+1);queue.push(next)}}
+    return Infinity
+  }
+  function isBridgeTopology(piece,graph){const neighbours=[...(graph.get(piece?.id)||[])];if(neighbours.length<2)return false;const seen=reachableWithout(graph,neighbours[0],piece.id);return neighbours.slice(1).some(id=>!seen.has(id))}
+  function isFrameTopology(piece,graph){
+    const neighbours=[...(graph.get(piece?.id)||[])];if(neighbours.length<2)return false;
+    for(let i=0;i<neighbours.length;i++)for(let j=i+1;j<neighbours.length;j++)if(shortestDistanceWithout(graph,neighbours[i],neighbours[j],piece.id)>=2&&Number.isFinite(shortestDistanceWithout(graph,neighbours[i],neighbours[j],piece.id)))return true;
+    return false
+  }
+  function isGateTopology(piece,profiles){
+    if(!piece||piece.double||profiles.length!==2||profiles.some(p=>p.fromHalves.size!==1))return false;
+    return new Set(profiles.map(p=>[...p.fromHalves][0])).size===2
+  }
+  function isFanTopology(profiles){
+    if(profiles.length!==3||profiles.some(p=>p.fromHalves.size!==1||p.fromSides.size!==1))return false;
+    const halves=new Set(profiles.map(p=>[...p.fromHalves][0])),sides=new Set(profiles.map(p=>[...p.fromSides][0]));
+    return halves.size===1&&sides.size===3
+  }
+  function isCrownTopology(profiles){
+    if(profiles.length!==3)return false;
+    const halves=new Set(),sides=new Set();
+    for(const p of profiles){for(const half of p.fromHalves)halves.add(half);for(const side of p.fromSides)sides.add(side)}
+    return halves.size===2&&sides.size===3
+  }
+  function isFrontierTopology(piece,profiles){
+    if(!piece||profiles.length<2)return false;
+    const occupied=new Set();for(const p of profiles)for(const side of p.fromSides)occupied.add(side);
+    const longSides=piece.axis==='H'?['U','D']:['L','R'];
+    return longSides.some(side=>!occupied.has(side))
+  }
   function isFullCross(piece,pieces){const conns=uniquePhysicalConnections(piece,pieces);return!!piece?.double&&piece.tile?.a>0&&conns.length===4&&new Set(conns.map(c=>c.fromSide)).size===4}
   function applyOp(v,isDouble,state,doubleDouble=false,powerMultiplier=1){
     const before=state.output||0,power=Math.max(1,Number(powerMultiplier)||1);
@@ -70,8 +126,8 @@
   function replaySelectedScoring(result,initialOutput,opts={}){
     const powers=opts.powerByPiece||new Map(),pieces=opts.pieces||[],modsByPiece=opts.modIdsByPiece||new Map(),powered=[...powers.values()].some(p=>p>1),modified=[...modsByPiece.values()].some(v=>v&&v.size);
     if(!powered&&!modified)return result;
-    let output=initialOutput;const events=[],forks=new Map();
-    const pieceMap=new Map(pieces.map(p=>[p.id,p]));
+    let output=initialOutput;const events=[],forks=new Map(),pieceMap=new Map(pieces.map(p=>[p.id,p]));
+    let topologyGraph=null;const graph=()=>topologyGraph||(topologyGraph=physicalAdjacencyGraph(pieces));
     for(const raw of result.events||[]){
       if(raw.type==='signal-fork'){forks.set(raw.piece,{output,results:[]});events.push({...raw,output});continue}
       if(raw.type==='signal-start'){const fork=forks.get(raw.fork);output=fork.output;events.push({...raw,output});continue}
@@ -81,6 +137,8 @@
         const e={...raw,before:output},mods=modsByPiece.get(e.piece)||new Set(),piece=pieceMap.get(e.piece),power=Math.max(1,Number(powers.get(e.piece))||1);
         const connections=piece?uniqueConnectionCount(piece,pieces):0,cornerTopology=piece?isCornerTopology(piece,pieces):false,straightLine=piece?straightLineLength(piece,pieces):0;
         const sequenceEligible=!!piece&&Math.abs(Number(piece.tile?.a)-Number(piece.tile?.b))===1,complementEligible=!!piece&&Number(piece.tile?.a)+Number(piece.tile?.b)===6,twinConnected=piece?hasTwinConnection(piece,pieces):false,pairTopology=piece?isPairTopology(piece,pieces):false;
+        const needsProfiles=!!piece&&(mods.has('gate')||mods.has('fan')||mods.has('crown')||mods.has('frontier')),profiles=needsProfiles?physicalNeighbourProfiles(piece,pieces):[];
+        const bridgeTopology=!!piece&&mods.has('bridge')?isBridgeTopology(piece,graph()):false,gateTopology=mods.has('gate')?isGateTopology(piece,profiles):false,fanTopology=mods.has('fan')?isFanTopology(profiles):false,frameTopology=!!piece&&mods.has('frame')?isFrameTopology(piece,graph()):false,crownTopology=mods.has('crown')?isCrownTopology(profiles):false,frontierTopology=mods.has('frontier')?isFrontierTopology(piece,profiles):false;
         let modMultiplier=1,operation=e.op;
         if(mods.has('parity-exchange')&&e.value!==0)operation=e.value%2===0?'multiply':'add';
         if(mods.has('corner')&&cornerTopology)modMultiplier*=Math.max(1,Number(opts.cornerMultiplier)||3);
@@ -91,9 +149,15 @@
         if(mods.has('complement')&&complementEligible)modMultiplier*=Math.max(1,Number(opts.complementMultiplier)||2);
         if(mods.has('twin')&&twinConnected)modMultiplier*=Math.max(1,Number(opts.twinMultiplier)||3);
         if(mods.has('pair')&&pairTopology)modMultiplier*=Math.max(1,Number(opts.pairMultiplier)||3);
+        if(mods.has('bridge')&&bridgeTopology)modMultiplier*=Math.max(1,Number(opts.bridgeMultiplier)||3);
+        if(mods.has('gate')&&gateTopology)modMultiplier*=Math.max(1,Number(opts.gateMultiplier)||2);
+        if(mods.has('fan')&&fanTopology)modMultiplier*=Math.max(1,Number(opts.fanMultiplier)||4);
+        if(mods.has('frame')&&frameTopology)modMultiplier*=Math.max(1,Number(opts.frameMultiplier)||2);
+        if(mods.has('crown')&&crownTopology)modMultiplier*=Math.max(1,Number(opts.crownMultiplier)||4);
+        if(mods.has('frontier')&&frontierTopology)modMultiplier*=Math.max(1,Number(opts.frontierMultiplier)||2);
         const magnitude=power*modMultiplier,v=e.value,baseAdd=v*(e.doubleDouble?2:1),baseFactor=e.doubleDouble?v*v:v;
         const normalAdd=v*magnitude,normalFactor=v*magnitude;
-        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.sequence=sequenceEligible;e.complement=complementEligible;e.twin=twinConnected;e.pair=pairTopology;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
+        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.sequence=sequenceEligible;e.complement=complementEligible;e.twin=twinConnected;e.pair=pairTopology;e.bridge=bridgeTopology;e.gate=gateTopology;e.fan=fanTopology;e.frame=frameTopology;e.crown=crownTopology;e.frontier=frontierTopology;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
         if(operation==='multiply'){e.factor=baseFactor*magnitude;e.add=0;e.after=output*(e.factor||1);e.delta=e.after-output;output=e.after}
         else if(operation==='add'){e.add=baseAdd*magnitude;e.factor=0;e.after=output+(e.add||0);e.delta=e.after-output;output=e.after}
         else{e.add=0;e.factor=0;e.after=output;e.delta=0}

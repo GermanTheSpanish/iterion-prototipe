@@ -21,13 +21,13 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | `0|1` | TERMINAL | Implemented | Keep the tile at exactly one physical connection. |
 | `0|2` | FOUNDATION | Proposed | Reward a tile that survives across Markets; strength grows with machine age. |
 | `0|3` | PAIR | Implemented | Form an exact 2×2 cell block with one parallel neighbouring domino. |
-| `0|4` | BRIDGE | Proposed | Reward an articulation tile whose removal would split the physical machine. |
-| `0|5` | GATE | Proposed | Exactly one connection on each physical end, with no side branches. |
+| `0|4` | BRIDGE | Implemented | Reward an articulation tile whose removal would split the physical machine. |
+| `0|5` | GATE | Implemented | Exactly one connection on each physical end, with no side branches. |
 | `0|6` | LONG LINE | Implemented | Build a continuous straight physical line through the tile. |
 | `1|1` | DOUBLE ECHO | Implemented | First activation sends one non-recursive Echo down the chosen route. |
 | `1|2` | PARITY EXCHANGE | Implemented | Swap odd/even scoring behaviour on one tile. |
-| `1|3` | FAN | Proposed | Build three connections around one half while the opposite half remains open. |
-| `1|4` | FRAME | Proposed | Place the tile on any closed physical cycle. |
+| `1|3` | FAN | Implemented | Build three connections around one half while the opposite half remains open. |
+| `1|4` | FRAME | Implemented | Place the tile on any closed physical cycle. |
 | `1|5` | KNOT | Proposed | Place the tile where two or more distinct physical cycles overlap. |
 | `1|6` | TWIN | Implemented | Place an identical printed domino directly beside it in the same orientation. |
 | `2|2` | DOUBLE DOUBLE | Implemented | First activation applies both halves of the double. |
@@ -36,8 +36,8 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | `2|5` | COMPLEMENT | Implemented | Eligible only when the printed values sum to six. |
 | `2|6` | MIRROR | Proposed | The outward connected value at each physical end is the same. |
 | `3|3` | TRIPLE DOUBLE | Implemented | Complete double cross clones through the other three exits once per Move. |
-| `3|4` | CROWN | Proposed | Exactly three physical connections on three distinct sides; specialised junction shape. |
-| `3|5` | FRONTIER | Proposed | Reward keeping one long side exposed to open building space while still connected. |
+| `3|4` | CROWN | Implemented | Exactly three physical connections on three distinct sides; specialised junction shape. |
+| `3|5` | FRONTIER | Implemented | Reward keeping one long side exposed to open building space while still connected. |
 | `3|6` | RELAY | Proposed | The tile physically connects two POWER-bearing neighbours. |
 | `4|4` | OVERLOAD | Implemented | Multiplier equals physical connection count. |
 | `4|5` | COUPLER | Proposed | The tile is adjacent to at least one POWER tile; rewards local POWER architecture. |
@@ -67,25 +67,25 @@ These are initial implementation targets. Exact constants must be tuned from pla
 ### BRIDGE
 - Target: any tile.
 - Active when removing that physical tile from the connectivity graph would split the machine into two or more components.
-- Initial target: ×3.
+- ×3 operation magnitude.
 - Compute from physical connectivity, never from the selected route.
 
 ### GATE
 - Target: any non-double tile.
 - Active with exactly two physical neighbours: one attached through each end region of the domino, with no side branch.
-- Initial target: ×2.
+- ×2 operation magnitude.
 - Distinct from LONG LINE because the two connections need not be opposite/collinear.
 
 ### FAN
 - Target: any tile.
 - Active when three neighbours attach around one half of the domino and the opposite half has no external neighbour.
-- Initial target: ×4 because the geometry is restrictive.
+- ×4 operation magnitude.
 - Must be derived from physical contacts.
 
 ### FRAME
 - Target: any tile.
 - Active while the tile belongs to at least one closed physical cycle.
-- Initial target: ×2.
+- ×2 operation magnitude.
 - Cycle membership is broader than being selected as a rewarded Circuit Tile.
 
 ### KNOT
@@ -115,31 +115,31 @@ These are initial implementation targets. Exact constants must be tuned from pla
 ### MIRROR
 - Target: non-double.
 - Active when the connected outward neighbour value at each end of the domino is equal.
-- Initial target: ×3.
+- ×3 operation magnitude.
 - Encourages symmetric local architecture.
 
 ### CROWN
 - Target: any tile.
-- Active at exactly three physical connections on three distinct exterior sides.
-- Initial target: ×4.
-- More demanding than OVERLOAD, so it trades flexibility for a stronger fixed reward.
+- Active at exactly three physical neighbours on three distinct exterior sides, with contacts spanning both halves.
+- ×4 operation magnitude.
+- This explicitly excludes FAN's one-half topology and remains distinct from OVERLOAD.
 
 ### FRONTIER
 - Target: any tile.
 - Active while at least one entire long side of the domino remains free of neighbouring tiles and the tile has at least two physical connections elsewhere.
-- Initial target: ×2.
+- ×2 operation magnitude.
 - Encourages deliberate expansion lanes instead of packing every tile densely.
 
 ### RELAY
 - Target: non-POWER tile.
 - Active when two distinct physical neighbours touching it both carry POWER.
-- Initial target: ×3.
+- ×3 operation magnitude.
 - Does not change POWER values or routing.
 
 ### COUPLER
 - Target: non-POWER tile.
 - Active while physically connected to at least one POWER tile.
-- Initial target: ×2.
+- ×2 operation magnitude.
 - Simpler POWER synergy than RELAY and useful earlier in a run.
 
 ### RESONATOR
