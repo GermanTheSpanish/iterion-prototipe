@@ -56,7 +56,7 @@ assert.deepEqual([D.FOUNDATION_LOW_MOD_MULTIPLIER,D.FOUNDATION_HIGH_MOD_MULTIPLI
   const rs=restored.state(),snap=restored.snapshot();assert.equal(rs.foundationTileId,'d0-2');assert.equal(rs.knotTileId,'d1-5');assert.equal(rs.mirrorTileId,'d2-6');assert.equal(rs.mintTileId,'d5-6');assert.equal(rs.marketCount,5);assert.equal(rs.foundationAssignedMarket,2);assert.equal(rs.mintPaidRound,0);
   assert.deepEqual(snap.tileMods.foundation,['d0-2']);assert.deepEqual(snap.tileMods.knot,['d1-5']);assert.deepEqual(snap.tileMods.mirror,['d2-6']);assert.deepEqual(snap.tileMods.mint,['d5-6']);assert.equal(snap.tileModState.foundationAge,3);
   assert.match(restored.debugText(),/FD=d0-2 · KN=d1-5 · MR=d2-6 · MT=d5-6/);
-  assert.deepEqual(P.tileViewModel(rs.set.find(t=>t.id==='d2-6'),rs).modifiers.map(m=>m.label),['MR']);assert.equal(H.inspectTile(rs,'d0-2').currentMachineState.foundationAge,3);assert.equal(H.inspectTile(rs,'d5-6').currentMachineState.mintAvailable,true);
+  assert.deepEqual(P.tileViewModel(rs.set.find(t=>t.id==='d2-6'),rs).modifiers.map(m=>m.label),['MR']);assert.equal(H.inspectTile(rs,'d0-2').currentMachineState.foundationAge,3);assert.equal(H.inspectTile(rs,'d5-6').currentMachineState.mintAvailable,false,'restored MINT payout must remain spent for the current round');
 }
 {
   const g=G.createGame(E,{seed:4104}),s=g.state();s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';assert.equal(s.marketCount,0);assert(g.openIntermission());assert.equal(s.marketCount,1,'opening one Market advances FOUNDATION age clock exactly once');
