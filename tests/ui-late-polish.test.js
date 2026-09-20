@@ -10,12 +10,18 @@ assert.match(source,/id==='long-run'&&endless/);assert.match(source,/7 FULL PAYO
 assert.match(source,/marketMachineTag/);assert.match(source,/>MACHINE</,'Long Chain must present as a machine modifier');
 assert.match(source,/choose a highlighted compatible tile on the board/,'Manual board assignment must remain explicit');assert.doesNotMatch(source,/assigned randomly from the shown pool|RANDOM FROM/);
 assert.match(source,/domino\.compactPreview\.circuitTile>\.tileModMark/,'Compact Circuit modifiers must keep high-contrast lettering');
+assert.match(source,/color:var\(--circuit-pip,#fff\)!important/,'Circuit Mod lettering must reuse the Circuit pip colour');
+assert.match(source,/modFaceReveal/,'Board Mod reveal should have a lightweight face-flip transition');
 assert.match(source,/domino\.compactPreview>\.half\{width:100%!important/,'Compact halves must fit their own domino, not inherit hand widths');
 assert.match(source,/domino\.compactPreview>\.half>\.spips\{inset:16%!important;opacity:1!important/,'Compact pips must remain centred and fully opaque');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.match(ui,/mini\(t,'normal',true\)/,'Installed Market assignments opt into the shared compact renderer');
 assert.match(ui,/mini\(shopRevealTile,'reveal',true\)/,'Shop reveals use the same compact renderer');
 assert.match(ui,/mini\(\{a:0,b:0\},'back',true\)/,'Face-down Shop previews keep the compact mode');
+assert.match(ui,/MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map\(\),modFaceRevealTimers=new Map\(\)/,'Each Mod tile reveal needs independent ephemeral timing');
+assert.match(ui,/else if\(meta\.kind==='board'\)revealModFace\(meta\.tileId\)/,'Short board taps should reveal Mod faces without replacing long-press Inspector');
+assert.match(ui,/revealed\?' modFaceRevealed':modClass\(p\.tile\)/,'Revealed Mods must render through the canonical front-face classes');
+assert.match(ui,/\(revealed\?'':tileModMarks\(p\.tile\)\)/,'Revealed Mods must hide reverse lettering while their printed values are visible');
 assert.match(source,/EXTREME_THRESHOLD=1e27/);assert.match(source,/toExponential\(2\)/,'Extreme Endless numbers must use scientific notation');
 assert.match(source,/width:clamp\(108px,29\.3vw,126px\)/,'MONOID header width should tune to the 14 Pro Max Dynamic Island reference');
 assert.doesNotMatch(source,/IterionEngine|finishPlacement|buyMarketMod\s*=/,'Late polish must not redefine engine, placement or commerce behaviour');
