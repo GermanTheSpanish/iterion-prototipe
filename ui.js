@@ -298,7 +298,7 @@
   function magnitude(v){const n=Math.abs(Number(v)||0);return n<1?1:Math.floor(Math.log10(n))+1}
   function fitBoardLabel(d){
     const width=Math.max(1,board.clientWidth-16),style=getComputedStyle(d),inner=Math.max(1,width-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));
-    d.style.fontSize=V.fitFontSize(parseFloat(style.fontSize),d.scrollWidth,inner)+'px';
+    d.style.setProperty('font-size',V.fitFontSize(parseFloat(style.fontSize),d.scrollWidth,inner)+'px','important');
     const w=d.getBoundingClientRect().width,h=d.getBoundingClientRect().height,x=parseFloat(d.style.left)/100*board.clientWidth,y=parseFloat(d.style.top)/100*board.clientHeight;
     d.style.left=Math.max(w/2+4,Math.min(board.clientWidth-w/2-4,x))+'px';d.style.top=Math.max(h/2+4,Math.min(board.clientHeight-h/2-4,y))+'px';
   }
