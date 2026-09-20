@@ -298,14 +298,20 @@
   function magnitude(v){const n=Math.abs(Number(v)||0);return n<1?1:Math.floor(Math.log10(n))+1}
   function fitBoardLabel(d){
     const width=Math.max(1,board.clientWidth-16),style=getComputedStyle(d),inner=Math.max(1,width-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));
-    d.style.fontSize=V.fitFontSize(parseFloat(style.fontSize),d.scrollWidth,inner)+'px';
+    d.style.setProperty('font-size',V.fitFontSize(parseFloat(style.fontSize),d.scrollWidth,inner)+'px','important');
     const w=d.getBoundingClientRect().width,h=d.getBoundingClientRect().height,x=parseFloat(d.style.left)/100*board.clientWidth,y=parseFloat(d.style.top)/100*board.clientHeight;
     d.style.left=Math.max(w/2+4,Math.min(board.clientWidth-w/2-4,x))+'px';d.style.top=Math.max(h/2+4,Math.min(board.clientHeight-h/2-4,y))+'px';
   }
-  function fx(x,y,t,value=0,kind='add',index=0,lane=''){
+  function trimCascadeHistory(){
+    const kept=[...board.querySelectorAll('.cascadeRetained')];while(kept.length>V.CASCADE.retainedLabels)(kept.shift())?.remove()
+  }
+  function retainCascadeFx(d){if(!d)return d;d.classList.add('cascadeRetained');d.style.animationDuration='';trimCascadeHistory();return d}
+  function clearTransientFx(){board.querySelectorAll('.opfx:not(.cascadeRetained)').forEach(el=>el.remove())}
+  function fx(x,y,t,value=0,kind='add',index=0,lane='',retain=false){
     const d=document.createElement('div'),duration=V.effectLifetime(index),size=kind.includes('signal')?14:Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);
     if(kind.includes('signal'))fitBoardLabel(d);
-    while(board.querySelectorAll('.opfx:not(.signalValue)').length>V.CASCADE.maxLabels)board.querySelector('.opfx:not(.signalValue)').remove();setTimeout(()=>d.remove(),duration);return d
+    if(retain)return retainCascadeFx(d);
+    while(board.querySelectorAll('.opfx:not(.signalValue):not(.cascadeRetained)').length>V.CASCADE.maxLabels)board.querySelector('.opfx:not(.signalValue):not(.cascadeRetained)')?.remove();setTimeout(()=>d.remove(),duration);return d
   }
   const activePulses=new Map();
   function pulsePiece(pp,lane,index){
@@ -315,11 +321,23 @@
   }
   function laneId(lane){return lane.family+(lane.path?'.'+lane.path:'')}
   function laneLabel(lane){return(lane.family==='echo'?'ECHO':'MAIN')+(lane.path?' '+lane.path:'')}
-  function clearLane(lane){board.querySelectorAll('.signalValue').forEach(el=>{if(el.dataset.lane===laneId(lane))el.remove()})}
+  function significantOperation(e){
+    if(!e||e.type==='echo-copy'||e.value===0)return false;
+    if(Number(e.modMultiplier)>1||Number(e.powerMultiplier)>1||e.doubleDouble)return true;
+    if(e.op==='multiply')return Math.abs(Number(e.factor)||0)>=3;
+    if(e.op==='add')return Math.abs(Number(e.add)||0)>=10;
+    return false
+  }
+  function settleSignalValue(el){
+    if(!el||!el.isConnected)return;
+    if(el.dataset.keep==='1'){el.classList.remove('cascadeActive');el.classList.add('cascadeRetained');trimCascadeHistory()}
+    else el.remove()
+  }
+  function clearLane(lane){board.querySelectorAll('.signalValue:not(.cascadeRetained)').forEach(el=>{if(el.dataset.lane===laneId(lane))settleSignalValue(el)})}
   function showOperation(e,lastOp,lane,index){
     const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,lane,index);if(!c||e.value===0)return;
     clearLane(lane);const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
-    d.className=`opfx signalValue ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;
+    d.className=`opfx signalValue cascadeActive ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;d.dataset.keep=significantOperation(e)?'1':'0';
     const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);
     // One readable live number per signal. Prefer the physical activation point,
     // then nearby free positions, keeping overlapping Main/Echo labels apart.
@@ -332,14 +350,19 @@
       if(cost<best){best=cost;selected={x,y}}
     }
     d.style.left=selected.x+'px';d.style.top=selected.y+'px';
+    if(d.dataset.keep==='1')setTimeout(()=>settleSignalValue(d),V.CASCADE.settleMs)
   }
   function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'reboundFx',index,lane);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`;return d}
   function finalFx(v){
-    board.querySelectorAll('.opfx').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
+    clearTransientFx();board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
+    const history=[...board.querySelectorAll('.cascadeRetained')];history.forEach(el=>el.classList.add('cascadeResolveItem'));
     const d=document.createElement('div'),duration=V.CASCADE.finalMs;d.className='finalfx';
     const number=document.createElement('span');number.textContent=compact(v);d.appendChild(number);board.appendChild(d);
     const fit=()=>{number.style.fontSize='';const style=getComputedStyle(d),space=Math.max(1,board.clientWidth-24-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));number.style.fontSize=V.fitFontSize(parseFloat(style.fontSize),number.getBoundingClientRect().width,space)+'px'};
-    fit();const resize=new ResizeObserver(fit);resize.observe(board);setTimeout(()=>{resize.disconnect();d.remove()},duration);return duration
+    fit();const resize=new ResizeObserver(fit);resize.observe(board);
+    setTimeout(()=>history.forEach(el=>el.isConnected&&el.classList.add('cascadeClearing')),V.CASCADE.resolveHoldMs);
+    setTimeout(()=>history.forEach(el=>el.remove()),V.CASCADE.resolveHoldMs+V.CASCADE.resolveFadeMs);
+    setTimeout(()=>{resize.disconnect();d.remove()},duration);return duration
   }
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
     let lastOp=null,index=startIndex,i=0;
@@ -348,7 +371,7 @@
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}clearLane(lane);
         if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?'ECHO SPLIT':'SPLIT',0,'signal splitFx',index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(150,V.cascadeDelay(index)/2))}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+(branch.arm===0?'A':'B')},index+1,startEcho)));
-        if(pp){const ends=block.branches.map(b=>compact(b.end.output)),label=`${laneLabel(lane)} JOIN · ${ends.join(' + ')} = ${compact(block.join.output)}`,d=fx(E.G/2,E.H/2,label,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');d.dataset.family=lane.family;d.dataset.output=block.join.output;d.style.top=(lane.family==='echo'?62:42)+'%';await wait(Math.max(300,V.cascadeDelay(index+1)))}
+        if(pp){const ends=block.branches.map(b=>compact(b.end.output)),label=`${laneLabel(lane)} JOIN · ${ends.join(' + ')} = ${compact(block.join.output)}`,d=fx(E.G/2,E.H/2,label,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',true);d.dataset.family=lane.family;d.dataset.output=block.join.output;d.style.top=(lane.family==='echo'?62:42)+'%';await wait(Math.max(300,V.cascadeDelay(index+1)))}
         i=block.next;index+=2;continue
       }
       if(e.type==='op'){lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await wait(V.cascadeDelay(index));index++;i++;continue}
@@ -365,8 +388,8 @@
     const plan=V.signalPlan(sim.events||[]);let echoTask=null;
     const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal echoStart',index,'echoLane');echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await wait(V.cascadeDelay(index));return animateSequence(plan.echo,lane,index+1)})()};
     await animateSequence(plan.main,{family:'main',path:''},0,startEcho);if(echoTask)await echoTask;
-    if(plan.result){board.querySelectorAll('.opfx').forEach(el=>el.remove());const e=plan.result,d=fx(E.G/2,E.H/2,`MAIN ${compact(e.mainOutput)} + ECHO ${compact(e.echoOutput)} = ${compact(e.finalOutput)}`,e.finalOutput,'signal echoJoin',0);d.dataset.output=e.finalOutput;await wait(650)}
-    if(finalOutput!==(sim.output??trigger)){board.querySelectorAll('.opfx').forEach(el=>el.remove());fx(E.G/2,E.H/2,`CIRCUIT ×${compact(finalOutput/(sim.output||trigger||1))}`,finalOutput,'signal resonanceFx',0);await wait(450)}
+    if(plan.result){clearTransientFx();const e=plan.result,d=fx(E.G/2,E.H/2,`MAIN ${compact(e.mainOutput)} + ECHO ${compact(e.echoOutput)} = ${compact(e.finalOutput)}`,e.finalOutput,'signal echoJoin',0,'',true);d.dataset.output=e.finalOutput;await wait(650)}
+    if(finalOutput!==(sim.output??trigger)){clearTransientFx();fx(E.G/2,E.H/2,`CIRCUIT ×${compact(finalOutput/(sim.output||trigger||1))}`,finalOutput,'signal resonanceFx',0,'',true);await wait(450)}
     await wait(finalFx(finalOutput))
   }
 
