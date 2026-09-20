@@ -319,11 +319,14 @@
       .app .domino.modTile>.tileModMark,
       .app .piece.modTile.powerTile:not(.circuitTile)>.tileModMark,
       .app .domino.modTile.powerTile:not(.circuitTile)>.tileModMark,
-      .app .circuitTile.modTile>.tileModMark,
       .commerceModal .domino.modTile>.tileModMark,
-      .commerceModal .domino.compactPreview.modTile>.tileModMark,
-      .commerceModal .domino.compactPreview.circuitTile.modTile>.tileModMark{
+      .commerceModal .domino.compactPreview.modTile>.tileModMark{
         color:rgba(255,255,255,.92)!important;text-shadow:none!important;z-index:9!important
+      }
+      /* Circuit rank colour remains visible on the Mod reverse without changing its material. */
+      .app .circuitTile.modTile>.tileModMark,
+      .commerceModal .domino.compactPreview.circuitTile.modTile>.tileModMark{
+        color:var(--circuit-pip,#fff)!important;text-shadow:none!important;z-index:10!important
       }
       .app .piece.modTile:has(>.tileModMark) .pips,
       .app .domino.modTile:has(>.tileModMark) .spips,
