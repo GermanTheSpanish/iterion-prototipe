@@ -42,6 +42,17 @@
     for(const first of origin){let current=pieceById(pieces,first.toPieceId),incoming=first.toSide;while(current&&!visited.has(current.id)){visited.add(current.id);total++;const exit=oppositeSide(incoming);if(!exit)break;const next=uniquePhysicalConnections(current,pieces).filter(c=>c.fromSide===exit&&!visited.has(c.toPieceId));if(next.length!==1)break;incoming=next[0].toSide;current=pieceById(pieces,next[0].toPieceId)}}
     return total
   }
+  function printedValueKey(piece){const a=Number(piece?.tile?.a),b=Number(piece?.tile?.b);return Number.isFinite(a)&&Number.isFinite(b)?(a<=b?`${a}|${b}`:`${b}|${a}`):''}
+  function hasTwinConnection(piece,pieces){const key=printedValueKey(piece);return!!key&&uniquePhysicalConnections(piece,pieces).some(c=>printedValueKey(pieceById(pieces,c.toPieceId))===key)}
+  function isPairTopology(piece,pieces){
+    if(!piece)return false;
+    return pieces.some(other=>{
+      if(!other||other.id===piece.id||other.z!==piece.z||other.axis!==piece.axis)return false;
+      const contact=contactBetweenPieces(piece,other);if(!contact.ok||!contact.touch)return false;
+      if(piece.axis==='H')return piece.rect.minx===other.rect.minx&&piece.rect.maxx===other.rect.maxx&&(piece.rect.maxy===other.rect.miny||other.rect.maxy===piece.rect.miny);
+      return piece.rect.miny===other.rect.miny&&piece.rect.maxy===other.rect.maxy&&(piece.rect.maxx===other.rect.minx||other.rect.maxx===piece.rect.minx)
+    })
+  }
   function isFullCross(piece,pieces){const conns=uniquePhysicalConnections(piece,pieces);return!!piece?.double&&piece.tile?.a>0&&conns.length===4&&new Set(conns.map(c=>c.fromSide)).size===4}
   function applyOp(v,isDouble,state,doubleDouble=false,powerMultiplier=1){
     const before=state.output||0,power=Math.max(1,Number(powerMultiplier)||1);
@@ -69,15 +80,20 @@
       if(raw.type==='op'){
         const e={...raw,before:output},mods=modsByPiece.get(e.piece)||new Set(),piece=pieceMap.get(e.piece),power=Math.max(1,Number(powers.get(e.piece))||1);
         const connections=piece?uniqueConnectionCount(piece,pieces):0,cornerTopology=piece?isCornerTopology(piece,pieces):false,straightLine=piece?straightLineLength(piece,pieces):0;
+        const sequenceEligible=!!piece&&Math.abs(Number(piece.tile?.a)-Number(piece.tile?.b))===1,complementEligible=!!piece&&Number(piece.tile?.a)+Number(piece.tile?.b)===6,twinConnected=piece?hasTwinConnection(piece,pieces):false,pairTopology=piece?isPairTopology(piece,pieces):false;
         let modMultiplier=1,operation=e.op;
         if(mods.has('parity-exchange')&&e.value!==0)operation=e.value%2===0?'multiply':'add';
         if(mods.has('corner')&&cornerTopology)modMultiplier*=Math.max(1,Number(opts.cornerMultiplier)||3);
         if(mods.has('long-line')&&straightLine>=Math.max(1,Number(opts.longLineThreshold)||3))modMultiplier*=straightLine>=Math.max(1,Number(opts.longLineHighThreshold)||5)?Math.max(1,Number(opts.longLineHighMultiplier)||3):Math.max(1,Number(opts.longLineMultiplier)||2);
         if(mods.has('overload'))modMultiplier*=Math.max(1,Math.min(Math.max(1,Number(opts.overloadMaxMultiplier)||4),connections||1));
         if(mods.has('terminal')&&connections===1)modMultiplier*=Math.max(1,Number(opts.terminalMultiplier)||3);
+        if(mods.has('sequence')&&sequenceEligible)modMultiplier*=Math.max(1,Number(opts.sequenceMultiplier)||2);
+        if(mods.has('complement')&&complementEligible)modMultiplier*=Math.max(1,Number(opts.complementMultiplier)||2);
+        if(mods.has('twin')&&twinConnected)modMultiplier*=Math.max(1,Number(opts.twinMultiplier)||3);
+        if(mods.has('pair')&&pairTopology)modMultiplier*=Math.max(1,Number(opts.pairMultiplier)||3);
         const magnitude=power*modMultiplier,v=e.value,baseAdd=v*(e.doubleDouble?2:1),baseFactor=e.doubleDouble?v*v:v;
         const normalAdd=v*magnitude,normalFactor=v*magnitude;
-        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
+        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.sequence=sequenceEligible;e.complement=complementEligible;e.twin=twinConnected;e.pair=pairTopology;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
         if(operation==='multiply'){e.factor=baseFactor*magnitude;e.add=0;e.after=output*(e.factor||1);e.delta=e.after-output;output=e.after}
         else if(operation==='add'){e.add=baseAdd*magnitude;e.factor=0;e.after=output+(e.add||0);e.delta=e.after-output;output=e.after}
         else{e.add=0;e.factor=0;e.after=output;e.delta=0}

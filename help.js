@@ -83,6 +83,10 @@
     if(state.longLineTileId===tileId)ids.push('long-line');
     if(state.overloadTileId===tileId)ids.push('overload');
     if(state.terminalTileId===tileId)ids.push('terminal');
+    if(state.sequenceTileId===tileId)ids.push('sequence');
+    if(state.complementTileId===tileId)ids.push('complement');
+    if(state.twinTileId===tileId)ids.push('twin');
+    if(state.pairTileId===tileId)ids.push('pair');
     return ids
   }
   function tileModifiers(state,tile){

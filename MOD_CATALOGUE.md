@@ -20,7 +20,7 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | `0|0` | ZERO PORT | Implemented | Pair two zero tiles into a teleport link. |
 | `0|1` | TERMINAL | Implemented | Keep the tile at exactly one physical connection. |
 | `0|2` | FOUNDATION | Proposed | Reward a tile that survives across Markets; strength grows with machine age. |
-| `0|3` | PAIR | Proposed | Form an exact 2×2 cell block with one parallel neighbouring domino. |
+| `0|3` | PAIR | Implemented | Form an exact 2×2 cell block with one parallel neighbouring domino. |
 | `0|4` | BRIDGE | Proposed | Reward an articulation tile whose removal would split the physical machine. |
 | `0|5` | GATE | Proposed | Exactly one connection on each physical end, with no side branches. |
 | `0|6` | LONG LINE | Implemented | Build a continuous straight physical line through the tile. |
@@ -29,11 +29,11 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | `1|3` | FAN | Proposed | Build three connections around one half while the opposite half remains open. |
 | `1|4` | FRAME | Proposed | Place the tile on any closed physical cycle. |
 | `1|5` | KNOT | Proposed | Place the tile where two or more distinct physical cycles overlap. |
-| `1|6` | TWIN | Proposed | Place an identical printed domino directly beside it in the same orientation. |
+| `1|6` | TWIN | Implemented | Place an identical printed domino directly beside it in the same orientation. |
 | `2|2` | DOUBLE DOUBLE | Implemented | First activation applies both halves of the double. |
 | `2|3` | CORNER | Implemented | Exactly two perpendicular physical neighbours. |
-| `2|4` | SEQUENCE | Proposed | Eligible only for consecutive printed values; simple high-readability value identity. |
-| `2|5` | COMPLEMENT | Proposed | Eligible only when the printed values sum to six. |
+| `2|4` | SEQUENCE | Implemented | Eligible only for consecutive printed values; simple high-readability value identity. |
+| `2|5` | COMPLEMENT | Implemented | Eligible only when the printed values sum to six. |
 | `2|6` | MIRROR | Proposed | The outward connected value at each physical end is the same. |
 | `3|3` | TRIPLE DOUBLE | Implemented | Complete double cross clones through the other three exits once per Move. |
 | `3|4` | CROWN | Proposed | Exactly three physical connections on three distinct sides; specialised junction shape. |
@@ -60,9 +60,9 @@ These are initial implementation targets. Exact constants must be tuned from pla
 
 ### PAIR
 - Target: any tile.
-- Active when the domino and one parallel neighbour occupy an exact 2×2 cell rectangle.
-- Printed values do not need to match beyond normal placement legality.
-- Initial target: ×3.
+- Active when the domino and one parallel neighbour align along the full long side and form an exact 2×2 block of domino halves.
+- Printed values have no extra eligibility rule beyond normal physical placement legality.
+- ×3 operation magnitude.
 
 ### BRIDGE
 - Target: any tile.
@@ -96,20 +96,20 @@ These are initial implementation targets. Exact constants must be tuned from pla
 
 ### TWIN
 - Target: any tile for which a second legitimate identical printed tile exists.
-- Active when an identical [a|b] domino is directly parallel and adjacent, forming a two-domino band.
-- Initial target: ×3.
+- Active when the tile is physically connected directly to another domino with the same two printed values, in either orientation.
+- ×3 operation magnitude.
 - Persistent tile IDs remain distinct.
 
 ### SEQUENCE
 - Eligibility: |a-b| = 1.
 - Always active once installed.
-- Initial target: ×2.
+- ×2 operation magnitude.
 - Purpose: make specific printed identities valuable without topology overhead.
 
 ### COMPLEMENT
 - Eligibility: a+b = 6.
 - Always active once installed.
-- Initial target: ×2.
+- ×2 operation magnitude.
 - Purpose: create a readable family of desirable printed identities.
 
 ### MIRROR
