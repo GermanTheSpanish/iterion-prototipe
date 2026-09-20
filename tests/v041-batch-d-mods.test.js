@@ -32,7 +32,7 @@ assert.deepEqual([D.FOUNDATION_LOW_MOD_MULTIPLIER,D.FOUNDATION_HIGH_MOD_MULTIPLI
   r=replay([piece(1,5,6,8,0,1)],'knot',1,{knotCycles:2});assert.equal(r.events[0].knot,true);assert.equal(r.events[0].modMultiplier,4);assert.equal(r.output,18);
 }
 {
-  const target=piece(2,3,6,8,0,1),left=piece(2,5,2,8,2,2),right=piece(3,5,10,8,0,3);
+  const target=piece(2,3,6,8,0,1),left=piece(2,5,4,8,2,2),right=piece(3,5,10,8,0,3);
   let r=replay([target,left,right],'mirror',1);assert.equal(r.events[0].mirror,true);assert.equal(r.events[0].modMultiplier,3);assert.equal(r.output,16);
   const mismatch=piece(3,6,10,8,0,4);r=replay([target,left,mismatch],'mirror',1);assert.equal(r.events[0].mirror,false);assert.equal(r.events[0].modMultiplier,1);
 }
