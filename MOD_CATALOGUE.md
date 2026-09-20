@@ -38,11 +38,11 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | `3|3` | TRIPLE DOUBLE | Implemented | Complete double cross clones through the other three exits once per Move. |
 | `3|4` | CROWN | Implemented | Exactly three physical connections on three distinct sides; specialised junction shape. |
 | `3|5` | FRONTIER | Implemented | Reward keeping one long side exposed to open building space while still connected. |
-| `3|6` | RELAY | Proposed | The tile physically connects two POWER-bearing neighbours. |
+| `3|6` | RELAY | Implemented | The tile physically connects two POWER-bearing neighbours. |
 | `4|4` | OVERLOAD | Implemented | Multiplier equals physical connection count. |
-| `4|5` | COUPLER | Proposed | The tile is adjacent to at least one POWER tile; rewards local POWER architecture. |
-| `4|6` | RESONATOR | Proposed | The tile is a ranked Circuit Tile; operation strength scales conservatively with Circuit rank. |
-| `5|5` | FORGE | Proposed | A starred/upgraded tile converts part of its upgrade investment into operation strength. |
+| `4|5` | COUPLER | Implemented | The tile is adjacent to at least one POWER tile; rewards local POWER architecture. |
+| `4|6` | RESONATOR | Implemented | The tile is a ranked Circuit Tile; operation strength scales conservatively with Circuit rank. |
+| `5|5` | FORGE | Implemented | A starred/upgraded tile converts part of its upgrade investment into operation strength. |
 | `5|6` | MINT | Proposed | First qualifying activation each round pays a coin instead of extra Score. |
 | `6|6` | LONG CHAIN | Implemented | Long routes pay every activated star once under the existing rule. |
 
@@ -145,12 +145,14 @@ These are initial implementation targets. Exact constants must be tuned from pla
 ### RESONATOR
 - Target: a tile that can become a Circuit Tile.
 - Active only while the assigned physical tile has Circuit rank.
-- Initial tuning: rank I–II ×2, rank III–V ×3.
+- Rank I–II: ×2 operation magnitude.
+- Rank III–V: ×3 operation magnitude.
 - Does not alter Circuit detection, rank gain or resonance arithmetic.
 
 ### FORGE
 - Target: an upgraded/starred tile.
-- Initial tuning: star I ×2, star II ×2, star III ×3.
+- Star I–II: ×2 operation magnitude.
+- Star III: ×3 operation magnitude.
 - Uses existing persistent upgrade rank; does not add or consume stars.
 
 ### MINT
