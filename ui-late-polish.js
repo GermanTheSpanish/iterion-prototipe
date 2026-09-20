@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260920.5',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
+  const BUILD_ID='20260920.6',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={
     'double-double':'First activation each Move applies both halves; later passes are normal.',
@@ -29,6 +29,10 @@
     'coupler':'At least one POWER neighbour gives ×2 operation magnitude.',
     'resonator':'Circuit I–II gives ×2; Circuit III–V gives ×3 operation magnitude.',
     'forge':'Star I–II gives ×2; Star III gives ×3 operation magnitude.',
+    'foundation':'Survive 1 Market for ×2; 3 Markets for ×3 operation magnitude.',
+    'knot':'Two or more distinct physical cycles give ×4 operation magnitude.',
+    'mirror':'Equal outward neighbour values at both ends give ×3 operation magnitude.',
+    'mint':'First qualifying activation each round pays +1 coin; Score is unchanged.',
     'long-run':'10+ unique routed tiles: all activated Stars pay once.'
   };
 
@@ -136,7 +140,7 @@
     for(const[el,value]of pairs){if(!el||!Number.isFinite(Number(value)))continue;const extreme=Math.abs(Number(value))>=EXTREME_THRESHOLD;el.classList.toggle('extremeValue',extreme);if(extreme){const text=scientific(value);if(el.textContent!==text)el.textContent=text}}
     const final=doc.querySelector('.finalfx>span');if(final&&Math.abs(Number(s.score))>=EXTREME_THRESHOLD){const text=scientific(s.score);if(final.textContent!==text)final.textContent=text}
   }
-  const OFFER_LABELS=Object.freeze({'double-double':'DD','double-echo':'DE','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','sequence':'SQ','complement':'C6','twin':'TW','pair':'PR','bridge':'BR','gate':'GT','fan':'FN','frame':'FM','crown':'CW','frontier':'FT','relay':'RL','coupler':'CP','resonator':'RS','forge':'FG'});
+  const OFFER_LABELS=Object.freeze({'double-double':'DD','double-echo':'DE','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','sequence':'SQ','complement':'C6','twin':'TW','pair':'PR','bridge':'BR','gate':'GT','fan':'FN','frame':'FM','crown':'CW','frontier':'FT','relay':'RL','coupler':'CP','resonator':'RS','forge':'FG','foundation':'FD','knot':'KN','mirror':'MR','mint':'MT'});
   const offerLabel=id=>OFFER_LABELS[id]||null;
   function assignedTiles(){
     const map=new Map();

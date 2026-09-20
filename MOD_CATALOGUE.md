@@ -19,7 +19,7 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | --- | --- | --- | --- |
 | `0|0` | ZERO PORT | Implemented | Pair two zero tiles into a teleport link. |
 | `0|1` | TERMINAL | Implemented | Keep the tile at exactly one physical connection. |
-| `0|2` | FOUNDATION | Proposed | Reward a tile that survives across Markets; strength grows with machine age. |
+| `0|2` | FOUNDATION | Implemented | Reward a tile that survives across Markets; strength grows with machine age. |
 | `0|3` | PAIR | Implemented | Form an exact 2×2 cell block with one parallel neighbouring domino. |
 | `0|4` | BRIDGE | Implemented | Reward an articulation tile whose removal would split the physical machine. |
 | `0|5` | GATE | Implemented | Exactly one connection on each physical end, with no side branches. |
@@ -28,13 +28,13 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | `1|2` | PARITY EXCHANGE | Implemented | Swap odd/even scoring behaviour on one tile. |
 | `1|3` | FAN | Implemented | Build three connections around one half while the opposite half remains open. |
 | `1|4` | FRAME | Implemented | Place the tile on any closed physical cycle. |
-| `1|5` | KNOT | Proposed | Place the tile where two or more distinct physical cycles overlap. |
+| `1|5` | KNOT | Implemented | Place the tile where two or more distinct physical cycles overlap. |
 | `1|6` | TWIN | Implemented | Place an identical printed domino directly beside it in the same orientation. |
 | `2|2` | DOUBLE DOUBLE | Implemented | First activation applies both halves of the double. |
 | `2|3` | CORNER | Implemented | Exactly two perpendicular physical neighbours. |
 | `2|4` | SEQUENCE | Implemented | Eligible only for consecutive printed values; simple high-readability value identity. |
 | `2|5` | COMPLEMENT | Implemented | Eligible only when the printed values sum to six. |
-| `2|6` | MIRROR | Proposed | The outward connected value at each physical end is the same. |
+| `2|6` | MIRROR | Implemented | The outward connected value at each physical end is the same. |
 | `3|3` | TRIPLE DOUBLE | Implemented | Complete double cross clones through the other three exits once per Move. |
 | `3|4` | CROWN | Implemented | Exactly three physical connections on three distinct sides; specialised junction shape. |
 | `3|5` | FRONTIER | Implemented | Reward keeping one long side exposed to open building space while still connected. |
@@ -43,7 +43,7 @@ Status: design working set. Only rows marked **Implemented** exist in gameplay t
 | `4|5` | COUPLER | Implemented | The tile is adjacent to at least one POWER tile; rewards local POWER architecture. |
 | `4|6` | RESONATOR | Implemented | The tile is a ranked Circuit Tile; operation strength scales conservatively with Circuit rank. |
 | `5|5` | FORGE | Implemented | A starred/upgraded tile converts part of its upgrade investment into operation strength. |
-| `5|6` | MINT | Proposed | First qualifying activation each round pays a coin instead of extra Score. |
+| `5|6` | MINT | Implemented | First qualifying activation each round pays a coin instead of extra Score. |
 | `6|6` | LONG CHAIN | Implemented | Long routes pay every activated star once under the existing rule. |
 
 ## Proposed rule shapes

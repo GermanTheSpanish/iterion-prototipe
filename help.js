@@ -97,6 +97,10 @@
     if(state.couplerTileId===tileId)ids.push('coupler');
     if(state.resonatorTileId===tileId)ids.push('resonator');
     if(state.forgeTileId===tileId)ids.push('forge');
+    if(state.foundationTileId===tileId)ids.push('foundation');
+    if(state.knotTileId===tileId)ids.push('knot');
+    if(state.mirrorTileId===tileId)ids.push('mirror');
+    if(state.mintTileId===tileId)ids.push('mint');
     return ids
   }
   function tileModifiers(state,tile){
@@ -106,7 +110,7 @@
   function tileRecord(state,tileId,tier){
     const turns=(state.events||[]).filter(e=>Number.isInteger(e.turn)&&Number.isFinite(Number(e.output))&&(e.tile?.id===tileId||(e.activatedTileIds||[]).includes(tileId)));
     const bestOutput=turns.reduce((best,e)=>best==null||Number(e.output)>best?Number(e.output):best,null);
-    return Object.freeze({upgradeTier:tier,starCoins:tier,bestOutput,activations:turns.length,modifierIds:Object.freeze(tileModifierIds(state,tileId)),doubleDoubleActive:state.doubleDoubleTileId===tileId,doubleEchoActive:state.doubleEchoTileId===tileId,zeroPortActive:(state.zeroPortTileIds||[]).includes(tileId),longRunOwned:(state.mods||[]).includes('long-run')})
+    return Object.freeze({upgradeTier:tier,starCoins:tier,bestOutput,activations:turns.length,modifierIds:Object.freeze(tileModifierIds(state,tileId)),doubleDoubleActive:state.doubleDoubleTileId===tileId,doubleEchoActive:state.doubleEchoTileId===tileId,zeroPortActive:(state.zeroPortTileIds||[]).includes(tileId),longRunOwned:(state.mods||[]).includes('long-run'),foundationAge:state.foundationTileId===tileId?Math.max(0,(Number(state.marketCount)||0)-(Number.isInteger(state.foundationAssignedMarket)?state.foundationAssignedMarket:(Number(state.marketCount)||0))):null,mintAvailable:state.mintTileId===tileId?state.mintPaidRound!==state.round:null})
   }
   function inspectTile(state,tileId){
     const tile=resolveTile(state,tileId);if(!tile)return null;
