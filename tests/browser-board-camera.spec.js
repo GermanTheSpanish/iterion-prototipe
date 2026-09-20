@@ -12,38 +12,39 @@ test('late Endless board camera keeps a fixed viewport, anchors pinch midpoint a
   expect(geometry.font).toBeLessThan(geometry.short*.55);expect(geometry.font).toBeCloseTo(Math.max(3,Math.min(16,geometry.cell*.82)),1);
 
   const baseline=await page.evaluate(()=>{
-    const camera=window.MonoidBoardCamera,frame=document.querySelector('.boardFrame'),board=document.getElementById('board');
+    const camera=window.MonoidBoardCamera,board=document.getElementById('board');
     camera.set({scale:1.1,x:14,y:-10},false);
-    const fr=frame.getBoundingClientRect(),br=board.getBoundingClientRect(),mid={x:fr.left+fr.width*.39,y:fr.top+fr.height*.43};
-    return{frame:{left:fr.left,top:fr.top,width:fr.width,height:fr.height},mid,uv:{x:(mid.x-br.left)/br.width,y:(mid.y-br.top)/br.height},max:camera.snapshot().maxScale,overflow:getComputedStyle(frame).overflow}
+    const viewport=camera.viewport(),br=board.getBoundingClientRect(),mid={x:viewport.left+viewport.width*.39,y:viewport.top+viewport.height*.43};
+    return{viewport,mid,uv:{x:(mid.x-br.left)/br.width,y:(mid.y-br.top)/br.height},max:camera.snapshot().maxScale,clip:getComputedStyle(board).clipPath}
   });
   expect(baseline.max).toBeGreaterThan(1.1);
-  expect(baseline.overflow).toBe('clip');
+  expect(baseline.viewport.height).toBeGreaterThan(300);
+  expect(baseline.clip).not.toBe('none');
 
-  await page.locator('.boardFrame').evaluate((frame,mid)=>{
-    const fire=(type,id,x,y)=>frame.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',clientX:x,clientY:y,buttons:type==='pointerup'?0:1}));
+  await page.locator('#board').evaluate((board,mid)=>{
+    const fire=(type,id,x,y)=>board.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',clientX:x,clientY:y,buttons:type==='pointerup'?0:1}));
     fire('pointerdown',1,mid.x-40,mid.y);fire('pointerdown',2,mid.x+40,mid.y);
     fire('pointermove',1,mid.x-60,mid.y);fire('pointermove',2,mid.x+60,mid.y);
     fire('pointerup',1,mid.x-60,mid.y);fire('pointerup',2,mid.x+60,mid.y)
   },baseline.mid);
 
   const afterPinch=await page.evaluate(mid=>{
-    const frame=document.querySelector('.boardFrame'),board=document.getElementById('board'),fr=frame.getBoundingClientRect(),br=board.getBoundingClientRect(),camera=window.MonoidBoardCamera.snapshot();
-    return{camera,frame:{left:fr.left,top:fr.top,width:fr.width,height:fr.height},uv:{x:(mid.x-br.left)/br.width,y:(mid.y-br.top)/br.height}}
+    const camera=window.MonoidBoardCamera,board=document.getElementById('board'),br=board.getBoundingClientRect(),viewport=camera.viewport();
+    return{camera:camera.snapshot(),viewport,clip:getComputedStyle(board).clipPath,uv:{x:(mid.x-br.left)/br.width,y:(mid.y-br.top)/br.height}}
   },baseline.mid);
-  console.log('CAMERA_DIAG',JSON.stringify({baseline,afterPinch}));
   expect(afterPinch.camera.scale).toBeGreaterThan(1.2);
   expect(afterPinch.camera.scale).toBeLessThan(1.5);
   expect(afterPinch.camera.scale).toBeLessThanOrEqual(baseline.max+0.001);
   expect(afterPinch.uv.x).toBeCloseTo(baseline.uv.x,2);expect(afterPinch.uv.y).toBeCloseTo(baseline.uv.y,2);
-  expect(afterPinch.frame.left).toBeCloseTo(baseline.frame.left,2);expect(afterPinch.frame.top).toBeCloseTo(baseline.frame.top,2);
-  expect(afterPinch.frame.width).toBeCloseTo(baseline.frame.width,2);expect(afterPinch.frame.height).toBeCloseTo(baseline.frame.height,2);
+  expect(afterPinch.viewport.left).toBeCloseTo(baseline.viewport.left,2);expect(afterPinch.viewport.top).toBeCloseTo(baseline.viewport.top,2);
+  expect(afterPinch.viewport.width).toBeCloseTo(baseline.viewport.width,2);expect(afterPinch.viewport.height).toBeCloseTo(baseline.viewport.height,2);
+  expect(afterPinch.clip).not.toBe('none');
 
   const cap=await page.evaluate(()=>{const camera=window.MonoidBoardCamera;camera.set({scale:99,x:0,y:0},false);return camera.snapshot()});
   expect(cap.scale).toBeCloseTo(cap.maxScale,4);
 
-  const edge=await page.locator('.boardFrame').evaluate(frame=>{
-    const camera=window.MonoidBoardCamera,fr=frame.getBoundingClientRect(),x=fr.left+fr.width/2,y=fr.top+fr.height/2,fire=(type,cx)=>frame.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:7,pointerType:'touch',clientX:cx,clientY:y,buttons:type==='pointerup'?0:1}));
+  const edge=await page.locator('#board').evaluate(board=>{
+    const camera=window.MonoidBoardCamera,vr=camera.viewport(),x=vr.left+vr.width/2,y=vr.top+vr.height/2,fire=(type,cx)=>board.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:7,pointerType:'touch',clientX:cx,clientY:y,buttons:type==='pointerup'?0:1}));
     fire('pointerdown',x);fire('pointermove',x+1000);const atEdge=camera.snapshot().x;fire('pointermove',x+990);const reversed=camera.snapshot().x;fire('pointerup',x+990);return{atEdge,reversed}
   });
   expect(edge.atEdge).toBeGreaterThan(0);expect(edge.reversed).toBeLessThan(edge.atEdge);
