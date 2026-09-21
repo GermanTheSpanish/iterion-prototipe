@@ -20,7 +20,7 @@
   const tour=[
     {title:'THE MACHINE',body:'This is your machine.\nEverything you build stays here.',target:()=>board},
     {title:'TARGET',body:'Beat this number before you run out of moves.',target:()=>$('targetDetail')},
-    {title:'SCORE',body:'Every tile you place sends a signal through the machine.',target:()=>$('scoreDetail')},
+    {title:'SCORE',body:'Every placement sends one signal through the machine.\nSCORE shows that Move’s resolved result — not a running total.',target:()=>$('scoreDetail')},
     {title:'MOVES',body:'Seven moves. Make them count.',target:()=>document.querySelector('.movesMeta')},
     {title:'HAND',body:'These are the tiles you can play.',target:()=>handRail}
   ];
