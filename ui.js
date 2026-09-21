@@ -6,7 +6,7 @@
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
-  const V=window.IterionPresentation,PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage}),gameMenu=$('gameMenu'),menuButton=$('menuButton');
+  const V=window.IterionPresentation,MG=window.MonoidModGuidance,PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage}),gameMenu=$('gameMenu'),menuButton=$('menuButton');
   const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
@@ -178,6 +178,12 @@
   function openRulebookSection(id){H.recordSectionOpen(id);auxOverlay={type:'rulebook',sectionId:id};renderAuxOverlay()}
   function operationLabel(op){if(op.type==='add')return`+${op.add}`;if(op.type==='multiply')return`×${op.factor}`;if(op.type==='zero')return'0 · rebound';return'—'}
   function openTileInspector(tileId){const model=H.inspectTile(GAME.state(),tileId);if(!model)return;auxOverlay={type:'inspector',tileId,model};renderAuxOverlay()}
+  function modifierGuideHtml(mod){
+    const guide=mod.guidance||MG?.get(mod.id),status=mod.status||MG?.status(mod.id,GAME.state(),auxOverlay?.tileId);
+    if(!guide)return`<div class="inspectModifier"><strong>${escapeHtml(mod.displayName)}</strong><span>${escapeHtml(mod.shortDescription)}</span><p>${escapeHtml(mod.rulesDescription)}</p></div>`;
+    const diagram=MG?.diagramHtml?.(mod.id,false)||'',stateClass=escapeHtml(status?.state||'ready'),stateLabel=escapeHtml(status?.label||'INSTALLED'),stateDetail=status?.detail?`<p class="modGuideLive">${escapeHtml(status.detail)}</p>`:'';
+    return`<article class="inspectModifier modGuideCard"><header><strong>${escapeHtml(mod.displayName)}</strong><span class="modGuideStatus ${stateClass}">${stateLabel}</span></header>${diagram}<div class="modGuideRules"><div><small>${escapeHtml(guide.verb||'BUILD')}</small><p>${escapeHtml(guide.build)}</p></div><div><small>REWARD</small><p><strong>${escapeHtml(guide.reward)}</strong></p></div></div>${stateDetail}<p class="modGuideNote">${escapeHtml(guide.note||'')}</p><details class="modExactRule"><summary>Exact rule</summary><p>${escapeHtml(mod.rulesDescription)}</p></details></article>`
+  }
   function renderRulebook(){
     const sections=H.rulebookSections(),selected=sections.find(s=>s.id===auxOverlay.sectionId)||null;
     overlayTitle.textContent=selected?selected.displayName:'HOW TO PLAY';
@@ -194,7 +200,7 @@
     auxOverlay.model=model;overlayTitle.textContent=`[${b.a}|${b.b}]`;
     const properties=[b.isDouble?'Double':'Standard domino',b.containsZero?'Contains zero':null,model.power?`POWER ×${model.power.powerMultiplier}`:null].filter(Boolean).join(' · ');
     const debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(b.id)}</div>`:'';
-    const modifierHtml=model.modifiers.length?model.modifiers.map(mod=>`<div class="inspectModifier"><strong>${escapeHtml(mod.displayName)}</strong><span>${escapeHtml(mod.shortDescription)}</span><p>${escapeHtml(mod.rulesDescription)}</p></div>`).join(''):'<p class="inspectEmpty">No modifier is attached to this physical tile.</p>';
+    const modifierHtml=model.modifiers.length?model.modifiers.map(mod=>modifierGuideHtml(mod)).join(''):'<p class="inspectEmpty">No modifier is attached to this physical tile.</p>';
     const starLabel=m.upgradeTier?`★${m.upgradeTier} · can pay +${m.starCoins}c when activated`:'No stars · +0c';
     const bestLabel=`Best Score with this tile: ${m.bestOutput==null?'—':fmt(m.bestOutput)}`,longRun=model.machineModifiers.find(mod=>mod.id==='long-run');
     const longRunState=state.endlessMode?`LONG CHAIN · ${Math.max(0,(D.ENDLESS_LONG_RUN_ACTIVATIONS||7)-(state.endlessLongRunActivations||0))}/${D.ENDLESS_LONG_RUN_ACTIVATIONS||7} Endless activations remaining.`:'LONG CHAIN · at 10+ unique routed tiles, every activated star pays once.';
