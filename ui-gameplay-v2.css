@@ -1,0 +1,274 @@
+/* Gameplay Exploration V2
+   Presentation-only layout. Gameplay geometry/state remain authoritative elsewhere. */
+.app{
+  width:min(100%,560px);
+  padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom));
+  grid-template-rows:44px auto 28px minmax(0,1fr) auto;
+  gap:4px;
+}
+.gameHeader{position:relative;min-height:44px;display:flex;align-items:center;justify-content:center!important}
+#menuButton.wordmark{
+  appearance:none;
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  width:clamp(112px,31vw,132px)!important;
+  min-width:112px!important;
+  height:44px!important;
+  min-height:44px!important;
+  margin:0!important;
+  padding:0 2px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--ink)!important;
+  font-size:14px!important;
+  font-weight:780!important;
+  letter-spacing:.26em!important;
+  text-indent:.26em;
+  line-height:1!important;
+  white-space:nowrap!important;
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  z-index:3!important;
+}
+#menuButton.wordmark>span{display:block;line-height:1}
+#menuButton.wordmark:active{transform:translate(-50%,-50%) scale(.98)!important}
+.scoreStrip{grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.scoreCard{min-height:91px;padding:4px 0 2px}
+.scoreValue{font-size:clamp(38px,11.2vw,52px);margin:5px 0 1px;line-height:1}
+.scoreCaption{font-size:11px;min-height:15px}
+.label{font-size:10px;letter-spacing:.18em}
+.metaStrip{
+  min-height:28px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  border-top:0;
+  border-bottom:1px solid var(--line);
+  padding:0 0 3px;
+}
+.roundMeta{font-size:11px;gap:4px}
+.roundMeta>strong{font-size:12px;font-weight:500}
+.stageMeta{font-size:11px;margin-left:12px}
+.movesMeta{display:none!important}
+
+.gameArea{display:block;min-height:0;overflow:hidden}
+.boardShell{height:100%;min-height:0;padding:0;border:0;background:none;overflow:hidden}
+.boardTop{min-height:0}
+.boardFrame{
+  width:100%;
+  height:100%;
+  min-height:0;
+  position:relative;
+  container-type:size;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+}
+.board{
+  width:min(100cqw,75cqh);
+  height:min(100cqh,133.333333cqw);
+  max-width:100%;
+  max-height:100%;
+  flex:none;
+  border-radius:0;
+  box-shadow:inset 0 0 0 1px #deded8;
+  background:#fff;
+}
+.boardFrame::before,
+.boardFrame::after{
+  content:"";
+  position:absolute;
+  z-index:1;
+  pointer-events:none;
+  opacity:.65;
+}
+.boardFrame::before{
+  left:50%;
+  top:0;
+  bottom:0;
+  width:1px;
+  transform:translateX(-.5px);
+  background:
+    linear-gradient(var(--line),var(--line)) top/1px 10px no-repeat,
+    linear-gradient(var(--line),var(--line)) bottom/1px 10px no-repeat;
+}
+.boardFrame::after{
+  top:50%;
+  left:0;
+  right:0;
+  height:1px;
+  transform:translateY(-.5px);
+  background:
+    linear-gradient(var(--line),var(--line)) left/10px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right/10px 1px no-repeat;
+}
+
+.bottomBar{
+  display:grid;
+  grid-template-columns:minmax(146px,42%) minmax(0,1fr);
+  grid-template-rows:auto auto;
+  align-items:stretch;
+  gap:4px 8px;
+  min-height:0;
+}
+.railActions{
+  grid-column:1;
+  grid-row:1;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:1fr 1fr;
+  gap:6px;
+  align-self:stretch;
+}
+.btn{
+  min-height:47px;
+  padding:5px 4px;
+  border-radius:4px;
+  font-size:12px;
+  line-height:1.05;
+  text-transform:uppercase;
+}
+.btn small{
+  display:block;
+  margin-top:3px;
+  font-size:9px;
+  line-height:1.1;
+  font-weight:450;
+  text-transform:none;
+}
+.shopRailButton{background:#151515;color:#fff;border-color:#151515}
+
+.handRail{
+  grid-column:2;
+  grid-row:1;
+  min-width:0;
+  min-height:100px;
+  height:100px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+.handHeader{
+  height:18px;
+  flex:0 0 18px;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+}
+.handHeader .label{font-size:9px}
+.hand{
+  min-width:0;
+  min-height:0;
+  flex:1;
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
+  gap:3px;
+}
+.handSlot{
+  min-width:0;
+  width:auto;
+  height:78px;
+  min-height:0;
+  flex:1 1 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:0;
+}
+.hand .tile{
+  width:100%;
+  height:100%;
+  min-width:0;
+  padding:2px 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.hand .domino{
+  width:30px;
+  height:60px;
+  max-width:100%;
+  max-height:none;
+  aspect-ratio:1/2;
+  flex:0 0 auto;
+}
+.hand .domino>.half{
+  width:100%;
+  height:30px;
+  max-height:none;
+  min-height:0;
+  flex:0 0 30px;
+}
+.hint{
+  grid-column:1/-1;
+  grid-row:2;
+  min-height:13px;
+  height:13px;
+  margin:0;
+  overflow:hidden;
+  display:block;
+  text-align:center;
+  font-size:9px;
+  line-height:13px;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  color:var(--muted);
+}
+
+.gameMenu #helpButton{
+  width:100%;
+  height:auto;
+  min-height:48px;
+  padding:0;
+  border:0;
+  border-top:1px solid var(--line);
+  border-radius:0;
+  background:none;
+  color:inherit;
+  text-align:left;
+  font-size:16px;
+  font-weight:400;
+  line-height:1;
+}
+body.endlessPalette .board{background:#d6d3cb}
+
+@media(max-height:700px){
+  .app{
+    padding-top:calc(5px + env(safe-area-inset-top));
+    padding-bottom:calc(5px + env(safe-area-inset-bottom));
+    grid-template-rows:36px auto 24px minmax(0,1fr) auto;
+    gap:3px;
+  }
+  .gameHeader{min-height:36px}
+  #menuButton.wordmark{height:36px!important;min-height:36px!important;font-size:13px!important}
+  .scoreCard{min-height:76px;padding:1px 0}
+  .scoreValue{font-size:35px;margin:3px 0 0}
+  .scoreCaption{font-size:10px}
+  .metaStrip{min-height:24px;padding-bottom:2px}
+  .bottomBar{grid-template-columns:minmax(138px,41%) minmax(0,1fr);gap:3px 6px}
+  .railActions{gap:4px}
+  .btn{min-height:40px;font-size:11px}
+  .btn small{font-size:8px;margin-top:2px}
+  .handRail{height:86px;min-height:86px}
+  .handHeader{height:14px;flex-basis:14px}
+  .handSlot{height:68px}
+  .hand .domino{width:26px;height:52px}
+  .hand .domino>.half{height:26px;flex-basis:26px}
+  .hint{height:11px;min-height:11px;line-height:11px;font-size:8px}
+}
