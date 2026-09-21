@@ -1,8 +1,8 @@
 (function(root,factory){
-  const api=factory(root.IterionData,root.IterionMods,root.IterionEngine);
-  if(typeof module==='object'&&module.exports) module.exports=factory(require('./data.js'),require('./mods.js'),require('./engine.js'));
+  const api=factory(root.IterionData,root.IterionMods,root.IterionEngine,root.MonoidModGuidance);
+  if(typeof module==='object'&&module.exports) module.exports=factory(require('./data.js'),require('./mods.js'),require('./engine.js'),require('./mod-guidance.js'));
   root.IterionHelp=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(D,M,E){
+})(typeof globalThis!=='undefined'?globalThis:this,function(D,M,E,MG){
   const sectionOrder=['goal','placement','rotation','hand','scoring','routing','doubles','zeros','parity','persistence','power','economy','modifiers','circuits'];
   const telemetryByRun=new Map();
   let activeRunId='session';
@@ -104,9 +104,9 @@
     return ids
   }
   function tileModifiers(state,tile){
-    return tileModifierIds(state,tile.id).map(id=>M.get(id)).filter(Boolean).map(mod=>Object.freeze({id:mod.id,displayName:mod.displayName||mod.name,shortDescription:mod.shortDescription||mod.description,rulesDescription:mod.rulesDescription||mod.description,kind:mod.kind}))
+    return tileModifierIds(state,tile.id).map(id=>M.get(id)).filter(Boolean).map(mod=>Object.freeze({id:mod.id,displayName:mod.displayName||mod.name,shortDescription:mod.shortDescription||mod.description,rulesDescription:mod.rulesDescription||mod.description,kind:mod.kind,guidance:MG?.get(mod.id)||null,status:MG?.status(mod.id,state,tile.id)||null}))
   }
-  function machineModifiers(state){return(state.mods||[]).map(id=>M.get(id)).filter(Boolean).map(mod=>Object.freeze({id:mod.id,displayName:mod.displayName||mod.name,shortDescription:mod.shortDescription||mod.description,rulesDescription:mod.rulesDescription||mod.description,kind:mod.kind}))}
+  function machineModifiers(state){return(state.mods||[]).map(id=>M.get(id)).filter(Boolean).map(mod=>Object.freeze({id:mod.id,displayName:mod.displayName||mod.name,shortDescription:mod.shortDescription||mod.description,rulesDescription:mod.rulesDescription||mod.description,kind:mod.kind,guidance:MG?.get(mod.id)||null,status:MG?.status(mod.id,state,null)||null}))}
   function tileRecord(state,tileId,tier){
     const turns=(state.events||[]).filter(e=>Number.isInteger(e.turn)&&Number.isFinite(Number(e.output))&&(e.tile?.id===tileId||(e.activatedTileIds||[]).includes(tileId)));
     const bestOutput=turns.reduce((best,e)=>best==null||Number(e.output)>best?Number(e.output):best,null);

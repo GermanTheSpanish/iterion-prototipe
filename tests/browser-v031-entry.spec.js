@@ -75,7 +75,7 @@ test('Basics tutorial completes seven real legal placements and can retry',async
   await placeTutorialTile(page,'6/6');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('EXTEND THE ARM');await placeTutorialTile(page,null);expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(6);
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await placeTutorialTile(page,null);
-  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');await expect(page.locator('#overlayBody')).toContainText('real Tile Shop');await expect(page.locator('#overlayBody')).toContainText('Market appears only between stages');await expect(page.locator('#nextGameMechanics')).toBeVisible();
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');await expect(page.locator('#overlayBody')).toContainText('real Tile Shop');await expect(page.locator('#overlayBody')).toContainText('Market appears only between stages');await expect(page.locator('#nextModifiersFromBasics')).toBeVisible();
   expect(await page.evaluate(()=>{const s=window.__monoidGame.snapshot();return s.board.length===7&&s.shop.open})).toBe(true);
   await page.locator('#overlaySecondary').click();await finishTutorialTour(page);await expect(page.locator('#tutorialStep')).toContainText('1/6');
   await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
@@ -84,7 +84,7 @@ test('Basics tutorial completes seven real legal placements and can retry',async
 test('Basics tutorial FINISH exits after the seventh real placement',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await startTutorialFromHub(page,'basics');await finishTutorialTour(page);
   for(const step of ['2/6','3/6','4/6','5/6','6/6'])await placeTutorialTile(page,step);await placeTutorialTile(page,null);await placeTutorialTile(page,null);
-  await expect(page.locator('#overlayPrimary')).toHaveText('FINISH');await expect(page.locator('#nextGameMechanics')).toBeVisible();await page.locator('#overlayPrimary').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await expect(page.locator('#overlayPrimary')).toHaveText('FINISH');await expect(page.locator('#nextModifiersFromBasics')).toBeVisible();await page.locator('#overlayPrimary').click();await expect(page.locator('#gameSelection')).toBeVisible();
 });
 
 test('leaving during drag or an in-flight Basics placement never replaces the normal run',async({page})=>{
@@ -138,7 +138,7 @@ test('critical raised title and screen isolation survive a missing presentation 
   const centerY=title.y+title.height/2;expect(centerY).toBeGreaterThan(844*.40);expect(centerY).toBeLessThan(844*.48);
   const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
   expect(assets.length).toBeGreaterThan(1);
-  expect(assets.every(url=>url.includes('?v=entry-0311')||url.endsWith('?v=20260921.1'))).toBe(true);
+  expect(assets.every(url=>url.includes('?v=entry-0311')||url.endsWith('?v=20260921.2'))).toBe(true);
   await page.mouse.click(12,12);
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();

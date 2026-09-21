@@ -120,7 +120,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260921.1');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260921.2');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -140,7 +140,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await expect(de.locator('.marketPoolGroup .marketContextLabel')).toHaveText('COMPATIBLE · 5');
   await expect(de.locator('.marketPoolGroup .marketTile')).toHaveCount(0);
   await expect(page.locator('[data-market-offer="long-run"] .marketMachineTag strong')).toHaveText('MACHINE');
-  await expect(page.locator('.shopFoot')).toContainText('choose a highlighted compatible tile on the board');
+  await expect(page.locator('.shopFoot')).toContainText('choose a highlighted compatible tile');await expect(page.locator('.shopFoot')).toContainText('BUILD, REWARD and live status');
 
   const buttonBoxes=await page.locator('.marketStructuredOffer .marketOfferAction .shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));
   expect(buttonBoxes.every(b=>Math.abs(b.w-112)<2&&b.h>=44)).toBe(true);

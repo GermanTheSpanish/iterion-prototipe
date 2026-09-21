@@ -130,6 +130,28 @@
     return longSides.some(side=>!occupied.has(side))
   }
   function isFullCross(piece,pieces){const conns=uniquePhysicalConnections(piece,pieces);return!!piece?.double&&piece.tile?.a>0&&conns.length===4&&new Set(conns.map(c=>c.fromSide)).size===4}
+  function modGeometryFacts(piece,pieces){
+    if(!piece)return null;
+    const conns=uniquePhysicalConnections(piece,pieces),profiles=physicalNeighbourProfiles(piece,pieces),graph=physicalAdjacencyGraph(pieces),mirror=mirrorOutwardValues(piece,pieces);
+    return Object.freeze({
+      connectionCount:conns.length,
+      connectionSides:Object.freeze(conns.map(c=>c.fromSide)),
+      corner:isCornerTopology(piece,pieces),
+      straightLineLength:straightLineLength(piece,pieces),
+      twin:hasTwinConnection(piece,pieces),
+      pair:isPairTopology(piece,pieces),
+      bridge:isBridgeTopology(piece,graph),
+      frame:isFrameTopology(piece,graph),
+      gate:isGateTopology(piece,profiles),
+      fan:isFanTopology(profiles),
+      crown:isCrownTopology(profiles),
+      frontier:isFrontierTopology(piece,profiles),
+      fullCross:isFullCross(piece,pieces),
+      poweredNeighbourCount:poweredNeighbourCount(piece,pieces),
+      mirrorValues:mirror?Object.freeze([...mirror]):null,
+      mirror:!!mirror&&mirror[0]===mirror[1]
+    })
+  }
   function applyOp(v,isDouble,state,doubleDouble=false,powerMultiplier=1){
     const before=state.output||0,power=Math.max(1,Number(powerMultiplier)||1);
     if(v===0)return{type:'zero',before,after:before,delta:0,doubleDouble:false,powerMultiplier:power};
@@ -347,7 +369,7 @@
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}
   function exposedPorts(tile,z,pieces){const placements=allPlacements(tile,z,pieces),groups=new Map();for(const pl of placements)for(const group of pl.contacts||[]){if(group.kind==='double-centered'&&group.piece.double){const side=group.relation.sideB,key=`${group.piece.id}:center:${side}`;if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:null,side,value:group.piece.tile.a,centered:true,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl);continue}for(const c of group.contacts||[]){const key=portKey(group.piece.id,c.bHalf,c.otherSide);if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:c.bHalf,side:c.otherSide,value:c.bV,centered:false,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl)}}return[...groups.values()]}
-  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,replaySelectedEcho,bestSignal,simulateSignal,exposedPorts};
+  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,replaySelectedEcho,bestSignal,simulateSignal,exposedPorts,modGeometryFacts};
   Object.defineProperties(api,{G:{enumerable:true,get:()=>G},H:{enumerable:true,get:()=>H}});
   return api;
 });

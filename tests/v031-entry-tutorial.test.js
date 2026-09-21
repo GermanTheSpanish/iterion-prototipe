@@ -5,7 +5,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const G=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.41.2');
+assert.strictEqual(D.VERSION,'0.42.0');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.match(html,/id="titleCard"[^>]*role="button"[^>]*tabindex="0"/);

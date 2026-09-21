@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUiExtrasInstalled)return;
   root.__monoidUiExtrasInstalled=true;
 
-  const BUILD_ID='20260915.4';
+  const BUILD_ID='20260915.4',MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
@@ -58,7 +58,7 @@
     .boardCoachLayer.tour .boardCoachActions span{order:1!important;color:var(--ink)!important;font-size:12px!important;font-weight:850!important;letter-spacing:.09em!important;text-align:left!important}
     .boardCoachLayer.tour .boardCoachActions button[data-ux-action="leave"]{order:2!important;min-height:36px!important;padding:5px 7px!important;border:0!important;color:var(--muted)!important;font-size:9px!important;font-weight:650!important;opacity:.48}
     .tutorialPanel button{border-color:transparent!important;background:transparent!important;color:var(--muted)!important;font-size:9px!important;font-weight:650!important;opacity:.48!important}
-    #nextGameMechanics,#nextModifiersTutorial{letter-spacing:.04em}
+    #nextModifiersFromBasics,#nextModifiersTutorial{letter-spacing:.04em}
     @media(max-height:700px){
       .titleCard h1{transform:translate(-.6vw,-4.5dvh)}
       #modifierTutorialDialog{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
@@ -83,15 +83,10 @@
 
   let tutorialHub=null,modifierDialog=null,modifierStep=0;
   const modifierSteps=[
-    {abbr:'DD',cls:'dd',title:'DOUBLE DOUBLE',values:[4,4],body:'First activation each Move: both halves apply. Later passes use the normal Double operation.',note:'Buy it, then choose the physical Double you want to modify.'},
-    {abbr:'DE',cls:'de',title:'DOUBLE ECHO',values:[3,3],body:'First activation each Move: copy the current Score and replay the already chosen downstream route once. Final Score = Main + Echo.',note:'The Echo follows the chosen route; it does not choose a new one.'},
-    {abbr:'ZP',cls:'zp',title:'ZERO PORT',values:[0,5],body:'Install two Zero Ports. Reaching one teleports the signal to the other instead of rebounding. A receiving [0|0] duplicates the signal through both ends.',note:'A later Zero Port purchase relocates one endpoint of the pair.'},
-    {abbr:'PX',cls:'px',title:'PARITY EXCHANGE',values:[3,4],body:'On this tile only, odd values add and even values multiply.',note:'Printed values, matching and routing stay unchanged.'},
-    {abbr:'CR',cls:'cr',title:'CORNER',values:[2,5],body:'When the selected route turns 90° through this tile, its operation magnitude is ×2.',note:'Build a bend where you want the extra power.'},
-    {abbr:'LN',cls:'ln',title:'LONG LINE',values:[4,6],body:'A straight routing streak gives this tile ×2 operation magnitude at 3–4 traversals and ×3 from 5.',note:'Turning resets the straight streak.'},
-    {abbr:'OV',cls:'ov',title:'OVERLOAD',values:[6,6],body:'This tile multiplies its operation magnitude by its number of physical neighbours, capped at ×4.',note:'A fully connected cross Double reaches ×4.'},
-    {abbr:'TE',cls:'te',title:'TERMINAL',values:[1,5],body:'While this tile has exactly one physical neighbour, its operation magnitude is ×3.',note:'Adding a second connection leaves the Mod installed but makes it inactive.'},
-    {abbr:'LC',title:'LONG CHAIN',route:true,body:'On a route of 10+ unique tiles, each activated starred physical tile pays its tier once. In Endless, the full payout lasts 7 qualifying Moves.',note:'Long Chain modifies the machine, not one domino.'}
+    {id:'terminal',title:'MODS LIVE ON TILES',body:'A Market Mod belongs to one physical tile. It stays installed even if its condition later turns off.',note:'Hold any Modded tile to see BUILD, REWARD and whether it is active now.'},
+    {id:'corner',title:'BUILD → REWARD',body:'Build the condition around the tile, then the Mod changes what that tile contributes when the signal activates it.',note:'CORNER uses physical neighbours: exactly two at a right angle gives ×3.'},
+    {id:'zero-port',title:'SOME MODS CHANGE SIGNALS',body:'Not every Mod is a multiplier. ZERO PORT links two Zero tiles so the signal teleports instead of rebounding.',note:'The Inspector shows the exact rule and the live state.'},
+    {id:'long-run',title:'SOME MODS CHANGE THE MACHINE',body:'LONG CHAIN belongs to the machine, not one domino. A route through 10+ unique tiles makes every activated Star pay once.',note:'You do not need to memorise 28 Mods. Read the Market, then inspect what you install.'}
   ];
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const pips=n=>(P[n]||[]).map(([x,y])=>`<i class="spip" style="left:${x}%;top:${y}%"></i>`).join('');
@@ -100,14 +95,13 @@
     return`<div class="domino"><div class="half"><div class="spips">${pips(a)}</div></div><div class="half"><div class="spips">${pips(b)}</div></div>${mark}</div>`
   }
   function modifierVisual(step){
-    if(!step.route)return`<div class="modifierTutorGameTile" role="img" aria-label="${step.title} on domino ${step.values[0]} ${step.values[1]}">${dominoMarkup(step.values[0],step.values[1],step.abbr,step.cls)}</div>`;
-    const tiles=[[1,2],[2,4],[4,5],[5,6]];return`<div class="modifierTutorMachine" role="img" aria-label="Example long routed machine">${tiles.map((v,i)=>`${i?'<i class="modifierTutorLink"></i>':''}<span class="modifierTutorMachineTile">${dominoMarkup(v[0],v[1])}</span>`).join('')}<strong>10+ UNIQUE ROUTED TILES</strong></div>`
+    return MG?.diagramHtml?.(step.id,false)||`<div class="modifierTutorGameTile"><strong>${step.title}</strong></div>`
   }
 
   function ensureTutorialHub(){
     if(tutorialHub)return tutorialHub;
     tutorialHub=doc.createElement('dialog');tutorialHub.id='tutorialHub';tutorialHub.className='gameMenu tutorialHub';
-    tutorialHub.innerHTML='<div class="menuHead"><h2>Tutorials</h2><button class="iconButton" aria-label="Close tutorials">×</button></div><p class="tutorialHubIntro">Choose what you want to learn.</p><button class="tutorialChoice" data-tutorial="basics"><strong>BASICS · 2 MIN</strong><small>Placement, routing, Zero, rebound and T-Split.</small></button><button class="tutorialChoice" data-tutorial="systems"><strong>GAME MECHANICS · 3 MIN</strong><small>Circuits, machine modifiers and POWER.</small></button><button class="tutorialChoice" data-tutorial="modifiers"><strong>MODIFIERS · 3 MIN</strong><small>Tile Mods, Zero Port and Long Chain.</small></button>';
+    tutorialHub.innerHTML='<div class="menuHead"><h2>Tutorials</h2><button class="iconButton" aria-label="Close tutorials">×</button></div><p class="tutorialHubIntro">Learn the language, then discover the systems as you need them.</p><button class="tutorialChoice" data-tutorial="basics"><strong>BASICS · 2 MIN</strong><small>Placement, signal, parity, Zero, rebound and T-Split.</small></button><button class="tutorialChoice" data-tutorial="modifiers"><strong>MODIFIERS · 2 MIN</strong><small>How Market Mods live on tiles: BUILD → REWARD.</small></button><button class="tutorialChoice" data-tutorial="systems"><strong>GAME MECHANICS · 3 MIN</strong><small>Circuits, machine modifiers and POWER.</small></button>';
     doc.body.appendChild(tutorialHub);
     tutorialHub.querySelector('.iconButton').addEventListener('click',()=>tutorialHub.close());
     tutorialHub.addEventListener('click',event=>{
@@ -159,8 +153,8 @@
     syncTutorialEntryButtons();
     const ux=root.__monoidUx||{};
     const basicsDone=ux.tutorialKind==='basics'&&overlay?.classList.contains('show')&&overlayTitle?.textContent.trim()==='TILE SHOP'&&overlayPrimary?.textContent.trim()==='FINISH';
-    let next=$('nextGameMechanics');
-    if(basicsDone&&!next){next=doc.createElement('button');next.id='nextGameMechanics';next.className='secondary';next.textContent='NEXT · GAME MECHANICS';overlayPrimary.parentElement?.insertBefore(next,overlayPrimary.nextSibling);next.addEventListener('click',()=>waitForSelectionThen(()=>systems?.click()))}
+    let next=$('nextModifiersFromBasics');
+    if(basicsDone&&!next){next=doc.createElement('button');next.id='nextModifiersFromBasics';next.className='secondary';next.textContent='NEXT · MODIFIERS';overlayPrimary.parentElement?.insertBefore(next,overlayPrimary.nextSibling);next.addEventListener('click',()=>waitForSelectionThen(()=>openModifierTutorial(0)))}
     if(!basicsDone&&next)next.remove();
 
     if(coach){const kicker=coach.querySelector('.boardCoachKicker');if(kicker?.textContent.startsWith('SYSTEMS ·'))kicker.textContent=kicker.textContent.replace(/^SYSTEMS/,'GAME MECHANICS')}

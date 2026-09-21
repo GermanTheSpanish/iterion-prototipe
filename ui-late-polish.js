@@ -4,37 +4,10 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260921.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
+  const BUILD_ID='20260921.2',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
-  const OFFER_COPY={
-    'double-double':'First activation each Move applies both halves; later passes are normal.',
-    'double-echo':'First activation each Move sends one non-recursive Echo down the chosen route.',
-    'zero-port':'Pair two zero tiles. A signal teleports between them instead of rebounding.',
-    'parity-exchange':'Odd values add and even values multiply on the chosen physical tile.',
-    'corner':'A 90° routed turn gives the chosen tile ×2 operation magnitude.',
-    'long-line':'Straight routing gives ×2 at 3–4 traversals and ×3 from 5.',
-    'overload':'Operation magnitude scales with physical neighbours, capped at ×4.',
-    'terminal':'Exactly one physical neighbour gives ×3 operation magnitude.',
-    'sequence':'Consecutive printed values give ×2 operation magnitude.',
-    'complement':'Printed values summing to 6 give ×2 operation magnitude.',
-    'twin':'Direct contact with an identical printed domino gives ×3 operation magnitude.',
-    'pair':'An exact parallel 2×2 domino block gives ×3 operation magnitude.',
-    'bridge':'A physical articulation point gives ×3 operation magnitude.',
-    'gate':'Exactly one physical neighbour on each half gives ×2.',
-    'fan':'Three neighbours around one half give ×4 operation magnitude.',
-    'frame':'Membership in a closed physical cycle gives ×2 operation magnitude.',
-    'crown':'Three exterior sides spanning both halves give ×4 operation magnitude.',
-    'frontier':'Two or more neighbours plus one clear long side give ×2.',
-    'relay':'Two distinct POWER neighbours give ×3 operation magnitude.',
-    'coupler':'At least one POWER neighbour gives ×2 operation magnitude.',
-    'resonator':'Circuit I–II gives ×2; Circuit III–V gives ×3 operation magnitude.',
-    'forge':'Star I–II gives ×2; Star III gives ×3 operation magnitude.',
-    'foundation':'Survive 1 Market for ×2; 3 Markets for ×3 operation magnitude.',
-    'knot':'Two or more distinct physical cycles give ×4 operation magnitude.',
-    'mirror':'Equal outward neighbour values at both ends give ×3 operation magnitude.',
-    'mint':'First qualifying activation each round pays +1 coin; Score is unchanged.',
-    'long-run':'10+ unique routed tiles: all activated Stars pay once.'
-  };
+  const OFFER_COPY={};
+
 
   const style=doc.createElement('style');
   style.id='monoid-late-polish';
@@ -84,7 +57,8 @@
     .commerceModal .marketStructuredOffer>.marketOfferHead{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:10px!important;width:100%!important}
     .commerceModal .marketStructuredOffer>.marketOfferHead strong{font-size:15px!important;line-height:1.12!important;letter-spacing:.035em!important}
     .commerceModal .marketStructuredOffer>.marketOfferHead span{font-size:16px!important;line-height:1!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important}
-    .commerceModal .marketOfferDescription{width:100%!important;margin:6px 0 10px!important;font-size:13px!important;line-height:1.3!important;color:var(--muted)!important;display:block!important;overflow:visible!important}
+    .commerceModal .marketOfferDescription{width:100%!important;margin:6px 0 2px!important;font-size:13px!important;line-height:1.3!important;color:var(--muted)!important;display:block!important;overflow:visible!important}
+    .commerceModal .marketModDiagram{width:100%;min-height:40px;margin:0 0 6px;overflow:hidden}.commerceModal .marketModDiagram .modDiagram{pointer-events:none}
     .commerceModal .marketContextRow{display:grid!important;grid-template-columns:minmax(0,1fr) 112px!important;gap:10px!important;align-items:end!important;min-width:0!important}
     .commerceModal .marketPhysicalContext{display:flex!important;align-items:flex-end!important;gap:12px!important;min-width:0!important;overflow:hidden!important}
     .commerceModal .marketContextGroup{display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0!important}
@@ -169,18 +143,19 @@
     const game=root.__monoidGame;if(!game?.marketOfferInfo)return;
     const assigned=assignedTiles(),endless=!!game.state?.().endlessMode;
     const foot=overlay.querySelector('.shopFoot');
-    const footCopy=`Buy one tile Mod, then choose a highlighted compatible tile on the board. ZP links two zero tiles and later purchases relocate one endpoint. DD and DE remain exclusive. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
+    const footCopy=`Buy one Mod, then choose a highlighted compatible tile. Hold a Modded tile to inspect BUILD, REWARD and live status. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
     if(foot&&foot.textContent!==footCopy)foot.textContent=footCopy;
 
     doc.querySelectorAll('.marketOffer[data-market-offer]').forEach(offer=>{
       if(offer.classList.contains('marketStructuredOffer'))return;
-      const id=offer.dataset.marketOffer,info=game.marketOfferInfo(id),mod=info?.mod;
+      const id=offer.dataset.marketOffer,info=game.marketOfferInfo(id),mod=info?.mod,guide=MG?.get?.(id);
       const head=offer.querySelector(':scope > .marketOfferHead'),desc=offer.querySelector(':scope > p'),target=offer.querySelector(':scope > .marketTarget'),button=offer.querySelector(':scope > .shopBuy');
       if(!head||!button||!info||!mod)return;
 
       const description=desc||doc.createElement('p');description.className='marketOfferDescription';
-      description.textContent=OFFER_COPY[id]||mod.shortDescription||mod.description||'';
+      description.textContent=guide?`${guide.market} ${guide.reward}`:(OFFER_COPY[id]||mod.shortDescription||mod.description||'');
       if(id==='long-run'&&endless)description.textContent+=' Up to 7 qualifying Moves in Endless.';
+      const visual=doc.createElement('div');visual.className='marketModDiagram';visual.innerHTML=MG?.diagramHtml?.(id,true)||'';
 
       const context=doc.createElement('div');context.className='marketContextRow';
       const physical=doc.createElement('div');physical.className='marketPhysicalContext';
@@ -205,7 +180,7 @@
       const reason=actionReason(offer,info,button);if(reason){const note=doc.createElement('small');note.className='marketActionReason';note.textContent=reason;action.appendChild(note)}
       context.append(physical,action);
       target?.remove();
-      offer.replaceChildren(head,description,context);
+      offer.replaceChildren(head,description,visual,context);
       offer.classList.remove('marketPolishedOffer');offer.classList.add('marketStructuredOffer')
     })
   }
