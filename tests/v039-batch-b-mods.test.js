@@ -19,7 +19,7 @@ function setPlaced(g,ids){
   const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s
 }
 
-assert.equal(D.VERSION,'0.42.0');
+assert.equal(D.VERSION,'0.42.1');
 assert.deepEqual(
   [D.BRIDGE_MOD_MULTIPLIER,D.GATE_MOD_MULTIPLIER,D.FAN_MOD_MULTIPLIER,D.FRAME_MOD_MULTIPLIER,D.CROWN_MOD_MULTIPLIER,D.FRONTIER_MOD_MULTIPLIER],
   [3,2,4,2,4,2]
@@ -78,4 +78,4 @@ assert.deepEqual(['bridge','gate','fan','frame','crown','frontier'].map(id=>M.ge
 const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(source,/let topologyGraph=null;const graph=/,'expensive topology graph must remain lazy per replay');
 assert.match(source,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
-console.log('v0.42.0 Batch B topology Mod regressions passed');
+console.log('v0.42.1 Batch B topology Mod regressions passed');

@@ -15,8 +15,11 @@ async function startWithTerminal(page){
 test('Modifier primer teaches BUILD → REWARD without asking players to memorise the catalogue',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#learnMonoid').click();
   await page.locator('#tutorialHub [data-tutorial="modifiers"]').click();await expect(page.locator('#modifierTutorialDialog')).toBeVisible();
-  await expect(page.locator('.modifierTutorTitle')).toHaveText('MODS LIVE ON TILES');await expect(page.locator('.modifierTutorVisual .modDiagram')).toBeVisible();await expect(page.locator('.modifierTutorNote')).toContainText('Hold any Modded tile');
-  await page.locator('.modifierNext').click();await expect(page.locator('.modifierTutorTitle')).toHaveText('BUILD → REWARD');await expect(page.locator('.modifierTutorBody')).toContainText('Build the condition');await expect(page.locator('.modifierTutorNote')).toContainText('CORNER');await expect(page.locator('.modifierTutorNote')).toContainText('×3');
+  await expect(page.locator('.modifierTutorTitle')).toHaveText('MODS LIVE ON TILES');await expect(page.locator('.modifierTutorScene .domino')).toHaveCount(2);await expect(page.locator('.modifierTutorNote')).toContainText('Hold any Modded tile');
+  const type=await page.evaluate(()=>({body:parseFloat(getComputedStyle(document.querySelector('.modifierTutorBody')).fontSize),note:parseFloat(getComputedStyle(document.querySelector('.modifierTutorNote')).fontSize),visual:document.querySelector('.modifierTutorVisual').getBoundingClientRect().height}));expect(type.body).toBeGreaterThanOrEqual(18);expect(type.note).toBeGreaterThanOrEqual(14);expect(type.visual).toBeGreaterThan(200);
+  await page.locator('.modifierNext').click();await expect(page.locator('.modifierTutorTitle')).toHaveText('BUILD → REWARD');await expect(page.locator('.modifierTutorScene .domino')).toHaveCount(3);await expect(page.locator('.modifierTutorBody')).toContainText('Build the condition');await expect(page.locator('.modifierTutorNote')).toContainText('CORNER');await expect(page.locator('.modifierTutorNote')).toContainText('×3');
+  await page.locator('.modifierNext').click();await expect(page.locator('.modifierTutorTitle')).toHaveText('SOME MODS CHANGE SIGNALS');await expect(page.locator('.modifierTutorScene .domino')).toHaveCount(2);
+  await page.locator('.modifierNext').click();await expect(page.locator('.modifierTutorTitle')).toHaveText('SOME MODS CHANGE THE MACHINE');await expect(page.locator('.modifierTutorScene .domino')).toHaveCount(4);
 });
 
 test('Inspector shows schematic, player-facing rule and live Mod status',async({page})=>{
