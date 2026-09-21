@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260921.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3;
+  const BUILD_ID='20260921.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={
     'double-double':'First activation each Move applies both halves; later passes are normal.',
@@ -84,7 +84,8 @@
     .commerceModal .marketStructuredOffer>.marketOfferHead{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:10px!important;width:100%!important}
     .commerceModal .marketStructuredOffer>.marketOfferHead strong{font-size:15px!important;line-height:1.12!important;letter-spacing:.035em!important}
     .commerceModal .marketStructuredOffer>.marketOfferHead span{font-size:16px!important;line-height:1!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important}
-    .commerceModal .marketOfferDescription{width:100%!important;margin:6px 0 10px!important;font-size:13px!important;line-height:1.3!important;color:var(--muted)!important;display:block!important;overflow:visible!important}
+    .commerceModal .marketOfferDescription{width:100%!important;margin:6px 0 2px!important;font-size:13px!important;line-height:1.3!important;color:var(--muted)!important;display:block!important;overflow:visible!important}
+    .commerceModal .marketModDiagram{width:100%;min-height:40px;margin:0 0 6px;overflow:hidden}.commerceModal .marketModDiagram .modDiagram{pointer-events:none}
     .commerceModal .marketContextRow{display:grid!important;grid-template-columns:minmax(0,1fr) 112px!important;gap:10px!important;align-items:end!important;min-width:0!important}
     .commerceModal .marketPhysicalContext{display:flex!important;align-items:flex-end!important;gap:12px!important;min-width:0!important;overflow:hidden!important}
     .commerceModal .marketContextGroup{display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0!important}
@@ -169,18 +170,19 @@
     const game=root.__monoidGame;if(!game?.marketOfferInfo)return;
     const assigned=assignedTiles(),endless=!!game.state?.().endlessMode;
     const foot=overlay.querySelector('.shopFoot');
-    const footCopy=`Buy one tile Mod, then choose a highlighted compatible tile on the board. ZP links two zero tiles and later purchases relocate one endpoint. DD and DE remain exclusive. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
+    const footCopy=`Buy one Mod, then choose a highlighted compatible tile. Hold a Modded tile to inspect BUILD, REWARD and live status. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
     if(foot&&foot.textContent!==footCopy)foot.textContent=footCopy;
 
     doc.querySelectorAll('.marketOffer[data-market-offer]').forEach(offer=>{
       if(offer.classList.contains('marketStructuredOffer'))return;
-      const id=offer.dataset.marketOffer,info=game.marketOfferInfo(id),mod=info?.mod;
+      const id=offer.dataset.marketOffer,info=game.marketOfferInfo(id),mod=info?.mod,guide=MG?.get?.(id);
       const head=offer.querySelector(':scope > .marketOfferHead'),desc=offer.querySelector(':scope > p'),target=offer.querySelector(':scope > .marketTarget'),button=offer.querySelector(':scope > .shopBuy');
       if(!head||!button||!info||!mod)return;
 
       const description=desc||doc.createElement('p');description.className='marketOfferDescription';
-      description.textContent=OFFER_COPY[id]||mod.shortDescription||mod.description||'';
+      description.textContent=guide?`${guide.market} ${guide.reward}`:(OFFER_COPY[id]||mod.shortDescription||mod.description||'');
       if(id==='long-run'&&endless)description.textContent+=' Up to 7 qualifying Moves in Endless.';
+      const visual=doc.createElement('div');visual.className='marketModDiagram';visual.innerHTML=MG?.diagramHtml?.(id,true)||'';
 
       const context=doc.createElement('div');context.className='marketContextRow';
       const physical=doc.createElement('div');physical.className='marketPhysicalContext';
@@ -205,7 +207,7 @@
       const reason=actionReason(offer,info,button);if(reason){const note=doc.createElement('small');note.className='marketActionReason';note.textContent=reason;action.appendChild(note)}
       context.append(physical,action);
       target?.remove();
-      offer.replaceChildren(head,description,context);
+      offer.replaceChildren(head,description,visual,context);
       offer.classList.remove('marketPolishedOffer');offer.classList.add('marketStructuredOffer')
     })
   }
