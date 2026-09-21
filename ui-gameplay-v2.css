@@ -285,6 +285,15 @@ body .app .hand .domino>.half{
   flex:0 0 30px!important;
 }
 
+body.monoidTourActive .app .monoidTourHighlight{
+  background:#fff!important;
+  background-image:none!important;
+  color:#151515!important;
+  opacity:1!important;
+  filter:none!important;
+}
+body.monoidTourActive .app .railActions .btn.monoidTourHighlight small{color:#61615b!important}
+
 body .app .bottomBar .hint{
   grid-column:1/-1!important;
   grid-row:2!important;
