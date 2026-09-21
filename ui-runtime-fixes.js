@@ -21,6 +21,39 @@
     .app .label,.app .hint,.app .scoreCaption{font-size:max(11px,1em)}
     .app .btn{min-height:44px!important}
 
+    /* Mod guidance: one compact visual language shared by Inspector and Market. */
+    .modGuideCard{margin:0!important;padding:0 0 12px!important;border:0!important;background:transparent!important}
+    .modGuideCard+ .modGuideCard{padding-top:12px!important;border-top:1px solid var(--line)!important}
+    .modGuideCard>header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+    .modGuideCard>header>strong{font-size:15px;letter-spacing:.035em}
+    .modGuideStatus{font-size:10px;font-weight:850;line-height:1;letter-spacing:.1em;white-space:nowrap}
+    .modGuideStatus.inactive,.modGuideStatus.spent{opacity:.48}.modGuideStatus.ready,.modGuideStatus.machine{opacity:.72}
+    .modGuideRules{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:9px}
+    .modGuideRules small{display:block;margin-bottom:3px;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.13em}
+    .modGuideRules p{margin:0!important;font-size:12px!important;line-height:1.32!important}
+    .modGuideLive{margin:8px 0 0!important;padding:7px 8px!important;border-left:2px solid var(--ink);font-size:11px!important;line-height:1.3!important}
+    .modGuideNote{margin:7px 0 0!important;color:var(--muted);font-size:10px!important;line-height:1.3!important}
+    .modExactRule{margin-top:8px;font-size:10px;color:var(--muted)}
+    .modExactRule summary{min-height:32px;display:flex;align-items:center;cursor:pointer;font-weight:750;letter-spacing:.05em}
+    .modExactRule p{margin:2px 0 0!important;font-size:10px!important;line-height:1.35!important}
+    .modDiagram{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:76px;margin:8px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;color:var(--ink)}
+    .modDiagram.compact{height:42px;margin:5px 0 7px;border-top:0;border-bottom:0}
+    .modDiagramLine{gap:8px;font-size:11px;letter-spacing:.02em}.modDiagramLine b{font-size:12px;font-weight:850}.modDiagramLine i{font-style:normal;color:var(--muted)}
+    .modDiagramShape .modCore{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:34px;height:28px;border:1px solid var(--ink);border-radius:3px;font-size:11px;font-weight:900;letter-spacing:-.04em;background:var(--paper);z-index:2}
+    .modDiagramShape .modNode{position:absolute;display:grid;place-items:center;width:19px;height:15px;border:1px solid var(--line);border-radius:2px;background:var(--paper);font-style:normal;font-size:8px;font-weight:900}
+    .modDiagramShape .modNode.n{left:50%;top:5px;transform:translateX(-50%)}.modDiagramShape .modNode.s{left:50%;bottom:5px;transform:translateX(-50%)}
+    .modDiagramShape .modNode.w{left:calc(50% - 58px);top:50%;transform:translateY(-50%)}.modDiagramShape .modNode.e{right:calc(50% - 58px);top:50%;transform:translateY(-50%)}
+    .modDiagramShape .modNode.ww{left:calc(50% - 88px);top:50%;transform:translateY(-50%)}.modDiagramShape .modNode.ee{right:calc(50% - 88px);top:50%;transform:translateY(-50%)}
+    .modDiagramShape:before,.modDiagramShape:after{content:'';position:absolute;left:50%;top:50%;width:104px;height:1px;background:var(--line);transform:translate(-50%,-50%)}
+    .pattern-corner:after,.pattern-overload:after,.pattern-fan:after,.pattern-frame:after,.pattern-crown:after,.pattern-knot:after{width:1px;height:56px}
+    .pattern-terminal:before,.pattern-coupler:before{width:52px;transform:translate(-100%,-50%)}
+    .pattern-pair:before{width:1px;height:36px;transform:translate(-50%,0)}
+    .pattern-frontier:after{content:'OPEN';width:auto;height:auto;left:50%;top:6px;background:transparent;color:var(--muted);font-size:7px;font-weight:800;letter-spacing:.12em;transform:translateX(-50%)}
+    .pattern-relay .modNode,.pattern-coupler .modNode{border-width:2px}
+    .modDiagram.compact .modCore{width:28px;height:22px;font-size:9px}.modDiagram.compact .modNode{width:15px;height:12px;font-size:7px}
+    .modDiagram.compact .modNode.n{top:2px}.modDiagram.compact .modNode.s{bottom:2px}.modDiagram.compact .modNode.w{left:calc(50% - 47px)}.modDiagram.compact .modNode.e{right:calc(50% - 47px)}
+    .modDiagram.compact .modNode.ww{left:calc(50% - 70px)}.modDiagram.compact .modNode.ee{right:calc(50% - 70px)}
+    @media(max-width:390px),(max-height:700px){.modGuideRules{gap:8px}.modGuideRules p{font-size:11px!important}.modDiagram{height:66px}.modGuideLive{font-size:10px!important}}
     @media(max-height:700px){
       .app{grid-template-rows:44px minmax(70px,auto) 28px minmax(0,1fr) auto!important}
       .gameHeader,.headerActions{min-height:44px!important;height:44px!important}
