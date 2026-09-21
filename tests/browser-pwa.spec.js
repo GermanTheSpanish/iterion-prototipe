@@ -50,13 +50,13 @@ test('modifier mini tutorial uses game domino language and a clean full-screen h
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await openTutorialHub(page);await page.locator('[data-tutorial="modifiers"]').click();
   const dialog=page.locator('#modifierTutorialDialog');await expect(dialog).toBeVisible();const dialogBox=await dialog.boundingBox();expect(dialogBox.width).toBeGreaterThanOrEqual(389);expect(dialogBox.height).toBeGreaterThanOrEqual(843);
   const steps=[
-    ['MODS LIVE ON TILES','Hold any Modded tile'],
-    ['BUILD → REWARD','CORNER'],
-    ['SOME MODS CHANGE SIGNALS','ZERO PORT'],
-    ['SOME MODS CHANGE THE MACHINE','LONG CHAIN']
+    {title:'MODS LIVE ON TILES',locator:'.modifierTutorNote',text:'Hold any Modded tile'},
+    {title:'BUILD → REWARD',locator:'.modifierTutorNote',text:'CORNER'},
+    {title:'SOME MODS CHANGE SIGNALS',locator:'.modifierTutorBody',text:'ZERO PORT'},
+    {title:'SOME MODS CHANGE THE MACHINE',locator:'.modifierTutorBody',text:'LONG CHAIN'}
   ];
   for(let i=0;i<steps.length;i++){
-    const[title,note]=steps[i];await expect(page.locator('.modifierTutorTitle')).toHaveText(title);await expect(page.locator('.modifierTutorVisual .modDiagram')).toBeVisible();await expect(page.locator('.modifierTutorNote')).toContainText(note);await expect(page.locator('.modifierTutorKicker')).toHaveText(`MODIFIERS · ${i+1}/4`);await page.locator('.modifierNext').click()
+    const step=steps[i];await expect(page.locator('.modifierTutorTitle')).toHaveText(step.title);await expect(page.locator('.modifierTutorVisual .modDiagram')).toBeVisible();await expect(page.locator(step.locator)).toContainText(step.text);await expect(page.locator('.modifierTutorKicker')).toHaveText(`MODIFIERS · ${i+1}/4`);await page.locator('.modifierNext').click()
   }
   await expect(dialog).toBeHidden()
 });
