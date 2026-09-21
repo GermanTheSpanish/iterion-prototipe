@@ -43,17 +43,22 @@ test('title reveal follows DOMINO order without a pre-animation flash',async({pa
   expect(Math.max(...delays)+duration).toBeGreaterThanOrEqual(1.55);
   const box=await title.boundingBox();expect(box).toBeTruthy();expect(box.y+box.height/2).toBeGreaterThan(844*.40);expect(box.y+box.height/2).toBeLessThan(844*.48);
   await page.locator('#titleCard').click();await expect(page.locator('#learnMonoid')).toBeVisible();await expect(page.locator('#learnMonoid')).toHaveText('TUTORIALS');await expect(page.locator('#tutorialHubButton')).toBeHidden();await expect(page.locator('#replayTutorial')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();
-  await openTutorialHub(page);await expect(page.locator('#tutorialHub')).toContainText('BASICS · 2 MIN');await expect(page.locator('#tutorialHub')).toContainText('GAME MECHANICS · 3 MIN');await expect(page.locator('#tutorialHub')).toContainText('MODIFIERS · 3 MIN')
+  await openTutorialHub(page);await expect(page.locator('#tutorialHub')).toContainText('BASICS · 2 MIN');await expect(page.locator('#tutorialHub')).toContainText('GAME MECHANICS · 3 MIN');await expect(page.locator('#tutorialHub')).toContainText('MODIFIERS · 2 MIN')
 });
 
 test('modifier mini tutorial uses game domino language and a clean full-screen hierarchy',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await openTutorialHub(page);await page.locator('[data-tutorial="modifiers"]').click();
   const dialog=page.locator('#modifierTutorialDialog');await expect(dialog).toBeVisible();const dialogBox=await dialog.boundingBox();expect(dialogBox.width).toBeGreaterThanOrEqual(389);expect(dialogBox.height).toBeGreaterThanOrEqual(843);
-  for(const title of ['DOUBLE DOUBLE','DOUBLE ECHO','ZERO PORT','PARITY EXCHANGE','CORNER','LONG LINE','OVERLOAD','TERMINAL']){
-    await expect(page.locator('.modifierTutorTitle')).toHaveText(title);await expect(page.locator('.modifierTutorGameTile .domino')).toBeVisible();await expect(page.locator('.modifierTutorGameTile .tileModMark')).toBeVisible();
-    const mark=await page.locator('.modifierTutorGameTile .tileModMark span').allTextContents();expect(mark.join('')).toHaveLength(2);await page.locator('.modifierNext').click()
+  const steps=[
+    ['MODS LIVE ON TILES','Hold any Modded tile'],
+    ['BUILD → REWARD','CORNER'],
+    ['SOME MODS CHANGE SIGNALS','ZERO PORT'],
+    ['SOME MODS CHANGE THE MACHINE','LONG CHAIN']
+  ];
+  for(let i=0;i<steps.length;i++){
+    const[title,note]=steps[i];await expect(page.locator('.modifierTutorTitle')).toHaveText(title);await expect(page.locator('.modifierTutorVisual .modDiagram')).toBeVisible();await expect(page.locator('.modifierTutorNote')).toContainText(note);await expect(page.locator('.modifierTutorKicker')).toHaveText(`MODIFIERS · ${i+1}/4`);await page.locator('.modifierNext').click()
   }
-  await expect(page.locator('.modifierTutorTitle')).toHaveText('LONG CHAIN');await expect(page.locator('.modifierTutorMachine .domino')).toHaveCount(4);await expect(page.locator('.modifierTutorBody')).toContainText('10+ unique tiles');await expect(page.locator('.modifierTutorNote')).toContainText('machine');await page.locator('.modifierNext').click();await expect(dialog).toBeHidden()
+  await expect(dialog).toBeHidden()
 });
 
 test('board-led mobile layout centers MONOID, exposes MENU and gives the board more room',async({page})=>{
