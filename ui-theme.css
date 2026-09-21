@@ -234,7 +234,7 @@ body.monoidTourActive .tutorialPanel{display:none!important}
 
 /* During the UI tour the whole phone is suppressed except the instruction card and current framed target. */
 body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;background:rgba(13,13,12,.70);pointer-events:none}
-.boardCoachLayer{position:fixed;z-index:510;display:flex;align-items:flex-start;justify-content:center;padding:10px;pointer-events:none;color:var(--ink);overflow:hidden}
+.boardCoachLayer{position:fixed;z-index:540;display:flex;align-items:flex-start;justify-content:center;padding:10px;pointer-events:none;color:var(--ink);overflow:hidden}
 .boardCoachLayer[hidden]{display:none!important}
 .boardCoachCard{width:min(92%,360px);padding:16px 16px 15px;border:1px solid var(--line);background:rgba(247,247,244,.96);text-align:left}
 .boardCoachKicker{display:block;margin-bottom:7px;color:var(--muted);font-size:10px;font-weight:750;letter-spacing:.14em;text-transform:uppercase}
@@ -252,11 +252,15 @@ body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;back
 .boardCoachLayer.tour .boardCoachActions span{text-align:right}
 .boardCoachLayer.tutorial{padding:8px;background:transparent}
 .boardCoachLayer.tutorial.coachBottom{align-items:flex-end}
+.boardCoachLayer.tutorial.coachCircuit{overflow:visible;padding-bottom:0}
+.boardCoachLayer.tutorial.coachCircuit .boardCoachCard{transform:translateY(36px)}
 .boardCoachLayer.tutorial .boardCoachCard{padding:11px 12px;background:rgba(247,247,244,.92);backdrop-filter:blur(3px)}
 .boardCoachLayer.tutorial .boardCoachCard h2{font-size:clamp(17px,5vw,22px)}
 .boardCoachLayer.tutorial .boardCoachCard p{font-size:clamp(15px,4vw,18px);line-height:1.25}
 .boardCoachLayer.tutorial .boardCoachActions{pointer-events:auto}
-.monoidTourHighlight{position:relative!important;z-index:505!important;outline:2px solid #fff!important;outline-offset:3px!important;background:var(--paper)!important;box-shadow:0 0 0 5px rgba(255,255,255,.22)!important}
+.monoidTourHighlight{position:relative!important;z-index:520!important;isolation:isolate!important;outline:2px solid #fff!important;outline-offset:3px!important;background:#fff!important;color:#151515!important;opacity:1!important;filter:none!important;box-shadow:0 0 0 6px rgba(255,255,255,.42),0 0 24px rgba(255,255,255,.64)!important}
+.monoidTourHighlight .label,.monoidTourHighlight .scoreCaption{color:#61615b!important}
+@media(max-height:700px){.boardCoachLayer.tutorial.coachCircuit .boardCoachCard{transform:translateY(20px)}}
 body.monoidTourActive .gameHeader,body.monoidTourActive .scoreStrip,body.monoidTourActive .metaStrip,body.monoidTourActive .bottomBar{pointer-events:none}
 .tile.tutorialLocked{opacity:.34!important;filter:none!important;cursor:default!important}
 .tile.tutorialLocked .domino{box-shadow:none!important}

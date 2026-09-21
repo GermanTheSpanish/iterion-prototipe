@@ -86,7 +86,7 @@
   function renderSystemsCoach(){
     const game=currentGame(),s=game?.state?.();if(!game||!s)return;
     if(ux.systemsPhase==='circuit'){
-      highlight($('circuitChoice'));showCoach('tutorial','systems-circuit','SYSTEMS · 1/4','CIRCUITS','A closed physical loop creates a Circuit.\nChoose one outlined tile to develop.');coach.classList.add('coachBottom');return
+      highlight($('circuitChoice'));showCoach('tutorial','systems-circuit','SYSTEMS · 1/4','CIRCUITS','A closed physical loop creates a Circuit.\nChoose one outlined tile to develop.');coach.classList.add('coachBottom','coachCircuit');return
     }
     if(ux.systemsPhase==='mod'){
       highlight(machineModStatus||board);showCoach('tutorial','systems-mod','SYSTEMS · 2/4','MODIFIERS','Markets can change one physical tile or the whole machine.\nLONG CHAIN is active here.','<button class="primary" data-ux-action="systems-next">NEXT · POWER</button>');coach.classList.add('coachBottom');return
