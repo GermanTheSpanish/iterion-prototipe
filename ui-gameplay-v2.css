@@ -1,14 +1,23 @@
 /* Gameplay Exploration V2
-   Presentation-only layout. Gameplay geometry/state remain authoritative elsewhere. */
-.app{
-  width:min(100%,560px);
-  padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom));
-  grid-template-rows:44px auto 28px minmax(0,1fr) auto;
-  gap:4px;
+   Presentation-only layout. Gameplay geometry/state remain authoritative elsewhere.
+   These selectors intentionally outrank the earlier runtime presentation pass. */
+
+body .app{
+  width:min(100%,430px)!important;
+  padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))!important;
+  grid-template-rows:44px 86px 28px minmax(0,1fr) auto!important;
+  gap:4px!important;
 }
-.gameHeader{position:relative;min-height:44px;display:flex;align-items:center;justify-content:center!important}
-#menuButton.wordmark{
-  appearance:none;
+body .app .gameHeader{
+  position:relative!important;
+  min-height:44px!important;
+  height:44px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+body .app #menuButton.wordmark{
+  appearance:none!important;
   position:absolute!important;
   left:50%!important;
   top:50%!important;
@@ -29,246 +38,324 @@
   font-size:14px!important;
   font-weight:780!important;
   letter-spacing:.26em!important;
-  text-indent:.26em;
+  text-indent:.26em!important;
   line-height:1!important;
   white-space:nowrap!important;
   pointer-events:auto!important;
   cursor:pointer!important;
   z-index:3!important;
 }
-#menuButton.wordmark>span{display:block;line-height:1}
-#menuButton.wordmark:active{transform:translate(-50%,-50%) scale(.98)!important}
-.scoreStrip{grid-template-columns:1fr 1fr;gap:20px;align-items:start}
-.scoreCard{min-height:91px;padding:4px 0 2px}
-.scoreValue{font-size:clamp(38px,11.2vw,52px);margin:5px 0 1px;line-height:1}
-.scoreCaption{font-size:11px;min-height:15px}
-.label{font-size:10px;letter-spacing:.18em}
-.metaStrip{
-  min-height:28px;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  gap:8px;
-  border-top:0;
-  border-bottom:1px solid var(--line);
-  padding:0 0 3px;
-}
-.roundMeta{font-size:11px;gap:4px}
-.roundMeta>strong{font-size:12px;font-weight:500}
-.stageMeta{font-size:11px;margin-left:12px}
-.movesMeta{display:none!important}
+body .app #menuButton.wordmark>span{display:block!important;line-height:1!important}
+body .app #menuButton.wordmark:active{transform:translate(-50%,-50%) scale(.98)!important}
 
-.gameArea{display:block;min-height:0;overflow:hidden}
-.boardShell{height:100%;min-height:0;padding:0;border:0;background:none;overflow:hidden}
-.boardTop{min-height:0}
-.boardFrame{
-  width:100%;
-  height:100%;
-  min-height:0;
-  position:relative;
-  container-type:size;
-  overflow:hidden;
-  display:flex;
-  align-items:flex-start;
-  justify-content:center;
+body .app .scoreStrip{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:20px!important;
+  align-items:start!important;
 }
-.board{
-  width:min(100cqw,75cqh);
-  height:min(100cqh,133.333333cqw);
-  max-width:100%;
-  max-height:100%;
-  flex:none;
-  border-radius:0;
-  box-shadow:inset 0 0 0 1px #deded8;
-  background:#fff;
+body .app .scoreCard{
+  min-height:86px!important;
+  padding:4px 0 2px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
 }
-.boardFrame::before,
-.boardFrame::after{
-  content:"";
-  position:absolute;
-  z-index:1;
-  pointer-events:none;
-  opacity:.65;
+body .app .scoreCard .label{
+  font-size:11px!important;
+  font-weight:500!important;
+  line-height:1!important;
+  letter-spacing:.20em!important;
 }
-.boardFrame::before{
-  left:50%;
-  top:0;
-  bottom:0;
-  width:1px;
-  transform:translateX(-.5px);
-  background:
-    linear-gradient(var(--line),var(--line)) top/1px 10px no-repeat,
-    linear-gradient(var(--line),var(--line)) bottom/1px 10px no-repeat;
+body .app .scoreValue{
+  margin:5px 0 1px!important;
+  padding:0!important;
+  font-size:clamp(38px,11.2vw,52px)!important;
+  font-weight:450!important;
+  line-height:1!important;
 }
-.boardFrame::after{
-  top:50%;
-  left:0;
-  right:0;
-  height:1px;
-  transform:translateY(-.5px);
-  background:
-    linear-gradient(var(--line),var(--line)) left/10px 1px no-repeat,
-    linear-gradient(var(--line),var(--line)) right/10px 1px no-repeat;
+body .app .targetCard .scoreValue{font-weight:390!important}
+body .app .scoreCaption{
+  margin-top:0!important;
+  min-height:15px!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+body .app .scoreProgress,
+body .app .scoreProgressTrack,
+body .app .scoreProgressFill{height:1px!important;min-height:1px!important}
+body .app .scoreProgress{margin-top:3px!important}
+
+body .app .metaStrip{
+  min-height:28px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  padding:0 0 3px!important;
+  border-top:0!important;
+  border-bottom:1px solid var(--line)!important;
+}
+body .app .roundMeta{
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  font-size:11px!important;
+  line-height:1!important;
+}
+body .app .roundMeta>strong{
+  font-size:12px!important;
+  font-weight:500!important;
+}
+body .app .stageMeta{
+  margin-left:12px!important;
+  font-size:11px!important;
+}
+body .app .stageMeta>strong{font-size:12px!important;font-weight:500!important}
+body .app .movesMeta{display:none!important}
+
+body .app .gameArea{
+  min-height:0!important;
+  display:block!important;
+  padding-top:0!important;
+  overflow:hidden!important;
+}
+body .app .boardShell{
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  overflow:hidden!important;
+  display:block!important;
+}
+body .app .boardFrame{
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  container-type:size!important;
+}
+body .app .board{
+  position:relative!important;
+  width:min(100cqw,75cqh)!important;
+  height:min(100cqh,133.333333cqw)!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  flex:none!important;
+  margin:0!important;
+  aspect-ratio:3/4!important;
+  border:1px solid #d4d2cc!important;
+  border-radius:0!important;
+  background-color:#fff!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+body.endlessPalette .app .board{background-color:rgb(214,211,203)!important}
+
+body .app .bottomBar{
+  display:grid!important;
+  grid-template-columns:minmax(146px,42%) minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  align-items:stretch!important;
+  gap:4px 8px!important;
+  min-height:0!important;
+  padding-top:0!important;
+}
+body .app .railActions{
+  grid-column:1!important;
+  grid-row:1!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  grid-template-rows:1fr 1fr!important;
+  gap:6px!important;
+  width:auto!important;
+  align-self:stretch!important;
+}
+body .app .railActions .btn{
+  min-width:0!important;
+  min-height:47px!important;
+  height:47px!important;
+  padding:5px 4px!important;
+  border:1px solid #d4d2cc!important;
+  border-radius:4px!important;
+  background:transparent!important;
+  color:var(--ink)!important;
+  box-shadow:none!important;
+  font-size:12px!important;
+  font-weight:750!important;
+  line-height:1.05!important;
+  text-transform:uppercase!important;
+}
+body .app .railActions .btn small{
+  display:block!important;
+  margin-top:3px!important;
+  font-size:10px!important;
+  font-weight:450!important;
+  line-height:1.05!important;
+  text-transform:none!important;
+  color:var(--muted)!important;
+}
+body:not(.endlessPalette) .app .railActions #shopButton{
+  background:#151515!important;
+  color:#fff!important;
+  border-color:#151515!important;
+}
+body:not(.endlessPalette) .app .railActions #shopButton small{color:#e5e5e1!important}
+
+body .app .handRail{
+  grid-column:2!important;
+  grid-row:1!important;
+  min-width:0!important;
+  min-height:100px!important;
+  height:100px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+}
+body .app .handHeader{
+  height:18px!important;
+  min-height:18px!important;
+  flex:0 0 18px!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+body .app .handHeader .label{
+  font-size:11px!important;
+  font-weight:500!important;
+  letter-spacing:.18em!important;
+}
+body .app .hand{
+  min-width:0!important;
+  min-height:0!important;
+  flex:1!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:3px!important;
+}
+body .app .handSlot{
+  min-width:0!important;
+  width:auto!important;
+  height:78px!important;
+  min-height:0!important;
+  flex:1 1 0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:0!important;
+}
+body .app .handRail .tile{
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  padding:2px 0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+body .app .hand .domino{
+  width:30px!important;
+  height:60px!important;
+  max-width:100%!important;
+  max-height:none!important;
+  aspect-ratio:1/2!important;
+  flex:0 0 auto!important;
+}
+body .app .hand .domino>.half{
+  width:100%!important;
+  height:30px!important;
+  max-height:none!important;
+  min-height:0!important;
+  flex:0 0 30px!important;
 }
 
-.bottomBar{
-  display:grid;
-  grid-template-columns:minmax(146px,42%) minmax(0,1fr);
-  grid-template-rows:auto auto;
-  align-items:stretch;
-  gap:4px 8px;
-  min-height:0;
-}
-.railActions{
-  grid-column:1;
-  grid-row:1;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  grid-template-rows:1fr 1fr;
-  gap:6px;
-  align-self:stretch;
-}
-.btn{
-  min-height:47px;
-  padding:5px 4px;
-  border-radius:4px;
-  font-size:12px;
-  line-height:1.05;
-  text-transform:uppercase;
-}
-.btn small{
-  display:block;
-  margin-top:3px;
-  font-size:9px;
-  line-height:1.1;
-  font-weight:450;
-  text-transform:none;
-}
-.shopRailButton{background:#151515;color:#fff;border-color:#151515}
-
-.handRail{
-  grid-column:2;
-  grid-row:1;
-  min-width:0;
-  min-height:100px;
-  height:100px;
-  padding:0;
-  border:0;
-  border-radius:0;
-  background:none;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  align-items:stretch;
-}
-.handHeader{
-  height:18px;
-  flex:0 0 18px;
-  padding:0;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-}
-.handHeader .label{font-size:9px}
-.hand{
-  min-width:0;
-  min-height:0;
-  flex:1;
-  display:flex;
-  flex-direction:row;
-  align-items:center;
-  justify-content:space-between;
-  gap:3px;
-}
-.handSlot{
-  min-width:0;
-  width:auto;
-  height:78px;
-  min-height:0;
-  flex:1 1 0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:0;
-}
-.hand .tile{
-  width:100%;
-  height:100%;
-  min-width:0;
-  padding:2px 0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.hand .domino{
-  width:30px;
-  height:60px;
-  max-width:100%;
-  max-height:none;
-  aspect-ratio:1/2;
-  flex:0 0 auto;
-}
-.hand .domino>.half{
-  width:100%;
-  height:30px;
-  max-height:none;
-  min-height:0;
-  flex:0 0 30px;
-}
-.hint{
-  grid-column:1/-1;
-  grid-row:2;
-  min-height:13px;
-  height:13px;
-  margin:0;
-  overflow:hidden;
-  display:block;
-  text-align:center;
-  font-size:9px;
-  line-height:13px;
-  white-space:nowrap;
-  text-overflow:ellipsis;
-  color:var(--muted);
+body .app .bottomBar .hint{
+  grid-column:1/-1!important;
+  grid-row:2!important;
+  min-height:13px!important;
+  height:13px!important;
+  margin:0!important;
+  overflow:hidden!important;
+  display:block!important;
+  text-align:center!important;
+  font-size:11px!important;
+  font-weight:400!important;
+  line-height:13px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+  color:var(--muted)!important;
+  -webkit-line-clamp:unset!important;
 }
 
-.gameMenu #helpButton{
-  width:100%;
-  height:auto;
-  min-height:48px;
-  padding:0;
-  border:0;
-  border-top:1px solid var(--line);
-  border-radius:0;
-  background:none;
-  color:inherit;
-  text-align:left;
-  font-size:16px;
-  font-weight:400;
-  line-height:1;
+body .gameMenu #helpButton{
+  width:100%!important;
+  min-height:48px!important;
+  padding:0!important;
+  border:0!important;
+  border-top:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:none!important;
+  color:inherit!important;
+  text-align:left!important;
+  font-size:16px!important;
+  font-weight:400!important;
 }
-body.endlessPalette .board{background:#d6d3cb}
+body .gameMenu #helpButton[aria-hidden="true"]{display:none!important}
 
 @media(max-height:700px){
-  .app{
-    padding-top:calc(5px + env(safe-area-inset-top));
-    padding-bottom:calc(5px + env(safe-area-inset-bottom));
-    grid-template-rows:36px auto 24px minmax(0,1fr) auto;
-    gap:3px;
+  body .app{
+    padding-top:calc(5px + env(safe-area-inset-top))!important;
+    padding-bottom:calc(5px + env(safe-area-inset-bottom))!important;
+    grid-template-rows:36px 72px 24px minmax(0,1fr) auto!important;
+    gap:3px!important;
   }
-  .gameHeader{min-height:36px}
-  #menuButton.wordmark{height:36px!important;min-height:36px!important;font-size:13px!important}
-  .scoreCard{min-height:76px;padding:1px 0}
-  .scoreValue{font-size:35px;margin:3px 0 0}
-  .scoreCaption{font-size:10px}
-  .metaStrip{min-height:24px;padding-bottom:2px}
-  .bottomBar{grid-template-columns:minmax(138px,41%) minmax(0,1fr);gap:3px 6px}
-  .railActions{gap:4px}
-  .btn{min-height:40px;font-size:11px}
-  .btn small{font-size:8px;margin-top:2px}
-  .handRail{height:86px;min-height:86px}
-  .handHeader{height:14px;flex-basis:14px}
-  .handSlot{height:68px}
-  .hand .domino{width:26px;height:52px}
-  .hand .domino>.half{height:26px;flex-basis:26px}
-  .hint{height:11px;min-height:11px;line-height:11px;font-size:8px}
+  body .app .gameHeader{min-height:36px!important;height:36px!important}
+  body .app #menuButton.wordmark{
+    height:36px!important;
+    min-height:36px!important;
+    font-size:13px!important;
+  }
+  body .app .scoreCard{min-height:72px!important;padding:1px 0!important}
+  body .app .scoreValue{font-size:35px!important;margin:3px 0 0!important}
+  body .app .scoreCaption{font-size:11px!important}
+  body .app .metaStrip{min-height:24px!important;padding-bottom:2px!important}
+  body .app .bottomBar{
+    grid-template-columns:minmax(138px,41%) minmax(0,1fr)!important;
+    gap:3px 6px!important;
+  }
+  body .app .railActions{gap:4px!important}
+  body .app .railActions .btn{
+    min-height:40px!important;
+    height:40px!important;
+    font-size:11px!important;
+  }
+  body .app .railActions .btn small{font-size:9px!important;margin-top:2px!important}
+  body .app .handRail{height:86px!important;min-height:86px!important}
+  body .app .handHeader{height:14px!important;min-height:14px!important;flex-basis:14px!important}
+  body .app .handHeader .label{font-size:11px!important}
+  body .app .handSlot{height:68px!important;min-height:0!important;flex:1 1 0!important}
+  body .app .hand .domino{width:26px!important;height:52px!important}
+  body .app .hand .domino>.half{height:26px!important;flex-basis:26px!important}
+  body .app .bottomBar .hint{
+    height:11px!important;
+    min-height:11px!important;
+    line-height:11px!important;
+    font-size:11px!important;
+  }
 }
