@@ -248,16 +248,20 @@ function createGame(E,opts={}){
   }
 
   function decisionTelemetry(chosenIndex,chosenCandidate,options={}){
-    const maxEvaluations=Math.max(1,Number(options.maxEvaluations)||48),timeBudgetMs=Math.max(0,Number(options.timeBudgetMs)??32),clock=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now(),started=clock(),topologyBefore=topologyTelemetry(),legal=[];
+    const maxEvaluations=Math.max(1,Number(options.maxEvaluations)||48),timeBudgetMs=Math.max(0,options.timeBudgetMs==null?32:Number(options.timeBudgetMs)),clock=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now(),started=clock(),topologyBefore=topologyTelemetry(),legal=[];
     for(let i=0;i<s.hand.length;i++)for(const c of candidatesForIndex(i))legal.push({handIndex:i,candidate:c});
-    const chosen=previewPlacement(chosenIndex,chosenCandidate),same=(entry)=>entry.handIndex===chosenIndex&&entry.candidate.x===chosenCandidate.x&&entry.candidate.y===chosenCandidate.y&&entry.candidate.rr===chosenCandidate.rr;
-    if(!chosen.ok)return{evaluationComplete:false,skippedReason:chosen.reason,legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationMs:clock()-started,topologyBefore};
-    let evaluated=0,best=null,complete=true,strategy='all';
+    const chosenTile=s.hand[chosenIndex],chosenPlacement=chosenTile&&chosenCandidate?{tileId:chosenTile.id,handIndex:chosenIndex,x:chosenCandidate.x,y:chosenCandidate.y,z:0,rr:chosenCandidate.rr}:null;
+    if(!chosenPlacement)return{evaluationComplete:false,skippedReason:'chosen-placement',legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationMs:clock()-started,topologyBefore};
+    const same=entry=>entry.handIndex===chosenIndex&&entry.candidate.x===chosenCandidate.x&&entry.candidate.y===chosenCandidate.y&&entry.candidate.rr===chosenCandidate.rr;
+    if(!s.pieces.length){
+      let best=null,logical=0;for(let i=0;i<s.hand.length;i++){const candidates=candidatesForIndex(i),tile=s.hand[i];if(!tile||!candidates.length)continue;logical++;const output=tile.a+tile.b;if(!best||output>best.output)best={output,placement:{tileId:tile.id,handIndex:i,x:candidates[0].x,y:candidates[0].y,z:0,rr:candidates[0].rr}}}
+      return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:best?.output??null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationComplete:true,evaluationStrategy:'root-equivalent',skippedReason:null,evaluationMs:clock()-started,bestPlacement:best?.placement||chosenPlacement,bestEvaluatedPlacement:best?.placement||chosenPlacement,chosenPlacement,topologyBefore}
+    }
+    let evaluated=0,best=null,complete=true,stopReason=null;
     const consider=preview=>{if(!preview?.ok)return;evaluated++;if(!best||preview.output>best.output)best=preview};
-    if(!s.pieces.length){strategy='root-equivalent';const seen=new Set();for(const entry of legal){if(seen.has(entry.handIndex))continue;seen.add(entry.handIndex);consider(previewPlacement(entry.handIndex,entry.candidate))}}
-    else{consider(chosen);for(const entry of legal){if(same(entry))continue;if(evaluated>=maxEvaluations||clock()-started>=timeBudgetMs){complete=false;break}consider(previewPlacement(entry.handIndex,entry.candidate))}if(evaluated<legal.length)complete=false}
-    const bestLegal=complete?best:null,bestOutput=bestLegal?.output??null,ratio=bestOutput&&Number.isFinite(chosen.output/bestOutput)?chosen.output/bestOutput:null;
-    return{chosenOutput:chosen.output,chosenSelectionOutput:chosen.selectionOutput,bestLegalOutput:bestOutput,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:ratio,legalPlacementCount:legal.length,evaluatedPlacementCount:evaluated,evaluationComplete:complete,evaluationStrategy:strategy,skippedReason:complete?null:(evaluated>=maxEvaluations?'placement-cap':'time-budget'),evaluationMs:clock()-started,bestPlacement:bestLegal?{tileId:bestLegal.tile.id,handIndex:bestLegal.handIndex,...bestLegal.placement}:null,bestEvaluatedPlacement:best?{tileId:best.tile.id,handIndex:best.handIndex,...best.placement}:null,topologyBefore}
+    for(const entry of legal){if(same(entry))continue;if(evaluated>=maxEvaluations){complete=false;stopReason='placement-cap';break}if(clock()-started>=timeBudgetMs){complete=false;stopReason='time-budget';break}consider(previewPlacement(entry.handIndex,entry.candidate))}
+    if(evaluated<Math.max(0,legal.length-1)&&!stopReason){complete=false;stopReason='evaluation-incomplete'}
+    return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:evaluated,evaluationComplete:complete,evaluationStrategy:'alternatives',skippedReason:complete?null:stopReason,evaluationMs:clock()-started,bestPlacement:null,bestEvaluatedPlacement:best?{tileId:best.tile.id,handIndex:best.handIndex,...best.placement}:null,chosenPlacement,topologyBefore}
   }
   function captureUndoFrame(){
     const old=s.undoFrame;s.undoFrame=null;const frame=deepClone(s);s.undoFrame=old;return frame

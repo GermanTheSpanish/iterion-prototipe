@@ -6,7 +6,7 @@
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
-  const V=window.IterionPresentation,MG=window.MonoidModGuidance,PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage}),gameMenu=$('gameMenu'),menuButton=$('menuButton');
+  const V=window.IterionPresentation,MG=window.MonoidModGuidance,BATCH_STORE=window.MonoidPlaytestBatchStore?.create(),PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage}),gameMenu=$('gameMenu'),menuButton=$('menuButton');
   const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
@@ -25,6 +25,8 @@
   H.bindRun(GAME.state().runId);
   Object.defineProperty(window,'__monoidGame',{configurable:true,get:()=>GAME});
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
+  Object.defineProperty(window,'__monoidPlaytestBatch',{configurable:true,get:()=>PT?.batchInfo?.()||null});
+  Object.defineProperty(window,'__monoidPlaytestBatchStore',{configurable:true,get:()=>BATCH_STORE||null});
 
   function playtestContext(){const x=GAME.snapshot();return{runId:GAME.state().runId,round:GAME.state().round+1,stage:x.stage.index}}
   function bindPlaytestRun(){if(!PT||tutorial)return;PT.bindRun(playtestContext())}
@@ -35,13 +37,40 @@
   function storedState(){try{return JSON.parse(localStorage.getItem('iterion.activeRun.v1')||'null')}catch(_){return null}}
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function persistGame(){if(tutorial)return GAME.snapshot();const snap=GAME.save();try{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(GAME.exportState()))}catch(_){}return snap}
+  function lifecycleStatus(game=GAME){
+    const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.standardComplete)return'completed';if(s.blocked&&!recovery.recoverable)return'failed';return'abandoned'
+  }
+  function exportStatus(game=GAME){
+    const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.blocked&&!recovery.recoverable)return s.standardComplete?'completed':'failed';if(s.cleared&&s.standardComplete&&!s.endlessMode)return'completed';return'active'
+  }
+  function singleRunDebugText(game=GAME,includePerformance=game===GAME){
+    H.bindRun(game.state().runId);return`${game.debugText()}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${includePerformance?performanceText():'PERFORMANCE TELEMETRY\nUnavailable after reload.'}`
+  }
+  async function archiveSavedRun(reason='new-run'){
+    const saved=storedState();if(!saved?.state?.runId||!PT||!BATCH_STORE)return false;let game=GAME;
+    if(game.state().runId!==saved.state.runId){game=window.IterionGame.createGame(E,gameOptions(selectedMode(saved)));if(!game.restoreState(saved))return false}
+    const snap=game.snapshot(),current=PT.snapshot?.();if(current?.runId!==game.state().runId)PT.bindRun({runId:game.state().runId,round:game.state().round+1,stage:snap.stage.index});PT.setContext(game.state().round+1,snap.stage.index);
+    const status=lifecycleStatus(game),statusReason=status==='failed'?(game.state().failureReason||reason):status==='completed'&&game.state().blocked?`endless-${game.state().failureReason||'ended'}`:reason;PT.finalizeCurrent(status,{reason:statusReason});
+    const telemetry=PT.summary?.()||null,debugText=singleRunDebugText(game,game===GAME);await BATCH_STORE.archive({runId:game.state().runId,playerId:telemetry?.playerId||PT.identity?.().playerId,runSequence:telemetry?.runSequence||null,status,statusReason,gameVersion:D.VERSION,seed:game.state().seed,debugText,telemetry});return true
+  }
+  function currentRunRecord(){
+    const telemetry=PT?.summary?.()||null,status=exportStatus(GAME);return{runId:GAME.state().runId,playerId:telemetry?.playerId||PT?.identity?.().playerId,runSequence:telemetry?.runSequence||null,status,statusReason:status==='failed'?(GAME.state().failureReason||null):null,gameVersion:D.VERSION,seed:GAME.state().seed,debugText:singleRunDebugText(GAME,true),telemetry}
+  }
+  async function buildPlaytestBatch(){
+    const info=PT?.batchInfo?.(),current=currentRunRecord(),pending=BATCH_STORE&&info?await BATCH_STORE.pending(info.playerId):[],byId=new Map();for(const record of pending)byId.set(record.runId,record);byId.set(current.runId,current);const runs=[...byId.values()].sort((a,b)=>(a.runSequence||0)-(b.runSequence||0)),batchId=info?.batchId||`B-${Date.now().toString(36).toUpperCase()}`;
+    const header=[`MONOID PLAYTEST BATCH v1`,`Version: ${D.VERSION}`,`Batch ID: ${batchId}`,`Player ID: ${info?.playerId||current.playerId||'-'}`,`Runs: ${runs.length}`,`Exported: ${new Date().toISOString()}`].join('\n');
+    const sections=runs.map((record,index)=>`===== RUN ${index+1}/${runs.length} · ${String(record.status||'active').toUpperCase()} · Run #${record.runSequence??'?'} · ${record.runId} =====\n${record.debugText}`);return{text:[header,...sections].join('\n\n'),batchId,runIds:runs.map(r=>r.runId),currentRecord:current}
+  }
+  async function markBatchShared(batch){
+    if(!batch||!PT)return;if(BATCH_STORE){await BATCH_STORE.archive(batch.currentRecord);await BATCH_STORE.markExported(batch.runIds,batch.batchId)}PT.markBatchExported?.({includedRunIds:batch.runIds})
+  }
   function showGame(){entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render();if(!tutorial)resumePlaytest()}
   function showSelection(){
     pausePlaytest();press?.cancel?.();if(gameMenu.open)gameMenu.close();hideOverlay();app.hidden=true;entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
     const saved=storedState(),choiceMade=localStorage.getItem('iterion.tutorialChoice.v1')==='made';continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
-  function startNormal(continueSaved=false){
-    clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
+  async function startNormal(continueSaved=false){
+    clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;if(!continueSaved)await archiveSavedRun('new-run');const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
     localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
     GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem('iterion.tutorialChoice.v1','made');persistGame();handFx.fill('normal');showGame()
@@ -148,7 +177,7 @@
   function resetOverlay(){overlay.className='overlay show';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
-  function newRun(){pausePlaytest();clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame();handFx.fill('normal');hideOverlay();render();resumePlaytest()}
+  async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame();handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
@@ -262,9 +291,10 @@
   function showFailed(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',noLegal=s.failureReason==='no-legal-moves',recovery=GAME.recoveryOptions(),stalled=!noLegal&&!!recovery.recoverable;
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
+    if(!stalled)PT?.finalizeCurrent(s.standardComplete?'completed':'failed',{reason:s.failureReason||'run-ended'});
     const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or purchased Move can continue this round.':'You used every move for this round.'):noLegal?'No legal continuation remains after all available Rerolls were used.':'No legal continuation remains.';
     overlayBody.innerHTML=`<p>${endless?`Base run complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
-    overlayBody.querySelector('#downloadFailedRun').onclick=()=>window.NomonUiPolish?.shareDebug?window.NomonUiPolish.shareDebug(fullDebugText()):copyRun();
+    overlayBody.querySelector('#downloadFailedRun').onclick=downloadRunBatch;
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
     if(noTiles&&GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='TILE SHOP';b.onclick=openPermanentShop}
     if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
@@ -291,8 +321,8 @@
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
   async function endDrag(e){
     if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}
-    const game=GAME,generationBefore=game.state().setGeneration||1,searchStarted=performance.now(),ctx=GAME.beginPlacement(i,c),searchMs=performance.now()-searchStarted;if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}
-    if(!tutorial)PT?.recordDecision();uiBusy=true;const drawAnim=animateDrawSlot(i);renderBoard();const camera=rootCamera(),animationStarted=performance.now();camera?.beginCascade(ctx.sim.events||[]);try{await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output)}finally{camera?.endCascade()}const animationMs=performance.now()-animationStarted,result=game.finishPlacement(ctx);recordPerformance(ctx.sim,searchMs,animationMs);persistGame();
+    const game=GAME,generationBefore=game.state().setGeneration||1;if(!tutorial)PT?.recordDecision();const decision=!tutorial?game.decisionTelemetry(i,c,{maxEvaluations:48,timeBudgetMs:32}):null,searchStarted=performance.now(),ctx=GAME.beginPlacement(i,c),searchMs=performance.now()-searchStarted;if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();armDecisionTiming();return}
+    uiBusy=true;const drawAnim=animateDrawSlot(i);renderBoard();const camera=rootCamera(),animationStarted=performance.now();camera?.beginCascade(ctx.sim.events||[]);try{await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output)}finally{camera?.endCascade()}const animationMs=performance.now()-animationStarted,result=game.finishPlacement(ctx);recordPerformance(ctx.sim,searchMs,animationMs);if(!tutorial&&decision){const topologyAfter=game.topologyTelemetry(),chosenOutput=result.resonance?.output??game.state().score,alternative=decision.bestEvaluatedOutput,bestLegalOutput=decision.evaluationComplete?(decision.evaluationStrategy==='root-equivalent'?decision.bestLegalOutput:(alternative==null?chosenOutput:Math.max(chosenOutput,alternative))):null,bestPlacement=decision.evaluationComplete?(decision.evaluationStrategy==='root-equivalent'?decision.bestPlacement:(alternative!=null&&alternative>chosenOutput?decision.bestEvaluatedPlacement:{tileId:ctx.tile.id,handIndex:i,x:c.x,y:c.y,z:0,rr:c.rr})):null,events=ctx.sim.events||[];PT?.recordPlacement({...decision,turn:game.state().turn,chosenOutput,chosenSelectionOutput:ctx.sim.output??ctx.trigger,bestLegalOutput,bestPlacement,chosenVsBestRatio:bestLegalOutput?chosenOutput/bestLegalOutput:null,evaluatedPlacementCount:(decision.evaluatedPlacementCount||0)+1,topologyAfter,context:{rebounds:ctx.sim.rebounds||0,splits:events.filter(e=>e.type==='signal-fork').length,doubleEchoes:events.filter(e=>e.type==='double-echo-start').length,zeroPorts:events.filter(e=>e.type==='zero-port').length,powerActivations:events.filter(e=>e.type==='op'&&(e.powerMultiplier||1)>1).length,modActivations:events.filter(e=>e.type==='op'&&(e.modMultiplier||1)>1).length,resonanceMultiplier:result.resonance?.multiplier||1,newCircuits:Math.max(0,(topologyAfter.circuitCount||0)-(decision.topologyBefore?.circuitCount||0))}})}persistGame();
     const exitPending=!!tutorial?.exitPending;if(!exitPending)advanceTutorial(result);await drawAnim;uiBusy=false;
     if(exitPending){leaveTutorial(false);return}if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay();render();if(!tutorial)armDecisionTiming();
     if(!tutorial&&result.autoRerolls)toast(`NO LEGAL MOVES · AUTO REROLL${result.autoRerolls>1?` ×${result.autoRerolls}`:''}`);else if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
@@ -412,7 +442,7 @@
   function performanceText(){if(!performanceSamples.length)return'PERFORMANCE TELEMETRY\nNo recorded placements this session.';return`PERFORMANCE TELEMETRY\n${performanceSamples.map(s=>`Move ${s.move}: search ${s.searchMs}ms · animation ${s.animationMs}ms · events ${s.eventsRendered} · expanded ${s.expanded}${s.truncated?' TRUNCATED':''} · zoom ${s.cameraScale.toFixed(2)}x`).join('\n')}`}
   Object.defineProperty(window,'__monoidPerformance',{configurable:true,get:()=>performanceSamples.map(sample=>({...sample}))});
   Object.defineProperty(window,'__monoidPlaytest',{configurable:true,get:()=>PT?.snapshot()||null});
-  function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${performanceText()}`}
+  function fullDebugText(){return singleRunDebugText(GAME,true)}
   function renderLog(){
     runlog.innerHTML='';runlog.classList.toggle('show',viewRun);if(!viewRun)return;runlog.style.zIndex='610';
     const controls=document.createElement('div');Object.assign(controls.style,{position:'sticky',top:'0',display:'flex',justifyContent:'flex-end',gap:'4px',paddingBottom:'6px',background:'rgba(248,245,237,.98)',zIndex:'2'});
@@ -422,11 +452,14 @@
     controls.append(copy,close);runlog.append(controls,text)
   }
   async function copyRun(){
-    const text=fullDebugText();persistGame();let ok=false;
+    persistGame();const batch=await buildPlaytestBatch(),text=batch.text;let ok=false;
     if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(text);ok=true}catch(_){}}
     if(!ok){const ta=document.createElement('textarea');ta.value=text;ta.readOnly=true;Object.assign(ta.style,{position:'fixed',left:'0',top:'0',width:'1px',height:'1px',opacity:'0.01',zIndex:'700'});document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}try{ok=!!document.execCommand?.('copy')}catch(_){}ta.remove()}
-    if(ok){toast('Run data copied');return true}
-    viewRun=true;renderLog();const ta=runlog.querySelector('.runDataText');if(ta){ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}}toast('Copy blocked · run data selected');return false
+    if(ok){await markBatchShared(batch);toast(`Playtest batch copied · ${batch.runIds.length} run${batch.runIds.length===1?'':'s'}`);return true}
+    viewRun=true;renderLog();const ta=runlog.querySelector('.runDataText');if(ta){ta.value=text;ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(_){}}toast('Copy blocked · batch data selected');return false
+  }
+  async function downloadRunBatch(){
+    persistGame();const batch=await buildPlaytestBatch(),blob=new Blob([batch.text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`MONOID_PLAYTEST_v${D.VERSION}_${batch.batchId}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);await markBatchShared(batch);toast(`Playtest batch downloaded · ${batch.runIds.length} run${batch.runIds.length===1?'':'s'}`);return true
   }
   function closeMenu(){gameMenu.close();menuButton.setAttribute('aria-expanded','false')}
   menuButton.onclick=()=>{if(GAME.state().running||uiBusy||drag.active)return;press.cancel();gameMenu.showModal();menuButton.setAttribute('aria-expanded','true')};$('closeMenu').onclick=closeMenu;gameMenu.onclose=()=>menuButton.setAttribute('aria-expanded','false');gameMenu.onclick=e=>{if(e.target===gameMenu){const r=gameMenu.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeMenu()}};
