@@ -34,7 +34,7 @@ test('Gameplay Exploration V2 gives the board full width and keeps hand dominoes
   await expect(page.locator('#shopButton')).toContainText('SHOP');
   await menu.click();
   await expect(page.locator('#gameMenu')).toBeVisible();
-  await expect(page.locator('#helpButton')).toHaveText('Rulebook');
+  await expect(page.locator('#menuHelpButton')).toBeVisible();await expect(page.locator('#menuHelpButton')).toHaveText('Rulebook');
 
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
   await page.screenshot({path:testInfo.outputPath('gameplay-v2-390x844.png'),fullPage:true});
