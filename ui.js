@@ -27,6 +27,7 @@
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
   Object.defineProperty(window,'__monoidPlaytestBatch',{configurable:true,get:()=>PT?.batchInfo?.()||null});
   Object.defineProperty(window,'__monoidPlaytestBatchStore',{configurable:true,get:()=>BATCH_STORE||null});
+  Object.defineProperty(window,'__monoidSharePlaytestBatch',{configurable:true,value:()=>sharePlaytestBatch()});
 
   function playtestContext(){const x=GAME.snapshot();return{runId:GAME.state().runId,round:GAME.state().round+1,stage:x.stage.index}}
   function bindPlaytestRun(){if(!PT||tutorial)return;PT.bindRun(playtestContext())}
@@ -63,6 +64,9 @@
   }
   async function markBatchShared(batch){
     if(!batch||!PT)return;if(BATCH_STORE){await BATCH_STORE.archive(batch.currentRecord);await BATCH_STORE.markExported(batch.runIds,batch.batchId)}PT.markBatchExported?.({includedRunIds:batch.runIds})
+  }
+  async function sharePlaytestBatch(){
+    persistGame();const batch=await buildPlaytestBatch(),share=window.NomonUiPolish?.shareDebug;if(typeof share!=='function')return false;const ok=await share(batch.text);if(ok)await markBatchShared(batch);return ok
   }
   function showGame(){entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render();if(!tutorial)resumePlaytest()}
   function showSelection(){
