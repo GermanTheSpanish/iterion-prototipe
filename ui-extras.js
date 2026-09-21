@@ -95,7 +95,7 @@
     h1.dataset.monoidAnimated='true';h1.setAttribute('aria-label','MONOID');h1.innerHTML='MONOID'.split('').map(letter=>`<span class="titleLetter" aria-hidden="true">${letter}</span>`).join('')
   }
 
-  function tuneGameplayChrome(){const menu=$('menuButton');if(menu){menu.textContent='MENU';menu.setAttribute('aria-label','Open game menu')}}
+  function tuneGameplayChrome(){const menu=$('menuButton');if(menu){menu.textContent='MONOID';menu.setAttribute('aria-label','Open game menu')}}
 
   let tutorialHub=null,modifierDialog=null,modifierStep=0;
   const modifierSteps=[
