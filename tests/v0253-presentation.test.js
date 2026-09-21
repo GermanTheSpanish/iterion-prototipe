@@ -18,6 +18,7 @@ assert.deepEqual(V.progressState(500,1000),{stage:'target',progress:.5,next:'TAR
 assert.equal(V.progressState(1000,1000).stage,'clear');assert.equal(V.progressState(3000,1000).stage,'star1');assert.equal(V.progressState(5000,1000).stage,'star2');assert.equal(V.progressState(10000,1000).stage,'star3');
 assert.equal(V.brandDebugText('NOMON DEBUG v0.28.0\nRun ID: test-run\n'),'MONOID DEBUG v0.28.0\nRun ID: test-run\n');
 assert.equal(V.debugFilename('NOMON DEBUG v0.28.0\nRun ID: test-run\n'),'MONOID_DEBUG_v0.28.0_test-run.txt');
+assert.equal(V.debugFilename('MONOID PLAYTEST BATCH v1\nVersion: 0.42.4\nBatch ID: B-TEST123\n'),'MONOID_PLAYTEST_v0.42.4_B-TEST123.txt');
 console.log('UI compact numbers, progress tiers, MONOID branding and readable adaptive timing passed');
 
 assert.equal(V.scoreDisplay(1253000000,1254000000).score,'1,253M');

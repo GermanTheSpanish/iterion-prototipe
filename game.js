@@ -72,16 +72,16 @@ function createGame(E,opts={}){
     return false
   }
   function tileModIdsForTile(tileId){const out=[];for(const [id,ids] of Object.entries(allTileModAssignments()))if(ids.includes(tileId))out.push(id);return out}
-  function pieceModifierMap(){
+  function pieceModifierMap(pieces=s.pieces){
     const byTile=allTileModAssignments(),out=new Map();
-    for(const p of s.pieces){const set=new Set();for(const [id,ids] of Object.entries(byTile))if(ids.includes(p.tile.id))set.add(id);if(set.size)out.set(p.id,set)}
+    for(const p of pieces){const set=new Set();for(const [id,ids] of Object.entries(byTile))if(ids.includes(p.tile.id))set.add(id);if(set.size)out.set(p.id,set)}
     return out
   }
   function foundationAgeForTile(tileId){if(!tileId||tileId!==s.foundationTileId)return 0;const assigned=Number.isInteger(s.foundationAssignedMarket)?s.foundationAssignedMarket:(s.marketCount||0);return Math.max(0,(s.marketCount||0)-assigned)}
-  function foundationAgeByPiece(){const out=new Map();if(!s.foundationTileId)return out;for(const p of s.pieces)if(p.tile.id===s.foundationTileId)out.set(p.id,foundationAgeForTile(p.tile.id));return out}
-  function knotCycleCountByPiece(ERef=E){const out=new Map();if(!s.knotTileId)return out;const p=s.pieces.find(q=>q.tile.id===s.knotTileId);if(!p)return out;const graph=C.adjacency(s.pieces,ERef.contactBetweenPieces),signatures=C.cycleSignaturesThrough(graph,s.knotTileId,cfg.KNOT_MIN_CYCLE_SIZE||4);out.set(p.id,signatures.length);return out}
+  function foundationAgeByPiece(pieces=s.pieces){const out=new Map();if(!s.foundationTileId)return out;for(const p of pieces)if(p.tile.id===s.foundationTileId)out.set(p.id,foundationAgeForTile(p.tile.id));return out}
+  function knotCycleCountByPiece(ERef=E,pieces=s.pieces){const out=new Map();if(!s.knotTileId)return out;const p=pieces.find(q=>q.tile.id===s.knotTileId);if(!p)return out;const graph=C.adjacency(pieces,ERef.contactBetweenPieces),signatures=C.cycleSignaturesThrough(graph,s.knotTileId,cfg.KNOT_MIN_CYCLE_SIZE||4);out.set(p.id,signatures.length);return out}
 
-  function zeroPortPieceIds(){const ids=new Set(assignedTileIdsForMod('zero-port'));return s.pieces.filter(p=>ids.has(p.tile.id)).map(p=>p.id)}
+  function zeroPortPieceIds(pieces=s.pieces){const ids=new Set(assignedTileIdsForMod('zero-port'));return pieces.filter(p=>ids.has(p.tile.id)).map(p=>p.id)}
   const pairList=()=>{const out=[];for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)out.push([a,b]);return out};
   const deepClone=x=>JSON.parse(JSON.stringify(x));
   const stageSize=()=>cfg.STAGE_SIZE||3;
@@ -223,6 +223,46 @@ function createGame(E,opts={}){
   function handPlacementDiagnostics(){return s.hand.map((tile,index)=>tile?{index,tile:cloneTile(tile),legalPlacements:candidatesForIndex(index).length}:null).filter(Boolean)}
   function canInteract(){return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.blocked&&!s.needsReroll&&!s.shopOpen}
 
+  function signalOptionsForPieces(pieces,trigger){
+    const doubleDoublePieceId=pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,doubleEchoPieceId=pieces.find(x=>x.tile.id===s.doubleEchoTileId)?.id||null,tripleDoublePieceId=pieces.find(x=>x.tile.id===s.tripleDoubleTileId)?.id||null;
+    return{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,sequenceMultiplier:cfg.SEQUENCE_MOD_MULTIPLIER||2,complementMultiplier:cfg.COMPLEMENT_MOD_MULTIPLIER||2,twinMultiplier:cfg.TWIN_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,gateMultiplier:cfg.GATE_MOD_MULTIPLIER||2,fanMultiplier:cfg.FAN_MOD_MULTIPLIER||4,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,crownMultiplier:cfg.CROWN_MOD_MULTIPLIER||4,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),relayMultiplier:cfg.RELAY_MOD_MULTIPLIER||3,couplerMultiplier:cfg.COUPLER_MOD_MULTIPLIER||2,resonatorLowMultiplier:cfg.RESONATOR_LOW_MOD_MULTIPLIER||2,resonatorHighMultiplier:cfg.RESONATOR_HIGH_MOD_MULTIPLIER||3,resonatorHighRankThreshold:cfg.RESONATOR_HIGH_RANK_THRESHOLD||3,forgeLowMultiplier:cfg.FORGE_LOW_MOD_MULTIPLIER||2,forgeHighMultiplier:cfg.FORGE_HIGH_MOD_MULTIPLIER||3,forgeHighUpgradeThreshold:cfg.FORGE_HIGH_UPGRADE_THRESHOLD||3,foundationAgeByPiece:foundationAgeByPiece(pieces),foundationLowMarkets:cfg.FOUNDATION_LOW_MARKETS||1,foundationHighMarkets:cfg.FOUNDATION_HIGH_MARKETS||3,foundationLowMultiplier:cfg.FOUNDATION_LOW_MOD_MULTIPLIER||2,foundationHighMultiplier:cfg.FOUNDATION_HIGH_MOD_MULTIPLIER||3,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,mirrorMultiplier:cfg.MIRROR_MOD_MULTIPLIER||3,bifurcate:cfg.BIFURCATION_ENABLED}
+  }
+
+  function topologyTelemetry(pieces=s.pieces){
+    const graph=C.adjacency(pieces,E.contactBetweenPieces),degrees=[...graph.values()].map(set=>set.size),seen=new Set();let components=0;
+    for(const id of graph.keys())if(!seen.has(id)){components++;const queue=[id];seen.add(id);for(let i=0;i<queue.length;i++)for(const next of graph.get(queue[i])||[])if(!seen.has(next)){seen.add(next);queue.push(next)}}
+    const edges=degrees.reduce((sum,n)=>sum+n,0)/2,degreeFor=p=>graph.get(p.tile.id)?.size||0;
+    return{machineSize:pieces.length,edgeCount:edges,components,cycleRank:Math.max(0,edges-pieces.length+components),doubleCount:pieces.filter(p=>p.tile.a===p.tile.b).length,zeroCount:pieces.filter(p=>p.tile.a===0||p.tile.b===0).length,tJunctionCount:degrees.filter(n=>n===3).length,crossCount:degrees.filter(n=>n>=4).length,maxDegree:degrees.length?Math.max(...degrees):0,branchingDoubleCount:pieces.filter(p=>p.tile.a===p.tile.b&&degreeFor(p)>=3).length,powerTileCount:pieces.filter(p=>(p.tile.powerMultiplier||1)>1).length,modTileCount:pieces.filter(p=>tileModIdsForTile(p.tile.id).length>0).length,circuitCount:(s.circuitSignatures||[]).length,circuitTileCount:Object.values(s.circuitRanks||{}).filter(rank=>Number(rank)>0).length}
+  }
+
+  function previewPlacement(i,c){
+    if(i<0||i>=s.hand.length||!s.hand[i]||!c)return{ok:false,reason:'state'};const tile=s.hand[i];
+    if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
+    if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
+    if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
+    else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
+    const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...cloneTile(tile)};const pieces=[...s.pieces,p],trigger=tile.a+tile.b;
+    const sim=pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,pieces,signalOptionsForPieces(pieces,trigger));
+    const resonance=C.resonance(sim.output??trigger,sim.events,pieces,s.circuitRanks,cfg);
+    return{ok:true,handIndex:i,tile:cloneTile(tile),placement:{x:c.x,y:c.y,z:0,rr:c.rr},trigger,selectionOutput:sim.output??trigger,output:resonance.output,sim,resonance}
+  }
+
+  function decisionTelemetry(chosenIndex,chosenCandidate,options={}){
+    const maxEvaluations=Math.max(1,Number(options.maxEvaluations)||48),timeBudgetMs=Math.max(0,options.timeBudgetMs==null?32:Number(options.timeBudgetMs)),clock=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now(),started=clock(),topologyBefore=topologyTelemetry(),legal=[];
+    for(let i=0;i<s.hand.length;i++)for(const c of candidatesForIndex(i))legal.push({handIndex:i,candidate:c});
+    const chosenTile=s.hand[chosenIndex],chosenPlacement=chosenTile&&chosenCandidate?{tileId:chosenTile.id,handIndex:chosenIndex,x:chosenCandidate.x,y:chosenCandidate.y,z:0,rr:chosenCandidate.rr}:null;
+    if(!chosenPlacement)return{evaluationComplete:false,skippedReason:'chosen-placement',legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationMs:clock()-started,topologyBefore};
+    const same=entry=>entry.handIndex===chosenIndex&&entry.candidate.x===chosenCandidate.x&&entry.candidate.y===chosenCandidate.y&&entry.candidate.rr===chosenCandidate.rr;
+    if(!s.pieces.length){
+      let best=null,logical=0;for(let i=0;i<s.hand.length;i++){const candidates=candidatesForIndex(i),tile=s.hand[i];if(!tile||!candidates.length)continue;logical++;const output=tile.a+tile.b;if(!best||output>best.output)best={output,placement:{tileId:tile.id,handIndex:i,x:candidates[0].x,y:candidates[0].y,z:0,rr:candidates[0].rr}}}
+      return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:best?.output??null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationComplete:true,evaluationStrategy:'root-equivalent',skippedReason:null,evaluationMs:clock()-started,bestPlacement:best?.placement||chosenPlacement,bestEvaluatedPlacement:best?.placement||chosenPlacement,chosenPlacement,topologyBefore}
+    }
+    let evaluated=0,best=null,complete=true,stopReason=null;
+    const consider=preview=>{if(!preview?.ok)return;evaluated++;if(!best||preview.output>best.output)best=preview};
+    for(const entry of legal){if(same(entry))continue;if(evaluated>=maxEvaluations){complete=false;stopReason='placement-cap';break}if(clock()-started>=timeBudgetMs){complete=false;stopReason='time-budget';break}consider(previewPlacement(entry.handIndex,entry.candidate))}
+    if(evaluated<Math.max(0,legal.length-1)&&!stopReason){complete=false;stopReason='evaluation-incomplete'}
+    return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:evaluated,evaluationComplete:complete,evaluationStrategy:'alternatives',skippedReason:complete?null:stopReason,evaluationMs:clock()-started,bestPlacement:null,bestEvaluatedPlacement:best?{tileId:best.tile.id,handIndex:best.handIndex,...best.placement}:null,chosenPlacement,topologyBefore}
+  }
   function captureUndoFrame(){
     const old=s.undoFrame;s.undoFrame=null;const frame=deepClone(s);s.undoFrame=old;return frame
   }
@@ -238,8 +278,7 @@ function createGame(E,opts={}){
     const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,++s.idc);p.tile={...cloneTile(tile)};
     s.pieces.push(p);s.placedTileIds.push(tile.id);
     const trigger=tile.a+tile.b;
-    const doubleDoublePieceId=s.pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,doubleEchoPieceId=s.pieces.find(x=>x.tile.id===s.doubleEchoTileId)?.id||null,tripleDoublePieceId=s.pieces.find(x=>x.tile.id===s.tripleDoubleTileId)?.id||null;
-    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,zeroPortPieceIds:zeroPortPieceIds(),modIdsByPiece:pieceModifierMap(),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,sequenceMultiplier:cfg.SEQUENCE_MOD_MULTIPLIER||2,complementMultiplier:cfg.COMPLEMENT_MOD_MULTIPLIER||2,twinMultiplier:cfg.TWIN_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,gateMultiplier:cfg.GATE_MOD_MULTIPLIER||2,fanMultiplier:cfg.FAN_MOD_MULTIPLIER||4,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,crownMultiplier:cfg.CROWN_MOD_MULTIPLIER||4,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(s.pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),relayMultiplier:cfg.RELAY_MOD_MULTIPLIER||3,couplerMultiplier:cfg.COUPLER_MOD_MULTIPLIER||2,resonatorLowMultiplier:cfg.RESONATOR_LOW_MOD_MULTIPLIER||2,resonatorHighMultiplier:cfg.RESONATOR_HIGH_MOD_MULTIPLIER||3,resonatorHighRankThreshold:cfg.RESONATOR_HIGH_RANK_THRESHOLD||3,forgeLowMultiplier:cfg.FORGE_LOW_MOD_MULTIPLIER||2,forgeHighMultiplier:cfg.FORGE_HIGH_MOD_MULTIPLIER||3,forgeHighUpgradeThreshold:cfg.FORGE_HIGH_UPGRADE_THRESHOLD||3,foundationAgeByPiece:foundationAgeByPiece(),foundationLowMarkets:cfg.FOUNDATION_LOW_MARKETS||1,foundationHighMarkets:cfg.FOUNDATION_HIGH_MARKETS||3,foundationLowMultiplier:cfg.FOUNDATION_LOW_MOD_MULTIPLIER||2,foundationHighMultiplier:cfg.FOUNDATION_HIGH_MOD_MULTIPLIER||3,knotCycleCountByPiece:knotCycleCountByPiece(),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,mirrorMultiplier:cfg.MIRROR_MOD_MULTIPLIER||3,bifurcate:cfg.BIFURCATION_ENABLED});
+    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger));
     if(isZero(tile))s.roundZero.placed++;
     s.hand[i]=drawOne();s.turn++;s.roundTurn++;s.undoFrame=undoFrame;
     if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
@@ -687,7 +726,7 @@ function createGame(E,opts={}){
     s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,previewPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
