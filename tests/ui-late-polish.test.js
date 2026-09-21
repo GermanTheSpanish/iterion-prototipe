@@ -4,11 +4,11 @@ const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8
 assert.match(source,/BUILD_ID='20260921\.2'/);
 assert.match(source,/marketAssignments \.marketTile/,'Assigned physical modifiers must come from canonical Market state');
 assert.match(source,/marketAssignedGroup/);assert.match(source,/marketPoolGroup/,'Installed and compatible groups must remain distinct');assert.match(source,/COMPATIBLE · \$\{count\}/);
-assert.match(source,/offer\.replaceChildren\(head,description,context\)/,'Each offer must be rebuilt into one authoritative three-band structure');
+assert.match(source,/offer\.replaceChildren\(head,description,visual,context\)/,'Each offer must be rebuilt into one authoritative head / guidance / schematic / context structure');assert.match(source,/marketModDiagram/,'Every structured Market offer must reserve a compact Mod schematic band');
 assert.match(source,/marketOfferAction/);assert.match(source,/min-height:44px/,'Market actions must retain mobile touch height');
 assert.match(source,/id==='long-run'&&endless/);assert.match(source,/7 FULL PAYOUTS IN ENDLESS/,'Long Chain must expose its relevant Endless limit');
 assert.match(source,/marketMachineTag/);assert.match(source,/>MACHINE</,'Long Chain must present as a machine modifier');
-assert.match(source,/choose a highlighted compatible tile on the board/,'Manual board assignment must remain explicit');assert.doesNotMatch(source,/assigned randomly from the shown pool|RANDOM FROM/);
+assert.match(source,/choose a highlighted compatible tile/,'Manual board assignment must remain explicit');assert.match(source,/BUILD, REWARD and live status/,'Market must direct players to the richer Inspector explanation');assert.doesNotMatch(source,/assigned randomly from the shown pool|RANDOM FROM/);
 assert.match(source,/domino\.compactPreview\.circuitTile>\.tileModMark/,'Compact Circuit modifiers must keep high-contrast lettering');
 assert.match(source,/color:var\(--circuit-pip,#fff\)!important/,'Circuit Mod lettering must reuse the Circuit pip colour');
 assert.match(source,/modFaceReveal/,'Board Mod reveal should have a lightweight face-flip transition');
