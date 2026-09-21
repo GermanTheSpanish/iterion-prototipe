@@ -322,27 +322,27 @@ body .gameMenu #helpButton[aria-hidden="true"]{display:none!important}
   body .app{
     padding-top:calc(5px + env(safe-area-inset-top))!important;
     padding-bottom:calc(5px + env(safe-area-inset-bottom))!important;
-    grid-template-rows:36px 72px 24px minmax(0,1fr) auto!important;
+    grid-template-rows:44px 70px 24px minmax(0,1fr) auto!important;
     gap:3px!important;
   }
-  body .app .gameHeader{min-height:36px!important;height:36px!important}
+  body .app .gameHeader{min-height:44px!important;height:44px!important}
   body .app #menuButton.wordmark{
-    height:36px!important;
-    min-height:36px!important;
+    height:44px!important;
+    min-height:44px!important;
     font-size:13px!important;
   }
-  body .app .scoreCard{min-height:72px!important;padding:1px 0!important}
+  body .app .scoreCard{min-height:70px!important;padding:1px 0!important}
   body .app .scoreValue{font-size:35px!important;margin:3px 0 0!important}
   body .app .scoreCaption{font-size:11px!important}
   body .app .metaStrip{min-height:24px!important;padding-bottom:2px!important}
   body .app .bottomBar{
-    grid-template-columns:minmax(138px,41%) minmax(0,1fr)!important;
+    grid-template-columns:132px minmax(0,1fr)!important;
     gap:3px 6px!important;
   }
   body .app .railActions{gap:4px!important}
   body .app .railActions .btn{
-    min-height:40px!important;
-    height:40px!important;
+    min-height:44px!important;
+    height:44px!important;
     font-size:11px!important;
   }
   body .app .railActions .btn small{font-size:9px!important;margin-top:2px!important}
