@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUiExtrasInstalled)return;
   root.__monoidUiExtrasInstalled=true;
 
-  const BUILD_ID='20260921.3',MG=root.MonoidModGuidance;
+  const BUILD_ID='20260921.4',MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
@@ -39,18 +39,29 @@
     .modifierTutorTitle{margin:8px 0 0;font-size:clamp(31px,8.8vw,38px);font-weight:760;line-height:1;letter-spacing:.03em}
     .modifierTutorVisual{display:flex;align-items:center;justify-content:center;min-height:0;margin:17px 0;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden}
     .modifierTutorScene{display:grid;place-items:center;width:100%;min-height:220px}
+    .modifierTutorSceneInner{display:grid;place-items:center;gap:12px;width:100%}
+    .modifierTutorSceneState{display:flex;align-items:center;justify-content:center;gap:12px;min-height:20px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .modifierTutorSceneState strong{color:var(--ink);font-weight:900}
     .modifierTutorTile{display:grid;place-items:center;width:64px;height:112px;position:relative;overflow:visible}
     .modifierTutorTile .domino{transform:scale(1.55);transform-origin:center}
     .modifierTutorTile .tileModMark{font-size:15px!important;font-weight:950!important;color:rgba(21,21,21,.86)!important}
     .modifierTutorTerminal{display:grid;grid-template-columns:64px 64px;align-items:center;justify-content:center}
+    .modifierTutorTerminal .focus{animation:modifierInstalledPulse 1.7s ease-out both}
     .modifierTutorCorner{display:grid;grid-template-columns:64px 64px;grid-template-rows:112px 112px;align-items:center;justify-content:center}
-    .modifierTutorCorner .north{grid-column:1;grid-row:1}.modifierTutorCorner .focus{grid-column:1;grid-row:2}.modifierTutorCorner .east{grid-column:2;grid-row:2}
+    .modifierTutorCorner .north{grid-column:1;grid-row:1;animation:modifierBuildNeighbour 1.7s ease-out .18s both}.modifierTutorCorner .focus{grid-column:1;grid-row:2}.modifierTutorCorner .east{grid-column:2;grid-row:2;animation:modifierBuildNeighbour 1.7s ease-out .48s both}
+    .modifierTutorCornerState strong{animation:modifierRewardReveal 1.7s ease-out .78s both}
     .modifierTutorPort{display:flex;align-items:center;justify-content:center;gap:30px}
-    .modifierTutorPortArrow{font-size:36px;font-weight:500;line-height:1}
+    .modifierTutorPortArrow{font-size:36px;font-weight:500;line-height:1;animation:modifierPortTravel 1.25s ease-in-out infinite}
     .modifierTutorChain{display:flex;align-items:center;justify-content:center;gap:3px}
-    .modifierTutorChain .modifierTutorTile{width:66px;height:68px}
+    .modifierTutorChain .modifierTutorTile{width:66px;height:68px;animation:modifierRoutePulse 1.65s ease-in-out infinite}
+    .modifierTutorChain .modifierTutorTile:nth-child(2){animation-delay:.18s}.modifierTutorChain .modifierTutorTile:nth-child(3){animation-delay:.36s}.modifierTutorChain .modifierTutorTile:nth-child(4){animation-delay:.54s}
     .modifierTutorChain .modifierTutorTile .domino{transform:rotate(90deg) scale(.94);transform-origin:center}
     .modifierTutorChainMore{margin-left:4px;font-size:20px;font-weight:800;letter-spacing:.08em}
+    @keyframes modifierInstalledPulse{0%{opacity:.42;transform:scale(.96)}45%,100%{opacity:1;transform:scale(1)}}
+    @keyframes modifierBuildNeighbour{0%,18%{opacity:.16;transform:scale(.92)}52%,100%{opacity:1;transform:scale(1)}}
+    @keyframes modifierRewardReveal{0%,42%{opacity:0}72%,100%{opacity:1}}
+    @keyframes modifierPortTravel{0%,100%{opacity:.28;transform:translateX(-7px)}50%{opacity:1;transform:translateX(7px)}}
+    @keyframes modifierRoutePulse{0%,100%{opacity:.42;transform:translateY(0)}45%{opacity:1;transform:translateY(-3px)}}
     .modifierTutorBody{margin:0;color:var(--ink);font-size:20px;line-height:1.36}
     .modifierTutorNote{margin:11px 0 0;color:var(--muted);font-size:15px;line-height:1.4}
     .modifierTutorActions{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-top:16px;padding-top:10px;border-top:1px solid var(--line)}
@@ -68,9 +79,9 @@
       .titleCard h1{transform:translate(-.6vw,-4.5dvh)}
       #modifierTutorialDialog{padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
       #modifierTutorialDialog[open]{grid-template-rows:auto auto minmax(168px,1fr) auto auto auto}
-      .modifierTutorTitle{font-size:29px}.modifierTutorVisual{margin:10px 0;padding:4px 0}.modifierTutorScene{min-height:168px}.modifierTutorTile{width:54px;height:92px}.modifierTutorTile .domino{transform:scale(1.28)}.modifierTutorTerminal{grid-template-columns:54px 54px}.modifierTutorCorner{grid-template-columns:54px 54px;grid-template-rows:92px 92px}.modifierTutorPort{gap:22px}.modifierTutorChain .modifierTutorTile{width:57px;height:58px}.modifierTutorChain .modifierTutorTile .domino{transform:rotate(90deg) scale(.82)}.modifierTutorBody{font-size:16px}.modifierTutorNote{font-size:13px}.modifierTutorActions{margin-top:10px}.modifierTutorActions button{min-height:44px}
+      .modifierTutorTitle{font-size:29px}.modifierTutorVisual{margin:10px 0;padding:4px 0}.modifierTutorScene{min-height:168px}.modifierTutorSceneInner{gap:7px}.modifierTutorSceneState{font-size:9px}.modifierTutorTile{width:54px;height:92px}.modifierTutorTile .domino{transform:scale(1.28)}.modifierTutorTerminal{grid-template-columns:54px 54px}.modifierTutorCorner{grid-template-columns:54px 54px;grid-template-rows:92px 92px}.modifierTutorPort{gap:22px}.modifierTutorChain .modifierTutorTile{width:57px;height:58px}.modifierTutorChain .modifierTutorTile .domino{transform:rotate(90deg) scale(.82)}.modifierTutorBody{font-size:16px}.modifierTutorNote{font-size:13px}.modifierTutorActions{margin-top:10px}.modifierTutorActions button{min-height:44px}
     }
-    @media(prefers-reduced-motion:reduce){.titleCard h1 .titleLetter{opacity:1;filter:none;animation:none}}
+    @media(prefers-reduced-motion:reduce){.titleCard h1 .titleLetter,.modifierTutorTerminal .focus,.modifierTutorCorner .north,.modifierTutorCorner .east,.modifierTutorCornerState strong,.modifierTutorPortArrow,.modifierTutorChain .modifierTutorTile{opacity:1;transform:none;animation:none}}
   `;
   doc.head.appendChild(style);
 
@@ -101,10 +112,10 @@
   }
   function modifierTutorTile(a,b,abbr='',classes=''){return`<div class="modifierTutorTile ${classes}">${dominoMarkup(a,b,abbr)}</div>`}
   function modifierVisual(step){
-    if(step.id==='terminal')return`<div class="modifierTutorScene"><div class="modifierTutorTerminal">${modifierTutorTile(1,2,'','neighbour')}${modifierTutorTile(2,3,'TE','focus')}</div></div>`;
-    if(step.id==='corner')return`<div class="modifierTutorScene"><div class="modifierTutorCorner">${modifierTutorTile(1,2,'','north')}${modifierTutorTile(2,3,'CO','focus')}${modifierTutorTile(3,4,'','east')}</div></div>`;
-    if(step.id==='zero-port')return`<div class="modifierTutorScene"><div class="modifierTutorPort">${modifierTutorTile(0,2,'ZP','focus')}<span class="modifierTutorPortArrow" aria-hidden="true">⇢</span>${modifierTutorTile(0,5,'ZP','focus')}</div></div>`;
-    if(step.id==='long-run')return`<div class="modifierTutorScene"><div class="modifierTutorChain">${modifierTutorTile(1,2)}${modifierTutorTile(2,3)}${modifierTutorTile(3,4)}${modifierTutorTile(4,5)}<span class="modifierTutorChainMore">… 10+</span></div></div>`;
+    if(step.id==='terminal')return`<div class="modifierTutorScene" aria-label="Terminal Mod installed on one physical tile"><div class="modifierTutorSceneInner"><div class="modifierTutorTerminal">${modifierTutorTile(1,2,'','neighbour')}${modifierTutorTile(2,3,'TE','focus')}</div><div class="modifierTutorSceneState"><strong>INSTALLED</strong><span>ONE TILE</span></div></div></div>`;
+    if(step.id==='corner')return`<div class="modifierTutorScene" aria-label="Corner Mod: build two perpendicular neighbours, then the Mod becomes active at times three"><div class="modifierTutorSceneInner"><div class="modifierTutorCorner">${modifierTutorTile(1,2,'','north')}${modifierTutorTile(2,3,'CO','focus')}${modifierTutorTile(3,4,'','east')}</div><div class="modifierTutorSceneState modifierTutorCornerState"><span>BUILD</span><strong>ACTIVE ×3</strong></div></div></div>`;
+    if(step.id==='zero-port')return`<div class="modifierTutorScene" aria-label="Zero Port teleports the signal between two physical Zero tiles"><div class="modifierTutorSceneInner"><div class="modifierTutorPort">${modifierTutorTile(0,2,'ZP','focus')}<span class="modifierTutorPortArrow" aria-hidden="true">⇢</span>${modifierTutorTile(0,5,'ZP','focus')}</div><div class="modifierTutorSceneState"><span>ZERO</span><strong>TELEPORT</strong><span>ZERO</span></div></div></div>`;
+    if(step.id==='long-run')return`<div class="modifierTutorScene" aria-label="Long Chain activates across a route of ten or more unique physical tiles"><div class="modifierTutorSceneInner"><div class="modifierTutorChain">${modifierTutorTile(1,2)}${modifierTutorTile(2,3)}${modifierTutorTile(3,4)}${modifierTutorTile(4,5)}<span class="modifierTutorChainMore">… 10+</span></div><div class="modifierTutorSceneState"><span>ROUTE</span><strong>10+ UNIQUE TILES</strong></div></div></div>`;
     return MG?.diagramHtml?.(step.id,false)||`<div class="modifierTutorScene"><strong>${step.title}</strong></div>`
   }
 
