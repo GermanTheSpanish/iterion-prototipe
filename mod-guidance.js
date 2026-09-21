@@ -19,7 +19,7 @@
   function result(stateName,label,detail){return Object.freeze({state:stateName,label,detail})}
   function active(yes,label,detail){return result(yes?'active':'inactive',yes?label:'INACTIVE',detail)}
   function status(id,state,tileId){
-    const p=pieceFor(state,tileId),facts=p&&E&&E.modGeometryFacts?E.modGeometryFacts(p,state.pieces||[]):null,rank=Math.max(0,Number(state&&state.circuitRanks&&state.circuitRanks[tileId])||0),tier=Math.max(0,Number(p&&p.tile&&p.tile.upgrade)||0);
+    const p=pieceFor(state,tileId),pieces=state&&state.pieces||[],geometryReady=!!p&&Array.isArray(p.cubes)&&p.cubes.length>0&&pieces.every(q=>Array.isArray(q.cubes)&&q.cubes.length>0),facts=geometryReady&&E&&E.modGeometryFacts?E.modGeometryFacts(p,pieces):null,rank=Math.max(0,Number(state&&state.circuitRanks&&state.circuitRanks[tileId])||0),tier=Math.max(0,Number(p&&p.tile&&p.tile.upgrade)||0);
     if(id==='double-double')return result('ready','READY','Both halves on the first activation this Move.');
     if(id==='double-echo')return result('ready','READY','One Echo on the first activation this Move.');
     if(id==='zero-port'){const linked=(state&&state.zeroPortTileIds||[]).length===2&&(state.zeroPortTileIds||[]).includes(tileId);return result(linked?'active':'inactive',linked?'LINKED':'INACTIVE',linked?'Paired with the other Zero Port.':'Install a second Zero Port.')} 
@@ -44,7 +44,7 @@
     if(id==='resonator'){const mult=rank>=3?3:rank>0?2:1;return active(rank>0,'ACTIVE ×'+mult,rank?'Circuit rank '+((D&&D.CIRCUIT_RANKS&&D.CIRCUIT_RANKS[rank-1]&&D.CIRCUIT_RANKS[rank-1].roman)||rank):'No Circuit rank on this tile')}
     if(id==='forge'){const mult=tier>=3?3:tier>0?2:1;return active(tier>0,'ACTIVE ×'+mult,tier?'Star '+tier:'No Stars on this tile')}
     if(id==='foundation'){const assigned=Number.isInteger(state&&state.foundationAssignedMarket)?state.foundationAssignedMarket:(state&&state.marketCount||0),age=Math.max(0,(state&&state.marketCount||0)-assigned),mult=age>=3?3:age>=1?2:1;return active(age>=1,'ACTIVE ×'+mult,age+' Market'+(age===1?'':'s')+' survived')}
-    if(id==='knot'){let count=0;if(p&&C&&C.adjacency&&C.cycleSignaturesThrough){const graph=C.adjacency(state.pieces||[],E.contactBetweenPieces);count=C.cycleSignaturesThrough(graph,tileId,(D&&D.KNOT_MIN_CYCLE_SIZE)||4).length}return active(count>=2,'ACTIVE ×4',count+' distinct physical loop'+(count===1?'':'s'))}
+    if(id==='knot'){let count=0;if(geometryReady&&C&&C.adjacency&&C.cycleSignaturesThrough){const graph=C.adjacency(pieces,E.contactBetweenPieces);count=C.cycleSignaturesThrough(graph,tileId,(D&&D.KNOT_MIN_CYCLE_SIZE)||4).length}return active(count>=2,'ACTIVE ×4',geometryReady?count+' distinct physical loop'+(count===1?'':'s'):'Geometry unavailable in this snapshot')}
     if(id==='mirror'){const values=facts&&facts.mirrorValues;return active(!!(facts&&facts.mirror),'ACTIVE ×3',values?'Outward values '+values[0]+' and '+values[1]:'Needs one distinct neighbour on each half')}
     if(id==='mint'){const ready=!state||state.mintPaidRound!==state.round;return result(ready?'ready':'spent',ready?'READY · +1c':'SPENT THIS ROUND',ready?'Next positive scoring activation pays.':'Available again next round.')}
     if(id==='long-run')return result('machine','MACHINE MOD','Activates on a route of 10+ unique tiles.');
