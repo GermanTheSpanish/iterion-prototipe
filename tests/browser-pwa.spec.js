@@ -50,13 +50,13 @@ test('modifier mini tutorial uses game domino language and a clean full-screen h
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await openTutorialHub(page);await page.locator('[data-tutorial="modifiers"]').click();
   const dialog=page.locator('#modifierTutorialDialog');await expect(dialog).toBeVisible();const dialogBox=await dialog.boundingBox();expect(dialogBox.width).toBeGreaterThanOrEqual(389);expect(dialogBox.height).toBeGreaterThanOrEqual(843);
   const steps=[
-    {title:'MODS LIVE ON TILES',locator:'.modifierTutorNote',text:'Hold any Modded tile'},
-    {title:'BUILD → REWARD',locator:'.modifierTutorNote',text:'CORNER'},
-    {title:'SOME MODS CHANGE SIGNALS',locator:'.modifierTutorBody',text:'ZERO PORT'},
-    {title:'SOME MODS CHANGE THE MACHINE',locator:'.modifierTutorBody',text:'LONG CHAIN'}
+    {title:'MODS LIVE ON TILES',locator:'.modifierTutorNote',text:'Hold any Modded tile',tiles:2},
+    {title:'BUILD → REWARD',locator:'.modifierTutorNote',text:'CORNER',tiles:3},
+    {title:'SOME MODS CHANGE SIGNALS',locator:'.modifierTutorBody',text:'ZERO PORT',tiles:2},
+    {title:'SOME MODS CHANGE THE MACHINE',locator:'.modifierTutorBody',text:'LONG CHAIN',tiles:4}
   ];
   for(let i=0;i<steps.length;i++){
-    const step=steps[i];await expect(page.locator('.modifierTutorTitle')).toHaveText(step.title);await expect(page.locator('.modifierTutorVisual .modDiagram')).toBeVisible();await expect(page.locator(step.locator)).toContainText(step.text);await expect(page.locator('.modifierTutorKicker')).toHaveText(`MODIFIERS · ${i+1}/4`);await page.locator('.modifierNext').click()
+    const step=steps[i];await expect(page.locator('.modifierTutorTitle')).toHaveText(step.title);await expect(page.locator('.modifierTutorVisual .domino')).toHaveCount(step.tiles);await expect(page.locator(step.locator)).toContainText(step.text);await expect(page.locator('.modifierTutorKicker')).toHaveText(`MODIFIERS · ${i+1}/4`);await page.locator('.modifierNext').click()
   }
   await expect(dialog).toBeHidden()
 });
