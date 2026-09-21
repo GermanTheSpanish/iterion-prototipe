@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const BUILD='20260921.4',NEXT_BUILD='20260921.5';
+const BUILD='20260921.5',NEXT_BUILD='20260921.6';
 
 async function openTutorialHub(page){const persistent=page.locator('#tutorialHubButton');if(await persistent.isVisible())await persistent.click();else await page.locator('#learnMonoid').click();await expect(page.locator('#tutorialHub')).toBeVisible()}
 async function startTutorialFromHub(page,kind){await openTutorialHub(page);await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
@@ -33,8 +33,8 @@ test('installed mode intercepts Android-style Back and opens the run menu instea
 
 test('title reveal follows DOMINO order without a pre-animation flash',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260921.4');
-  await expect(page.locator('#devBuildStamp')).toContainText(`v0.42.2 · build ${BUILD}`);
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260921.5');
+  await expect(page.locator('#devBuildStamp')).toContainText(`v0.42.3 · build ${BUILD}`);
   const letters=page.locator('#titleCard .titleLetter');await expect(letters).toHaveCount(6);const title=page.locator('#titleCard h1');await expect(title).toHaveAttribute('aria-label','MONOID');
   expect(await title.evaluate(el=>getComputedStyle(el).visibility)).toBe('visible');
   const delays=await letters.evaluateAll(nodes=>nodes.map(n=>parseFloat(getComputedStyle(n).animationDelay)||0));
@@ -66,13 +66,14 @@ test('modifier mini tutorial stays readable on compact phones and respects reduc
   await expect(page.locator('#modifierTutorialDialog')).toBeVisible();const layout=await page.evaluate(()=>{const dialog=document.querySelector('#modifierTutorialDialog'),body=document.querySelector('.modifierTutorBody'),note=document.querySelector('.modifierTutorNote'),focus=document.querySelector('.modifierTutorTerminal .focus');return{scrolls:dialog.scrollHeight>dialog.clientHeight||dialog.scrollWidth>dialog.clientWidth,bodySize:parseFloat(getComputedStyle(body).fontSize),noteSize:parseFloat(getComputedStyle(note).fontSize),animation:getComputedStyle(focus).animationName}});expect(layout.scrolls).toBe(false);expect(layout.bodySize).toBeGreaterThanOrEqual(16);expect(layout.noteSize).toBeGreaterThanOrEqual(13);expect(layout.animation).toBe('none');
 });
 
-test('board-led mobile layout centers MONOID, exposes MENU and gives the board more room',async({page})=>{
+test('board-led mobile layout uses MONOID as menu and gives the board the full gameplay width',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
-  await expect(page.locator('#menuButton')).toHaveText('MENU');await expect(page.locator('#helpButton')).toBeVisible();
+  const menu=page.locator('#menuButton');await expect(menu).toHaveText('MONOID');await expect(menu).toHaveAttribute('aria-label','Open game menu');
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-195)).toBeLessThan(2);
-  const board=await page.locator('#board').boundingBox();expect(board.width).toBeGreaterThan(300);
-  const handDomino=await page.locator('#hand .domino').first().boundingBox();expect(handDomino.width).toBeGreaterThanOrEqual(39);
+  const board=await page.locator('#board').boundingBox();expect(board.width).toBeGreaterThan(340);
+  const hand=await page.locator('#hand').boundingBox(),handDomino=await page.locator('#hand .domino').first().boundingBox();expect(hand.y).toBeGreaterThanOrEqual(board.y+board.height);expect(handDomino.height/handDomino.width).toBeCloseTo(2,1);expect(await page.locator('#hand').evaluate(el=>getComputedStyle(el).flexDirection)).toBe('row');
+  await menu.click();await expect(page.locator('#menuHelpButton')).toHaveText('Rulebook');await expect(page.locator('#menuHelpButton')).toBeVisible();await page.locator('#closeMenu').click();
   expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 });
 
@@ -94,7 +95,7 @@ test('silent update detection offers reload and preserves the active run before 
     const nativeFetch=window.fetch.bind(window);
     window.fetch=(input,init)=>{
       const url=typeof input==='string'?input:(input&&typeof input.url==='string'?input.url:String(input));
-      if(url.includes('build.json'))return Promise.resolve(new Response(JSON.stringify({version:'0.42.2',build:nextBuild}),{status:200,headers:{'Content-Type':'application/json'}}));
+      if(url.includes('build.json'))return Promise.resolve(new Response(JSON.stringify({version:'0.42.3',build:nextBuild}),{status:200,headers:{'Content-Type':'application/json'}}));
       return nativeFetch(input,init)
     }
   },NEXT_BUILD);

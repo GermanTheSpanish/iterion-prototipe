@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260921.4',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20260921.5',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -102,7 +102,7 @@
     const wordmark=doc.querySelector('.wordmark');if(!wordmark)return;
     const spans=[...wordmark.children],letters=spans.map(span=>span.textContent||'').join('');
     const intact=spans.length===6&&spans.every(span=>span.tagName==='SPAN')&&letters==='MONOID';
-    if(!intact){wordmark.dataset.letterized='true';wordmark.setAttribute('aria-label','MONOID');wordmark.innerHTML='MONOID'.split('').map(c=>`<span aria-hidden="true">${c}</span>`).join('')}
+    if(!intact){wordmark.dataset.letterized='true';if(!wordmark.getAttribute('aria-label'))wordmark.setAttribute('aria-label','MONOID');wordmark.innerHTML='MONOID'.split('').map(c=>`<span aria-hidden="true">${c}</span>`).join('')}
   }
   function scientific(value){
     value=Number(value);if(!Number.isFinite(value))return String(value);

@@ -21,7 +21,7 @@
     {title:'THE MACHINE',body:'This is your machine.\nEverything you build stays here.',target:()=>board},
     {title:'TARGET',body:'Beat this number before you run out of moves.',target:()=>$('targetDetail')},
     {title:'SCORE',body:'Every placement sends one signal through the machine.\nSCORE shows that Move’s resolved result — not a running total.',target:()=>$('scoreDetail')},
-    {title:'MOVES',body:'Seven moves. Make them count.',target:()=>document.querySelector('.movesMeta')},
+    {title:'MOVES',body:'Seven moves. Make them count.',target:()=>$('moveTool')},
     {title:'HAND',body:'These are the tiles you can play.',target:()=>handRail}
   ];
   const tutorialCopy=[
@@ -106,7 +106,7 @@
     showCoach('tutorial',`${copyIndex}-${ux.rotationSeen?'rotated':'ready'}`,`BASICS · ${copyIndex+1}/${tutorialCopy.length}`,copy.title,copy.body(),'<button id="monoidCoachLeave" data-ux-action="leave">LEAVE</button>');positionTutorialCoach(game)
   }
 
-  function showFirstBrief(){if(localStorage.getItem(FIRST_BRIEF_KEY)==='seen'||app.hidden)return;highlight(board);showCoach('firstBrief','rules','FIRST RUN','BUILD. ROUTE. SCORE.','Match equal numbers to build the machine.\nEvery move sends a signal through it.\n\nEVEN adds. ODD multiplies. ZERO rebounds.\n\nBeat the TARGET before your moves run out.\nYour machine survives the round.','<button class="primary" data-ux-action="start-first">START</button><small>? opens the Rulebook anytime.</small>')}
+  function showFirstBrief(){if(localStorage.getItem(FIRST_BRIEF_KEY)==='seen'||app.hidden)return;highlight(board);showCoach('firstBrief','rules','FIRST RUN','BUILD. ROUTE. SCORE.','Match equal numbers to build the machine.\nEvery move sends a signal through it.\n\nEVEN adds. ODD multiplies. ZERO rebounds.\n\nBeat the TARGET before your moves run out.\nYour machine survives the round.','<button class="primary" data-ux-action="start-first">START</button><small>MONOID opens the menu and Rulebook anytime.</small>')}
   function acknowledgeFirstBrief(){localStorage.setItem(FIRST_BRIEF_KEY,'seen');hideCoach()}
   function showEndlessBrief(action){pendingEndlessAction=action;overlay.classList.add('monoidUxSuppressed');highlight(board);showCoach('endlessBrief','endless','ENDLESS','THE MACHINE CONTINUES.','You beat MONOID. There is no finish line now.\n\nTargets grow ×5 every round.\nYour machine, tiles, modifiers and coins carry on.\n\nWhen the set runs dry, stronger POWER tiles enter.','<button class="primary" data-ux-action="enter-endless">ENTER ENDLESS</button><button data-ux-action="back-endless">BACK</button>')}
   function enterEndless(){const action=pendingEndlessAction;pendingEndlessAction=null;overlay.classList.remove('monoidUxSuppressed');hideCoach();if(action)action()}

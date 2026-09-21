@@ -157,7 +157,7 @@
     function ensureMenuHelp(){
       const menu=$('gameMenu'),legacy=$('helpButton'),anchor=$('gameSelectionButton');if(!menu||!legacy||!anchor)return;
       legacy.tabIndex=-1;legacy.setAttribute('aria-hidden','true');
-      let button=$('menuHelpButton');if(!button){button=doc.createElement('button');button.id='menuHelpButton';button.className='menuAction';button.textContent='How to play';menu.insertBefore(button,anchor);button.addEventListener('click',()=>{if(menu.open)menu.close();legacy.click()})}
+      let button=$('menuHelpButton');if(!button){button=doc.createElement('button');button.id='menuHelpButton';button.className='menuAction';button.textContent='Rulebook';menu.insertBefore(button,anchor);button.addEventListener('click',()=>{if(menu.open)menu.close();legacy.click()})}
     }
     function syncActionLabels(){
       const game=root.__monoidGame;if(!game?.state)return;const state=game.state(),remaining=Math.max(0,(game.maxPlacements?.()||0)-(state.roundTurn||0));
@@ -167,7 +167,7 @@
       const undoHtml=`UNDO<small>${state.consumables?.undo||0}</small>`,shopHtml=`SHOP<small>${state.coins||0} coins</small>`;
       if(move&&move.innerHTML!==moveHtml)move.innerHTML=moveHtml;if(reroll&&reroll.innerHTML!==rerollHtml)reroll.innerHTML=rerollHtml;if(undo&&undo.innerHTML!==undoHtml)undo.innerHTML=undoHtml;if(shop&&shop.innerHTML!==shopHtml)shop.innerHTML=shopHtml
     }
-    function syncMenu(){const menu=$('menuButton');if(menu&&menu.textContent!=='MENU')menu.textContent='MENU'}
+    function syncMenu(){const menu=$('menuButton');if(menu&&menu.textContent!=='MONOID')menu.textContent='MONOID'}
     let queued=false;
     function sync(){queued=false;ensureBoardMarks();ensureMenuHelp();syncMenu();syncActionLabels()}
     function schedule(){if(queued)return;queued=true;root.requestAnimationFrame(sync)}
@@ -180,7 +180,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20260921.4';
+    const BUILD_ID='20260921.5';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);

@@ -120,7 +120,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260921.4');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260921.5');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -186,9 +186,9 @@ test('Phase A compacts primary numbers at 50K and thickens the score instrument 
   expect(await page.evaluate(()=>window.MonoidPhaseA.compactPrimary(49999))).toBe('49,999');
   expect(await page.evaluate(()=>window.MonoidPhaseA.compactPrimary(50000))).toBe('50K');
   const boxes=await page.locator('#target,#score').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{x:r.x,right:r.right,width:r.width}}));expect(boxes[0].right).toBeLessThan(boxes[1].x);
-  const barHeight=await page.locator('.scoreProgressTrack').evaluate(el=>parseFloat(getComputedStyle(el).height));expect(barHeight).toBeGreaterThanOrEqual(3);
+  const barHeight=await page.locator('.scoreProgressTrack').evaluate(el=>parseFloat(getComputedStyle(el).height));expect(barHeight).toBeGreaterThanOrEqual(1);expect(barHeight).toBeLessThanOrEqual(2);
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-187.5)).toBeLessThan(1);
-  const menu=await page.locator('#menuButton').boundingBox();expect(menu.x+menu.width/2).toBeGreaterThan(330);
+  const menu=await page.locator('#menuButton').boundingBox();expect(Math.abs(menu.x+menu.width/2-187.5)).toBeLessThan(1);
   expect(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 });

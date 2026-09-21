@@ -1,0 +1,370 @@
+/* Gameplay Exploration V2
+   Presentation-only layout. Gameplay geometry/state remain authoritative elsewhere.
+   These selectors intentionally outrank the earlier runtime presentation pass. */
+
+body .app{
+  width:min(100%,430px)!important;
+  padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))!important;
+  grid-template-rows:44px 86px 28px minmax(0,1fr) auto!important;
+  gap:4px!important;
+}
+body .app .gameHeader{
+  position:relative!important;
+  min-height:44px!important;
+  height:44px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+body .app #menuButton.wordmark{
+  appearance:none!important;
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  width:clamp(112px,31vw,132px)!important;
+  min-width:112px!important;
+  height:44px!important;
+  min-height:44px!important;
+  margin:0!important;
+  padding:0 2px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--ink)!important;
+  font-size:14px!important;
+  font-weight:780!important;
+  letter-spacing:.26em!important;
+  text-indent:.26em!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  z-index:3!important;
+}
+body .app #menuButton.wordmark>span{display:block!important;line-height:1!important}
+body .app #menuButton.wordmark:active{transform:translate(-50%,-50%) scale(.98)!important}
+
+body .app .scoreStrip{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:20px!important;
+  align-items:start!important;
+}
+body .app .scoreCard{
+  min-height:86px!important;
+  padding:4px 0 2px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body .app .scoreCard .label{
+  font-size:11px!important;
+  font-weight:500!important;
+  line-height:1!important;
+  letter-spacing:.20em!important;
+}
+body .app .scoreValue{
+  margin:5px 0 1px!important;
+  padding:0!important;
+  font-size:clamp(38px,11.2vw,52px)!important;
+  font-weight:450!important;
+  line-height:1!important;
+}
+body .app .targetCard .scoreValue{font-weight:390!important}
+body .app .scoreCaption{
+  margin-top:0!important;
+  min-height:15px!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+body .app .scoreProgress,
+body .app .scoreProgressTrack,
+body .app .scoreProgressFill{height:1px!important;min-height:1px!important}
+body .app .scoreProgress{margin-top:3px!important}
+
+body .app .metaStrip{
+  min-height:28px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  padding:0 0 3px!important;
+  border-top:0!important;
+  border-bottom:1px solid var(--line)!important;
+}
+body .app .roundMeta{
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  font-size:11px!important;
+  line-height:1!important;
+}
+body .app .roundMeta>strong{
+  font-size:12px!important;
+  font-weight:500!important;
+}
+body .app .stageMeta{
+  margin-left:12px!important;
+  font-size:11px!important;
+}
+body .app .stageMeta>strong{font-size:12px!important;font-weight:500!important}
+body .app .movesMeta{display:none!important}
+
+body .app .gameArea{
+  min-height:0!important;
+  display:block!important;
+  padding-top:0!important;
+  overflow:hidden!important;
+}
+body .app .boardShell{
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  overflow:hidden!important;
+  display:block!important;
+}
+body .app .boardFrame{
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  container-type:size!important;
+}
+body .app .board{
+  position:relative!important;
+  width:min(100cqw,75cqh)!important;
+  height:min(100cqh,133.333333cqw)!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  flex:none!important;
+  margin:0!important;
+  aspect-ratio:3/4!important;
+  border:1px solid #d4d2cc!important;
+  border-radius:0!important;
+  background-color:#fff!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+body.endlessPalette .app .board{background-color:rgb(214,211,203)!important}
+
+body .app .bottomBar{
+  display:grid!important;
+  grid-template-columns:minmax(146px,42%) minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  align-items:stretch!important;
+  gap:4px 8px!important;
+  min-height:0!important;
+  padding-top:0!important;
+}
+body .app .railActions{
+  grid-column:1!important;
+  grid-row:1!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  grid-template-rows:1fr 1fr!important;
+  gap:6px!important;
+  width:auto!important;
+  align-self:stretch!important;
+}
+body .app .railActions .btn{
+  min-width:0!important;
+  min-height:47px!important;
+  height:47px!important;
+  padding:5px 4px!important;
+  border:1px solid #d4d2cc!important;
+  border-radius:4px!important;
+  background:transparent!important;
+  color:var(--ink)!important;
+  box-shadow:none!important;
+  font-size:12px!important;
+  font-weight:750!important;
+  line-height:1.05!important;
+  text-transform:uppercase!important;
+}
+body .app .railActions .btn small{
+  display:block!important;
+  margin-top:3px!important;
+  font-size:10px!important;
+  font-weight:450!important;
+  line-height:1.05!important;
+  text-transform:none!important;
+  color:var(--muted)!important;
+}
+body:not(.endlessPalette) .app .railActions #shopButton{
+  background:#151515!important;
+  color:#fff!important;
+  border-color:#151515!important;
+}
+body:not(.endlessPalette) .app .railActions #shopButton small{color:#e5e5e1!important}
+
+body .app .handRail{
+  grid-column:2!important;
+  grid-row:1!important;
+  min-width:0!important;
+  min-height:100px!important;
+  height:100px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+}
+body .app .handHeader{
+  height:18px!important;
+  min-height:18px!important;
+  flex:0 0 18px!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+body .app .handHeader .label{
+  font-size:11px!important;
+  font-weight:500!important;
+  letter-spacing:.18em!important;
+}
+body .app .hand{
+  min-width:0!important;
+  min-height:0!important;
+  flex:1!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:3px!important;
+}
+body .app .handSlot{
+  min-width:0!important;
+  width:auto!important;
+  height:78px!important;
+  min-height:0!important;
+  flex:1 1 0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:0!important;
+}
+body .app .handRail .tile{
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  padding:2px 0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+body .app .hand .domino{
+  width:30px!important;
+  height:60px!important;
+  max-width:100%!important;
+  max-height:none!important;
+  aspect-ratio:1/2!important;
+  flex:0 0 auto!important;
+}
+body .app .hand .domino>.half{
+  width:100%!important;
+  height:30px!important;
+  max-height:none!important;
+  min-height:0!important;
+  flex:0 0 30px!important;
+}
+
+body.monoidTourActive .app .monoidTourHighlight{
+  background:#fff!important;
+  background-image:none!important;
+  color:#151515!important;
+  opacity:1!important;
+  filter:none!important;
+}
+body.monoidTourActive .app .railActions .btn.monoidTourHighlight small{color:#61615b!important}
+
+body .app .bottomBar .hint{
+  grid-column:1/-1!important;
+  grid-row:2!important;
+  min-height:13px!important;
+  height:13px!important;
+  margin:0!important;
+  overflow:hidden!important;
+  display:block!important;
+  text-align:center!important;
+  font-size:11px!important;
+  font-weight:400!important;
+  line-height:13px!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+  color:var(--muted)!important;
+  -webkit-line-clamp:unset!important;
+}
+
+body .gameMenu #helpButton{
+  width:100%!important;
+  min-height:48px!important;
+  padding:0!important;
+  border:0!important;
+  border-top:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:none!important;
+  color:inherit!important;
+  text-align:left!important;
+  font-size:16px!important;
+  font-weight:400!important;
+}
+body .gameMenu #helpButton[aria-hidden="true"]{display:none!important}
+
+@media(max-height:700px){
+  body .app{
+    padding-top:calc(5px + env(safe-area-inset-top))!important;
+    padding-bottom:calc(5px + env(safe-area-inset-bottom))!important;
+    grid-template-rows:44px 70px 24px minmax(0,1fr) auto!important;
+    gap:3px!important;
+  }
+  body .app .gameHeader{min-height:44px!important;height:44px!important}
+  body .app #menuButton.wordmark{
+    height:44px!important;
+    min-height:44px!important;
+    font-size:13px!important;
+  }
+  body .app .scoreCard{min-height:70px!important;padding:1px 0!important}
+  body .app .scoreValue{font-size:35px!important;margin:3px 0 0!important}
+  body .app .scoreCaption{font-size:11px!important}
+  body .app .metaStrip{min-height:24px!important;padding-bottom:2px!important}
+  body .app .bottomBar{
+    grid-template-columns:132px minmax(0,1fr)!important;
+    gap:3px 6px!important;
+  }
+  body .app .railActions{gap:4px!important}
+  body .app .railActions .btn{
+    min-height:44px!important;
+    height:44px!important;
+    font-size:11px!important;
+  }
+  body .app .railActions .btn small{font-size:9px!important;margin-top:2px!important}
+  body .app .handRail{height:86px!important;min-height:86px!important}
+  body .app .handHeader{height:14px!important;min-height:14px!important;flex-basis:14px!important}
+  body .app .handHeader .label{font-size:11px!important}
+  body .app .handSlot{height:68px!important;min-height:0!important;flex:1 1 0!important}
+  body .app .hand .domino{width:26px!important;height:52px!important}
+  body .app .hand .domino>.half{height:26px!important;flex-basis:26px!important}
+  body .app .bottomBar .hint{
+    height:11px!important;
+    min-height:11px!important;
+    line-height:11px!important;
+    font-size:11px!important;
+  }
+}

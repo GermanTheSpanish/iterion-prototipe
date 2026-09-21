@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUiExtrasInstalled)return;
   root.__monoidUiExtrasInstalled=true;
 
-  const BUILD_ID='20260921.4',MG=root.MonoidModGuidance;
+  const BUILD_ID='20260921.5',MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
@@ -95,7 +95,7 @@
     h1.dataset.monoidAnimated='true';h1.setAttribute('aria-label','MONOID');h1.innerHTML='MONOID'.split('').map(letter=>`<span class="titleLetter" aria-hidden="true">${letter}</span>`).join('')
   }
 
-  function tuneGameplayChrome(){const menu=$('menuButton');if(menu){menu.textContent='MENU';menu.setAttribute('aria-label','Open game menu')}}
+  function tuneGameplayChrome(){const menu=$('menuButton');if(menu){menu.textContent='MONOID';menu.setAttribute('aria-label','Open game menu')}}
 
   let tutorialHub=null,modifierDialog=null,modifierStep=0;
   const modifierSteps=[
