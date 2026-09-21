@@ -6,7 +6,7 @@
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
-  const V=window.IterionPresentation,gameMenu=$('gameMenu'),menuButton=$('menuButton');
+  const V=window.IterionPresentation,PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage}),gameMenu=$('gameMenu'),menuButton=$('menuButton');
   const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
@@ -26,19 +26,25 @@
   Object.defineProperty(window,'__monoidGame',{configurable:true,get:()=>GAME});
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
 
+  function playtestContext(){const x=GAME.snapshot();return{runId:GAME.state().runId,round:GAME.state().round+1,stage:x.stage.index}}
+  function bindPlaytestRun(){if(!PT||tutorial)return;PT.bindRun(playtestContext())}
+  function syncPlaytestContext(){if(!PT||tutorial)return;const c=playtestContext();PT.setContext(c.round,c.stage)}
+  function armDecisionTiming(){if(!PT||tutorial||entryState!=='game'||document.visibilityState==='hidden'||uiBusy)return;const s=GAME.state();if(!s.running&&!s.shopOpen&&!s.pendingCircuit&&!s.pendingModPlacement&&!s.cleared&&!s.blocked&&GAME.canInteract())PT.startDecision()}
+  function resumePlaytest(){if(!PT||tutorial||entryState!=='game'||document.visibilityState==='hidden')return;syncPlaytestContext();PT.resume();armDecisionTiming()}
+  function pausePlaytest(){PT?.pause()}
   function storedState(){try{return JSON.parse(localStorage.getItem('iterion.activeRun.v1')||'null')}catch(_){return null}}
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function persistGame(){if(tutorial)return GAME.snapshot();const snap=GAME.save();try{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(GAME.exportState()))}catch(_){}return snap}
-  function showGame(){entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render()}
+  function showGame(){entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render();if(!tutorial)resumePlaytest()}
   function showSelection(){
-    press?.cancel?.();if(gameMenu.open)gameMenu.close();hideOverlay();app.hidden=true;entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
+    pausePlaytest();press?.cancel?.();if(gameMenu.open)gameMenu.close();hideOverlay();app.hidden=true;entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
     const saved=storedState(),choiceMade=localStorage.getItem('iterion.tutorialChoice.v1')==='made';continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
   function startNormal(continueSaved=false){
     clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
     localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
-    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');persistGame();handFx.fill('normal');showGame()
+    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem('iterion.tutorialChoice.v1','made');persistGame();handFx.fill('normal');showGame()
   }
   const tutorialCopy=[
     'Place the double. Every machine opens with one.',
@@ -55,7 +61,7 @@
   }
   function updateTutorial(){if(!tutorial)return;tutorialStep.textContent=`LEARN MONOID · ${tutorial.step+1}/6`;tutorialInstruction.textContent=tutorialCopy[tutorial.step];tutorialPanel.hidden=false;renderHand();renderBoard()}
   function startTutorial(){
-    clearModFaceReveals();if(!tutorial)activeRun=GAME;tutorial={step:0,exitPending:false};GAME=window.IterionGame.createGame(E,{seed:3100,TARGETS:[1e9],STARTING_COINS:30});prepareTutorialHand('d2-2');H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');handFx.fill('normal');showGame();updateTutorial()
+    clearModFaceReveals();pausePlaytest();if(!tutorial)activeRun=GAME;tutorial={step:0,exitPending:false};GAME=window.IterionGame.createGame(E,{seed:3100,TARGETS:[1e9],STARTING_COINS:30});prepareTutorialHand('d2-2');H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');handFx.fill('normal');showGame();updateTutorial()
   }
   function leaveTutorial(completed=false){
     clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;GAME=activeRun||window.IterionGame.createGame(E);activeRun=null;H.bindRun(GAME.state().runId);showSelection();if(completed)toast('Tutorial complete')
@@ -142,10 +148,10 @@
   function resetOverlay(){overlay.className='overlay show';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
-  function newRun(){clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);persistGame();handFx.fill('normal');hideOverlay();render()}
+  function newRun(){pausePlaytest();clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame();handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
-  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render()}
-  function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render()}
+  function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
+  function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
   function openPermanentShop(){shopRevealTile=null;if(!GAME.openShop()){toast('Tile Shop unavailable');return}persistGame();render()}
   function openToolPurchase(id){
     if(!GAME.canBuyTool(id)){toast(`${M.get(id)?.name||'Tool'} purchase unavailable`);return}
@@ -212,15 +218,15 @@
 
   function advanceRound(){
     const before=GAME.snapshot().stage.index;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
-    persistGame();hideOverlay();handFx.fill('normal');render();const after=GAME.snapshot().stage.index;toast(after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
+    syncPlaytestContext();persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();const after=GAME.snapshot().stage.index;toast(after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
   }
-  function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}persistGame();hideOverlay();handFx.fill('normal');render();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
+  function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}syncPlaytestContext();if(GAME.state().shopOpen&&GAME.state().shopType==='market')PT?.openMarket({offers:[...GAME.state().shopOffers]});persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
   function showClear(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1];
     overlayTitle.textContent=complete?'RUN COMPLETE':endless?'ENDLESS ROUND CLEAR':'ROUND CLEAR';
     overlayBody.innerHTML=complete?`<p>Base run complete · Final Score ${fmt(s.score)} · Target ${fmt(GAME.target())}</p>${summaryHtml()}<p class="shopFoot">Continue with the same machine. Endless Targets scale ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round; the completed base run remains recorded.</p>`:`<p>Score ${fmt(s.score)} · Target ${fmt(GAME.target())}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
     if(complete){overlayPrimary.textContent='CONTINUE · ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
-    const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':endless?'NEXT ENDLESS ROUND':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){persistGame();render()}else toast('Unavailable')};
+    const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':endless?'NEXT ENDLESS ROUND':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){PT?.openMarket({offers:[...GAME.state().shopOffers]});persistGame();render()}else toast('Unavailable')};
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
   }
   function showShop(){
@@ -243,8 +249,8 @@
     for(const [id,ids] of Object.entries(x.tileMods||{}))for(const tileId of ids||[]){const tile=tileById(tileId);if(tile)assignments.push([labels[id]||id.toUpperCase(),tile])}
     const assignedHtml=assignments.length?`<div class="marketAssignments"><div class="marketChoiceTitle">INSTALLED</div><div class="marketTileList">${assignments.map(([label,tile])=>marketTileHtml(tile,label)).join('')}</div></div>`:'';
     overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Stage ${x.stage.index} complete</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}${x.endless?.active?` · System Strain ${strain}`:''}</div><div class="shopSupply">SUPPLY ${supply} · ${nextMarket}</div></div><div class="label">Next board<br>${nextSize[0]} × ${nextSize[1]}</div></div>${assignedHtml}<div class="marketChoiceTitle">CHOOSE ONE</div><div class="marketOfferGrid">${offers.length?offers.map(info=>{const mod=info.mod,noTarget=info.targetCount<1,assigned=info.assignedTileIds||[],relocate=info.id==='zero-port'?assigned.length===2:assigned.length>0,label=noTarget?'NO VALID TARGET':`${relocate?'RELOCATE':'BUY'} · ${info.price}c`,target=mod.target==='machine'?'Machine modifier':`${info.targetCount} compatible physical tile${info.targetCount===1?'':'s'}`;return `<section class="marketOffer" data-market-offer="${info.id}"><div class="marketOfferHead"><strong>${escapeHtml(mod.displayName||mod.name)}</strong><span>${info.price}c</span></div><p>${escapeHtml(mod.shortDescription||mod.description)}</p><div class="marketTarget ${noTarget?'invalid':''}">${escapeHtml(target)}</div><button class="shopBuy" data-market-mod="${info.id}" ${noTarget||s.coins<info.price?'disabled':''}>${label}</button></section>`}).join(''):'<p class="inspectEmpty">No valid Market mods for the current machine.</p>'}</div><div class="shopFoot">Buy one Mod or continue. Tile Mods close the Market, then you choose a highlighted physical tile on the board. Each physical tile can hold one Tile Mod. ZP uses one slot on each endpoint and links two zero tiles; once paired, a later ZP purchase relocates one endpoint. Every purchase raises global Inflation by 1.${x.endless?.active?' Endless System Strain also applies to Market prices.':''}</div></div>`;
-    overlayBody.querySelectorAll('[data-market-mod]').forEach(b=>{b.onclick=()=>{const id=b.dataset.marketMod,r=GAME.buyMarketMod(id),mod=M.get(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':r.reason==='no-target'?'No valid target':'Market choice locked');return}persistGame();if(r.pending)toast(r.stage==='source'?`${mod.displayName||mod.name} · CHOOSE PORT TO MOVE`:`${mod.displayName||mod.name} · CHOOSE A TILE`);else toast(`${mod.displayName||mod.name} installed`);render()}});
-    overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();persistGame();advanceRound()}
+    overlayBody.querySelectorAll('[data-market-mod]').forEach(b=>{b.onclick=()=>{const id=b.dataset.marketMod,r=GAME.buyMarketMod(id),mod=M.get(id);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':r.reason==='no-target'?'No valid target':'Market choice locked');return}if(!r.pending)PT?.closeMarket({outcome:`buy:${id}`});persistGame();if(r.pending)toast(r.stage==='source'?`${mod.displayName||mod.name} · CHOOSE PORT TO MOVE`:`${mod.displayName||mod.name} · CHOOSE A TILE`);else toast(`${mod.displayName||mod.name} installed`);render()}});
+    overlayPrimary.textContent=`CONTINUE TO STAGE ${nextStage}`;overlayPrimary.onclick=()=>{GAME.closeMarket();PT?.closeMarket({outcome:'continue'});persistGame();advanceRound()}
   }
 
   function showFailed(){
@@ -280,14 +286,14 @@
   async function endDrag(e){
     if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}
     const game=GAME,generationBefore=game.state().setGeneration||1,searchStarted=performance.now(),ctx=GAME.beginPlacement(i,c),searchMs=performance.now()-searchStarted;if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();return}
-    uiBusy=true;const drawAnim=animateDrawSlot(i);renderBoard();const camera=rootCamera(),animationStarted=performance.now();camera?.beginCascade(ctx.sim.events||[]);try{await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output)}finally{camera?.endCascade()}const animationMs=performance.now()-animationStarted,result=game.finishPlacement(ctx);recordPerformance(ctx.sim,searchMs,animationMs);persistGame();
+    if(!tutorial)PT?.recordDecision();uiBusy=true;const drawAnim=animateDrawSlot(i);renderBoard();const camera=rootCamera(),animationStarted=performance.now();camera?.beginCascade(ctx.sim.events||[]);try{await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output)}finally{camera?.endCascade()}const animationMs=performance.now()-animationStarted,result=game.finishPlacement(ctx);recordPerformance(ctx.sim,searchMs,animationMs);persistGame();
     const exitPending=!!tutorial?.exitPending;if(!exitPending)advanceTutorial(result);await drawAnim;uiBusy=false;
-    if(exitPending){leaveTutorial(false);return}if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay();render();
+    if(exitPending){leaveTutorial(false);return}if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay();render();if(!tutorial)armDecisionTiming();
     if(!tutorial&&result.autoRerolls)toast(`NO LEGAL MOVES · AUTO REROLL${result.autoRerolls>1?` ×${result.autoRerolls}`:''}`);else if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
   }
 
-  function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
-  function chooseMarketModTile(tileId){const pending=GAME.state().pendingModPlacement,mod=M.get(pending?.mod),r=GAME.chooseMarketModTile(tileId);if(!r.ok){toast(r.reason==='no-target'?'No compatible relocation target':'Invalid Mod target');return}press.cancel();persistGame();clearOutcomeDelay();render();if(r.pending)toast(`${mod?.displayName||r.mod} · CHOOSE NEW ZERO`);else toast(`${mod?.displayName||r.mod} → [${r.tile?.a}|${r.tile?.b}]`)}
+  function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();armDecisionTiming();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
+  function chooseMarketModTile(tileId){const pending=GAME.state().pendingModPlacement,mod=M.get(pending?.mod),r=GAME.chooseMarketModTile(tileId);if(!r.ok){toast(r.reason==='no-target'?'No compatible relocation target':'Invalid Mod target');return}if(!r.pending)PT?.closeMarket({outcome:`buy:${pending?.mod||r.mod}`});press.cancel();persistGame();clearOutcomeDelay();render();if(r.pending)toast(`${mod?.displayName||r.mod} · CHOOSE NEW ZERO`);else toast(`${mod?.displayName||r.mod} → [${r.tile?.a}|${r.tile?.b}]`)}
   const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId);else if(meta.kind==='mod-target')chooseMarketModTile(meta.tileId);else if(meta.kind==='board')revealModFace(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit'||meta.kind==='mod-target')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index)}});
   function handlePointerMove(e){press.move(e);if(drag.active)moveDrag(e)}
   async function handlePointerUp(e){press.end(e);if(drag.active)await endDrag(e)}
@@ -396,10 +402,11 @@
   async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}persistGame();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render();if(r.autoRerolls)toast(`NO LEGAL MOVES · AUTO REROLL${r.autoRerolls>1?` ×${r.autoRerolls}`:''}`)}
 
   function rootCamera(){return window.MonoidBoardCamera}
-  function recordPerformance(sim,searchMs,animationMs){const search=sim.search||{},events=(sim.events||[]).filter(event=>['op','signal-fork','rebound','double-echo-start'].includes(event.type)).length;performanceSamples.push({move:GAME.state().turn,searchMs:Math.round(searchMs),animationMs:Math.round(animationMs),eventsRendered:events,expanded:search.expanded||0,truncated:!!search.truncated,cameraScale:rootCamera()?.snapshot().scale||1});while(performanceSamples.length>12)performanceSamples.shift()}
+  function recordPerformance(sim,searchMs,animationMs){const search=sim.search||{},events=(sim.events||[]).filter(event=>['op','signal-fork','rebound','double-echo-start'].includes(event.type)).length;performanceSamples.push({move:GAME.state().turn,searchMs:Math.round(searchMs),animationMs:Math.round(animationMs),eventsRendered:events,expanded:search.expanded||0,truncated:!!search.truncated,cameraScale:rootCamera()?.snapshot().scale||1});if(!tutorial)PT?.recordCascade(animationMs);while(performanceSamples.length>12)performanceSamples.shift()}
   function performanceText(){if(!performanceSamples.length)return'PERFORMANCE TELEMETRY\nNo recorded placements this session.';return`PERFORMANCE TELEMETRY\n${performanceSamples.map(s=>`Move ${s.move}: search ${s.searchMs}ms · animation ${s.animationMs}ms · events ${s.eventsRendered} · expanded ${s.expanded}${s.truncated?' TRUNCATED':''} · zoom ${s.cameraScale.toFixed(2)}x`).join('\n')}`}
   Object.defineProperty(window,'__monoidPerformance',{configurable:true,get:()=>performanceSamples.map(sample=>({...sample}))});
-  function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${H.debugTelemetryText()}\n\n${performanceText()}`}
+  Object.defineProperty(window,'__monoidPlaytest',{configurable:true,get:()=>PT?.snapshot()||null});
+  function fullDebugText(){H.bindRun(GAME.state().runId);return`${GAME.debugText()}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${performanceText()}`}
   function renderLog(){
     runlog.innerHTML='';runlog.classList.toggle('show',viewRun);if(!viewRun)return;runlog.style.zIndex='610';
     const controls=document.createElement('div');Object.assign(controls.style,{position:'sticky',top:'0',display:'flex',justifyContent:'flex-end',gap:'4px',paddingBottom:'6px',background:'rgba(248,245,237,.98)',zIndex:'2'});
@@ -419,6 +426,7 @@
   menuButton.onclick=()=>{if(GAME.state().running||uiBusy||drag.active)return;press.cancel();gameMenu.showModal();menuButton.setAttribute('aria-expanded','true')};$('closeMenu').onclick=closeMenu;gameMenu.onclose=()=>menuButton.setAttribute('aria-expanded','false');gameMenu.onclick=e=>{if(e.target===gameMenu){const r=gameMenu.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeMenu()}};
   $('scoreDetail').onclick=()=>openScoreDetails('score');$('targetDetail').onclick=()=>openScoreDetails('target');
   overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','overlayTitle');
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')pausePlaytest();else resumePlaytest()});window.addEventListener('pagehide',pausePlaytest);
   document.addEventListener('keydown',e=>{if(!overlay.classList.contains('show'))return;if(e.key==='Escape'&&auxOverlay){e.preventDefault();closeAuxOverlay();return}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled),[tabindex="0"]')].filter(b=>b.getClientRects().length);if(!buttons.length)return;const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&(document.activeElement===first||!overlay.contains(document.activeElement))){e.preventDefault();last.focus()}else if(!e.shiftKey&&(document.activeElement===last||!overlay.contains(document.activeElement))){e.preventDefault();first.focus()}}});
   shopBtn.onclick=openPermanentShop;moveBtn.onclick=activateMove;rerollBtn.onclick=activateReroll;undoBtn.onclick=activateUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;closeMenu();newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=()=>{closeMenu();copyRun()};viewBtn.onclick=()=>{closeMenu();viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
   titleCard.onclick=e=>{e.preventDefault();e.stopPropagation();showSelection()};
