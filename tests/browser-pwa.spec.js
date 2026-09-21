@@ -61,6 +61,11 @@ test('modifier mini tutorial uses game domino language and a clean full-screen h
   await expect(dialog).toBeHidden()
 });
 
+test('modifier mini tutorial stays readable on compact phones and respects reduced motion',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await openTutorialHub(page);await page.locator('[data-tutorial="modifiers"]').click();
+  await expect(page.locator('#modifierTutorialDialog')).toBeVisible();const layout=await page.evaluate(()=>{const dialog=document.querySelector('#modifierTutorialDialog'),body=document.querySelector('.modifierTutorBody'),note=document.querySelector('.modifierTutorNote'),focus=document.querySelector('.modifierTutorTerminal .focus');return{scrolls:dialog.scrollHeight>dialog.clientHeight||dialog.scrollWidth>dialog.clientWidth,bodySize:parseFloat(getComputedStyle(body).fontSize),noteSize:parseFloat(getComputedStyle(note).fontSize),animation:getComputedStyle(focus).animationName}});expect(layout.scrolls).toBe(false);expect(layout.bodySize).toBeGreaterThanOrEqual(16);expect(layout.noteSize).toBeGreaterThanOrEqual(13);expect(layout.animation).toBe('none');
+});
+
 test('board-led mobile layout centers MONOID, exposes MENU and gives the board more room',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();

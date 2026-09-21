@@ -41,5 +41,5 @@ assert.match(controller,/game\.candidatesForIndex=function\(i\)\{if\(i!==0\)retu
 assert.doesNotMatch(controller,/return list\.filter\(c=>c\.x===/,'Basics must not force a hidden tutorial coordinate');
 assert.doesNotMatch(ux,/IterionGame\.createGame\s*=|IterionEngine\.bestSignal\s*=|game\.finishPlacement\s*=function|game\.openShop\s*=function|game\.candidatesForIndex\s*=function/,'UX presentation layer must not own tutorial gameplay patches');
 assert.match(guidance,/Build a right angle around one tile/);assert.match(guidance,/Its operation becomes ×3/);assert.doesNotMatch(extras,/selected route turns 90°|Straight routing streak|Turning resets the straight streak/);
-assert.match(extras,/NEXT · MODIFIERS/);assert.match(extras,/BUILD → REWARD/);assert.match(extras,/modifierTutorScene/);assert.match(extras,/modifierTutorTile/);
+assert.match(extras,/NEXT · MODIFIERS/);assert.match(extras,/BUILD → REWARD/);assert.match(extras,/modifierTutorScene/);assert.match(extras,/modifierTutorTile/);assert.match(extras,/ACTIVE ×3/);assert.match(extras,/modifierPortTravel/);assert.match(extras,/modifierRoutePulse/);assert.match(extras,/prefers-reduced-motion:reduce/);
 console.log('ux onboarding presentation regression OK');
