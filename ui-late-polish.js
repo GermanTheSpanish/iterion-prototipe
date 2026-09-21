@@ -6,35 +6,8 @@
 
   const BUILD_ID='20260921.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
-  const OFFER_COPY={
-    'double-double':'First activation each Move applies both halves; later passes are normal.',
-    'double-echo':'First activation each Move sends one non-recursive Echo down the chosen route.',
-    'zero-port':'Pair two zero tiles. A signal teleports between them instead of rebounding.',
-    'parity-exchange':'Odd values add and even values multiply on the chosen physical tile.',
-    'corner':'A 90° routed turn gives the chosen tile ×2 operation magnitude.',
-    'long-line':'Straight routing gives ×2 at 3–4 traversals and ×3 from 5.',
-    'overload':'Operation magnitude scales with physical neighbours, capped at ×4.',
-    'terminal':'Exactly one physical neighbour gives ×3 operation magnitude.',
-    'sequence':'Consecutive printed values give ×2 operation magnitude.',
-    'complement':'Printed values summing to 6 give ×2 operation magnitude.',
-    'twin':'Direct contact with an identical printed domino gives ×3 operation magnitude.',
-    'pair':'An exact parallel 2×2 domino block gives ×3 operation magnitude.',
-    'bridge':'A physical articulation point gives ×3 operation magnitude.',
-    'gate':'Exactly one physical neighbour on each half gives ×2.',
-    'fan':'Three neighbours around one half give ×4 operation magnitude.',
-    'frame':'Membership in a closed physical cycle gives ×2 operation magnitude.',
-    'crown':'Three exterior sides spanning both halves give ×4 operation magnitude.',
-    'frontier':'Two or more neighbours plus one clear long side give ×2.',
-    'relay':'Two distinct POWER neighbours give ×3 operation magnitude.',
-    'coupler':'At least one POWER neighbour gives ×2 operation magnitude.',
-    'resonator':'Circuit I–II gives ×2; Circuit III–V gives ×3 operation magnitude.',
-    'forge':'Star I–II gives ×2; Star III gives ×3 operation magnitude.',
-    'foundation':'Survive 1 Market for ×2; 3 Markets for ×3 operation magnitude.',
-    'knot':'Two or more distinct physical cycles give ×4 operation magnitude.',
-    'mirror':'Equal outward neighbour values at both ends give ×3 operation magnitude.',
-    'mint':'First qualifying activation each round pays +1 coin; Score is unchanged.',
-    'long-run':'10+ unique routed tiles: all activated Stars pay once.'
-  };
+  const OFFER_COPY={};
+
 
   const style=doc.createElement('style');
   style.id='monoid-late-polish';
