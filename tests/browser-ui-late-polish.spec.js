@@ -140,7 +140,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await expect(de.locator('.marketPoolGroup .marketContextLabel')).toHaveText('COMPATIBLE · 5');
   await expect(de.locator('.marketPoolGroup .marketTile')).toHaveCount(0);
   await expect(page.locator('[data-market-offer="long-run"] .marketMachineTag strong')).toHaveText('MACHINE');
-  await expect(page.locator('.shopFoot')).toContainText('choose a highlighted compatible tile on the board');
+  await expect(page.locator('.shopFoot')).toContainText('choose a highlighted compatible tile');await expect(page.locator('.shopFoot')).toContainText('BUILD, REWARD and live status');
 
   const buttonBoxes=await page.locator('.marketStructuredOffer .marketOfferAction .shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));
   expect(buttonBoxes.every(b=>Math.abs(b.w-112)<2&&b.h>=44)).toBe(true);
