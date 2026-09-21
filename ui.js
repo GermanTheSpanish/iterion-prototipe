@@ -39,7 +39,7 @@
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function persistGame(){if(tutorial)return GAME.snapshot();const snap=GAME.save();try{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(GAME.exportState()))}catch(_){}return snap}
   function lifecycleStatus(game=GAME){
-    const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.standardComplete)return'completed';if(s.blocked&&!recovery.recoverable)return'failed';return'abandoned'
+    const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.blocked&&!recovery.recoverable)return s.standardComplete?'completed':'failed';if(s.standardComplete&&!s.endlessMode&&s.cleared)return'completed';return'abandoned'
   }
   function exportStatus(game=GAME){
     const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.blocked&&!recovery.recoverable)return s.standardComplete?'completed':'failed';if(s.cleared&&s.standardComplete&&!s.endlessMode)return'completed';return'active'
