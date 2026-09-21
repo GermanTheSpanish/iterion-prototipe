@@ -8,7 +8,7 @@ const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 assert.match(data,/VERSION:'0\.42\.3'/);
 assert.match(data,/LONG_PRESS_MS:500/);
-assert.match(html,/id="helpButton"[^>]*>\?<\/button>/);
+assert.match(html,/id="helpButton"[^>]*>Rulebook<\/button>/);
 assert.match(html,/script src="help\.js(?:\?[^" ]+)?"/);assert.match(html,/script src="gesture\.js(?:\?[^" ]+)?"/);
 assert.match(ui,/window\.IterionHelp/);assert.match(ui,/window\.IterionGesture/);assert.match(ui,/H\.inspectTile\(GAME\.state\(\),tileId\)/);
 assert.match(help,/function tileRecord\(/);assert.match(help,/E\.applyOp\(value,isDouble,state,doubleDouble,powerMultiplier\)/);assert.doesNotMatch(ui,/E\.applyOp\(/);
