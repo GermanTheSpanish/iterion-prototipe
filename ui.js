@@ -380,11 +380,19 @@
     }
     d.style.left=selected.x+'px';d.style.top=selected.y+'px'
   }
+  function updateOperationRepeat(el,count){
+    count=Math.max(1,Math.floor(Number(count)||1));const tier=V.cascadeRepeatTier(count);el.dataset.repeat=String(count);el.classList.remove('cascadeRepeat2','cascadeRepeat3','cascadeRepeat5');if(tier>1)el.classList.add(`cascadeRepeat${tier}`);
+    let badge=el.querySelector('.cascadeRepeatBadge');if(count<=1){badge?.remove();return}
+    if(!badge){badge=document.createElement('b');badge.className='cascadeRepeatBadge';badge.setAttribute('aria-hidden','true');el.appendChild(badge)}
+    badge.textContent=`×${count}`;badge.classList.remove('cascadeRepeatBump');void badge.offsetWidth;badge.classList.add('cascadeRepeatBump')
+  }
   function showOperation(e,lastOp,lane,index){
-    const pp=pc(e.piece),cube=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,lane,index);if(!cube||e.value===0)return;
-    const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
-    d.className=`opfx signalValue cascadeActive cascadeRetained cascadeOperation ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;
-    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);placeCascadeLabel(d,cube,lane)
+    const half=V.operationHalf(e,lastOp),pp=pc(e.piece),cube=pp?.cubes.find(x=>x.half===half)||pp?.cubes[0];pulsePiece(pp,lane,index);if(!cube||e.value===0)return;
+    const kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add),displayOperation=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':''),repeatKey=V.cascadeOperationKey(laneId(lane),e.piece,half,displayOperation);
+    const existing=[...board.querySelectorAll('.cascadeOperation')].find(el=>el.dataset.repeatKey===repeatKey&&!el.classList.contains('cascadeToScore'));
+    if(existing){existing.dataset.output=e.after;const number=existing.querySelector('strong');if(number)number.textContent=compact(e.after);updateOperationRepeat(existing,(Number(existing.dataset.repeat)||1)+1);return existing}
+    const d=document.createElement('div');d.className=`opfx signalValue cascadeActive cascadeRetained cascadeOperation ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;d.dataset.half=half??'';d.dataset.repeatKey=repeatKey;
+    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=displayOperation;d.append(label,number,op);updateOperationRepeat(d,1);board.appendChild(d);placeCascadeLabel(d,cube,lane);return d
   }
   function showCascadeSubtotal(item){
     const pp=item.piece!=null?pc(item.piece):null,cube=pp?.cubes.find(x=>x.half===item.half)||pp?.cubes[0],d=document.createElement('div');
