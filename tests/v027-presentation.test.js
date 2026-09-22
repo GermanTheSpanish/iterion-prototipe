@@ -40,6 +40,11 @@ check('presentation separates Main and Echo events without losing selected neste
   for(const stream of [plan.main,plan.echo]){assert.equal(stream.filter(e=>e.type==='signal-fork').length,2);for(let i=0;i<stream.length;i++)if(stream[i].type==='signal-fork'){const block=V.forkBlock(stream,i);assert.equal(block.branches.length,2);assert.equal(block.join.output,block.branches.reduce((n,b)=>n+b.end.output,0))}}
   assert.equal(plan.result.finalOutput,r.output);
 });
+check('cascade repeat compression is spatially scoped and uses neutral density tiers',()=>{
+  const same=V.cascadeOperationKey('main.A',12,1,'+4'),otherPiece=V.cascadeOperationKey('main.A',13,1,'+4'),otherLane=V.cascadeOperationKey('main.B',12,1,'+4'),otherHalf=V.cascadeOperationKey('main.A',12,0,'+4'),otherOp=V.cascadeOperationKey('main.A',12,1,'×4');
+  assert.equal(same,V.cascadeOperationKey('main.A',12,1,'+4'));assert.notEqual(same,otherPiece);assert.notEqual(same,otherLane);assert.notEqual(same,otherHalf);assert.notEqual(same,otherOp);
+  assert.deepEqual([1,2,3,4,5,9].map(V.cascadeRepeatTier),[1,2,3,3,5,5]);
+});
 check('cascade settlement pacing keeps readable handoff time without changing arithmetic',()=>{
   assert.equal(V.CASCADE.subtotalHoldMs,360);assert.equal(V.CASCADE.settleItemMs,360);assert.equal(V.CASCADE.resonanceSettleMs,420);
 });
