@@ -407,9 +407,9 @@
     const resolved=Number(finalOutput);if(Number.isFinite(resolved)&&Math.abs(resolved-base)>tolerance){
       const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,GAME.target()).score;await wait(resonanceSettleMs)
     }
-    detail?.removeAttribute('aria-busy');note.textContent='Last move'
+    detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,GAME.target()).note
   }
-  function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span><small>REBOUND</small>';d.firstChild.style.transform=`rotate(${angle}deg)`;return d}
+  function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span><small>REBOUND</small>';d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
     let lastOp=null,index=startIndex,i=0;
     while(i<events.length){const e=events[i];
