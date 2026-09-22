@@ -9,10 +9,16 @@ telemetry.recordPlacement({turn:1,chosenOutput:90,bestLegalOutput:100,chosenVsBe
 telemetry.openMarket({offers:['foundation','knot','mint']});now+=3000;assert.equal(telemetry.closeMarket({outcome:'buy:knot'}),3000);
 telemetry.startDecision();now+=1000;telemetry.setContext(2,1);now+=4000;assert.equal(telemetry.recordDecision(),0,'decision timing must not leak across a round boundary');
 telemetry.startDecision();now+=2000;assert.equal(telemetry.recordDecision(),2000);telemetry.recordCascade(800);telemetry.pause();
-snap=telemetry.snapshot();assert.equal(snap.activePlayMs,15000);assert.equal(snap.decisionTotalMs,7000);assert.equal(snap.cascadeTotalMs,2000);assert.equal(snap.placements.length,1);assert(snap.rounds['2'].decisionMs<=snap.rounds['2'].activeMs,'round decision time cannot exceed active time');\nconst telemetryText=telemetry.text();assert.match(telemetryText,/clear=62\\.5%\\(5\\/8 exact\\)/);assert.match(telemetryText,/reentry=3\\/9/);assert.match(telemetryText,/zeroReturn=1/);assert.match(telemetryText,/deck=g2,remaining:17/);assert.match(telemetryText,/Zleaf:1/);
+snap=telemetry.snapshot();assert.equal(snap.activePlayMs,15000);assert.equal(snap.decisionTotalMs,7000);assert.equal(snap.cascadeTotalMs,2000);assert.equal(snap.placements.length,1);assert(snap.rounds['2'].decisionMs<=snap.rounds['2'].activeMs,'round decision time cannot exceed active time');
+const telemetryText=telemetry.text();
+assert.match(telemetryText,/clear=62\.5%\(5\/8 exact\)/);
+assert.match(telemetryText,/reentry=3\/9/);
+assert.match(telemetryText,/zeroReturn=1/);
+assert.match(telemetryText,/deck=g2,remaining:17/);
+assert.match(telemetryText,/Zleaf:1/);
 const finalized=telemetry.finalizeCurrent('abandoned',{reason:'new-run'});assert.equal(finalized.status,'abandoned');assert.equal(telemetry.batchInfo().runs.length,1);
 const same=T.create({storage:store,now:clock,randomUint32:()=>0});snap=same.bindRun({runId:'run-a',round:2,stage:1});assert.equal(snap.playerId,playerId);assert.equal(snap.runSequence,1);assert.equal(snap.sessions,2);
 const next=T.create({storage:store,now:clock,randomUint32:()=>0});snap=next.bindRun({runId:'run-b',round:1,stage:1});assert.equal(snap.playerId,playerId);assert.equal(snap.runSequence,2);assert.equal(snap.batchId,batchId);
 const text=next.text();assert.match(text,/PLAYTEST TELEMETRY/);assert.match(text,new RegExp(playerId));assert.match(text,/Placement decisions:/);
 const exportResult=next.markBatchExported({includedRunIds:['run-a','run-b']});assert.equal(exportResult.exported.batchId,batchId);assert.notEqual(exportResult.next.batchId,batchId);assert.equal(next.batchInfo().runs.length,0);assert.equal(next.snapshot().batchId,exportResult.next.batchId);
-console.log('Playtest batch, identity, decision and timing telemetry regressions passed');
+console.log('Playtest coverage, re-entry, deck, identity and timing telemetry regressions passed');
