@@ -15,11 +15,11 @@ const firstThree=Array.from({length:3},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a
 const firstSix=Array.from({length:6},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(firstSix>=3200,'rookie cadence must not accelerate away before the arithmetic is readable');
 const hundred=Array.from({length:100},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(hundred<9500,'long machines must still accelerate instead of becoming a slideshow');
 assert.deepEqual(V.progressState(500,1000),{stage:'target',progress:.5,next:'TARGET'});
-assert.equal(V.progressState(1000,1000).stage,'clear');assert.equal(V.progressState(3000,1000).stage,'star1');assert.equal(V.progressState(5000,1000).stage,'star2');assert.equal(V.progressState(10000,1000).stage,'star3');
+assert.deepEqual(V.progressState(1000,1000),{stage:'clear',progress:1,next:'×1 TARGET'});assert.deepEqual(V.progressState(3000,1000),{stage:'clear',progress:1,next:'×3 TARGET'});assert.deepEqual(V.progressState(5000,1000),{stage:'clear',progress:1,next:'×5 TARGET'});assert.deepEqual(V.progressState(10000,1000),{stage:'clear',progress:1,next:'×10 TARGET'});assert.deepEqual(V.progressState(1000000,1000),{stage:'overdrive',progress:1,next:'×1,000 TARGET'});
 assert.equal(V.brandDebugText('NOMON DEBUG v0.28.0\nRun ID: test-run\n'),'MONOID DEBUG v0.28.0\nRun ID: test-run\n');
 assert.equal(V.debugFilename('NOMON DEBUG v0.28.0\nRun ID: test-run\n'),'MONOID_DEBUG_v0.28.0_test-run.txt');
 assert.equal(V.debugFilename('MONOID PLAYTEST BATCH v1\nVersion: 0.42.4\nBatch ID: B-TEST123\n'),'MONOID_PLAYTEST_v0.42.4_B-TEST123.txt');
-console.log('UI compact numbers, progress tiers, MONOID branding and readable adaptive timing passed');
+console.log('UI compact numbers, target-relative progress, MONOID branding and readable adaptive timing passed');
 
 assert.equal(V.scoreDisplay(1253000000,1254000000).score,'1,253M');
 assert.equal(V.scoreDisplay(1253000000,1254000000).note,'1M to target');

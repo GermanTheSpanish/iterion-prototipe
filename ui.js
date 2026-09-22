@@ -198,7 +198,7 @@
   function ruleVisual(section){return section.visual?`<div class="ruleVisual">${escapeHtml(section.visual)}</div>`:''}
   function closeAuxOverlay(){auxOverlay=null;render();(returnFocus?.isConnected?returnFocus:helpBtn).focus();returnFocus=null}
   function openScoreDetails(kind){if(GAME.state().running||uiBusy||drag.active)return;returnFocus=document.activeElement;press.cancel();auxOverlay={type:'score',kind};renderAuxOverlay()}
-  function renderScoreDetails(){const s=GAME.state(),isTarget=auxOverlay.kind==='target',value=isTarget?GAME.target():s.score;overlayTitle.textContent=isTarget?'TARGET':'SCORE';overlayBody.innerHTML=`<div class="scoreExact">${escapeHtml(V.exact(value))}</div><p>${isTarget?'Reach or exceed this value to clear the round.':'Result of the last Move, including Echo and Circuit Resonance. It is not a running total.'}</p><p>K = thousand · M = million<br>B = billion · T = trillion</p>`;overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay}
+  function renderScoreDetails(){const s=GAME.state(),isTarget=auxOverlay.kind==='target',target=GAME.target(),value=isTarget?target:s.score,display=V.scoreDisplay(s.score,target),multiplier=!isTarget&&s.score>=target?`<p class="scoreMultiplierDetail${display.overdrive?' overdrive':''}">TARGET ×${escapeHtml(display.multiplier)}</p>`:'';overlayTitle.textContent=isTarget?'TARGET':'SCORE';overlayBody.innerHTML=`<div class="scoreExact${!isTarget&&display.overdrive?' overdrive':''}">${escapeHtml(V.exact(value))}</div>${multiplier}<p>${isTarget?'Reach or exceed this value to clear the round.':'Result of the last Move, including Echo and Circuit Resonance. It is not a running total.'}</p><p>K = thousand · M = million<br>B = billion · T = trillion</p>`;overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay}
   function renderToolPurchase(){
     const id=auxOverlay.id,m=M.get(id),qty=Math.max(1,auxOverlay.quantity||1),quote=GAME.toolPurchaseQuote(id,qty),next=GAME.toolPurchaseQuote(id,qty+1),name=(m?.displayName||m?.name||id).toUpperCase();
     overlayTitle.textContent=`BUY ${name}`;
@@ -261,9 +261,9 @@
   }
   function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}syncPlaytestContext();if(GAME.state().shopOpen&&GAME.state().shopType==='market')PT?.openMarket({offers:[...GAME.state().shopOffers]});persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
   function showClear(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1];
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1],target=GAME.target(),display=V.scoreDisplay(s.score,target),scoreHero=`<div class="roundClearScore${display.overdrive?' overdrive':''}"><small>SCORE</small><strong>${escapeHtml(fmt(s.score))}</strong><span>TARGET ×${escapeHtml(display.multiplier)}</span></div>`;
     overlayTitle.textContent=complete?'RUN COMPLETE':endless?'ENDLESS ROUND CLEAR':'ROUND CLEAR';
-    overlayBody.innerHTML=complete?`<p>Base run complete · Final Score ${fmt(s.score)} · Target ${fmt(GAME.target())}</p>${summaryHtml()}<p class="shopFoot">Continue with the same machine. Endless Targets scale ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round; the completed base run remains recorded.</p>`:`<p>Score ${fmt(s.score)} · Target ${fmt(GAME.target())}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
+    overlayBody.innerHTML=complete?`${scoreHero}<p>Base run complete · Target ${fmt(target)}</p>${summaryHtml()}<p class="shopFoot">Continue with the same machine. Endless Targets scale ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round; the completed base run remains recorded.</p>`:`${scoreHero}<p>Target ${fmt(target)}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
     if(complete){overlayPrimary.textContent='CONTINUE · ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
     const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':endless?'NEXT ENDLESS ROUND':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){PT?.openMarket({offers:[...GAME.state().shopOffers]});persistGame();render()}else toast('Unavailable')};
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
@@ -308,7 +308,7 @@
   }
 
   function render(){
-    const s=GAME.state(),x=GAME.snapshot(),view=V.hudViewModel(s,x,{target:GAME.target(),maxPlacements:GAME.maxPlacements(),totalRounds:D.TOTAL_ROUNDS,boardWidth:E.G,boardHeight:E.H,longChainCap:D.ENDLESS_LONG_RUN_ACTIVATIONS||7});document.body.dataset.stageRound=String(view.stageRoundIndex);document.body.classList.toggle('endlessPalette',view.endless);H.bindRun(s.runId);renderMachineModStatus(view.longChain);renderBoard();renderHand();scoreEl.textContent=view.score;targetEl.textContent=view.target;$('scoreNote').textContent=view.note;$('scoreDetail').setAttribute('aria-label',`Score ${view.scoreExact}. ${view.note}. Show exact value.`);$('targetDetail').setAttribute('aria-label',`Target ${view.targetExact}. Show exact value.`);stageEl.textContent=view.stage;roundEl.textContent=view.round;movesEl.textContent=view.moves;$('movesRemaining').textContent=view.movesRemaining;tilesEl.textContent=view.tilesLeft;coinEl.textContent=view.coins;stageRoundEl.textContent=view.stageRound;boardSizeEl.textContent=view.boardSize;
+    const s=GAME.state(),x=GAME.snapshot(),view=V.hudViewModel(s,x,{target:GAME.target(),maxPlacements:GAME.maxPlacements(),totalRounds:D.TOTAL_ROUNDS,boardWidth:E.G,boardHeight:E.H,longChainCap:D.ENDLESS_LONG_RUN_ACTIVATIONS||7});document.body.dataset.stageRound=String(view.stageRoundIndex);document.body.classList.toggle('endlessPalette',view.endless);H.bindRun(s.runId);renderMachineModStatus(view.longChain);renderBoard();renderHand();const scoreDetail=$('scoreDetail');scoreEl.textContent=view.score;targetEl.textContent=view.target;$('scoreNote').textContent=view.note;scoreDetail.classList.toggle('scoreOverdrive',!!view.scoreOverdrive);scoreDetail.dataset.scoreMode=view.scoreMode;scoreDetail.setAttribute('aria-label',`Score ${view.scoreExact}. ${view.scoreOverdrive?`${V.multiplierText(view.scoreRatio)} times target. `:''}${view.note}. Show exact value.`);$('targetDetail').setAttribute('aria-label',`Target ${view.targetExact}. Show exact value.`);stageEl.textContent=view.stage;roundEl.textContent=view.round;movesEl.textContent=view.moves;$('movesRemaining').textContent=view.movesRemaining;tilesEl.textContent=view.tilesLeft;coinEl.textContent=view.coins;stageRoundEl.textContent=view.stageRound;boardSizeEl.textContent=view.boardSize;
     shopBtn.innerHTML=`Shop<small>${compact(s.coins)} coins</small>`;shopBtn.disabled=!!tutorial||uiBusy||!GAME.canOpenShop();const canBuyMove=GAME.canBuyTool('move'),canBuyReroll=GAME.canBuyTool('reroll'),canBuyUndo=GAME.canBuyTool('undo');moveBtn.innerHTML=`${view.movesRemaining} MOVES<small>ADD +1 · ${s.consumables.move||0}</small>`;moveBtn.setAttribute('aria-label',`${view.movesRemaining} moves remaining. Add one move tool: ${s.consumables.move||0} owned.`);moveBtn.disabled=!!tutorial||uiBusy||!(GAME.canUseMove()||canBuyMove);const rerollLabel=s.freeReroll?`Reroll · FREE${s.consumables.reroll?` + ${s.consumables.reroll}`:''}`:`Reroll · ${s.consumables.reroll||'0 · BUY'}`;rerollBtn.innerHTML=`Reroll<small>${s.freeReroll?'FREE':s.consumables.reroll||0}</small>`;rerollBtn.setAttribute('aria-label',rerollLabel);rerollBtn.disabled=!!tutorial||uiBusy||!(GAME.canUseReroll()||canBuyReroll);undoBtn.innerHTML=`Undo<small>${s.consumables.undo||0}</small>`;undoBtn.setAttribute('aria-label',`Undo tools: ${s.consumables.undo||0}`);undoBtn.disabled=!!tutorial||uiBusy||!(GAME.canUndo()||canBuyUndo);menuButton.disabled=!!tutorial||s.running||uiBusy;$('leaveTutorial').disabled=!!tutorial&&(uiBusy||s.running);
     hint.textContent=view.hint;renderLog();
     const pendingCircuit=s.pendingCircuit,pendingMod=s.pendingModPlacement,pending=pendingCircuit||pendingMod;circuitChoice.hidden=!pending;if(pendingCircuit){hint.textContent='Choose one outlined tile to develop.';circuitChoice.textContent=`CIRCUIT CLOSED · ${pendingCircuit.size} TILES · +${pendingCircuit.reward} RANK${pendingCircuit.reward===1?'':'S'} · CHOOSE A TILE`}else if(pendingMod){const mod=M.get(pendingMod.mod),relocating=pendingMod.stage==='source';hint.textContent=relocating?'Choose which Zero Port endpoint to relocate.':'Choose one highlighted compatible tile.';circuitChoice.textContent=`${mod?.displayName||pendingMod.mod} · ${relocating?'CHOOSE PORT TO MOVE':'CHOOSE A TILE'}`}
@@ -352,9 +352,9 @@
     const kept=[...board.querySelectorAll('.cascadeRetained')];while(kept.length>V.CASCADE.retainedLabels)(kept.shift())?.remove()
   }
   function retainCascadeFx(d){if(!d)return d;d.classList.add('cascadeRetained');d.style.animationDuration='';trimCascadeHistory();return d}
-  function clearTransientFx(){board.querySelectorAll('.opfx:not(.cascadeRetained)').forEach(el=>el.remove())}
-  function fx(x,y,t,value=0,kind='add',index=0,lane='',retain=false){
-    const d=document.createElement('div'),duration=V.effectLifetime(index),size=kind.includes('signal')?14:Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.textContent=t;board.appendChild(d);
+  function clearTransientFx(){board.querySelectorAll('.operationFlash').forEach(el=>el.remove())}
+  function fx(x,y,t,value=0,kind='add',index=0,lane='',retain=false,durationOverride=null){
+    const d=document.createElement('div'),duration=Math.max(1,Number(durationOverride)||V.effectLifetime(index)),size=kind.includes('operationFlash')?13:kind.includes('signal')?14:Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.style.setProperty('--cascade-flash-ms',`${duration}ms`);d.style.setProperty('--cascade-structure-ms',`${duration}ms`);d.textContent=t;board.appendChild(d);
     if(kind.includes('signal'))fitBoardLabel(d);
     if(retain)return retainCascadeFx(d);
     while(board.querySelectorAll('.opfx:not(.signalValue):not(.cascadeRetained)').length>V.CASCADE.maxLabels)board.querySelector('.opfx:not(.signalValue):not(.cascadeRetained)')?.remove();setTimeout(()=>d.remove(),duration);return d
@@ -380,34 +380,15 @@
     }
     d.style.left=selected.x+'px';d.style.top=selected.y+'px'
   }
-  function updateOperationRepeat(el,count){
-    count=Math.max(1,Math.floor(Number(count)||1));const tier=V.cascadeRepeatTier(count);el.dataset.repeat=String(count);el.classList.remove('cascadeRepeat2','cascadeRepeat3','cascadeRepeat5');if(tier>1)el.classList.add(`cascadeRepeat${tier}`);
-    let badge=el.querySelector('.cascadeRepeatBadge');if(count<=1){badge?.remove();return}
-    if(!badge){badge=document.createElement('b');badge.className='cascadeRepeatBadge';badge.setAttribute('aria-hidden','true');el.appendChild(badge)}
-    badge.textContent=`×${count}`;badge.classList.remove('cascadeRepeatBump');void badge.offsetWidth;badge.classList.add('cascadeRepeatBump')
-  }
   function showOperation(e,lastOp,lane,index){
     const half=V.operationHalf(e,lastOp),pp=pc(e.piece),cube=pp?.cubes.find(x=>x.half===half)||pp?.cubes[0];pulsePiece(pp,lane,index);if(!cube||e.value===0)return;
-    const kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add),displayOperation=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':''),repeatKey=V.cascadeOperationKey(laneId(lane),e.piece,half,displayOperation);
-    const existing=[...board.querySelectorAll('.cascadeOperation')].find(el=>el.dataset.repeatKey===repeatKey&&!el.classList.contains('cascadeToScore'));
-    if(existing){existing.dataset.output=e.after;const number=existing.querySelector('strong');if(number)number.textContent=compact(e.after);updateOperationRepeat(existing,(Number(existing.dataset.repeat)||1)+1);return existing}
-    const d=document.createElement('div');d.className=`opfx signalValue cascadeActive cascadeRetained cascadeOperation ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;d.dataset.half=half??'';d.dataset.repeatKey=repeatKey;
-    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=displayOperation;d.append(label,number,op);updateOperationRepeat(d,1);board.appendChild(d);placeCascadeLabel(d,cube,lane);return d
+    const kind=e.op==='multiply'?'multiply':'add',operation=e.type==='echo-copy'?'COPY':(kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add))+(e.doubleDouble?' DD':'');
+    return fx(cube.x+1,cube.y+1,operation,e.after,`operationFlash ${kind}`,index,lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0',false,tutorial?280:V.CASCADE.operationFlashMs)
   }
   function showCascadeSubtotal(item){
     const pp=item.piece!=null?pc(item.piece):null,cube=pp?.cubes.find(x=>x.half===item.half)||pp?.cubes[0],d=document.createElement('div');
     d.className=`opfx cascadeSubtotal cascadeRetained${item.family==='echo'?' echoContribution':''}`;d.dataset.output=item.output;d.dataset.label=item.label;d.dataset.family=item.family;d.dataset.lane=item.family+(item.path?'.'+item.path:'');d.dataset.piece=item.piece??'';
     const label=document.createElement('small'),number=document.createElement('strong');label.textContent=item.label;number.textContent=compact(item.output);d.append(label,number);board.appendChild(d);placeCascadeLabel(d,cube,{family:item.family,path:item.path||''});return d
-  }
-  function contributionLane(item){return item.family+(item.path?'.'+item.path:'')}
-  function operationBelongsToContribution(el,item){
-    if(!el||!item||item.grouped||item.fallback||item.family==='other')return false;
-    const opLane=el.dataset.lane||'',itemLane=contributionLane(item);return opLane===itemLane||opLane.startsWith(itemLane+'.')||itemLane.startsWith(opLane+'.')
-  }
-  function operationsSettledWith(item,remainingItems=[]){
-    const ops=[...board.querySelectorAll('.cascadeOperation')];
-    if(item.grouped||item.fallback||item.family==='other')return ops.filter(el=>!remainingItems.some(next=>operationBelongsToContribution(el,next)));
-    return ops.filter(el=>operationBelongsToContribution(el,item)&&!remainingItems.some(next=>operationBelongsToContribution(el,next)))
   }
   async function settleCascadeScore(events,baseOutput,finalOutput,fallbackPiece){
     clearTransientFx();board.querySelectorAll('.cascadeSubtotal').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
@@ -417,31 +398,33 @@
     await wait(subtotalHoldMs);
     const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
     let running=0;
-    for(let i=0;i<cards.length;i++){
-      const {item,el}=cards[i],remaining=cards.slice(i+1).map(card=>card.item),ops=operationsSettledWith(item,remaining);
-      running+=Number(item.output)||0;el.classList.add('cascadeToScore');ops.forEach(op=>op.classList.add('cascadeToScore'));note.textContent=`${item.label} · +${compact(item.output)}`;
-      if(polish?.tweenScore)polish.tweenScore(running,settleItemMs);else scoreEl.textContent=compact(running);
-      await wait(settleItemMs);el.remove();ops.forEach(op=>op.remove())
+    for(const {item,el} of cards){
+      running+=Number(item.output)||0;el.classList.add('cascadeToScore');note.textContent=`${item.label} · +${compact(item.output)}`;
+      if(polish?.tweenScore)polish.tweenScore(running,settleItemMs);else scoreEl.textContent=V.scoreDisplay(running,GAME.target()).score;
+      await wait(settleItemMs);el.remove()
     }
-    board.querySelectorAll('.cascadeOperation').forEach(el=>el.remove());
-    const base=Number(baseOutput)||0,tolerance=Math.max(1,Math.abs(base))*1e-9;if(Math.abs(running-base)>tolerance){polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=compact(base);running=base}
+    const base=Number(baseOutput)||0,tolerance=Math.max(1,Math.abs(base))*1e-9;if(Math.abs(running-base)>tolerance){polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(base,GAME.target()).score;running=base}
     const resolved=Number(finalOutput);if(Number.isFinite(resolved)&&Math.abs(resolved-base)>tolerance){
-      const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=compact(resolved);await wait(resonanceSettleMs)
+      const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,GAME.target()).score;await wait(resonanceSettleMs)
     }
-    detail?.removeAttribute('aria-busy');note.textContent='Last move'
+    detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,GAME.target()).note
   }
-  function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'reboundFx',index,lane);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`;return d}
+  function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span><small>REBOUND</small>';d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
     let lastOp=null,index=startIndex,i=0;
     while(i<events.length){const e=events[i];
       if(e.type==='signal-fork'){
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
-        if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?'ECHO SPLIT':'SPLIT',0,'signal splitFx',index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(150,V.cascadeDelay(index)/2))}
+        if(pp){const splitLabel=e.splitKind==='triple-double'?'TRIPLE DOUBLE':e.splitKind==='zero-port'?'ZERO PORT':'SPLIT';fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?`ECHO ${splitLabel}`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await wait(Math.max(150,V.cascadeDelay(index)/2))}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
-        if(pp){const d=fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,`JOIN · ${compact(block.join.output)}`,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');d.dataset.family=lane.family;d.dataset.output=block.join.output;await wait(Math.max(220,V.cascadeDelay(index+1)))}
+        if(pp){const d=fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'JOIN',0,'signal cascadeStructural joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);d.dataset.family=lane.family;d.dataset.output=block.join.output;await wait(Math.max(220,V.cascadeDelay(index+1)))}
         i=block.next;index+=2;continue
       }
       if(e.type==='op'){lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await wait(V.cascadeDelay(index));index++;i++;continue}
+      if(e.type==='zero-port'){
+        const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===e.fromHalf)||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
+        if(c){fx(c.x+1,c.y+1,'ZERO PORT',0,'signal cascadeStructural zeroPortFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await wait(Math.max(140,V.cascadeDelay(index)/2))}i++;continue
+      }
       if(e.type==='rebound'){
         const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
         if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle,index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(160,V.cascadeDelay(index)))}i++;continue
@@ -451,9 +434,9 @@
     return index
   }
   async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
-    renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger);await wait(V.cascadeDelay(0));
+    renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger,'operationFlash add',0,'',false,tutorial?320:V.CASCADE.operationFlashMs);await wait(V.cascadeDelay(0));
     const plan=V.signalPlan(sim.events||[]);let echoTask=null;
-    const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal echoStart',index,'echoLane');echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await wait(V.cascadeDelay(index));return animateSequence(plan.echo,lane,index+1)})()};
+    const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal cascadeStructural echoStart',index,'echoLane',false,V.CASCADE.structuralFxMs);echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await wait(V.cascadeDelay(index));return animateSequence(plan.echo,lane,index+1)})()};
     await animateSequence(plan.main,{family:'main',path:''},0,startEcho);if(echoTask)await echoTask;
     await settleCascadeScore(sim.events||[],sim.output??trigger,finalOutput,p.id)
   }
