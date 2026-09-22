@@ -231,8 +231,42 @@ function createGame(E,opts={}){
   function topologyTelemetry(pieces=s.pieces){
     const graph=C.adjacency(pieces,E.contactBetweenPieces),degrees=[...graph.values()].map(set=>set.size),seen=new Set();let components=0;
     for(const id of graph.keys())if(!seen.has(id)){components++;const queue=[id];seen.add(id);for(let i=0;i<queue.length;i++)for(const next of graph.get(queue[i])||[])if(!seen.has(next)){seen.add(next);queue.push(next)}}
-    const edges=degrees.reduce((sum,n)=>sum+n,0)/2,degreeFor=p=>graph.get(p.tile.id)?.size||0;
-    return{machineSize:pieces.length,edgeCount:edges,components,cycleRank:Math.max(0,edges-pieces.length+components),doubleCount:pieces.filter(p=>p.tile.a===p.tile.b).length,zeroCount:pieces.filter(p=>p.tile.a===0||p.tile.b===0).length,tJunctionCount:degrees.filter(n=>n===3).length,crossCount:degrees.filter(n=>n>=4).length,maxDegree:degrees.length?Math.max(...degrees):0,branchingDoubleCount:pieces.filter(p=>p.tile.a===p.tile.b&&degreeFor(p)>=3).length,powerTileCount:pieces.filter(p=>(p.tile.powerMultiplier||1)>1).length,modTileCount:pieces.filter(p=>tileModIdsForTile(p.tile.id).length>0).length,circuitCount:(s.circuitSignatures||[]).length,circuitTileCount:Object.values(s.circuitRanks||{}).filter(rank=>Number(rank)>0).length}
+    const edges=degrees.reduce((sum,n)=>sum+n,0)/2,degreeFor=p=>graph.get(p.tile.id)?.size||0,zeroPieces=pieces.filter(p=>p.tile.a===0||p.tile.b===0);
+    return{machineSize:pieces.length,edgeCount:edges,components,cycleRank:Math.max(0,edges-pieces.length+components),doubleCount:pieces.filter(p=>p.tile.a===p.tile.b).length,zeroCount:zeroPieces.length,zeroLeafCount:zeroPieces.filter(p=>degreeFor(p)<=1).length,zeroInternalCount:zeroPieces.filter(p=>degreeFor(p)>=2).length,zeroBranchCount:zeroPieces.filter(p=>degreeFor(p)>=3).length,tJunctionCount:degrees.filter(n=>n===3).length,crossCount:degrees.filter(n=>n>=4).length,maxDegree:degrees.length?Math.max(...degrees):0,branchingDoubleCount:pieces.filter(p=>p.tile.a===p.tile.b&&degreeFor(p)>=3).length,powerTileCount:pieces.filter(p=>(p.tile.powerMultiplier||1)>1).length,modTileCount:pieces.filter(p=>tileModIdsForTile(p.tile.id).length>0).length,circuitCount:(s.circuitSignatures||[]).length,circuitTileCount:Object.values(s.circuitRanks||{}).filter(rank=>Number(rank)>0).length}
+  }
+
+  function deckTelemetry(){
+    const generation=s.setGeneration||1;
+    return{generation,powerMultiplier:generationPower(generation),remainingTiles:availableTileCount(),reserveCount:(s.reserve||[]).length,handCount:(s.hand||[]).filter(Boolean).length,currentGenerationMachineCount:(s.pieces||[]).filter(p=>(p.tile.generation||1)===generation).length}
+  }
+
+  function signalTelemetry(sim,pieces=s.pieces){
+    const events=sim?.events||[],ops=events.filter(e=>e.type==='op'),visits=new Map();
+    for(const e of ops)if(e.piece!=null)visits.set(e.piece,(visits.get(e.piece)||0)+1);
+    const uniqueVisitedPieceCount=visits.size,reentryOperationCount=[...visits.values()].reduce((sum,n)=>sum+Math.max(0,n-1),0),revisitedPieceCount=[...visits.values()].filter(n=>n>1).length;
+    const reboundCount=events.filter(e=>e.type==='rebound').length,zeroPortCount=events.filter(e=>e.type==='zero-port').length;
+    return{operationCount:ops.length,uniqueVisitedPieceCount,reentryOperationCount,revisitedPieceCount,revisitRatio:ops.length?reentryOperationCount/ops.length:0,visitedMachineFraction:pieces.length?uniqueVisitedPieceCount/pieces.length:0,retraceMoveCount:events.filter(e=>e.type==='move'&&e.retrace).length,reverseOperationCount:ops.filter(e=>e.reverse).length,reboundCount,zeroPortCount,zeroReturnCount:reboundCount+zeroPortCount,forkCount:events.filter(e=>e.type==='signal-fork').length,powerActivationCount:ops.filter(e=>(e.powerMultiplier||1)>1).length,modActivationCount:ops.filter(e=>(e.modMultiplier||1)>1).length}
+  }
+
+  function spreadEntries(entries){
+    const out=[],queue=entries.length?[[0,entries.length]]:[];
+    while(queue.length){const [lo,hi]=queue.shift();if(lo>=hi)continue;const mid=Math.floor((lo+hi-1)/2);out.push(entries[mid]);if(lo<mid)queue.push([lo,mid]);if(mid+1<hi)queue.push([mid+1,hi])}
+    return out
+  }
+
+  function stratifiedLegalEntries(legal,same,chosenIndex){
+    const groups=new Map();
+    for(const entry of legal){if(same(entry))continue;if(!groups.has(entry.handIndex))groups.set(entry.handIndex,[]);groups.get(entry.handIndex).push(entry)}
+    let hands=[...groups.keys()].sort((a,b)=>a-b);if(hands.length){const pivot=hands.findIndex(i=>i>chosenIndex),at=pivot>=0?pivot:0;hands=[...hands.slice(at),...hands.slice(0,at)]}
+    const spread=new Map(hands.map(i=>[i,spreadEntries(groups.get(i)||[])])),out=[];let depth=0,added=true;
+    while(added){added=false;for(const i of hands){const entry=spread.get(i)?.[depth];if(entry){out.push(entry);added=true}}depth++}
+    return out
+  }
+
+  function outputDistribution(values){
+    const sorted=(values||[]).filter(Number.isFinite).sort((a,b)=>a-b);if(!sorted.length)return null;
+    const at=q=>sorted[Math.min(sorted.length-1,Math.max(0,Math.ceil(q*sorted.length)-1))];
+    return{min:sorted[0],median:at(.5),p90:at(.9),max:sorted[sorted.length-1]}
   }
 
   function previewPlacement(i,c){
@@ -248,20 +282,23 @@ function createGame(E,opts={}){
   }
 
   function decisionTelemetry(chosenIndex,chosenCandidate,options={}){
-    const maxEvaluations=Math.max(1,Number(options.maxEvaluations)||48),timeBudgetMs=Math.max(0,options.timeBudgetMs==null?32:Number(options.timeBudgetMs)),clock=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now(),started=clock(),topologyBefore=topologyTelemetry(),legal=[];
+    const maxEvaluations=Math.max(1,Number(options.maxEvaluations)||48),timeBudgetMs=Math.max(0,options.timeBudgetMs==null?32:Number(options.timeBudgetMs)),clock=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now(),started=clock(),topologyBefore=topologyTelemetry(),deckBefore=deckTelemetry(),coverageTarget=target(),legal=[];
     for(let i=0;i<s.hand.length;i++)for(const c of candidatesForIndex(i))legal.push({handIndex:i,candidate:c});
     const chosenTile=s.hand[chosenIndex],chosenPlacement=chosenTile&&chosenCandidate?{tileId:chosenTile.id,handIndex:chosenIndex,x:chosenCandidate.x,y:chosenCandidate.y,z:0,rr:chosenCandidate.rr}:null;
-    if(!chosenPlacement)return{evaluationComplete:false,skippedReason:'chosen-placement',legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationMs:clock()-started,topologyBefore};
+    if(!chosenPlacement)return{evaluationComplete:false,skippedReason:'chosen-placement',legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationMs:clock()-started,topologyBefore,deckBefore,coverageTarget,clearCoverageSampleCount:0,clearCoverageClearCount:0,clearCoverage:null,clearCoverageComplete:false,coverageIncludesChosen:false,outputDistribution:null};
     const same=entry=>entry.handIndex===chosenIndex&&entry.candidate.x===chosenCandidate.x&&entry.candidate.y===chosenCandidate.y&&entry.candidate.rr===chosenCandidate.rr;
     if(!s.pieces.length){
-      let best=null,logical=0;for(let i=0;i<s.hand.length;i++){const candidates=candidatesForIndex(i),tile=s.hand[i];if(!tile||!candidates.length)continue;logical++;const output=tile.a+tile.b;if(!best||output>best.output)best={output,placement:{tileId:tile.id,handIndex:i,x:candidates[0].x,y:candidates[0].y,z:0,rr:candidates[0].rr}}}
-      return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:best?.output??null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationComplete:true,evaluationStrategy:'root-equivalent',skippedReason:null,evaluationMs:clock()-started,bestPlacement:best?.placement||chosenPlacement,bestEvaluatedPlacement:best?.placement||chosenPlacement,chosenPlacement,topologyBefore}
+      let best=null;const outputs=[];
+      for(const entry of legal){const tile=s.hand[entry.handIndex],output=tile.a+tile.b;outputs.push(output);if(!best||output>best.output)best={output,placement:{tileId:tile.id,handIndex:entry.handIndex,x:entry.candidate.x,y:entry.candidate.y,z:0,rr:entry.candidate.rr}}}
+      const clearCount=outputs.filter(output=>output>=coverageTarget).length;
+      return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:best?.output??null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationComplete:true,evaluationStrategy:'root-equivalent',skippedReason:null,evaluationMs:clock()-started,bestPlacement:best?.placement||chosenPlacement,bestEvaluatedPlacement:best?.placement||chosenPlacement,chosenPlacement,topologyBefore,deckBefore,coverageTarget,clearCoverageSampleCount:outputs.length,clearCoverageClearCount:clearCount,clearCoverage:outputs.length?clearCount/outputs.length:null,clearCoverageComplete:true,coverageIncludesChosen:true,outputDistribution:outputDistribution(outputs)}
     }
-    let evaluated=0,best=null,complete=true,stopReason=null;
-    const consider=preview=>{if(!preview?.ok)return;evaluated++;if(!best||preview.output>best.output)best=preview};
-    for(const entry of legal){if(same(entry))continue;if(evaluated>=maxEvaluations){complete=false;stopReason='placement-cap';break}if(clock()-started>=timeBudgetMs){complete=false;stopReason='time-budget';break}consider(previewPlacement(entry.handIndex,entry.candidate))}
-    if(evaluated<Math.max(0,legal.length-1)&&!stopReason){complete=false;stopReason='evaluation-incomplete'}
-    return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:evaluated,evaluationComplete:complete,evaluationStrategy:'alternatives',skippedReason:complete?null:stopReason,evaluationMs:clock()-started,bestPlacement:null,bestEvaluatedPlacement:best?{tileId:best.tile.id,handIndex:best.handIndex,...best.placement}:null,chosenPlacement,topologyBefore}
+    let evaluated=0,best=null,stopReason=null;const coverageSampleOutputs=[],ordered=stratifiedLegalEntries(legal,same,chosenIndex);
+    const consider=preview=>{if(!preview?.ok)return;evaluated++;coverageSampleOutputs.push(preview.output);if(!best||preview.output>best.output)best=preview};
+    for(const entry of ordered){if(evaluated>=maxEvaluations){stopReason='placement-cap';break}if(clock()-started>=timeBudgetMs){stopReason='time-budget';break}consider(previewPlacement(entry.handIndex,entry.candidate))}
+    const complete=evaluated>=Math.max(0,legal.length-1);if(!complete&&!stopReason)stopReason='evaluation-incomplete';
+    const clearCount=coverageSampleOutputs.filter(output=>output>=coverageTarget).length;
+    return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:evaluated,evaluationComplete:complete,evaluationStrategy:complete?'exhaustive':'stratified-sample',skippedReason:complete?null:stopReason,evaluationMs:clock()-started,bestPlacement:null,bestEvaluatedPlacement:best?{tileId:best.tile.id,handIndex:best.handIndex,...best.placement}:null,chosenPlacement,topologyBefore,deckBefore,coverageTarget,clearCoverageSampleCount:evaluated,clearCoverageClearCount:clearCount,clearCoverage:evaluated?clearCount/evaluated:null,clearCoverageComplete:false,coverageIncludesChosen:false,outputDistribution:outputDistribution(coverageSampleOutputs),coverageSampleOutputs}
   }
   function captureUndoFrame(){
     const old=s.undoFrame;s.undoFrame=null;const frame=deepClone(s);s.undoFrame=old;return frame
@@ -726,7 +763,7 @@ function createGame(E,opts={}){
     s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,previewPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,previewPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
