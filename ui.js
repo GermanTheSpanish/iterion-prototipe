@@ -388,7 +388,7 @@
   }
   function showCascadeSubtotal(item){
     const pp=item.piece!=null?pc(item.piece):null,cube=pp?.cubes.find(x=>x.half===item.half)||pp?.cubes[0],d=document.createElement('div');
-    d.className=`opfx cascadeSubtotal cascadeRetained${item.family==='echo'?' echoContribution':''}`;d.dataset.output=item.output;d.dataset.label=item.label;d.dataset.piece=item.piece??'';
+    d.className=`opfx cascadeSubtotal cascadeRetained${item.family==='echo'?' echoContribution':''}`;d.dataset.output=item.output;d.dataset.label=item.label;d.dataset.family=item.family;d.dataset.lane=item.family+(item.path?'.'+item.path:'');d.dataset.piece=item.piece??'';
     const label=document.createElement('small'),number=document.createElement('strong');label.textContent=item.label;number.textContent=compact(item.output);d.append(label,number);board.appendChild(d);placeCascadeLabel(d,cube,{family:item.family,path:item.path||''});return d
   }
   async function settleCascadeScore(events,baseOutput,finalOutput,fallbackPiece){
@@ -417,7 +417,7 @@
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}clearLane(lane);
         if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?'ECHO SPLIT':'SPLIT',0,'signal splitFx',index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(150,V.cascadeDelay(index)/2))}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
-        if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,`JOIN · ${compact(block.join.output)}`,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(220,V.cascadeDelay(index+1)))}
+        if(pp){const d=fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,`JOIN · ${compact(block.join.output)}`,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');d.dataset.family=lane.family;d.dataset.output=block.join.output;await wait(Math.max(220,V.cascadeDelay(index+1)))}
         i=block.next;index+=2;continue
       }
       if(e.type==='op'){lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await wait(V.cascadeDelay(index));index++;i++;continue}
