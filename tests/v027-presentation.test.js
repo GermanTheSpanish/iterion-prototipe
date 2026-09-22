@@ -41,9 +41,9 @@ check('presentation separates Main and Echo events without losing selected neste
   assert.equal(plan.result.finalOutput,r.output);
 });
 check('Score stays absolute near Target and becomes a red-eligible Target multiplier at 1000x',()=>{
-  assert.deepEqual(V.scoreDisplay(95,100),{score:'95',target:'100',note:'5 to target',ratio:.95,overdrive:false,mode:'absolute'});
-  assert.equal(V.scoreDisplay(100,100).score,'100');assert.equal(V.scoreDisplay(250,100).note,'×2.5 target');
-  const over=V.scoreDisplay(100000,100);assert.equal(over.score,'×1,000');assert.equal(over.note,'TARGET MULTIPLIER');assert.equal(over.ratio,1000);assert.equal(over.overdrive,true);assert.equal(over.mode,'multiplier');
+  assert.deepEqual(V.scoreDisplay(95,100),{score:'95',target:'100',note:'5 to target',ratio:.95,multiplier:'0.95',overdrive:false,mode:'absolute'});
+  assert.equal(V.scoreDisplay(100,100).score,'100');assert.equal(V.scoreDisplay(250,100).note,'×2.5 target');assert.equal(V.multiplierText(2.5),'2.5');
+  const over=V.scoreDisplay(100000,100);assert.equal(over.score,'×1,000');assert.equal(over.note,'TARGET MULTIPLIER');assert.equal(over.ratio,1000);assert.equal(over.multiplier,'1,000');assert.equal(over.overdrive,true);assert.equal(over.mode,'multiplier');
   assert.deepEqual(V.progressState(50,100),{stage:'target',progress:.5,next:'TARGET'});
   assert.deepEqual(V.progressState(250,100),{stage:'clear',progress:1,next:'×2.5 TARGET'});
   assert.deepEqual(V.progressState(100000,100),{stage:'overdrive',progress:1,next:'×1,000 TARGET'});
