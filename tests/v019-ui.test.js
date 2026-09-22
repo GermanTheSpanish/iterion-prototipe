@@ -14,6 +14,9 @@ assert.match(ui,/V\.effectLifetime\(index\)/);
 assert.match(ui,/V\.CASCADE\.settleItemMs/);
 assert.match(ui,/V\.cascadeSettlementPlan/);
 assert.match(ui,/async function settleCascadeScore/);
+assert.match(ui,/cascadeRetained cascadeOperation/,'Arithmetic operations must persist as cascade memory until settlement');
+assert.match(ui,/function operationsSettledWith\(/,'Score settlement must decide which retained operations disappear with each subtotal');
+assert.match(ui,/ops\.forEach\(op=>op\.classList\.add\('cascadeToScore'\)\)/,'Operations must fade when their contribution enters Score');
 assert.doesNotMatch(ui,/function finalFx\(/,'Central final-number renderer must stay removed');
 assert.match(ui,/game\.finishPlacement\(ctx\);window\.NomonUiPolish\?\.snapScore\?\.\(game\.state\(\)\.score\)/,'Transient Score animation must hand back to authoritative game state after placement');
 assert.match(ui,/reboundArrow/);
@@ -29,5 +32,7 @@ assert.match(html,/background:transparent;color:rgba\(21,21,21,\.68\);font:900 8
 assert.match(html,/<div class="boardTop">[^\n]*id="machineModStatus"/,'Long Chain status belongs above the board, not in the header');
 assert.doesNotMatch(ui,/board\.style\.backgroundColor='#fff'/,'Board colour must remain theme-controlled in Endless');
 assert.match(html,/animation:pop 1\.2s forwards/);
+assert.match(html,/@keyframes dealIn\{[^}]*transform:scale\(\.88\)/,'Hand reveal must scale uniformly so dominoes never deform');
+assert.doesNotMatch(html,/@keyframes dealIn\{[^\n]*scaleY/,'Hand reveal must never stretch the domino on one axis');
 assert.doesNotMatch(html,/\.finalfx\{/,'Unused central final-number styling must stay removed');
 console.log('retained v0.19 UI regression tests passed');

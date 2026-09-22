@@ -18,7 +18,7 @@ assert(v2.includes('width:min(100cqw,75cqh)!important'),'V2 board must use the a
 assert(v2.includes('height:min(100cqh,133.333333cqw)!important'),'V2 board must preserve 3:4 geometry while filling its viewport');
 assert(v2.includes('grid-template-columns:1fr 1fr!important'),'V2 tools must use the approved 2x2 control cluster');
 assert(v2.includes('flex-direction:row!important'),'V2 Hand must be horizontal');
-assert(v2.includes('width:30px!important;')&&v2.includes('height:60px!important;'),'V2 Hand dominoes must keep the physical 1:2 ratio');
+assert(v2.includes('aspect-ratio:1/2!important')&&v2.includes('height:auto!important')&&v2.includes('box-sizing:border-box!important')&&v2.includes('height:50%!important')&&v2.includes('flex:1 1 50%!important'),'V2 Hand dominoes must keep a rigid physical 1:2 ratio even under horizontal compression');
 assert(v2.includes('min-height:44px!important'),'compact V2 must preserve minimum mobile touch targets');
 assert(v2.includes('#menuButton.wordmark'),'MONOID wordmark must be the interactive menu control');
 assert(runtime.includes("menu.textContent!=='MONOID'"),'runtime sync must preserve MONOID as the menu label');
