@@ -15,6 +15,7 @@ assert.match(ui,/V\.CASCADE\.settleItemMs/);
 assert.match(ui,/V\.cascadeSettlementPlan/);
 assert.match(ui,/async function settleCascadeScore/);
 assert.doesNotMatch(ui,/function finalFx\(/,'Central final-number renderer must stay removed');
+assert.match(ui,/game\.finishPlacement\(ctx\);window\.NomonUiPolish\?\.snapScore\?\.\(game\.state\(\)\.score\)/,'Transient Score animation must hand back to authoritative game state after placement');
 assert.match(ui,/reboundArrow/);
 assert.match(ui,/Math\.atan2\(entry\.y-exit\.y,entry\.x-exit\.x\)/);
 assert.doesNotMatch(html,/reboundGlyph/);
