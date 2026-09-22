@@ -352,7 +352,7 @@
     const kept=[...board.querySelectorAll('.cascadeRetained')];while(kept.length>V.CASCADE.retainedLabels)(kept.shift())?.remove()
   }
   function retainCascadeFx(d){if(!d)return d;d.classList.add('cascadeRetained');d.style.animationDuration='';trimCascadeHistory();return d}
-  function clearTransientFx(){board.querySelectorAll('.opfx:not(.cascadeRetained)').forEach(el=>el.remove())}
+  function clearTransientFx(){board.querySelectorAll('.operationFlash').forEach(el=>el.remove())}
   function fx(x,y,t,value=0,kind='add',index=0,lane='',retain=false,durationOverride=null){
     const d=document.createElement('div'),duration=Math.max(1,Number(durationOverride)||V.effectLifetime(index)),size=kind.includes('operationFlash')?13:kind.includes('signal')?14:Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.style.setProperty('--cascade-flash-ms',`${duration}ms`);d.style.setProperty('--cascade-structure-ms',`${duration}ms`);d.textContent=t;board.appendChild(d);
     if(kind.includes('signal'))fitBoardLabel(d);
