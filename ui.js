@@ -367,57 +367,57 @@
   }
   function laneId(lane){return lane.family+(lane.path?'.'+lane.path:'')}
   function laneLabel(lane){return(lane.family==='echo'?'ECHO':'MAIN')+(lane.path?' '+lane.path:'')}
-  function significantOperation(e){
-    if(!e||e.type==='echo-copy'||e.value===0)return false;
-    if(Number(e.modMultiplier)>1||Number(e.powerMultiplier)>1||e.doubleDouble)return true;
-    if(e.op==='multiply')return Math.abs(Number(e.factor)||0)>=3;
-    if(e.op==='add')return Math.abs(Number(e.add)||0)>=10;
-    return false
-  }
-  function settleSignalValue(el){
-    if(!el||!el.isConnected)return;
-    if(el.dataset.keep==='1'){el.classList.remove('cascadeActive');el.classList.add('cascadeRetained');trimCascadeHistory()}
-    else el.remove()
-  }
+  function settleSignalValue(el){if(el?.isConnected)el.remove()}
   function clearLane(lane){board.querySelectorAll('.signalValue:not(.cascadeRetained)').forEach(el=>{if(el.dataset.lane===laneId(lane))settleSignalValue(el)})}
-  function showOperation(e,lastOp,lane,index){
-    const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,lane,index);if(!c||e.value===0)return;
-    clearLane(lane);const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
-    d.className=`opfx signalValue cascadeActive ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;d.dataset.keep=significantOperation(e)?'1':'0';
-    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);
-    // One readable live number per signal. Prefer the physical activation point,
-    // then nearby free positions, keeping overlapping Main/Echo labels apart.
+  function placeCascadeLabel(d,c,lane=null){
     const w=Math.min(d.getBoundingClientRect().width,board.clientWidth-12),h=d.getBoundingClientRect().height;d.style.maxWidth=(board.clientWidth-12)+'px';
-    const bx=(c.x+1)/E.G*board.clientWidth+(lane.family==='echo'?30:-30),by=(c.y+1)/E.H*board.clientHeight;
-    const occupied=[...board.querySelectorAll('.signalValue')].filter(el=>el!==d).map(el=>({x:parseFloat(el.style.left),y:parseFloat(el.style.top),w:el.offsetWidth,h:el.offsetHeight}));
-    let selected=null,best=Infinity;for(let dy=-3;dy<=3;dy++)for(let dx=-2;dx<=2;dx++){
+    const bx=c?(c.x+1)/E.G*board.clientWidth+(lane?.family==='echo'?28:lane?.family==='main'?-28:0):board.clientWidth*.5,by=c?(c.y+1)/E.H*board.clientHeight:board.clientHeight*.82;
+    const occupied=[...board.querySelectorAll('.signalValue,.cascadeSubtotal')].filter(el=>el!==d).map(el=>({x:parseFloat(el.style.left),y:parseFloat(el.style.top),w:el.offsetWidth,h:el.offsetHeight})).filter(o=>Number.isFinite(o.x)&&Number.isFinite(o.y));
+    let selected=null,best=Infinity;for(let dy=-4;dy<=4;dy++)for(let dx=-2;dx<=2;dx++){
       const x=Math.max(w/2+4,Math.min(board.clientWidth-w/2-4,bx+dx*(w+6))),y=Math.max(h/2+4,Math.min(board.clientHeight-h/2-4,by+dy*(h+6)));
       const overlaps=occupied.filter(o=>Math.abs(o.x-x)<(o.w+w)/2+3&&Math.abs(o.y-y)<(o.h+h)/2+3).length,cost=overlaps*100000+Math.hypot(x-bx,y-by);
       if(cost<best){best=cost;selected={x,y}}
     }
-    d.style.left=selected.x+'px';d.style.top=selected.y+'px';
-    if(d.dataset.keep==='1')setTimeout(()=>settleSignalValue(d),V.CASCADE.settleMs)
+    d.style.left=selected.x+'px';d.style.top=selected.y+'px'
+  }
+  function showOperation(e,lastOp,lane,index){
+    const pp=pc(e.piece),cube=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,lane,index);if(!cube||e.value===0)return;
+    clearLane(lane);const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
+    d.className=`opfx signalValue cascadeActive ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;
+    const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);placeCascadeLabel(d,cube,lane)
+  }
+  function showCascadeSubtotal(item){
+    const pp=item.piece!=null?pc(item.piece):null,cube=pp?.cubes.find(x=>x.half===item.half)||pp?.cubes[0],d=document.createElement('div');
+    d.className=`opfx cascadeSubtotal cascadeRetained${item.family==='echo'?' echoContribution':''}`;d.dataset.output=item.output;d.dataset.label=item.label;d.dataset.piece=item.piece??'';
+    const label=document.createElement('small'),number=document.createElement('strong');label.textContent=item.label;number.textContent=compact(item.output);d.append(label,number);board.appendChild(d);placeCascadeLabel(d,cube,{family:item.family,path:item.path||''});return d
+  }
+  async function settleCascadeScore(events,baseOutput,finalOutput,fallbackPiece){
+    clearTransientFx();board.querySelectorAll('.cascadeRetained').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
+    const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,V.CASCADE.contributionLimit),cards=[];
+    for(const item of items){cards.push({item,el:showCascadeSubtotal(item)});if(items.length>1)await wait(45)}
+    await wait(V.CASCADE.subtotalHoldMs);
+    const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
+    let running=0;
+    for(const {item,el} of cards){
+      running+=Number(item.output)||0;el.classList.add('cascadeToScore');note.textContent=`${item.label} · +${compact(item.output)}`;
+      if(polish?.tweenScore)polish.tweenScore(running,V.CASCADE.settleItemMs);else scoreEl.textContent=compact(running);
+      await wait(V.CASCADE.settleItemMs);el.remove()
+    }
+    const base=Number(baseOutput)||0,tolerance=Math.max(1,Math.abs(base))*1e-9;if(Math.abs(running-base)>tolerance){polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=compact(base);running=base}
+    const resolved=Number(finalOutput);if(Number.isFinite(resolved)&&Math.abs(resolved-base)>tolerance){
+      const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;if(polish?.tweenScore)polish.tweenScore(resolved,V.CASCADE.resonanceSettleMs);else scoreEl.textContent=compact(resolved);await wait(V.CASCADE.resonanceSettleMs)
+    }
+    detail?.removeAttribute('aria-busy');note.textContent='Last move'
   }
   function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'reboundFx',index,lane);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span>';d.firstChild.style.transform=`rotate(${angle}deg)`;return d}
-  function finalFx(v){
-    clearTransientFx();board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
-    const history=[...board.querySelectorAll('.cascadeRetained')];history.forEach(el=>el.classList.add('cascadeResolveItem'));
-    const d=document.createElement('div'),duration=V.CASCADE.finalMs;d.className='finalfx';
-    const number=document.createElement('span');number.textContent=compact(v);d.appendChild(number);board.appendChild(d);
-    const fit=()=>{number.style.fontSize='';const style=getComputedStyle(d),space=Math.max(1,board.clientWidth-24-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));number.style.fontSize=V.fitFontSize(parseFloat(style.fontSize),number.getBoundingClientRect().width,space)+'px'};
-    fit();const resize=new ResizeObserver(fit);resize.observe(board);
-    setTimeout(()=>history.forEach(el=>el.isConnected&&el.classList.add('cascadeClearing')),V.CASCADE.resolveHoldMs);
-    setTimeout(()=>history.forEach(el=>el.remove()),V.CASCADE.resolveHoldMs+V.CASCADE.resolveFadeMs);
-    setTimeout(()=>{resize.disconnect();d.remove()},duration);return duration
-  }
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
     let lastOp=null,index=startIndex,i=0;
     while(i<events.length){const e=events[i];
       if(e.type==='signal-fork'){
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}clearLane(lane);
         if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?'ECHO SPLIT':'SPLIT',0,'signal splitFx',index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(150,V.cascadeDelay(index)/2))}
-        await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+(branch.arm===0?'A':'B')},index+1,startEcho)));
-        if(pp){const ends=block.branches.map(b=>compact(b.end.output)),label=`${laneLabel(lane)} JOIN · ${ends.join(' + ')} = ${compact(block.join.output)}`,d=fx(E.G/2,E.H/2,label,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',true);d.dataset.family=lane.family;d.dataset.output=block.join.output;d.style.top=(lane.family==='echo'?62:42)+'%';await wait(Math.max(300,V.cascadeDelay(index+1)))}
+        await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
+        if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,`JOIN · ${compact(block.join.output)}`,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(220,V.cascadeDelay(index+1)))}
         i=block.next;index+=2;continue
       }
       if(e.type==='op'){lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await wait(V.cascadeDelay(index));index++;i++;continue}
@@ -434,9 +434,7 @@
     const plan=V.signalPlan(sim.events||[]);let echoTask=null;
     const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal echoStart',index,'echoLane');echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await wait(V.cascadeDelay(index));return animateSequence(plan.echo,lane,index+1)})()};
     await animateSequence(plan.main,{family:'main',path:''},0,startEcho);if(echoTask)await echoTask;
-    if(plan.result){clearTransientFx();const e=plan.result,d=fx(E.G/2,E.H/2,`MAIN ${compact(e.mainOutput)} + ECHO ${compact(e.echoOutput)} = ${compact(e.finalOutput)}`,e.finalOutput,'signal echoJoin',0,'',true);d.dataset.output=e.finalOutput;await wait(650)}
-    if(finalOutput!==(sim.output??trigger)){clearTransientFx();fx(E.G/2,E.H/2,`CIRCUIT ×${compact(finalOutput/(sim.output||trigger||1))}`,finalOutput,'signal resonanceFx',0,'',true);await wait(450)}
-    await wait(finalFx(finalOutput))
+    await settleCascadeScore(sim.events||[],sim.output??trigger,finalOutput,p.id)
   }
 
   async function doReroll(){if(uiBusy||!GAME.canUseReroll())return;uiBusy=true;hideOverlay();handFx.fill('hidden');renderHand();await wait(90);const r=GAME.reroll();if(!r.ok){uiBusy=false;handFx.fill('normal');render();return}persistGame();handFx.fill('back');renderHand();await wait(D.REROLL_BLACK_MS);for(let i=0;i<D.HAND_SIZE;i++){if(GAME.state().hand[i])handFx[i]='reveal';renderHand();await wait(D.HAND_REVEAL_STAGGER_MS)}await wait(300);handFx.fill('normal');uiBusy=false;if(GAME.state().blocked)armOutcomeDelay();render();if(r.autoRerolls)toast(`NO LEGAL MOVES · AUTO REROLL${r.autoRerolls>1?` ×${r.autoRerolls}`:''}`)}
