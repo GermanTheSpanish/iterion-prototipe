@@ -382,8 +382,8 @@
   }
   function showOperation(e,lastOp,lane,index){
     const pp=pc(e.piece),cube=pp?.cubes.find(x=>x.half===V.operationHalf(e,lastOp))||pp?.cubes[0];pulsePiece(pp,lane,index);if(!cube||e.value===0)return;
-    clearLane(lane);const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
-    d.className=`opfx signalValue cascadeActive ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;
+    const d=document.createElement('div'),kind=e.op==='multiply'?'multiply':'add',operation=kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add);
+    d.className=`opfx signalValue cascadeActive cascadeRetained cascadeOperation ${kind} ${lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0'}`;d.dataset.lane=laneId(lane);d.dataset.family=lane.family;d.dataset.output=e.after;d.dataset.piece=e.piece;
     const label=document.createElement('small'),number=document.createElement('strong'),op=document.createElement('span');label.textContent=laneLabel(lane);number.textContent=compact(e.after);op.textContent=e.type==='echo-copy'?'COPY':operation+(e.doubleDouble?' DD':'');d.append(label,number,op);board.appendChild(d);placeCascadeLabel(d,cube,lane)
   }
   function showCascadeSubtotal(item){
@@ -391,18 +391,30 @@
     d.className=`opfx cascadeSubtotal cascadeRetained${item.family==='echo'?' echoContribution':''}`;d.dataset.output=item.output;d.dataset.label=item.label;d.dataset.family=item.family;d.dataset.lane=item.family+(item.path?'.'+item.path:'');d.dataset.piece=item.piece??'';
     const label=document.createElement('small'),number=document.createElement('strong');label.textContent=item.label;number.textContent=compact(item.output);d.append(label,number);board.appendChild(d);placeCascadeLabel(d,cube,{family:item.family,path:item.path||''});return d
   }
+  function contributionLane(item){return item.family+(item.path?'.'+item.path:'')}
+  function operationBelongsToContribution(el,item){
+    if(!el||!item||item.grouped||item.fallback||item.family==='other')return false;
+    const opLane=el.dataset.lane||'',itemLane=contributionLane(item);return opLane===itemLane||opLane.startsWith(itemLane+'.')||itemLane.startsWith(opLane+'.')
+  }
+  function operationsSettledWith(item,remainingItems=[]){
+    const ops=[...board.querySelectorAll('.cascadeOperation')];
+    if(item.grouped||item.fallback||item.family==='other')return ops.filter(el=>!remainingItems.some(next=>operationBelongsToContribution(el,next)));
+    return ops.filter(el=>operationBelongsToContribution(el,item)&&!remainingItems.some(next=>operationBelongsToContribution(el,next)))
+  }
   async function settleCascadeScore(events,baseOutput,finalOutput,fallbackPiece){
-    clearTransientFx();board.querySelectorAll('.cascadeRetained').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
+    clearTransientFx();board.querySelectorAll('.cascadeSubtotal').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
     const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,V.CASCADE.contributionLimit),cards=[];
     for(const item of items){cards.push({item,el:showCascadeSubtotal(item)});if(items.length>1)await wait(45)}
     await wait(V.CASCADE.subtotalHoldMs);
     const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
     let running=0;
-    for(const {item,el} of cards){
-      running+=Number(item.output)||0;el.classList.add('cascadeToScore');note.textContent=`${item.label} · +${compact(item.output)}`;
+    for(let i=0;i<cards.length;i++){
+      const {item,el}=cards[i],remaining=cards.slice(i+1).map(card=>card.item),ops=operationsSettledWith(item,remaining);
+      running+=Number(item.output)||0;el.classList.add('cascadeToScore');ops.forEach(op=>op.classList.add('cascadeToScore'));note.textContent=`${item.label} · +${compact(item.output)}`;
       if(polish?.tweenScore)polish.tweenScore(running,V.CASCADE.settleItemMs);else scoreEl.textContent=compact(running);
-      await wait(V.CASCADE.settleItemMs);el.remove()
+      await wait(V.CASCADE.settleItemMs);el.remove();ops.forEach(op=>op.remove())
     }
+    board.querySelectorAll('.cascadeOperation').forEach(el=>el.remove());
     const base=Number(baseOutput)||0,tolerance=Math.max(1,Math.abs(base))*1e-9;if(Math.abs(running-base)>tolerance){polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=compact(base);running=base}
     const resolved=Number(finalOutput);if(Number.isFinite(resolved)&&Math.abs(resolved-base)>tolerance){
       const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;if(polish?.tweenScore)polish.tweenScore(resolved,V.CASCADE.resonanceSettleMs);else scoreEl.textContent=compact(resolved);await wait(V.CASCADE.resonanceSettleMs)
@@ -414,7 +426,7 @@
     let lastOp=null,index=startIndex,i=0;
     while(i<events.length){const e=events[i];
       if(e.type==='signal-fork'){
-        const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}clearLane(lane);
+        const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
         if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?'ECHO SPLIT':'SPLIT',0,'signal splitFx',index,lane.family==='echo'?'echoLane':'lane0');await wait(Math.max(150,V.cascadeDelay(index)/2))}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
         if(pp){const d=fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,`JOIN · ${compact(block.join.output)}`,block.join.output,'signal joinFx',index+1,lane.family==='echo'?'echoLane':'lane0');d.dataset.family=lane.family;d.dataset.output=block.join.output;await wait(Math.max(220,V.cascadeDelay(index+1)))}
@@ -427,7 +439,7 @@
       }
       if(e.type==='double-echo-start'){startEcho(e,index);i++;continue}i++
     }
-    clearLane(lane);return index
+    return index
   }
   async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
     renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger);await wait(V.cascadeDelay(0));
