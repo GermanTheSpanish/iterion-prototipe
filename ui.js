@@ -383,7 +383,7 @@
   function showOperation(e,lastOp,lane,index){
     const half=V.operationHalf(e,lastOp),pp=pc(e.piece),cube=pp?.cubes.find(x=>x.half===half)||pp?.cubes[0];pulsePiece(pp,lane,index);if(!cube||e.value===0)return;
     const kind=e.op==='multiply'?'multiply':'add',operation=e.type==='echo-copy'?'COPY':(kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add))+(e.doubleDouble?' DD':'');
-    return fx(cube.x+1,cube.y+1,operation,e.after,`operationFlash ${kind}`,index,lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0',false,tutorial?280:V.CASCADE.operationFlashMs)
+    return fx(cube.x+1,cube.y+1,operation,e.after,`operationFlash ${kind}`,index,lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0',false,tutorial?560:V.CASCADE.operationFlashMs)
   }
   function showCascadeSubtotal(item){
     const pp=item.piece!=null?pc(item.piece):null,cube=pp?.cubes.find(x=>x.half===item.half)||pp?.cubes[0],d=document.createElement('div');
@@ -434,7 +434,7 @@
     return index
   }
   async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
-    renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger,'operationFlash add',0,'',false,tutorial?320:V.CASCADE.operationFlashMs);await wait(V.cascadeDelay(0));
+    renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger,'operationFlash add',0,'',false,tutorial?640:V.CASCADE.operationFlashMs);await wait(V.cascadeDelay(0));
     const plan=V.signalPlan(sim.events||[]);let echoTask=null;
     const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal cascadeStructural echoStart',index,'echoLane',false,V.CASCADE.structuralFxMs);echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await wait(V.cascadeDelay(index));return animateSequence(plan.echo,lane,index+1)})()};
     await animateSequence(plan.main,{family:'main',path:''},0,startEcho);if(echoTask)await echoTask;

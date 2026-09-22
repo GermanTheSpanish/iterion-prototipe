@@ -11,7 +11,7 @@ test('v028 resolved SCORE progress, abbreviations and debug file sharing',async(
   await expect(page.locator('.wordmark')).toHaveText('MONOID');
   await expect(page).toHaveTitle('MONOID v0.42.7');
   expect(await page.evaluate(()=>[window.IterionPresentation.cascadeDelay(0),window.IterionPresentation.cascadeDelay(1),window.IterionPresentation.cascadeDelay(2),window.IterionPresentation.cascadeDelay(1000)])).toEqual([600,600,560,60]);
-  expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(360);
+  expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(520);
   await expect(page.locator('#scoreDetail .scoreProgress')).toBeVisible();
   expect(await page.evaluate(()=>window.IterionPresentation.compact(4.88e17))).toBe('488Qa');
   expect(await page.evaluate(()=>window.IterionPresentation.compact(6.058e19))).toBe('60,580Qa');

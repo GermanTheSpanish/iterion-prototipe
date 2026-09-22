@@ -15,7 +15,7 @@ assert.match(ui,/V\.CASCADE\.settleItemMs/);
 assert.match(ui,/V\.cascadeSettlementPlan/);
 assert.match(ui,/async function settleCascadeScore/);
 assert.match(ui,/operationFlash \$\{kind\}/,'Arithmetic must render as short local operation flashes rather than retained cascade history');
-assert.match(ui,/tutorial\?280:V\.CASCADE\.operationFlashMs/,'Normal-run arithmetic must use the short presentation lifetime while tutorial may remain slower');
+assert.match(ui,/tutorial\?560:V\.CASCADE\.operationFlashMs/,'Normal-run arithmetic must use the short presentation lifetime while tutorial may remain slower');
 assert.match(ui,/cascadeStructural splitFx/,'Splits must use the longer-lived structural visual channel');
 assert.match(ui,/cascadeStructural joinFx/,'Joins must use the longer-lived structural visual channel');
 assert.match(ui,/cascadeStructural zeroPortFx/,'Zero Port must be surfaced as a structural event');

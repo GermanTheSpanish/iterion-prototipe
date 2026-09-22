@@ -49,10 +49,10 @@ check('Score stays absolute near Target and becomes a red-eligible Target multip
   assert.deepEqual(V.progressState(100000,100),{stage:'overdrive',progress:1,next:'×1,000 TARGET'});
 });
 check('cascade display timings keep arithmetic fleeting and topology readable',()=>{
-  assert.equal(V.CASCADE.operationFlashMs,190);assert.equal(V.CASCADE.structuralFxMs,760);
+  assert.equal(V.CASCADE.operationFlashMs,380);assert.equal(V.CASCADE.structuralFxMs,1520);
 });
 check('cascade settlement pacing keeps readable handoff time without changing arithmetic',()=>{
-  assert.equal(V.CASCADE.subtotalHoldMs,360);assert.equal(V.CASCADE.settleItemMs,360);assert.equal(V.CASCADE.resonanceSettleMs,420);
+  assert.equal(V.CASCADE.subtotalHoldMs,720);assert.equal(V.CASCADE.settleItemMs,620);assert.equal(V.CASCADE.resonanceSettleMs,760);
 });
 check('cascade settlement uses terminal additive branches and preserves exact output',()=>{
   const ps=[[3,3,12,14,0],[5,3,8,14,0],[3,4,16,14,0],[5,5,6,13,1],[2,5,6,9,1],[5,4,6,17,1],[3,2,13,16,1]].map(([a,b,x,y,r],i)=>{const p=E.pieceFrom({a,b},x,y,0,r,i+1);p.tile={a,b,id:'p'+i};return p});

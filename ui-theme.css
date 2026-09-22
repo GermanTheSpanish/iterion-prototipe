@@ -97,9 +97,9 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 .roundClearScore strong{font-size:clamp(28px,9vw,42px);line-height:1;letter-spacing:-.045em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .roundClearScore span{font:750 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;color:var(--muted)}
 .roundClearScore.overdrive strong,.roundClearScore.overdrive span{color:#b3261e}
-.opfx.cascadeStructural.reboundFx{display:flex!important;align-items:center!important;gap:4px!important}
-.opfx.cascadeStructural.reboundFx .reboundArrow{font-size:13px!important;line-height:1!important}
-.opfx.cascadeStructural.reboundFx small{font-size:8px!important;line-height:1!important;letter-spacing:.08em!important}
+.opfx.cascadeStructural.reboundFx{display:flex!important;align-items:center!important;gap:6px!important}
+.opfx.cascadeStructural.reboundFx .reboundArrow{font-size:19px!important;line-height:1!important}
+.opfx.cascadeStructural.reboundFx small{font-size:13px!important;line-height:1!important;letter-spacing:.07em!important}
 .toolPurchase{min-width:0}
 .toolPurchase>p{margin:0 0 14px}
 .toolPurchaseRow{display:grid;grid-template-columns:minmax(54px,auto) 46px minmax(0,1fr);gap:8px;align-items:stretch}
