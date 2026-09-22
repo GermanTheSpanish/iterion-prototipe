@@ -11,7 +11,7 @@ let decision=g.decisionTelemetry(rootIndex,candidates[0],{maxEvaluations:1,timeB
 assert.equal(JSON.stringify(g.exportState()),before,'decision telemetry must not mutate authoritative state');
 assert.equal(decision.evaluationComplete,true,'opening placement is exactly evaluable without scoring every board position');
 assert.equal(decision.evaluationStrategy,'root-equivalent');
-assert.equal(decision.chosenOutput,null,'chosen output is supplied by the authoritative placement, not duplicated by telemetry');
+assert.equal(decision.chosenOutput,null,'chosen output is supplied by the authoritative placement, not duplicated by telemetry');\nassert.equal(decision.clearCoverageComplete,true);assert.equal(decision.coverageIncludesChosen,true);assert.equal(decision.clearCoverageSampleCount,decision.legalPlacementCount);assert(decision.outputDistribution);assert.equal(decision.deckBefore.generation,1);
 const chosenPreview=g.previewPlacement(rootIndex,candidates[0]);assert(chosenPreview.ok);
 let ctx=g.beginPlacement(rootIndex,candidates[0]);assert(ctx.ok);
 let result=g.finishPlacement(ctx);
@@ -28,7 +28,7 @@ if(!g.state().cleared&&!g.state().blocked&&!g.state().pendingCircuit&&!g.state()
   assert.equal(JSON.stringify(g.exportState()),before,'multi-placement evaluation must remain read-only');
   const preview=g.previewPlacement(index,candidates[0]);assert(preview.ok);
   ctx=g.beginPlacement(index,candidates[0]);assert(ctx.ok);result=g.finishPlacement(ctx);
-  assert.equal(result.resonance.output,preview.output,'preview must match authoritative placement output');
+  assert.equal(result.resonance.output,preview.output,'preview must match authoritative placement output');\n  const signal=g.signalTelemetry(ctx.sim);assert(signal.operationCount>=signal.uniqueVisitedPieceCount);assert(signal.reentryOperationCount>=0);assert(signal.zeroReturnCount>=0);
   if(decision.evaluationComplete){
     const exactBest=Math.max(result.resonance.output,decision.bestEvaluatedOutput??-Infinity);
     assert(exactBest>=result.resonance.output);
