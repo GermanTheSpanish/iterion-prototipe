@@ -405,19 +405,20 @@
     clearTransientFx();board.querySelectorAll('.cascadeSubtotal').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
     const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,V.CASCADE.contributionLimit),cards=[];
     for(const item of items){cards.push({item,el:showCascadeSubtotal(item)});if(items.length>1)await wait(45)}
-    await wait(V.CASCADE.subtotalHoldMs);
+    const subtotalHoldMs=tutorial?240:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:V.CASCADE.resonanceSettleMs;
+    await wait(subtotalHoldMs);
     const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
     let running=0;
     for(let i=0;i<cards.length;i++){
       const {item,el}=cards[i],remaining=cards.slice(i+1).map(card=>card.item),ops=operationsSettledWith(item,remaining);
       running+=Number(item.output)||0;el.classList.add('cascadeToScore');ops.forEach(op=>op.classList.add('cascadeToScore'));note.textContent=`${item.label} · +${compact(item.output)}`;
-      if(polish?.tweenScore)polish.tweenScore(running,V.CASCADE.settleItemMs);else scoreEl.textContent=compact(running);
-      await wait(V.CASCADE.settleItemMs);el.remove();ops.forEach(op=>op.remove())
+      if(polish?.tweenScore)polish.tweenScore(running,settleItemMs);else scoreEl.textContent=compact(running);
+      await wait(settleItemMs);el.remove();ops.forEach(op=>op.remove())
     }
     board.querySelectorAll('.cascadeOperation').forEach(el=>el.remove());
     const base=Number(baseOutput)||0,tolerance=Math.max(1,Math.abs(base))*1e-9;if(Math.abs(running-base)>tolerance){polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=compact(base);running=base}
     const resolved=Number(finalOutput);if(Number.isFinite(resolved)&&Math.abs(resolved-base)>tolerance){
-      const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;if(polish?.tweenScore)polish.tweenScore(resolved,V.CASCADE.resonanceSettleMs);else scoreEl.textContent=compact(resolved);await wait(V.CASCADE.resonanceSettleMs)
+      const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=compact(resolved);await wait(resonanceSettleMs)
     }
     detail?.removeAttribute('aria-busy');note.textContent='Last move'
   }
