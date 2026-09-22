@@ -30,7 +30,7 @@ test('v028 resolved SCORE progress, abbreviations and debug file sharing',async(
   await page.evaluate(()=>document.querySelector('#scoreDetail').setAttribute('aria-label','Score 3,500. Target reached. Show exact value.'));
   await expect.poll(()=>page.locator('#score').textContent()).toBe('3,500');await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','star1');
   const batchBefore=await page.evaluate(()=>window.__monoidPlaytestBatch.batchId);await page.locator('#menuButton').click();await expect(page.locator('#copyrun')).toHaveText('Share debug .txt');await page.locator('#copyrun').click();
-  await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^MONOID_PLAYTEST_v0\.42\.4_.+\.txt$/);
+  await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^MONOID_PLAYTEST_v0\.42\.5_.+\.txt$/);
   const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.title).toBe('MONOID PLAYTEST');expect(shared.text).toContain('MONOID PLAYTEST BATCH v1');expect(shared.text).toContain('MONOID DEBUG v0.42.5');expect(shared.text).toContain('Run ID:');expect(shared.text).toContain('PERFORMANCE TELEMETRY');expect(shared.text).toContain('Batch ID:');
   await expect.poll(()=>page.evaluate(()=>window.__monoidPlaytestBatch.batchId)).not.toBe(batchBefore);const batchAfter=await page.evaluate(()=>window.__monoidPlaytestBatch);expect(shared.text).toContain(`Batch ID: ${batchBefore}`);expect(shared.text).not.toContain(`Batch ID: ${batchAfter.batchId}`);await page.screenshot({path:testInfo.outputPath('score-progress-share.png'),fullPage:true});
 });
@@ -40,7 +40,7 @@ test('v028 debug export falls back to a downloadable txt file',async({page})=>{
   await page.addInitScript(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false})});
   await page.goto('http://127.0.0.1:4173/');await page.locator('#menuButton').click();
   const downloadPromise=page.waitForEvent('download');await page.locator('#copyrun').click();const download=await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.42\.4_.+\.txt$/);
+  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.42\.5_.+\.txt$/);
 });
 
 test('v028 POWER reads as pale material and Overkills use explicit physical centre dividers',async({page},testInfo)=>{
