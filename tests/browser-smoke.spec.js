@@ -114,7 +114,7 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
     const layout=await page.evaluate(()=>{const board=document.querySelector('#board').getBoundingClientRect(),hand=document.querySelector('#hand').getBoundingClientRect();return{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,viewportWidth:innerWidth,viewportHeight:innerHeight,boardBottom:board.bottom,handTop:hand.top,handRight:hand.right,handBottom:hand.bottom}});expect(layout.width).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.height).toBeLessThanOrEqual(layout.viewportHeight);expect(layout.handTop).toBeGreaterThanOrEqual(layout.boardBottom);expect(layout.handRight).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.handBottom).toBeLessThanOrEqual(layout.viewportHeight);
     await page.evaluate(()=>{const g=window.__iterionTestGame,s=g.state();s.hand.fill(null);s.reserve=[];g.assessContinuation();g.save()});await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('#overlayTitle')).toHaveText('MACHINE STALLED');await expect(page.locator('#overlayBody')).toContainText('Base run complete');await expect(page.locator('#downloadFailedRun')).toHaveText('DOWNLOAD RUN .TXT');
-    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.42\.7_B-[0-9A-Z]{7}\.txt$/);
+    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.43\.0_B-[0-9A-Z]{7}\.txt$/);
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.latestRun.v9')).endless.baseComplete)).toBe(true);expect(errors).toEqual([]);
   });
 }
@@ -135,6 +135,20 @@ test('Endless palette softens play surfaces and exposes System Strain prices',as
   expect(surfaces).toEqual({board:'rgb(214, 211, 203)',handTile:'rgb(200, 196, 185)'});
   await expect(page.locator('#machineModStatus')).toContainText('LONG CHAIN');expect(await page.locator('#machineModStatus b').evaluate(el=>parseFloat(el.style.width))).toBeCloseTo(4/7*100,4);const longChainPosition=await page.evaluate(()=>{const status=document.querySelector('#machineModStatus').getBoundingClientRect(),round=document.querySelector('.roundMeta').getBoundingClientRect(),parent=document.querySelector('#machineModStatus').parentElement;return{parent:parent.className,statusLeft:status.left,statusCenterY:status.top+status.height/2,roundRight:round.right,roundCenterY:round.top+round.height/2}});expect(longChainPosition.parent).toContain('metaStrip');expect(longChainPosition.statusLeft).toBeGreaterThanOrEqual(longChainPosition.roundRight);expect(Math.abs(longChainPosition.statusCenterY-longChainPosition.roundCenterY)).toBeLessThan(12);await page.evaluate(()=>window.__iterionTestGame.state().endlessLongRunActivations=7);
   await page.locator('#shopButton').click();await expect(page.locator('#machineModStatus')).toBeHidden();await expect(page.locator('.shopInflation')).toHaveText('Inflation 2 · System Strain 3');await expect(page.locator('#shopRandomBuy')).toContainText('6c');expect(await page.locator('#shopRandomBuy').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(229, 227, 220)');await expect(page.locator('[data-shop-item]')).toHaveCount(0);await expect(page.locator('.shopFoot')).toContainText('Undo removes');await page.locator('#overlayPrimary').click();await page.locator('#moveTool').click();await expect(page.locator('#overlayTitle')).toHaveText('BUY +1 MOVE');await expect(page.locator('.toolPurchaseTotal strong')).toHaveText('8c');await expect(page.locator('.toolPurchaseTotal')).toContainText('Strain 3');
+});
+
+test('Infinite Endless final phase uses a real three-tile Hand and deep-red background',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const game=value.createGame(engine,{...options,seed:3761,GAME_MODE:'infinite-endless',INFINITE_ENDLESS:true,INFINITE_BOARD_STAGE_INTERVAL:2,INFINITE_PHASE_AFTER_STAGES:15,INFINITE_HAND_SIZE:3}),s=game.state();s.round=59;s.endlessMode=true;s.standardComplete=true;s.cleared=true;s.intermissionResolved=true;s.shopOpen=false;s.nextShopType='none';if(!game.advance())throw new Error('Infinite phase fixture could not advance to R61');window.__infinitePhaseGame=game;return game}}}})});
+  await page.goto('http://127.0.0.1:4173/');
+  await expect(page.locator('body')).toHaveClass(/endlessPalette/);await expect(page.locator('body')).toHaveClass(/infinitePalette/);
+  await expect(page.locator('#stageRound')).toHaveText('INFINITE · ROUND 1/3 · STRAIN 0');
+  await expect(page.locator('#hand .handSlot')).toHaveCount(3);await expect(page.locator('#hand .domino')).toHaveCount(3);
+  expect(await page.evaluate(()=>window.__infinitePhaseGame.state().hand.length)).toBe(3);
+  expect(await page.evaluate(()=>window.__infinitePhaseGame.snapshot().endless.infinitePhase)).toBe(true);
+  expect(await page.evaluate(()=>window.__infinitePhaseGame.snapshot().boardSize)).toEqual({width:51,height:68});
+  await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe('rgb(53, 11, 9)');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true)
 });
 
 test.describe('Circuit spatial selection',()=>{

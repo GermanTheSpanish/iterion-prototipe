@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.42.7',
+    VERSION:'0.43.0',
     ENGINE_VERSION:'0.15.0-l-split',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -14,6 +14,9 @@
     ],
     BOARD_SIZES:[[18,24],[21,28],[24,32],[27,36],[30,40]],
     INFINITE_BOARD_GROWTH:[3,4],
+    INFINITE_BOARD_STAGE_INTERVAL:2,
+    INFINITE_PHASE_AFTER_STAGES:15,
+    INFINITE_HAND_SIZE:3,
     MAX_PLACEMENTS:7,
     HAND_SIZE:5,
     TOTAL_ROUNDS:15,

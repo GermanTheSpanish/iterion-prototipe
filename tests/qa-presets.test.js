@@ -60,7 +60,7 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
     assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});assert.strictEqual(s.freeReroll,1)
   }else{
     assert.deepStrictEqual(new Set(s.zeroPortTileIds),new Set(['d0-4','d0-5']),`${id}: Zero Port pair is on the machine`);assert(s.zeroPortTileIds.every(tileId=>ids.includes(tileId)),`${id}: both ZP endpoints are physical placed tiles`);
-    assert.strictEqual(snap.stage.index,6);assert.strictEqual(game.target(),250000000000);assert.strictEqual(s.standardComplete,true);assert.strictEqual(s.gameMode,'infinite-endless');assert.strictEqual(s.scoringModel,undefined);assert.deepStrictEqual(snap.boardSize,{width:33,height:44})
+    assert.strictEqual(snap.stage.index,6);assert.strictEqual(game.target(),250000000000);assert.strictEqual(s.standardComplete,true);assert.strictEqual(s.gameMode,'infinite-endless');assert.strictEqual(s.scoringModel,undefined);assert.deepStrictEqual(snap.boardSize,{width:30,height:40},'Infinite Endless no longer grows immediately on entry')
   }
 }
 console.log('MONOID late-game QA preset regressions passed');

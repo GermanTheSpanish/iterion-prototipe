@@ -64,8 +64,8 @@ function longRunCase({endless=true,used=0}={}){
 
 {
   const ui=fs.readFileSync(path.join(__dirname,'../ui.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../ui-theme.css'),'utf8'),help=fs.readFileSync(path.join(__dirname,'../help.js'),'utf8');
-  assert.match(ui,/dataset\.stageRound/);assert.match(ui,/endlessPalette/);assert.match(ui,/System Strain/);
-  assert.match(css,/body\[data-stage-round="2"\]/);assert.match(css,/body\.endlessPalette/);assert.match(css,/body\.endlessPalette \.board/);assert.match(css,/body\.endlessPalette \.hand \.domino/);
+  assert.match(ui,/dataset\.stageRound/);assert.match(ui,/endlessPalette/);assert.match(ui,/infinitePalette/);assert.match(ui,/System Strain/);
+  assert.match(css,/body\[data-stage-round="2"\]/);assert.match(css,/body\.endlessPalette/);assert.match(css,/body\.infinitePalette/);assert.match(css,/--bg:#350b09/);assert.match(css,/body\.endlessPalette \.board/);assert.match(css,/body\.endlessPalette \.hand \.domino/);
   assert.match(help,/every placed domino adds 1 System Strain/);assert.match(help,/qualifying Endless Moves/);
 }
 

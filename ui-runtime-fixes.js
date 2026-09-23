@@ -180,7 +180,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20260922.5';
+    const BUILD_ID='20260923.1';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);
@@ -324,7 +324,11 @@
       }
       body.endlessPalette[data-stage-round="2"]{--bg:#252523!important;--paper:#2e2e2b!important;--paper2:#373733!important}
       body.endlessPalette[data-stage-round="3"]{--bg:#222220!important;--paper:#2b2b28!important;--paper2:#343430!important}
+      body.endlessPalette.infinitePalette{--bg:#350b09!important;--paper:#43100d!important;--paper2:#551713!important;--ink:#f7eee8!important;--muted:#c8aaa3!important;--line:#6f2a24!important}
+      body.endlessPalette.infinitePalette[data-stage-round="2"]{--bg:#2c0807!important;--paper:#3b0d0b!important;--paper2:#4a120f!important}
+      body.endlessPalette.infinitePalette[data-stage-round="3"]{--bg:#230605!important;--paper:#320a08!important;--paper2:#40100d!important}
       body.endlessPalette .overlay,body.endlessPalette .gameMenu::backdrop{background:rgba(24,24,22,.78)!important}
+      body.endlessPalette.infinitePalette .overlay,body.endlessPalette.infinitePalette .gameMenu::backdrop{background:rgba(35,6,5,.92)!important}
       body.endlessPalette.monoidCommerceActive .commerceModal{
         background:var(--paper)!important;color:var(--ink)!important;border-color:var(--line)!important
       }
