@@ -85,6 +85,11 @@ function createGame(E,opts={}){
   const pairList=()=>{const out=[];for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)out.push([a,b]);return out};
   const deepClone=x=>JSON.parse(JSON.stringify(x));
   const stageSize=()=>cfg.STAGE_SIZE||3;
+  const baseStageCount=()=>Math.ceil((cfg.TOTAL_ROUNDS||0)/stageSize());
+  const infinitePhaseStartRound=()=>Math.max(0,(cfg.TOTAL_ROUNDS||0)+(cfg.INFINITE_PHASE_AFTER_STAGES||15)*stageSize());
+  function infinitePhase(roundIndex=s.round){return s.gameMode==='infinite-endless'&&!!s.endlessMode&&Math.max(0,Number(roundIndex)||0)>=infinitePhaseStartRound()}
+  function handSizeForRound(roundIndex=s.round){return infinitePhase(roundIndex)?Math.max(1,Number(cfg.INFINITE_HAND_SIZE)||3):Math.max(1,Number(cfg.HAND_SIZE)||5)}
+  function endlessStagesCompleted(roundIndex=s.round){return Math.max(0,Math.floor((Math.max(0,Number(roundIndex)||0)-(cfg.TOTAL_ROUNDS||0))/stageSize()))}
 
   function availableTileCount(){
     const generation=s.setGeneration||1,placed=new Set(s.placedTileIds||[]);
@@ -100,12 +105,12 @@ function createGame(E,opts={}){
   }
   function drawOne(){if(!s.reserve.length)replenishPowerSet('draw');if(!s.reserve.length)return null;const t=s.reserve.shift();if(isZero(t))s.roundZero.drawn++;return t}
   function initialHand(){
-    s.hand=Array(cfg.HAND_SIZE).fill(null);
+    const handSize=handSizeForRound();s.hand=Array(handSize).fill(null);
     if(cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!s.pieces.length){
       const di=s.reserve.findIndex(isDouble);
       if(di>=0){const t=s.reserve.splice(di,1)[0];s.hand[0]=t;if(isZero(t))s.roundZero.drawn++;s.events.push({type:'opening-double',round:1,tile:cloneTile(t)})}
     }
-    for(let i=0;i<cfg.HAND_SIZE;i++)if(!s.hand[i])s.hand[i]=drawOne();
+    for(let i=0;i<handSize;i++)if(!s.hand[i])s.hand[i]=drawOne();
   }
 
   function targetForRound(roundIndex=s.round){
@@ -125,8 +130,8 @@ function createGame(E,opts={}){
     const sizes=cfg.BOARD_SIZES||[[18,24]],index=Math.max(0,Math.trunc(Number(stage)||0)),lastIndex=sizes.length-1,last=sizes[lastIndex]||[18,24];
     if(index<=lastIndex||(!cfg.INFINITE_ENDLESS&&s.gameMode!=='infinite-endless')||!s.endlessMode)return sizes[Math.min(index,lastIndex)]||last;
     const configured=cfg.INFINITE_BOARD_GROWTH,previous=sizes[Math.max(0,lastIndex-1)]||last;
-    const growth=Array.isArray(configured)&&configured.length>=2?configured:[last[0]-previous[0],last[1]-previous[1]];
-    const steps=index-lastIndex;
+    const growth=Array.isArray(configured)&&configured.length>=2?configured:[last[0]-previous[0],last[1]-previous[1]],interval=Math.max(1,Number(cfg.INFINITE_BOARD_STAGE_INTERVAL)||2);
+    const endlessStageOffset=Math.max(0,index-baseStageCount()),steps=Math.floor(endlessStageOffset/interval);
     return[last[0]+Math.max(1,Number(growth[0])||0)*steps,last[1]+Math.max(1,Number(growth[1])||0)*steps]
   }
   function maxPlacements(){return cfg.MAX_PLACEMENTS+s.extraPlacements}
@@ -155,7 +160,7 @@ function createGame(E,opts={}){
     const source=(s.freeReroll||0)>0?'free':'stored';
     if(source==='free')s.freeReroll--;else s.consumables.reroll--;
     if(!automatic)s.undoFrame=null;s.blocked=false;s.failureReason=null;s.needsReroll=false;
-    const old=s.hand.filter(Boolean);s.reserve.push(...old);sh(s.reserve);s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne());
+    const old=s.hand.filter(Boolean);s.reserve.push(...old);sh(s.reserve);s.hand=Array(handSizeForRound()).fill(null).map(()=>drawOne());
     const protection=ensureOpeningContinuation('reroll');
     s.events.push({type:'reroll',round:s.round+1,roundTurn:s.roundTurn,source,automatic:!!automatic,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0,hand:s.hand.filter(Boolean).map(cloneTile)});if(protection)s.events.push(protection);
     return{ok:true,source,automatic:!!automatic,remaining:s.consumables.reroll,freeRemaining:s.freeReroll||0}
@@ -163,7 +168,7 @@ function createGame(E,opts={}){
   function assessContinuation(){
     s.needsReroll=false;if(s.cleared)return{autoRerolls:0};
     if(s.roundTurn>=maxPlacements()){fail('placement-limit');return{autoRerolls:0}}
-    if(!s.hand.some(Boolean)&&!s.reserve.length){if(replenishPowerSet('continuation')){s.hand=Array(cfg.HAND_SIZE).fill(null).map(()=>drawOne())}else{fail('no-tiles');return{autoRerolls:0}}}
+    if(!s.hand.some(Boolean)&&!s.reserve.length){if(replenishPowerSet('continuation')){s.hand=Array(handSizeForRound()).fill(null).map(()=>drawOne())}else{fail('no-tiles');return{autoRerolls:0}}}
     if(hasLegal()){s.blocked=false;s.failureReason=null;return{autoRerolls:0}}
     let autoRerolls=0;
     s.events.push({type:'recovery-needed',round:s.round+1,roundTurn:s.roundTurn,reason:'no-legal-moves',automatic:true,hand:s.hand.filter(Boolean).map(cloneTile)});
@@ -202,9 +207,10 @@ function createGame(E,opts={}){
     s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
     const previousFree=s.freeReroll||0;s.freeReroll=Math.max(0,Number(cfg.ROUND_REROLL_REWARD??1));
     s.events.push({type:'round-reroll',round:s.round+1,granted:s.freeReroll,replaced:previousFree});
-    const newStage=s.round%stageSize()===0;
+    const newStage=s.round%stageSize()===0,enteringInfinite=infinitePhase()&&s.round===infinitePhaseStartRound();
     initialHand();
-    if(newStage)s.events.push({type:'stage-start',stage:stageIndex()+1,round:s.round+1,coins:s.coins,inflation:s.inflation,available:availableTileCount(),board:[E.G,E.H],freeReroll:s.freeReroll||0,setGeneration:s.setGeneration||1});
+    if(enteringInfinite)s.events.push({type:'infinite-phase-start',round:s.round+1,endlessStagesCompleted:endlessStagesCompleted(),handSize:s.hand.length,board:[E.G,E.H]});
+    if(newStage)s.events.push({type:'stage-start',stage:stageIndex()+1,round:s.round+1,phase:infinitePhase()?'infinite':s.endlessMode?'endless':'base',coins:s.coins,inflation:s.inflation,available:availableTileCount(),board:[E.G,E.H],handSize:s.hand.length,freeReroll:s.freeReroll||0,setGeneration:s.setGeneration||1});
     if(s.pieces.length||!s.hand.some(Boolean))assessContinuation()
   }
 
@@ -682,7 +688,7 @@ function createGame(E,opts={}){
       powerSets:{generation:s.setGeneration||1,powerMultiplier:generationPower(s.setGeneration||1)},
       schema:'iterion.run.v9',gameVersion:cfg.VERSION,engineVersion:cfg.ENGINE_VERSION,gameMode:s.gameMode||'classic',runId:s.runId,seed:s.seed,startedAt:s.startedAt,savedAt:new Date().toISOString(),
       status:status(),failureReason:s.failureReason,recovery:recoveryOptions(),
-      endless:{systemStrain:s.systemStrain||0,longRunActivations:s.endlessLongRunActivations||0,longRunActivationCap:cfg.ENDLESS_LONG_RUN_ACTIVATIONS??7,available:canStartEndless(),active:!!s.endlessMode,baseComplete:!!s.standardComplete,startedRound:s.endlessStartedRound,roundsCleared:Math.max(0,s.wins.length-cfg.TOTAL_ROUNDS),targetMultiplier:cfg.ENDLESS_TARGET_MULTIPLIER||5},
+      endless:{systemStrain:s.systemStrain||0,longRunActivations:s.endlessLongRunActivations||0,longRunActivationCap:cfg.ENDLESS_LONG_RUN_ACTIVATIONS??7,available:canStartEndless(),active:!!s.endlessMode,baseComplete:!!s.standardComplete,startedRound:s.endlessStartedRound,roundsCleared:Math.max(0,s.wins.length-cfg.TOTAL_ROUNDS),targetMultiplier:cfg.ENDLESS_TARGET_MULTIPLIER||5,phase:infinitePhase()?'infinite':s.endlessMode?'endless':'base',infinitePhase:infinitePhase(),infinitePhaseStartRound:infinitePhaseStartRound()+1,endlessStagesCompleted:endlessStagesCompleted(),boardGrowthStageInterval:Math.max(1,Number(cfg.INFINITE_BOARD_STAGE_INTERVAL)||2),handSize:handSizeForRound()},
       round:{index:s.round+1,total:cfg.TOTAL_ROUNDS,target:target(),placements:s.roundTurn,maxPlacements:maxPlacements(),clears:s.wins,upgradeCoins:s.roundUpgradeCoins},
       stage:{index:stage+1,total:Math.ceil(cfg.TOTAL_ROUNDS/size),round:(s.round%size)+1,size},boardSize:{width:bs.G,height:bs.H},
       score:{last:s.score,best:s.best},turnCount:s.turn,coins:s.coins,inflation:s.inflation,consumables:{...s.consumables},freeReroll:s.freeReroll||0,
@@ -705,7 +711,7 @@ function createGame(E,opts={}){
   function debugText(){
     const x=snapshot(),up=x.set.filter(t=>t.upgrade).map(t=>`[${t.a}|${t.b}]★${t.upgrade}`).join(', ')||'-';
     const activeIssue=s.needsReroll?'no-legal-moves':x.failureReason;
-    const lines=[`MONOID DEBUG v${x.gameVersion}`,`Mode: ${(x.gameMode||'classic').toUpperCase()}`,`Run ID: ${x.runId}`,`Seed: ${x.seed}`,`Result: ${x.status}${activeIssue?` · ${activeIssue}`:''}`,`Stage: ${x.stage.index}/${x.endless.active?'∞':x.stage.total} · round ${x.stage.round}/${x.stage.size}`,`Round: ${x.round.index}/${x.endless.active?'∞':x.round.total} · target=${x.round.target} · moves=${x.round.placements}/${x.round.maxPlacements}`,`Board: ${x.boardSize.width}x${x.boardSize.height} · Machine: ${x.board.length} pieces · unique=${new Set(x.placedTileIds).size}/${x.placedTileIds.length}`,`Set: ${x.setSize} tiles · available=${x.availableTileCount} · generation=${x.powerSets.generation} · power=x${x.powerSets.powerMultiplier}`,`Last output: ${x.score.last}`,`Best output: ${x.score.best}`,`Coins: ${x.coins} · Inflation: ${x.inflation} · Tools: move=${x.consumables.move}, reroll=${x.consumables.reroll}, freeReroll=${x.freeReroll}, undo=${x.consumables.undo}`,`Anchor: ${s.anchorId||'-'} · Upgraded tiles: ${up}`,`Tile Mods: DD=${x.doubleDoubleTileId||'-'} · DE=${x.doubleEchoTileId||'-'} · TD=${x.tripleDoubleTileId||'-'} · ZP=${x.zeroPortTileIds.length?x.zeroPortTileIds.join('<->'):'-'} · PX=${x.parityExchangeTileId||'-'} · CR=${x.cornerTileId||'-'} · LN=${x.longLineTileId||'-'} · OV=${x.overloadTileId||'-'} · TE=${x.terminalTileId||'-'} · SQ=${x.sequenceTileId||'-'} · C6=${x.complementTileId||'-'} · TW=${x.twinTileId||'-'} · PR=${x.pairTileId||'-'} · BR=${x.bridgeTileId||'-'} · GT=${x.gateTileId||'-'} · FN=${x.fanTileId||'-'} · FM=${x.frameTileId||'-'} · CW=${x.crownTileId||'-'} · FT=${x.frontierTileId||'-'} · RL=${x.relayTileId||'-'} · CP=${x.couplerTileId||'-'} · RS=${x.resonatorTileId||'-'} · FG=${x.forgeTileId||'-'} · FD=${x.foundationTileId||'-'} · KN=${x.knotTileId||'-'} · MR=${x.mirrorTileId||'-'} · MT=${x.mintTileId||'-'}`,`Machine Mods: ${x.longRun?'LONG CHAIN':'-'}`,`Endless: ${x.endless.active?`active · baseComplete=${x.endless.baseComplete?'yes':'no'} · clears=${x.endless.roundsCleared}`:x.endless.baseComplete?'available · baseComplete=yes':'off'}`,`Next: ${x.shop.nextType} · open=${x.shop.open?'yes':'no'}${x.shop.open?` (${x.shop.type})`:''}`,`Round clears: ${x.round.clears.map(w=>`R${w.round} target=${w.target} output=${w.output} moves=${w.placements} machine=${w.machineSize} set=${w.setSize} gen=${w.setGeneration||1} reward=${w.reward} upgradeCoins=${w.upgradeCoins||0} anchor=[${w.anchor.a}|${w.anchor.b}]★${w.upgradeTier}`).join(' | ')||'-'}`,''];
+    const lines=[`MONOID DEBUG v${x.gameVersion}`,`Mode: ${(x.gameMode||'classic').toUpperCase()}`,`Run ID: ${x.runId}`,`Seed: ${x.seed}`,`Result: ${x.status}${activeIssue?` · ${activeIssue}`:''}`,`Stage: ${x.stage.index}/${x.endless.active?'∞':x.stage.total} · round ${x.stage.round}/${x.stage.size}`,`Round: ${x.round.index}/${x.endless.active?'∞':x.round.total} · target=${x.round.target} · moves=${x.round.placements}/${x.round.maxPlacements}`,`Board: ${x.boardSize.width}x${x.boardSize.height} · Machine: ${x.board.length} pieces · unique=${new Set(x.placedTileIds).size}/${x.placedTileIds.length}`,`Set: ${x.setSize} tiles · available=${x.availableTileCount} · generation=${x.powerSets.generation} · power=x${x.powerSets.powerMultiplier}`,`Last output: ${x.score.last}`,`Best output: ${x.score.best}`,`Coins: ${x.coins} · Inflation: ${x.inflation} · Tools: move=${x.consumables.move}, reroll=${x.consumables.reroll}, freeReroll=${x.freeReroll}, undo=${x.consumables.undo}`,`Anchor: ${s.anchorId||'-'} · Upgraded tiles: ${up}`,`Tile Mods: DD=${x.doubleDoubleTileId||'-'} · DE=${x.doubleEchoTileId||'-'} · TD=${x.tripleDoubleTileId||'-'} · ZP=${x.zeroPortTileIds.length?x.zeroPortTileIds.join('<->'):'-'} · PX=${x.parityExchangeTileId||'-'} · CR=${x.cornerTileId||'-'} · LN=${x.longLineTileId||'-'} · OV=${x.overloadTileId||'-'} · TE=${x.terminalTileId||'-'} · SQ=${x.sequenceTileId||'-'} · C6=${x.complementTileId||'-'} · TW=${x.twinTileId||'-'} · PR=${x.pairTileId||'-'} · BR=${x.bridgeTileId||'-'} · GT=${x.gateTileId||'-'} · FN=${x.fanTileId||'-'} · FM=${x.frameTileId||'-'} · CW=${x.crownTileId||'-'} · FT=${x.frontierTileId||'-'} · RL=${x.relayTileId||'-'} · CP=${x.couplerTileId||'-'} · RS=${x.resonatorTileId||'-'} · FG=${x.forgeTileId||'-'} · FD=${x.foundationTileId||'-'} · KN=${x.knotTileId||'-'} · MR=${x.mirrorTileId||'-'} · MT=${x.mintTileId||'-'}`,`Machine Mods: ${x.longRun?'LONG CHAIN':'-'}`,`Endless: ${x.endless.active?`active · phase=${x.endless.phase} · baseComplete=${x.endless.baseComplete?'yes':'no'} · clears=${x.endless.roundsCleared} · endlessStages=${x.endless.endlessStagesCompleted} · hand=${x.endless.handSize}`:x.endless.baseComplete?'available · baseComplete=yes':'off'}`,`Next: ${x.shop.nextType} · open=${x.shop.open?'yes':'no'}${x.shop.open?` (${x.shop.type})`:''}`,`Round clears: ${x.round.clears.map(w=>`R${w.round} target=${w.target} output=${w.output} moves=${w.placements} machine=${w.machineSize} set=${w.setSize} gen=${w.setGeneration||1} reward=${w.reward} upgradeCoins=${w.upgradeCoins||0} anchor=[${w.anchor.a}|${w.anchor.b}]★${w.upgradeTier}`).join(' | ')||'-'}`,''];
     lines.splice(11,0,`System Strain: ${s.systemStrain||0} · Long Chain Endless: ${s.endlessLongRunActivations||0}/${cfg.ENDLESS_LONG_RUN_ACTIVATIONS??7}`);
     lines.splice(13,0,`Mod State: Markets=${s.marketCount||0} · FOUNDATION age=${foundationAgeForTile(s.foundationTileId)} · MINT paidRound=${Number.isInteger(s.mintPaidRound)?s.mintPaidRound+1:'-'}`);
     const tileText=t=>`[${t.a}|${t.b}]${t.powerMultiplier>1?`×${t.powerMultiplier}`:''} id=${t.id}`;
@@ -759,11 +765,12 @@ function createGame(E,opts={}){
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
     s=deepClone(raw);const restoredMode=s.gameMode==='prototype'?'infinite-endless':s.gameMode;s.gameMode=restoredMode||cfg.GAME_MODE||'classic';if(s.gameMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;if(!Number.isInteger(s.mintPaidRound))s.mintPaidRound=null;delete s.zeroMemoryTileId;ensureShopTileOffers();
+    const desiredHandSize=handSizeForRound();if(Array.isArray(s.hand)&&s.hand.length>desiredHandSize){const overflow=s.hand.slice(desiredHandSize).filter(Boolean);s.hand=s.hand.slice(0,desiredHandSize);if(!Array.isArray(s.reserve))s.reserve=[];s.reserve.push(...overflow)}
     const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
     s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,previewPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,previewPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
