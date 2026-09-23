@@ -137,6 +137,20 @@ test('Endless palette softens play surfaces and exposes System Strain prices',as
   await page.locator('#shopButton').click();await expect(page.locator('#machineModStatus')).toBeHidden();await expect(page.locator('.shopInflation')).toHaveText('Inflation 2 · System Strain 3');await expect(page.locator('#shopRandomBuy')).toContainText('6c');expect(await page.locator('#shopRandomBuy').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(229, 227, 220)');await expect(page.locator('[data-shop-item]')).toHaveCount(0);await expect(page.locator('.shopFoot')).toContainText('Undo removes');await page.locator('#overlayPrimary').click();await page.locator('#moveTool').click();await expect(page.locator('#overlayTitle')).toHaveText('BUY +1 MOVE');await expect(page.locator('.toolPurchaseTotal strong')).toHaveText('8c');await expect(page.locator('.toolPurchaseTotal')).toContainText('Strain 3');
 });
 
+test('Infinite Endless final phase uses a real three-tile Hand and deep-red background',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const game=value.createGame(engine,{...options,seed:3761,GAME_MODE:'infinite-endless',INFINITE_ENDLESS:true,INFINITE_BOARD_STAGE_INTERVAL:2,INFINITE_PHASE_AFTER_STAGES:15,INFINITE_HAND_SIZE:3}),s=game.state();s.round=59;s.endlessMode=true;s.standardComplete=true;s.cleared=true;s.intermissionResolved=true;s.shopOpen=false;s.nextShopType='none';if(!game.advance())throw new Error('Infinite phase fixture could not advance to R61');window.__infinitePhaseGame=game;return game}}}})});
+  await page.goto('http://127.0.0.1:4173/');
+  await expect(page.locator('body')).toHaveClass(/endlessPalette/);await expect(page.locator('body')).toHaveClass(/infinitePalette/);
+  await expect(page.locator('#stageRound')).toHaveText('INFINITE · ROUND 1/3 · STRAIN 0');
+  await expect(page.locator('#hand .handSlot')).toHaveCount(3);await expect(page.locator('#hand .domino')).toHaveCount(3);
+  expect(await page.evaluate(()=>window.__infinitePhaseGame.state().hand.length)).toBe(3);
+  expect(await page.evaluate(()=>window.__infinitePhaseGame.snapshot().endless.infinitePhase)).toBe(true);
+  expect(await page.evaluate(()=>window.__infinitePhaseGame.snapshot().boardSize)).toEqual({width:51,height:68});
+  await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe('rgb(53, 11, 9)');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true)
+});
+
 test.describe('Circuit spatial selection',()=>{
   test.use({hasTouch:true,isMobile:true});
   for(const viewport of [{width:390,height:844},{width:375,height:667}])test(`Circuit touch, Undo and rank rendering ${viewport.width}x${viewport.height}`,async({page})=>{
