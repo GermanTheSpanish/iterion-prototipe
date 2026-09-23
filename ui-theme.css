@@ -129,9 +129,13 @@ body[data-stage-round="3"]:not(.endlessPalette){--bg:#cacac2;--paper:#eaeae3;--p
 body.endlessPalette{--bg:#171716;--paper:#20201e;--paper2:#292926;--ink:#f4f4ee;--muted:#aaa9a1;--line:#41413c;color-scheme:dark}
 body.endlessPalette[data-stage-round="2"]{--bg:#0f0f0e;--paper:#191918;--paper2:#222220}
 body.endlessPalette[data-stage-round="3"]{--bg:#080808;--paper:#121211;--paper2:#1b1b19}
+body.infinitePalette{--bg:#350b09;--paper:#43100d;--paper2:#551713;--ink:#f7eee8;--muted:#c8aaa3;--line:#6f2a24;color-scheme:dark}
+body.infinitePalette[data-stage-round="2"]{--bg:#2c0807;--paper:#3b0d0b;--paper2:#4a120f}
+body.infinitePalette[data-stage-round="3"]{--bg:#230605;--paper:#320a08;--paper2:#40100d}
 html,body,.app{transition:background-color .35s ease,color .35s ease}
 body.endlessPalette .modal,body.endlessPalette .gameMenu,body.endlessPalette .runlog{background:var(--paper);color:var(--ink);border-color:var(--line)}
 body.endlessPalette .overlay,body.endlessPalette .gameMenu::backdrop{background:rgba(8,8,8,.9)}
+body.infinitePalette .overlay,body.infinitePalette .gameMenu::backdrop{background:rgba(35,6,5,.92)}
 body.endlessPalette .marketDesc,body.endlessPalette .marketOffer,body.endlessPalette .randomOffer,body.endlessPalette .shopTileOffer{background:var(--paper2);border-color:var(--line)}
 body.endlessPalette .commerceModal .shopBuy{background:#e5e3dc;color:#171715;border-color:#e5e3dc}
 body.endlessPalette .commerceModal .shopBuy:disabled{background:#8a8983;color:#2d2d2a;border-color:#8a8983;opacity:.62}
