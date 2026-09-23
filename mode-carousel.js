@@ -23,7 +23,7 @@
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'The original machine',available:true,kind:'classic'}),
-    Object.freeze({id:'infinite-endless',name:'INFINITE ENDLESS',description:'Classic rules · board grows after Markets',available:true,kind:'infinite'}),
+    Object.freeze({id:'infinite-endless',name:'INFINITE ENDLESS',description:'Classic → Endless · Infinite after 15 Endless stages',available:true,kind:'infinite'}),
     ...Array.from({length:6},(_,i)=>Object.freeze({id:`locked-${i+1}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
