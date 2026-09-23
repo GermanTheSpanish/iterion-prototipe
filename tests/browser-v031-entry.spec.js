@@ -41,7 +41,7 @@ test('game mode carousel keeps its frame, swipes modes and blocks unavailable en
   const frame=await page.locator('#modeCarouselFrame').boundingBox(),viewport=await page.locator('#modeCarouselViewport').boundingBox();expect(frame).toBeTruthy();expect(viewport).toBeTruthy();
   const neighbor=await page.locator('#modeInfiniteEndless').boundingBox();expect(neighbor).toBeTruthy();expect(neighbor.x).toBeLessThan(frame.x+frame.width);expect(neighbor.x+neighbor.width).toBeGreaterThan(frame.x+frame.width);
   await page.mouse.move(viewport.x+viewport.width*.70,viewport.y+viewport.height*.5);await page.mouse.down();await page.mouse.move(viewport.x+viewport.width*.20,viewport.y+viewport.height*.5);await page.mouse.up();
-  await expect(page.locator('#modeName')).toHaveText('INFINITE ENDLESS');await expect(page.locator('#modeDescription')).toHaveText('Classic rules · board grows after Markets');await expect(page.locator('#startRun')).toBeEnabled();
+  await expect(page.locator('#modeName')).toHaveText('INFINITE ENDLESS');await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless · Infinite after 15 Endless stages');await expect(page.locator('#startRun')).toBeEnabled();
   await page.evaluate(()=>window.__monoidModes.select(2));await expect(page.locator('#modeDescription')).toHaveText('Not available');await expect(page.locator('#startRun')).toBeDisabled();
   await page.evaluate(()=>window.__monoidModes.select(1));await page.locator('#startRun').click();await expect(page.locator('#board')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('infinite-endless');
 });
