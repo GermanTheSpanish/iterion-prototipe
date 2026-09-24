@@ -25,6 +25,7 @@ test('Gameplay Exploration V2 gives the board full width and keeps hand dominoes
     expect(box.h/box.w).toBeCloseTo(2,1);
   }
 
+  const header=await page.locator('.handHeader .label').boundingBox(),handBox=await hand.boundingBox();expect(Math.abs((header.x+header.width/2)-(handBox.x+handBox.width/2))).toBeLessThan(2);
   const first=await hand.locator('.handSlot').first().boundingBox();
   const last=await hand.locator('.handSlot').last().boundingBox();
   expect(last.x).toBeGreaterThan(first.x);
