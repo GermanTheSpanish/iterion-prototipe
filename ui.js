@@ -444,7 +444,7 @@
   }
   async function settleCascadeScore(events,baseOutput,finalOutput,fallbackPiece){
     clearTransientFx();board.querySelectorAll('.cascadeSubtotal').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
-    const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,V.CASCADE.contributionLimit),cards=[],allPieceIds=[...new Set(items.flatMap(item=>item.pieceIds||[]))];
+    const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,tutorial?8:V.CASCADE.contributionLimit),cards=[],allPieceIds=[...new Set(items.flatMap(item=>item.pieceIds||[]))];
     let firstCard=null;if(items[0]){firstCard=showCascadeSubtotal(items[0]);cards.push(firstCard);setCascadeHighlight(items[0].pieceIds||[],[])}
     cascadeControl.phase='summary';board.dataset.cascadePhase='summary';
     const subtotalHoldMs=tutorial?240:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:V.CASCADE.resonanceSettleMs,targetSettleMs=tutorial?260:V.CASCADE.targetSettleMs,pathMs=tutorial?0:V.CASCADE.summaryPathMs,segmentMs=tutorial?0:V.CASCADE.summarySegmentMs,resolveMs=tutorial?0:V.CASCADE.summaryResolveMs;
