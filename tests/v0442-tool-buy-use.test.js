@@ -40,7 +40,7 @@ function game(seed=44201){
 
 {
   const g=game(44203),s=g.state(),root=s.set.find(t=>t.id==='d2-2'),p=E.pieceFrom(root,8,10,0,0,1);p.tile={...root};
-  s.pieces=[p];s.placedTileIds=[root.id];s.hand=[s.set.find(t=>t.id==='d0-0'),s.set.find(t=>t.id==='d1-1'),null,null,null];s.reserve=[];s.turn=1;s.roundTurn=1;s.freeReroll=0;s.consumables.reroll=0;s.blocked=true;s.failureReason='no-legal-moves';s.needsReroll=false;s.coins=100;
+  s.pieces=[p];s.placedTileIds=[root.id];s.hand=[s.set.find(t=>t.id==='d0-0'),s.set.find(t=>t.id==='d1-1'),null,null,null];s.reserve=[s.set.find(t=>t.id==='d2-3')];s.turn=1;s.roundTurn=1;s.freeReroll=0;s.consumables.reroll=0;s.blocked=true;s.failureReason='no-legal-moves';s.needsReroll=false;s.coins=100;
   const quote=g.toolPurchaseQuote('reroll',1),coins=s.coins;
   assert.equal(g.recoveryOptions().rerollRescue,true,'blocked no-legal-moves must expose a purchasable Reroll rescue');
   assert.equal(g.canUsePurchasedTool('reroll'),true);
