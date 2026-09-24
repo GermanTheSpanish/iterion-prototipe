@@ -49,7 +49,9 @@ function configureBlockedGame({rerolls,handSize,reserve=[]}){
   assert.equal(s.failureReason,'no-legal-moves');
   assert.equal(s.events.filter(e=>e.type==='reroll'&&e.automatic).length,2);
   const recovery=g.recoveryOptions();
-  assert.equal(recovery.recoverable,false,'Shop and Undo must not turn exhausted no-legal-moves into another confirmation path');
+  assert.equal(recovery.recoverable,true,'an exhausted no-legal-moves state remains recoverable when one Reroll can be purchased');
+  assert.equal(recovery.rerollRescue,true);
+  assert.equal(recovery.toolReroll,true);
   assert.equal(recovery.shopRescue,false);
   assert.equal(recovery.undo,true,'automatic reroll is part of placement resolution and must preserve the prior Undo frame');
 }

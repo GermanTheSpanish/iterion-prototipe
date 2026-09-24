@@ -334,7 +334,10 @@ function createGame(E,opts={}){
     const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger));
     if(isZero(tile))s.roundZero.placed++;
     const generationBefore=s.setGeneration||1;s.hand[i]=drawOne();
-    if((s.setGeneration||1)>generationBefore)fillEmptyHand();
+    if((s.setGeneration||1)>generationBefore){
+      const filled=fillEmptyHand();
+      s.events.push({type:'power-set-hand-refill',round:s.round+1,roundTurn:s.roundTurn+1,generation:s.setGeneration||1,filled,hand:s.hand.filter(Boolean).map(cloneTile)})
+    }
     s.turn++;s.roundTurn++;s.undoFrame=undoFrame;
     if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
     return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,handIndex:i}
@@ -423,13 +426,19 @@ function createGame(E,opts={}){
     return{ok:true,tileId,before,after}
   }
 
-  function canUseReroll(){return !s.pendingCircuit&&!s.pendingModPlacement&&rerollsAvailable()>0&&!s.running&&!s.cleared&&!s.shopOpen&&s.failureReason!=='no-tiles'&&s.failureReason!=='placement-limit'}
+  function canUsePurchasedTool(id){
+    if(id==='reroll')return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.shopOpen&&s.failureReason!=='no-tiles'&&s.failureReason!=='placement-limit';
+    if(id==='move')return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.shopOpen&&!s.needsReroll&&(!s.blocked||s.failureReason==='placement-limit');
+    if(id==='undo')return!!s.undoFrame&&!s.pendingModPlacement&&!s.running&&!s.shopOpen;
+    return false
+  }
+  function canUseReroll(){return rerollsAvailable()>0&&canUsePurchasedTool('reroll')}
   function reroll(){
     const r=applyReroll(false);if(!r.ok)return r;
     const continuation=assessContinuation()||{autoRerolls:0};
     return{...r,autoRerolls:continuation.autoRerolls||0,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason}
   }
-  function canUseMove(){return !s.pendingCircuit&&!s.pendingModPlacement&&(s.consumables?.move||0)>0&&!s.running&&!s.cleared&&!s.shopOpen&&!s.needsReroll&&(!s.blocked||s.failureReason==='placement-limit')}
+  function canUseMove(){return(s.consumables?.move||0)>0&&canUsePurchasedTool('move')}
   function useMove(){
     if(!canUseMove())return{ok:false,reason:'state'};
     s.consumables.move--;s.undoFrame=null;s.extraPlacements++;
@@ -437,7 +446,7 @@ function createGame(E,opts={}){
     s.events.push({type:'consume',round:s.round+1,roundTurn:s.roundTurn,item:'move',remaining:s.consumables.move,maxPlacements:maxPlacements()});
     return{ok:true,maxPlacements:maxPlacements(),remaining:s.consumables.move}
   }
-  function canUndo(){return!!s.undoFrame&&(s.consumables?.undo||0)>0&&!s.pendingModPlacement&&!s.running&&!s.shopOpen}
+  function canUndo(){return(s.consumables?.undo||0)>0&&canUsePurchasedTool('undo')}
   function preserveShopTransactions(frame,current){
     const tail=(current.events||[]).slice((frame.events||[]).length);
     const keptTypes=new Set(['shop-open','shop-buy','tile-buy','shop-close']);
@@ -492,17 +501,17 @@ function createGame(E,opts={}){
   function canBuyTool(id){
     const m=M.get(id);if(!m||m.kind!=='consumable'||s.pendingCircuit||s.pendingModPlacement||s.running||s.cleared||s.shopOpen||s.needsReroll)return false;
     const empty=id==='reroll'?rerollsAvailable()===0:(s.consumables?.[id]||0)===0;if(!empty)return false;
-    if(s.blocked)return id==='move'&&s.failureReason==='placement-limit';
+    if(s.blocked)return(id==='move'&&s.failureReason==='placement-limit')||(id==='reroll'&&s.failureReason==='no-legal-moves');
     return true
   }
-  function buyTool(id,quantity=1){
+  function buyTool(id,quantity=1,meta={}){
     if(!canBuyTool(id))return{ok:false,reason:'state'};
     const quote=toolPurchaseQuote(id,quantity);if(!quote.ok)return quote;if(!quote.canAfford)return{...quote,ok:false,reason:'coins'};
-    const m=M.get(id);for(let i=0;i<quote.quantity;i++){
+    const m=M.get(id),intent=meta?.intent==='buy-use'?'buy-use':'store';for(let i=0;i<quote.quantity;i++){
       const cost=inflationCost(m.cost);s.consumables[id]=(s.consumables[id]||0)+1;const purchase=applyPurchase(cost);
-      s.events.push({type:'shop-buy',round:s.round+1,shop:'tool',item:id,baseCost:m.cost,cost,coins:s.coins,...purchase})
+      s.events.push({type:'shop-buy',round:s.round+1,shop:'tool',item:id,intent,baseCost:m.cost,cost,coins:s.coins,...purchase})
     }
-    return{ok:true,item:id,quantity:quote.quantity,cost:quote.total,total:quote.total,remaining:s.consumables[id],inflation:s.inflation}
+    return{ok:true,item:id,intent,quantity:quote.quantity,cost:quote.total,total:quote.total,remaining:s.consumables[id],inflation:s.inflation}
   }
   function shopRandomPrice(){return inflationCost(cfg.SHOP_RANDOM_TILE_COST||1)}
   function shopTileOfferPrice(){return inflationCost(cfg.SHOP_TILE_OFFER_COST||2)}
@@ -687,9 +696,9 @@ function createGame(E,opts={}){
     const failure=s.needsReroll?'no-legal-moves':s.failureReason,shopAvailable=canOpenShop(),undo=canUndo();
     const ownedReroll=canUseReroll(),ownedMove=failure==='placement-limit'&&canUseMove();
     const toolReroll=canBuyTool('reroll')&&toolPurchaseQuote('reroll',1).canAfford,toolMove=canBuyTool('move')&&toolPurchaseQuote('move',1).canAfford,shopTile=shopAvailable&&s.coins>=shopRandomPrice();
-    const shopRescue=failure==='no-tiles'?shopTile:false,toolRescue=failure==='placement-limit'?toolMove:false;
-    const recoverable=failure==='no-legal-moves'?false:failure==='placement-limit'?(ownedMove||undo||toolRescue):failure==='no-tiles'?(undo||shopRescue):undo;
-    return{recoverable,undo,ownedReroll,ownedMove,shopAvailable,shopRescue,toolRescue,toolReroll,toolMove,shopTile,prices:{reroll:toolPrice('reroll'),move:toolPrice('move'),undo:toolPrice('undo'),randomTile:shopRandomPrice()}}
+    const shopRescue=failure==='no-tiles'?shopTile:false,toolRescue=failure==='placement-limit'?toolMove:false,rerollRescue=failure==='no-legal-moves'?toolReroll:false;
+    const recoverable=failure==='no-legal-moves'?rerollRescue:failure==='placement-limit'?(ownedMove||undo||toolRescue):failure==='no-tiles'?(undo||shopRescue):undo;
+    return{recoverable,undo,ownedReroll,ownedMove,shopAvailable,shopRescue,toolRescue,rerollRescue,toolReroll,toolMove,shopTile,prices:{reroll:toolPrice('reroll'),move:toolPrice('move'),undo:toolPrice('undo'),randomTile:shopRandomPrice()}}
   }
 
   function snapshot(){
@@ -734,6 +743,7 @@ function createGame(E,opts={}){
     for(const v of x.turns){
       if(v.type==='signal-resolution'){lines.push(`T${v.move} SIGNAL TREE splits=${v.splitCount} base=${v.baseOutput} selection=${v.selectionOutput??v.baseOutput} trace=${JSON.stringify(v.events)}`);continue}
       if(v.type==='power-set'){lines.push(`R${v.round} POWER SET ${v.generation} UNLOCKED size=${v.size} power=x${v.powerMultiplier} source=${v.source}`);continue}
+      if(v.type==='power-set-hand-refill'){lines.push(`R${v.round} POWER SET ${v.generation} HAND REFILL +${v.filled} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
       if(v.type==='round-reroll'){lines.push(`R${v.round} FREE REROLL +${v.granted}${v.replaced?` refresh=${v.replaced}>${v.granted}`:''}`);continue}
       if(v.type==='circuit-check'){lines.push(`R${v.round} CIRCUIT NONE move=${v.move}`);continue}
       if(v.type==='circuit-closed'){lines.push(`R${v.round} CIRCUIT CLOSED size=${v.size} reward=+${v.reward} limit=${v.circuitTileLimit||cfg.CIRCUIT_TILE_LIMIT} signature=${v.signature} eligible=${v.eligibleTileIds.join(',')||'-'} unavailable=${v.unavailable||'no'}`);continue}
@@ -755,7 +765,7 @@ function createGame(E,opts={}){
       if(v.type==='stage-start'){lines.push(`STAGE ${v.stage} START R${v.round} coins=${v.coins} inflation=${v.inflation} available=${v.available} board=${v.board.join('x')} freeReroll=${v.freeReroll||0} generation=${v.setGeneration||1}`);continue}
       if(v.type==='shop-scheduled'){lines.push(`R${v.round} NEXT ${v.shop.toUpperCase()}`);continue}
       if(v.type==='shop-open'){lines.push(`R${v.round} ${v.shop.toUpperCase()} OPEN coins=${v.coins} inflation=${v.inflation} available=${v.available}${v.offers?.length?` offers=${v.offers.join(',')}`:''}`);continue}
-      if(v.type==='shop-buy'){lines.push(`R${v.round} SHOP BUY ${v.item} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}`);continue}
+      if(v.type==='shop-buy'){lines.push(`R${v.round} SHOP BUY ${v.item} intent=${v.intent||'store'} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}`);continue}
       if(v.type==='tile-buy'){lines.push(`R${v.round} ${v.shop.toUpperCase()} ${v.mode.toUpperCase()} [${v.tile.a}|${v.tile.b}]${v.tile.powerMultiplier>1?`×${v.tile.powerMultiplier}`:''} id=${v.tile.id} delivery=${v.delivery||'-'} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}`);continue}
       if(v.type==='double-double'){lines.push(`R${v.round} MARKET DOUBLE DOUBLE [${v.tile.a}|${v.tile.b}] id=${v.tile.id} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
       if(v.type==='market-mod-buy'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} PURCHASE -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.pending?' target=PENDING':' machine=INSTALLED'}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
@@ -782,7 +792,7 @@ function createGame(E,opts={}){
     s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,previewPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,previewPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
