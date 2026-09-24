@@ -55,7 +55,7 @@ test('Classic R14 QA link exposes Phase A late-game states without touching the 
   await assertRealSaveSurvived(page)
 });
 
-test('Infinite Endless R16 QA link keeps the base board, Endless and POWER x3 without touching the saved run',async({page},testInfo)=>{
+test('Endless R16 QA link keeps the base board and POWER x3 inside Classic progression',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await seedRealSave(page);
   await page.goto(`${BASE}?qa=infinite16&ci=1`);
   await assertLateGameSurface(page,'infinite16');
@@ -63,7 +63,7 @@ test('Infinite Endless R16 QA link keeps the base board, Endless and POWER x3 wi
   await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('125B');
   await expect(page.locator('body')).toHaveClass(/endlessPalette/);
   await expect.poll(()=>page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(41, 41, 39)');
-  expect(await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,model:window.__monoidGame.state().scoringModel??null,active:window.__monoidActiveMode,generation:window.__monoidGame.state().setGeneration,board:window.__monoidGame.snapshot().boardSize}))).toEqual({mode:'infinite-endless',model:null,active:'infinite-endless',generation:3,board:{width:30,height:40}});
+  expect(await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,model:window.__monoidGame.state().scoringModel??null,active:window.__monoidActiveMode,generation:window.__monoidGame.state().setGeneration,board:window.__monoidGame.snapshot().boardSize}))).toEqual({mode:'classic',model:null,active:'classic',generation:3,board:{width:30,height:40}});
   expect(await page.locator('#board .power3').count()).toBeGreaterThanOrEqual(5);
   const normalPower=page.locator('#board .power3:not(.circuitTile)').first();
   const circuitPower=page.locator('#board .power3.circuitTile').first();
@@ -74,7 +74,31 @@ test('Infinite Endless R16 QA link keeps the base board, Endless and POWER x3 wi
   if(await circuitPower.count()){
     expect(await circuitPower.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(44, 32, 51)')
   }
-  await page.screenshot({path:testInfo.outputPath('qa-infinite-endless-r16.png'),fullPage:true});
+  await page.screenshot({path:testInfo.outputPath('qa-endless-r16.png'),fullPage:true});
+  await assertRealSaveSurvived(page)
+});
+
+
+test('Germán Run #9 checkpoint resumes the real machine at Endless start without touching the saved run',async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});await seedRealSave(page);
+  await page.goto(`${BASE}?qa=german9Endless&ci=1`);
+  await expect(page.locator('body')).toHaveAttribute('data-qa-preset','german9Endless');
+  await expect(page.locator('.app')).toBeVisible({timeout:12000});
+  await expect(page.locator('#board .piece')).toHaveCount(33);
+  await expect(page.locator('#roundstat')).toHaveText('16/∞');await expect(page.locator('#stagestat')).toHaveText('6/∞');
+  await expect(page.locator('#stageRound')).toContainText('ENDLESS');await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('0');
+  await expect(page.locator('#board .tileModMark.zp')).toHaveCount(1);
+  await expect(page.locator('#board .tileModMark.br')).toHaveCount(1);
+  await expect(page.locator('#board .tileModMark.fm')).toHaveCount(1);
+  await expect(page.locator('#board .tileModMark.cw')).toHaveCount(1);
+  await expect(page.locator('#board .tileModMark.fd')).toHaveCount(1);
+  await expect(page.locator('#board .circuitTile')).toHaveCount(3);
+  expect(await page.locator('#board .power2').count()).toBeGreaterThanOrEqual(5);
+  await expect(page.locator('#machineModStatus')).toBeHidden();
+  const state=await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),x=g.snapshot();return{mode:s.gameMode,source:window.__monoidQa?.sourceRunId,pieces:s.pieces.length,hand:s.hand.map(t=>t.id),coins:s.coins,inflation:s.inflation,markets:s.marketCount,board:x.boardSize,phase:x.endless.phase,generation:s.setGeneration}});
+  expect(state).toEqual({mode:'classic',source:'mudyrg2r-1960frf',pieces:33,hand:['g2-d1-6','g2-d0-5','g2-d0-6','g2-d1-2','g2-d4-5'],coins:35,inflation:9,markets:5,board:{width:30,height:40},phase:'endless',generation:2});
+  await page.locator('#menuButton').click();await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');await page.locator('#closeMenu').click();
+  await page.screenshot({path:testInfo.outputPath('qa-german-run9-endless-start.png'),fullPage:true});
   await assertRealSaveSurvived(page)
 });
 
@@ -90,7 +114,8 @@ test('PWA menu opens QA test runs and returns to the untouched saved run',async(
   await page.locator('#qaTestRunsButton').click();
   await expect(page.locator('#qaTestRunsDialog')).toBeVisible();
   await expect(page.locator('#qaTestRunsDialog')).toContainText('CLASSIC · ROUND 14');
-  await expect(page.locator('#qaTestRunsDialog')).toContainText('INFINITE ENDLESS · ROUND 16');
+  await expect(page.locator('#qaTestRunsDialog')).toContainText('ENDLESS · ROUND 16');
+  await expect(page.locator('#qaTestRunsDialog')).toContainText('GERMÁN RUN #9 · ENDLESS START');
   await page.locator('[data-qa-preset="classic14"]').click();
   await expect(page.locator('body')).toHaveAttribute('data-qa-preset','classic14',{timeout:12000});
   expect(await page.evaluate(()=>window.__monoidQa?.savedRunProtected)).toBe(true);
