@@ -66,7 +66,8 @@ function create(seed=3401,extra={}){
   assert.strictEqual(game.canUseMove(),true);
 
   const other=create(3405);other.s.blocked=true;other.s.failureReason='no-legal-moves';other.s.freeReroll=0;other.s.consumables.reroll=0;
-  assert.strictEqual(other.game.canBuyTool('reroll'),false,'terminal no-legal-moves cannot be reopened by buying Rerolls');
+  assert.strictEqual(other.game.canBuyTool('reroll'),true,'no-legal-moves can be rescued only by an explicit Reroll purchase');
+  assert.strictEqual(other.game.recoveryOptions().rerollRescue,true);
 }
 
 {
@@ -76,7 +77,8 @@ function create(seed=3401,extra={}){
   assert.match(ui,/data-tool-qty="up"/);
   assert.match(ui,/data-tool-qty="down"/);
   assert.match(ui,/GAME\.toolPurchaseQuote\(id,qty\)/);
-  assert.match(ui,/GAME\.buyTool\(id,qty\)/);
+  assert.match(ui,/GAME\.buyTool\(id,quantity,\{intent:'store'\}\)/);
+  assert.match(ui,/GAME\.buyTool\(id,1,\{intent:'buy-use'\}\)/);
   assert.match(ui,/moveBtn\.onclick=activateMove;rerollBtn\.onclick=activateReroll;undoBtn\.onclick=activateUndo/);
 }
 
