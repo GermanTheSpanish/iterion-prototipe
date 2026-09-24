@@ -15,7 +15,7 @@ function replay(pieces,modId,pieceId,{value=2,circuitRank=0}={}){
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s}
 
-assert.equal(D.VERSION,'0.43.0');
+assert.equal(D.VERSION,'0.44.0');
 assert.deepEqual([D.RELAY_MOD_MULTIPLIER,D.COUPLER_MOD_MULTIPLIER,D.RESONATOR_LOW_MOD_MULTIPLIER,D.RESONATOR_HIGH_MOD_MULTIPLIER,D.FORGE_LOW_MOD_MULTIPLIER,D.FORGE_HIGH_MOD_MULTIPLIER],[3,2,2,3,2,3]);
 assert.deepEqual(['relay','coupler','resonator','forge'].map(id=>M.get(id).collectionCode),['RL','CP','RS','FG']);
 
@@ -60,4 +60,4 @@ assert.deepEqual(['relay','coupler','resonator','forge'].map(id=>M.get(id).colle
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
 assert.doesNotMatch(engineSource,/circuitRanks\.set|tile\.upgrade\s*[+\-]?=/,'Batch C scoring must observe Circuit/Stars without mutating them');
-console.log('v0.43.0 Batch C system synergy Mod regressions passed');
+console.log('v0.44.0 Batch C system synergy Mod regressions passed');
