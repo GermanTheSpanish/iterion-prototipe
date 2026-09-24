@@ -49,7 +49,7 @@ check('Score stays absolute near Target and becomes a red-eligible Target multip
   assert.deepEqual(V.progressState(100000,100),{stage:'overdrive',progress:1,next:'×1,000 TARGET'});
 });
 check('cascade display timings keep arithmetic fleeting and topology readable',()=>{
-  assert.equal(V.CASCADE.operationFlashMs,380);assert.equal(V.CASCADE.structuralFxMs,1520);
+  assert.equal(V.CASCADE.operationFlashMs,520);assert.equal(V.CASCADE.structuralFxMs,1520);
 });
 check('cascade settlement pacing keeps readable handoff time without changing arithmetic',()=>{
   assert.equal(V.CASCADE.subtotalHoldMs,720);assert.equal(V.CASCADE.settleItemMs,620);assert.equal(V.CASCADE.targetSettleMs,780);assert.equal(V.CASCADE.resonanceSettleMs,760);assert.equal(V.CASCADE.summaryPathMs,180);assert.equal(V.CASCADE.summarySegmentMs,160);assert.equal(V.CASCADE.summaryResolveMs,120);assert.equal(V.CASCADE.finalHoldMs,320);assert(V.CASCADE.targetSettleMs>V.CASCADE.settleItemMs);assert(V.CASCADE.targetSettleMs<1000);
