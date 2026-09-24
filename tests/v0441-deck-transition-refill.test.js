@@ -87,6 +87,11 @@ function crossGeneration(game){
   assert.equal(s.freeReroll,beforeFree,'deck transition refill must not consume the free Reroll');
   assert.equal(s.consumables.reroll,beforeStored,'deck transition refill must not consume a stored Reroll');
   assert.equal(s.events.filter(e=>e.type==='reroll').length,0,'deck transition refill is not a Reroll');
+  const refill=s.events.find(e=>e.type==='power-set-hand-refill');
+  assert(refill,'debug events must record the automatic new-deck Hand refill');
+  assert.equal(refill.generation,2);
+  assert.equal(refill.filled,game.handSizeForRound()-1);
+  assert.match(game.debugText(),/POWER SET 2 HAND REFILL/);
   assert.equal(s.cleared,false,'refill must not depend on reaching the Target');
   assertUniquePhysicalLocations(s);
 }

@@ -52,7 +52,7 @@ check('cascade display timings keep arithmetic fleeting and topology readable',(
   assert.equal(V.CASCADE.operationFlashMs,380);assert.equal(V.CASCADE.structuralFxMs,1520);
 });
 check('cascade settlement pacing keeps readable handoff time without changing arithmetic',()=>{
-  assert.equal(V.CASCADE.subtotalHoldMs,720);assert.equal(V.CASCADE.settleItemMs,620);assert.equal(V.CASCADE.resonanceSettleMs,760);
+  assert.equal(V.CASCADE.subtotalHoldMs,720);assert.equal(V.CASCADE.settleItemMs,620);assert.equal(V.CASCADE.targetSettleMs,780);assert.equal(V.CASCADE.resonanceSettleMs,760);assert.equal(V.CASCADE.finalHoldMs,320);assert(V.CASCADE.targetSettleMs>V.CASCADE.settleItemMs);assert(V.CASCADE.targetSettleMs<1000);
 });
 check('cascade settlement uses terminal additive branches and preserves exact output',()=>{
   const ps=[[3,3,12,14,0],[5,3,8,14,0],[3,4,16,14,0],[5,5,6,13,1],[2,5,6,9,1],[5,4,6,17,1],[3,2,13,16,1]].map(([a,b,x,y,r],i)=>{const p=E.pieceFrom({a,b},x,y,0,r,i+1);p.tile={a,b,id:'p'+i};return p});
@@ -60,7 +60,7 @@ check('cascade settlement uses terminal additive branches and preserves exact ou
   assert(items.length>1,'split/echo fixture should expose more than one truthful contribution');
   assert.equal(items.reduce((sum,item)=>sum+item.output,0),r.output);
   assert(items.some(item=>item.family==='main'));assert(items.some(item=>item.family==='echo'));
-  assert(items.every(item=>Number.isFinite(item.output)&&item.label));
+  assert(items.every(item=>Number.isFinite(item.output)&&item.label&&Array.isArray(item.pieceIds)&&item.pieceIds.length>0),'each visible contribution must carry the physical branch it represents');
 });
 check('cascade settlement labels Triple Double arms A/B/C and falls back instead of lying',()=>{
   const events=[
@@ -70,7 +70,7 @@ check('cascade settlement labels Triple Double arms A/B/C and falls back instead
     {type:'signal-start',fork:9,arm:2,output:10},{type:'op',piece:3,exitHalf:1,after:40},{type:'signal-end',fork:9,arm:2,output:40},
     {type:'signal-join',piece:9,output:90}
   ];
-  const items=V.cascadeSettlementPlan(events,90,9,8);assert.deepEqual(items.map(item=>item.label),['MAIN A','MAIN B','MAIN C']);assert.equal(items.reduce((sum,item)=>sum+item.output,0),90);
-  const fallback=V.cascadeSettlementPlan(events,91,9,8);assert.equal(fallback.length,1);assert.equal(fallback[0].label,'RESULT');assert.equal(fallback[0].output,91);assert.equal(fallback[0].fallback,true);
+  const items=V.cascadeSettlementPlan(events,90,9,8);assert.deepEqual(items.map(item=>item.label),['MAIN A','MAIN B','MAIN C']);assert.equal(items.reduce((sum,item)=>sum+item.output,0),90);assert.deepEqual(items.map(item=>item.pieceIds),[[9,1],[9,2],[9,3]]);
+  const fallback=V.cascadeSettlementPlan(events,91,9,8);assert.equal(fallback.length,1);assert.equal(fallback[0].label,'RESULT');assert.equal(fallback[0].output,91);assert.equal(fallback[0].fallback,true);assert.deepEqual(fallback[0].pieceIds.sort((x,y)=>x-y),[1,2,3,9]);
 });
 console.log(`${checks} presentation behavioural checks passed`);

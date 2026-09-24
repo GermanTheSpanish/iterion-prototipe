@@ -9,7 +9,7 @@
   const UNITS=['M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
   // Hold the opening activations long enough to teach the arithmetic, then accelerate.
   // The tail still reaches the historic 60 ms floor so large Endless machines stay practical.
-  const CASCADE=Object.freeze({introMs:Object.freeze([600,600,560,520,480,440]),tailMs:320,minMs:60,decay:0.70,maxLabels:8,retainedLabels:10,settleMs:300,resolveHoldMs:190,resolveFadeMs:180,finalMs:500,scoreTweenMs:520,subtotalHoldMs:720,settleItemMs:620,resonanceSettleMs:760,operationFlashMs:380,structuralFxMs:1520,contributionLimit:8});
+  const CASCADE=Object.freeze({introMs:Object.freeze([600,600,560,520,480,440]),tailMs:320,minMs:60,decay:0.70,maxLabels:8,retainedLabels:10,settleMs:300,resolveHoldMs:190,resolveFadeMs:180,finalMs:500,scoreTweenMs:520,subtotalHoldMs:720,settleItemMs:620,targetSettleMs:780,resonanceSettleMs:760,finalHoldMs:320,skipDebounceMs:120,operationFlashMs:380,structuralFxMs:1520,contributionLimit:8});
   function exact(value){return Number.isFinite(value)?Math.round(value).toLocaleString('en-US',{maximumFractionDigits:0}):String(value)}
   function scaledText(value){const decimals=value<10?2:value<1000?1:0,rounded=Number(value.toFixed(decimals));return rounded.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:decimals})}
   function compact(value){if(!Number.isFinite(value))return String(value);const whole=Math.round(value),sign=whole<0?'-':'',n=Math.abs(whole);if(n<1000000)return exact(whole);let tier=0;while(tier<UNITS.length-1&&n>=100*(10**(6+3*(tier+1))))tier++;const divisor=10**(6+3*tier),scaled=n/divisor;if(tier===UNITS.length-1&&scaled>=100000)return whole.toExponential(2).replace(/\.00e/,'e').replace(/(\.\d)0e/,'$1e').replace('e+','e');return sign+scaledText(scaled)+UNITS[tier]}
@@ -23,11 +23,11 @@
   function forkBlock(events,start){const fork=events[start].piece,branches=[];let i=start+1;while(i<events.length){const e=events[i];if(e.type==='signal-start'&&e.fork===fork){let j=i+1;while(j<events.length&&!(events[j].type==='signal-end'&&events[j].fork===fork&&events[j].arm===e.arm))j++;if(j>=events.length)return null;branches.push({arm:e.arm,events:events.slice(i+1,j),end:events[j]});i=j+1;continue}if(e.type==='signal-join'&&e.piece===fork)return{branches:branches.sort((a,b)=>a.arm-b.arm),join:e,next:i+1};i++}return null}
   function armLabel(arm){arm=Math.max(0,Math.floor(Number(arm)||0));return arm<26?String.fromCharCode(65+arm):String(arm+1)}
   function terminalContributions(events,family='main',path='',fallbackOutput=0,fallbackPiece=null){
-    events=Array.isArray(events)?events:[];let lastOp=null,hadFork=false,opAfterFork=false;const leaves=[];
+    events=Array.isArray(events)?events:[];let lastOp=null,hadFork=false,opAfterFork=false;const leaves=[],localPieces=new Set(fallbackPiece==null?[]:[fallbackPiece]);
     for(let i=0;i<events.length;i++){
-      const e=events[i];
+      const e=events[i];if(e?.piece!=null&&['op','move','rebound','zero-port'].includes(e.type))localPieces.add(e.piece);
       if(e.type==='signal-fork'){
-        const block=forkBlock(events,i);if(!block)continue;hadFork=true;
+        const block=forkBlock(events,i);if(!block)continue;hadFork=true;localPieces.add(e.piece);
         for(const branch of block.branches){const childPath=path+(path?'.':'')+armLabel(branch.arm);leaves.push(...terminalContributions(branch.events,family,childPath,branch.end?.output,e.piece))}
         i=block.next-1;continue
       }
@@ -36,14 +36,14 @@
     if(hadFork&&!opAfterFork&&leaves.length)return leaves;
     const fallback=Number(fallbackOutput),opOutput=Number(lastOp?.after),output=Number.isFinite(fallback)?fallback:opOutput;
     if(!Number.isFinite(output))return[];
-    return[{family,path,output,piece:lastOp?.piece??fallbackPiece??null,half:lastOp?.exitHalf??null}]
+    return[{family,path,output,piece:lastOp?.piece??fallbackPiece??null,half:lastOp?.exitHalf??null,pieceIds:[...localPieces]}]
   }
   function contributionLabel(item){if(item?.label)return item.label;const prefix=item?.family==='echo'?'ECHO':item?.family==='main'?'MAIN':'OTHER';return item?.path?`${prefix} ${item.path}`:prefix}
   function groupCascadeContributions(items,max=CASCADE.contributionLimit){
-    const input=(items||[]).map((item,index)=>({...item,order:index})).filter(item=>Number.isFinite(Number(item.output)));max=Math.max(2,Math.floor(Number(max)||CASCADE.contributionLimit));
+    const input=(items||[]).map((item,index)=>({...item,order:index,pieceIds:[...new Set(item.pieceIds||[])]})).filter(item=>Number.isFinite(Number(item.output)));max=Math.max(2,Math.floor(Number(max)||CASCADE.contributionLimit));
     if(input.length<=max)return input.map(item=>({...item,label:contributionLabel(item)}));
     const ranked=[...input].sort((a,b)=>Math.abs(Number(b.output))-Math.abs(Number(a.output))||a.order-b.order),keep=new Set(ranked.slice(0,max-1).map(item=>item.order));
-    const kept=input.filter(item=>keep.has(item.order)),rest=input.filter(item=>!keep.has(item.order)),other={family:'other',path:'',label:`OTHER ×${rest.length}`,output:rest.reduce((sum,item)=>sum+Number(item.output),0),piece:null,half:null,order:Math.max(...input.map(item=>item.order))+1,grouped:true};
+    const kept=input.filter(item=>keep.has(item.order)),rest=input.filter(item=>!keep.has(item.order)),other={family:'other',path:'',label:'OTHER ×'+rest.length,output:rest.reduce((sum,item)=>sum+Number(item.output),0),piece:null,half:null,pieceIds:[...new Set(rest.flatMap(item=>item.pieceIds||[]))],order:Math.max(...input.map(item=>item.order))+1,grouped:true};
     return[...kept,other].sort((a,b)=>a.order-b.order).map(item=>({...item,label:contributionLabel(item)}))
   }
   function cascadeSettlementPlan(events,output,fallbackPiece=null,max=CASCADE.contributionLimit){
@@ -51,7 +51,7 @@
     if(plan.result){items.push(...terminalContributions(plan.main,'main','',plan.result.mainOutput,fallbackPiece));items.push(...terminalContributions(plan.echo,'echo','',plan.result.echoOutput,plan.result.piece??fallbackPiece))}
     else items.push(...terminalContributions(plan.main,'main','',target,fallbackPiece));
     items=groupCascadeContributions(items,max);const sum=items.reduce((total,item)=>total+Number(item.output),0),tolerance=Math.max(1,Math.abs(target))*1e-9;
-    if(!items.length||Math.abs(sum-target)>tolerance)return[{family:'main',path:'',label:'RESULT',output:target,piece:fallbackPiece,half:null,order:0,fallback:true}];
+    if(!items.length||Math.abs(sum-target)>tolerance){const pieceIds=[...new Set((events||[]).map(e=>e?.piece).filter(id=>id!=null))];if(!pieceIds.length&&fallbackPiece!=null)pieceIds.push(fallbackPiece);return[{family:'main',path:'',label:'RESULT',output:target,piece:fallbackPiece,half:null,pieceIds,order:0,fallback:true}]}
     return items
   }
   function progressState(score,target){score=Math.max(0,Number(score)||0);target=Math.max(1,Number(target)||1);const ratio=score/target;if(score<target)return{stage:'target',progress:Math.max(0,Math.min(1,ratio)),next:'TARGET'};return{stage:ratio>=1000?'overdrive':'clear',progress:1,next:`×${multiplierText(ratio)} TARGET`}}
@@ -108,9 +108,12 @@
       .signalValue[data-lane*="."]{display:grid!important;grid-template-columns:auto!important;gap:1px!important;padding:2px 4px!important;border:1px solid rgba(21,21,21,.2)!important;background:rgba(251,250,246,.94)!important}
       .signalValue[data-lane*="."] small{display:block!important;font-size:7px!important;line-height:1!important}.signalValue[data-lane*="."] strong{display:none!important}.signalValue[data-lane*="."] span{border:0!important;background:transparent!important;padding:0!important;font-size:10px!important;line-height:1.1!important}
       .signalValue.cascadeActive{animation:cascadeChipIn 100ms ease-out both!important}
-      .opfx.operationFlash{z-index:42!important;font-size:22px!important;font-weight:850!important;line-height:1!important;letter-spacing:-.035em!important;white-space:nowrap!important;animation:cascadeOperationFlash var(--cascade-flash-ms,380ms) ease-out both!important}
-      .opfx.operationFlash.add{color:#fff!important;-webkit-text-stroke:1.45px #151515!important}
-      .opfx.operationFlash.multiply{color:#151515!important;-webkit-text-stroke:2.25px #fff!important}
+      .board.cascadeSummaryMode .piece{transition:opacity 160ms ease,filter 160ms ease,box-shadow 160ms ease!important}
+      .board.cascadeSummaryMode .piece.cascadeSummaryDim{opacity:.26!important;filter:brightness(.90)!important}
+      .board.cascadeSummaryMode .piece.cascadeSummaryActive{opacity:1!important;filter:brightness(1.06)!important;box-shadow:0 0 7px rgba(255,255,255,.42)!important}
+      .opfx.operationFlash{z-index:42!important;font-size:22px!important;font-weight:850!important;line-height:1!important;letter-spacing:-.035em!important;white-space:nowrap!important;-webkit-text-stroke:0!important;text-shadow:0 1px 2px rgba(0,0,0,.52),0 0 4px rgba(0,0,0,.18)!important;animation:cascadeOperationFlash var(--cascade-flash-ms,380ms) linear both!important}
+      .opfx.operationFlash.add{color:#fff!important}
+      .opfx.operationFlash.multiply{color:#151515!important;text-shadow:0 1px 2px rgba(255,255,255,.58),0 0 4px rgba(255,255,255,.24)!important}
       .opfx.cascadeStructural{z-index:43!important;width:max-content!important;max-width:calc(100% - 16px)!important;padding:5px 8px!important;border:1px solid rgba(21,21,21,.28)!important;border-radius:4px!important;background:rgba(251,250,246,.96)!important;color:#20201d!important;font-size:15px!important;font-weight:850!important;line-height:1!important;letter-spacing:.055em!important;text-transform:uppercase!important;-webkit-text-stroke:0!important;box-shadow:none!important;animation:structuralHold var(--cascade-structure-ms,1520ms) ease-out both!important}
       .opfx.cascadeStructural.echoLane{border-style:dashed!important}
       .signalValue.echoLane{border-style:dashed!important;opacity:.88}.joinFx{font-size:15px!important;background:rgba(251,250,246,.96)!important;box-shadow:none!important;padding:5px 8px!important;border:1px solid rgba(21,21,21,.26)!important}
@@ -119,7 +122,7 @@
       .cascadeSubtotal.cascadeToScore{animation:cascadeScoreOut 220ms ease-in both!important}
       @keyframes cascadeChipIn{from{opacity:0;transform:translate(-50%,-50%) scale(.84)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
       @keyframes cascadeScoreOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-68%) scale(.88)}}
-      @keyframes cascadeOperationFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.78)}14%,82%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-64%) scale(.96)}}
+      @keyframes cascadeOperationFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.78)}12%,48%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-64%) scale(.96)}}
       @keyframes structuralHold{0%{opacity:0;transform:translate(-50%,-50%) scale(.88)}8%,88%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-56%) scale(.98)}}
       .scoreProgress{display:block;margin-top:2px;height:11px;position:relative}.scoreProgressTrack{display:block;height:3px;background:#dddcd6;overflow:hidden}.scoreProgressFill{display:block;height:100%;width:0;background:#393934;transition:width .22s linear,background-color .22s ease}.scoreProgressNext{display:block;margin-top:1px;text-align:right;font:650 7px/1.1 ui-monospace,monospace;letter-spacing:.05em;color:#858078}
       .scoreProgress[data-stage="clear"] .scoreProgressFill{background:#6e6b63}
