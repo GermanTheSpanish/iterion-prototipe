@@ -447,7 +447,7 @@
     const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,V.CASCADE.contributionLimit),cards=[],allPieceIds=[...new Set(items.flatMap(item=>item.pieceIds||[]))];
     let firstCard=null;if(items[0]){firstCard=showCascadeSubtotal(items[0]);cards.push(firstCard);setCascadeHighlight(items[0].pieceIds||[],[])}
     cascadeControl.phase='summary';board.dataset.cascadePhase='summary';
-    const subtotalHoldMs=tutorial?240:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:V.CASCADE.resonanceSettleMs,targetSettleMs=tutorial?260:V.CASCADE.targetSettleMs,pathMs=tutorial?70:V.CASCADE.summaryPathMs,segmentMs=tutorial?60:V.CASCADE.summarySegmentMs,resolveMs=tutorial?50:V.CASCADE.summaryResolveMs;
+    const subtotalHoldMs=tutorial?240:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:V.CASCADE.resonanceSettleMs,targetSettleMs=tutorial?260:V.CASCADE.targetSettleMs,pathMs=tutorial?0:V.CASCADE.summaryPathMs,segmentMs=tutorial?0:V.CASCADE.summarySegmentMs,resolveMs=tutorial?0:V.CASCADE.summaryResolveMs;
     await cascadeWait(subtotalHoldMs,'summary');
     const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
     let running=0;const target=GAME.target();

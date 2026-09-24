@@ -180,7 +180,7 @@ test('Cascade tap advances only one presentation phase and branch summary highli
   await page.mouse.click(12,12);
   await page.waitForFunction(()=>window.__monoidCascade?.phase==='summary');
   expect(await page.evaluate(()=>window.__monoidCascade.skipCascade)).toBe(true);
-  const focus=await page.evaluate(()=>{const path=[...document.querySelectorAll('#board .cascadeSummaryPath')],active=[...document.querySelectorAll('#board .cascadeSummaryActive')],dim=[...document.querySelectorAll('#board .cascadeSummaryDim')];return{path:path.length,active:active.length,dim:dim.length,pathOpacity:path[0]?Number(getComputedStyle(path[0]).opacity):null,dimOpacity:dim[0]?Number(getComputedStyle(dim[0]).opacity):null}});
+  await page.waitForTimeout(180);const focus=await page.evaluate(()=>{const path=[...document.querySelectorAll('#board .cascadeSummaryPath')],active=[...document.querySelectorAll('#board .cascadeSummaryActive')],dim=[...document.querySelectorAll('#board .cascadeSummaryDim')];return{path:path.length,active:active.length,dim:dim.length,pathOpacity:path[0]?Number(getComputedStyle(path[0]).opacity):null,dimOpacity:dim[0]?Number(getComputedStyle(dim[0]).opacity):null}});
   expect(focus.path+focus.active).toBeGreaterThan(0);expect(focus.dim).toBeGreaterThan(0);if(focus.pathOpacity!=null)expect(focus.pathOpacity).toBeLessThanOrEqual(.53);expect(focus.dimOpacity).toBeLessThanOrEqual(.1);
   const during=await page.evaluate(()=>({turn:window.__frictionGame.state().turn,extra:window.__frictionGame.state().extraPlacements,events:window.__frictionGame.state().events.filter(e=>Number.isInteger(e.turn)).length}));
   expect(during).toEqual(before);
