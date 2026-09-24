@@ -36,7 +36,7 @@ async function assertLateGameSurface(page,id,{expectZp=2,minPieces=19,minPower=5
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260924.1');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260924.2');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
