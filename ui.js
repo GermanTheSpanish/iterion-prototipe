@@ -205,7 +205,7 @@
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
   function openPermanentShop(){shopRevealTile=null;if(!GAME.openShop()){toast('Tile Shop unavailable');return}persistGame();render()}
   function openToolPurchase(id,options={}){
-    if(!GAME.canBuyTool(id)){toast(\`\${M.get(id)?.name||'Tool'} purchase unavailable\`);return}
+    if(!GAME.canBuyTool(id)){toast(`${M.get(id)?.name||'Tool'} purchase unavailable`);return}
     returnFocus=id==='move'?moveBtn:id==='reroll'?rerollBtn:undoBtn;press.cancel();auxOverlay={type:'tool-buy',id,quantity:1,preferUse:!!options.preferUse};renderAuxOverlay()
   }
   function activateMove(){if(GAME.canUseMove())useMove();else if(GAME.canBuyTool('move'))openToolPurchase('move');else toast('Move unavailable')}
@@ -219,7 +219,7 @@
   function renderScoreDetails(){const s=GAME.state(),isTarget=auxOverlay.kind==='target',target=GAME.target(),value=isTarget?target:s.score,display=V.scoreDisplay(s.score,target),multiplier=!isTarget&&s.score>=target?`<p class="scoreMultiplierDetail${display.overdrive?' overdrive':''}">TARGET ×${escapeHtml(display.multiplier)}</p>`:'';overlayTitle.textContent=isTarget?'TARGET':'SCORE';overlayBody.innerHTML=`<div class="scoreExact${!isTarget&&display.overdrive?' overdrive':''}">${escapeHtml(V.exact(value))}</div>${multiplier}<p>${isTarget?'Reach or exceed this value to clear the round.':'Result of the last Move, including Echo and Circuit Resonance. It is not a running total.'}</p><p>K = thousand · M = million<br>B = billion · T = trillion</p>`;overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay}
   function buyToolOnly(id,quantity=1){
     const m=M.get(id),r=GAME.buyTool(id,quantity,{intent:'store'});if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase unavailable');renderAuxOverlay();return false}
-    persistGame();auxOverlay=null;toast(\`\${m?.name||id} ×\${r.quantity} stored · Inflation \${r.inflation}\`);render();return true
+    persistGame();auxOverlay=null;toast(`${m?.name||id} ×${r.quantity} stored · Inflation ${r.inflation}`);render();return true
   }
   async function buyToolAndUse(id){
     const m=M.get(id),r=GAME.buyTool(id,1,{intent:'buy-use'});if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase unavailable');if(auxOverlay)renderAuxOverlay();return false}
@@ -227,19 +227,19 @@
     if(id==='move'){useMove();return true}
     if(id==='reroll'){await doReroll();return true}
     if(id==='undo'){useUndo();return true}
-    toast(\`\${m?.name||id} stored\`);render();return true
+    toast(`${m?.name||id} stored`);render();return true
   }
   function renderToolPurchase(){
     const id=auxOverlay.id,m=M.get(id),qty=Math.max(1,auxOverlay.quantity||1),quote=GAME.toolPurchaseQuote(id,qty),next=GAME.toolPurchaseQuote(id,qty+1),useQuote=GAME.toolPurchaseQuote(id,1),canUseNow=!!GAME.canUsePurchasedTool?.(id)&&!!useQuote.canAfford,name=(m?.displayName||m?.name||id).toUpperCase();
-    overlayTitle.textContent=\`BUY \${name}\`;
-    overlayBody.innerHTML=\`<div class="toolPurchase"><p>\${canUseNow?\`Buy one and use it immediately, or store \${escapeHtml(m?.name||id)} for later.\`:\`Buy stored \${escapeHtml(m?.name||id)} directly from the gameplay controls.\`}</p><div class="toolPurchaseRow"><div class="toolQuantityValue" aria-label="Quantity">\${qty}</div><div class="toolQuantityArrows"><button type="button" data-tool-qty="up" aria-label="Increase quantity">↑</button><button type="button" data-tool-qty="down" aria-label="Decrease quantity" \${qty<=1?'disabled':''}>↓</button></div><div class="toolPurchaseTotal"><span>TOTAL</span><strong>\${quote.total}c</strong><small>Inflation \${quote.inflationBefore} → \${quote.inflationAfter}\${quote.systemStrain?\` · Strain \${quote.systemStrain}\`:''}</small></div></div>\${canUseNow?'<div class="toolUseNote">BUY & USE always buys exactly one.</div>':''}</div>\`;
+    overlayTitle.textContent=`BUY ${name}`;
+    overlayBody.innerHTML=`<div class="toolPurchase"><p>${canUseNow?`Buy one and use it immediately, or store ${escapeHtml(m?.name||id)} for later.`:`Buy stored ${escapeHtml(m?.name||id)} directly from the gameplay controls.`}</p><div class="toolPurchaseRow"><div class="toolQuantityValue" aria-label="Quantity">${qty}</div><div class="toolQuantityArrows"><button type="button" data-tool-qty="up" aria-label="Increase quantity">↑</button><button type="button" data-tool-qty="down" aria-label="Decrease quantity" ${qty<=1?'disabled':''}>↓</button></div><div class="toolPurchaseTotal"><span>TOTAL</span><strong>${quote.total}c</strong><small>Inflation ${quote.inflationBefore} → ${quote.inflationAfter}${quote.systemStrain?` · Strain ${quote.systemStrain}`:''}</small></div></div>${canUseNow?'<div class="toolUseNote">BUY & USE always buys exactly one.</div>':''}</div>`;
     const up=overlayBody.querySelector('[data-tool-qty="up"]'),down=overlayBody.querySelector('[data-tool-qty="down"]');up.disabled=!next.canAfford;up.onclick=()=>{auxOverlay.quantity=qty+1;renderAuxOverlay()};down.onclick=()=>{auxOverlay.quantity=Math.max(1,qty-1);renderAuxOverlay()};
     if(canUseNow){
-      overlayPrimary.textContent=\`BUY & USE · \${useQuote.total}c\`;overlayPrimary.disabled=false;overlayPrimary.onclick=()=>buyToolAndUse(id);
-      overlaySecondary.style.display='inline-block';overlaySecondary.textContent=\`BUY \${qty} · \${quote.total}c\`;overlaySecondary.disabled=!quote.canAfford;overlaySecondary.onclick=()=>buyToolOnly(id,qty);
+      overlayPrimary.textContent=`BUY & USE · ${useQuote.total}c`;overlayPrimary.disabled=false;overlayPrimary.onclick=()=>buyToolAndUse(id);
+      overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`BUY ${qty} · ${quote.total}c`;overlaySecondary.disabled=!quote.canAfford;overlaySecondary.onclick=()=>buyToolOnly(id,qty);
       overlayTertiary.style.display='inline-block';overlayTertiary.textContent='CANCEL';overlayTertiary.onclick=closeAuxOverlay
     }else{
-      overlayPrimary.textContent=\`BUY \${qty} · \${quote.total}c\`;overlayPrimary.disabled=!quote.canAfford;overlayPrimary.onclick=()=>buyToolOnly(id,qty);
+      overlayPrimary.textContent=`BUY ${qty} · ${quote.total}c`;overlayPrimary.disabled=!quote.canAfford;overlayPrimary.onclick=()=>buyToolOnly(id,qty);
       overlaySecondary.style.display='inline-block';overlaySecondary.textContent='CANCEL';overlaySecondary.onclick=closeAuxOverlay
     }
   }
@@ -334,14 +334,14 @@
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
     if(!stalled)PT?.finalizeCurrent(s.standardComplete?'completed':'failed',{reason:s.failureReason||'run-ended'});
     const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or purchased Move can continue this round.':'You used every move for this round.'):noLegal?(stalled?'No legal continuation remains. Buy & use a Reroll to redraw the Hand.':'No legal continuation remains and a Reroll cannot be purchased.'):'No legal continuation remains.';
-    overlayBody.innerHTML=\`<p>\${endless?\`Classic complete · Endless reached Round \${s.round+1}.<br>\`:''}\${reason}</p>\${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>\`;
+    overlayBody.innerHTML=`<p>${endless?`Classic complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
     overlayBody.querySelector('#downloadFailedRun').onclick=downloadRunBatch;
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
     if(noTiles&&GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='TILE SHOP';b.onclick=openPermanentShop}
-    if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`+1 MOVE · \${s.consumables.move}\`;b.onclick=useMove}
-    else if(limit&&recovery.toolRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`BUY & USE MOVE · \${recovery.prices.move}c\`;b.onclick=()=>buyToolAndUse('move')}
-    if(noLegal&&recovery.rerollRescue&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`BUY & REROLL · \${recovery.prices.reroll}c\`;b.onclick=()=>buyToolAndUse('reroll')}
-    if(!noLegal&&GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`UNDO · \${s.consumables.undo}\`;b.onclick=useUndo}
+    if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
+    else if(limit&&recovery.toolRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`BUY & USE MOVE · ${recovery.prices.move}c`;b.onclick=()=>buyToolAndUse('move')}
+    if(noLegal&&recovery.rerollRescue&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`BUY & REROLL · ${recovery.prices.reroll}c`;b.onclick=()=>buyToolAndUse('reroll')}
+    if(!noLegal&&GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
     const b=buttons[slot++]||overlayTertiary;setNewRunButton(b)
   }
 
@@ -376,7 +376,7 @@
       persistGame();exitPending=!!tutorial?.exitPending;if(!exitPending)advanceTutorial(result);await drawAnim
     }finally{endCascadeControl();uiBusy=false}
     if(exitPending){leaveTutorial(false);return}if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay();render();if(!tutorial)armDecisionTiming();
-    if(!tutorial&&result.autoRerolls)toast(\`NO LEGAL MOVES · AUTO REROLL\${result.autoRerolls>1?\` ×\${result.autoRerolls}\`:''}\`);else if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(\`POWER SET \${game.state().setGeneration} · ×\${game.snapshot().powerSets.powerMultiplier} UNLOCKED\`);else if(!tutorial&&game.state().cleared)toast(\`Round clear · \${fmt(game.state().score)}\`);else if(!tutorial&&result.upgradeCoins)toast(\`★ +\${result.upgradeCoins} coins\`)
+    if(!tutorial&&result.autoRerolls)toast(`NO LEGAL MOVES · AUTO REROLL${result.autoRerolls>1?` ×${result.autoRerolls}`:''}`);else if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`Round clear · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ +${result.upgradeCoins} coins`)
   }
 
   function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();armDecisionTiming();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
@@ -456,7 +456,7 @@
       if(cascadeControl.skipSummary)break;
       const {item,el}=cards[index];for(const id of item.pieceIds||[])activePieceIds.add(id);setCascadeHighlight([...activePieceIds]);
       const nextRunning=running+(Number(item.output)||0),crossesTarget=running<target&&nextRunning>=target,duration=crossesTarget?targetSettleMs:settleItemMs;
-      el.classList.add('cascadeToScore');note.textContent=\`\${item.label} · +\${compact(item.output)}\`;
+      el.classList.add('cascadeToScore');note.textContent=`${item.label} · +${compact(item.output)}`;
       if(polish?.tweenScore)polish.tweenScore(nextRunning,duration);else scoreEl.textContent=V.scoreDisplay(nextRunning,target).score;
       running=nextRunning;await cascadeWait(duration,'summary');el.remove()
     }
@@ -465,7 +465,7 @@
       for(const {el} of cards)el.remove();running=base;polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(base,target).score;setCascadeHighlight(allPieceIds)
     }else if(Math.abs(running-base)>tolerance){polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(base,target).score;running=base}
     const resolved=Number(finalOutput);if(Number.isFinite(resolved)&&Math.abs(resolved-base)>tolerance){
-      const ratio=base?resolved/base:1;note.textContent=\`CIRCUIT ×\${compact(ratio)}\`;
+      const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;
       if(cascadeControl.skipSummary){polish?.snapScore?.(resolved);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(resolved,target).score}
       else{if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,target).score;await cascadeWait(resonanceSettleMs,'summary')}
     }
@@ -478,7 +478,7 @@
     while(i<events.length){const e=events[i];
       if(e.type==='signal-fork'){
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
-        if(pp){const splitLabel=e.splitKind==='triple-double'?'TRIPLE DOUBLE':e.splitKind==='zero-port'?'ZERO PORT':'SPLIT';fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?\`ECHO \${splitLabel}\`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}
+        if(pp){const splitLabel=e.splitKind==='triple-double'?'TRIPLE DOUBLE':e.splitKind==='zero-port'?'ZERO PORT':'SPLIT';fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?`ECHO ${splitLabel}`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
         if(pp){const d=fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'JOIN',0,'signal cascadeStructural joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);d.dataset.family=lane.family;d.dataset.output=block.join.output;await cascadeWait(Math.max(220,V.cascadeDelay(index+1)),'cascade')}
         i=block.next;index+=2;continue
@@ -497,7 +497,7 @@
     return index
   }
   async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
-    cascadeControl.phase='cascade';board.dataset.cascadePhase='cascade';renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,\`+\${compact(trigger)}\`,trigger,'operationFlash add',0,'',false,tutorial?640:V.CASCADE.operationFlashMs);await cascadeWait(V.cascadeDelay(0),'cascade');
+    cascadeControl.phase='cascade';board.dataset.cascadePhase='cascade';renderBoard();fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,`+${compact(trigger)}`,trigger,'operationFlash add',0,'',false,tutorial?640:V.CASCADE.operationFlashMs);await cascadeWait(V.cascadeDelay(0),'cascade');
     const plan=V.signalPlan(sim.events||[]);let echoTask=null;
     const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal cascadeStructural echoStart',index,'echoLane',false,V.CASCADE.structuralFxMs);echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await cascadeWait(V.cascadeDelay(index),'cascade');return animateSequence(plan.echo,lane,index+1)})()};
     await animateSequence(plan.main,{family:'main',path:''},0,startEcho);if(echoTask)await echoTask;
@@ -511,7 +511,7 @@
   function recordPerformance(sim,searchMs,animationMs,animationMeta={}){
     const search=sim.search||{},events=(sim.events||[]).filter(event=>['op','signal-fork','rebound','double-echo-start'].includes(event.type)).length,skip=animationMeta.skippedCascade?(animationMeta.skippedSummary?'cascade+summary':'cascade'):animationMeta.skippedSummary?'summary':'none';performanceSamples.push({move:GAME.state().turn,searchMs:Math.round(searchMs),animationMs:Math.round(animationMs),eventsRendered:events,expanded:search.expanded||0,truncated:!!search.truncated,cameraScale:rootCamera()?.snapshot().scale||1,skip});if(!tutorial)PT?.recordCascade(animationMs);while(performanceSamples.length>12)performanceSamples.shift()
   }
-  function performanceText(){if(!performanceSamples.length)return'PERFORMANCE TELEMETRY\nNo recorded placements this session.';return\`PERFORMANCE TELEMETRY\n\${performanceSamples.map(s=>\`Move \${s.move}: search \${s.searchMs}ms · animation \${s.animationMs}ms · events \${s.eventsRendered} · expanded \${s.expanded}\${s.truncated?' TRUNCATED':''} · zoom \${s.cameraScale.toFixed(2)}x · skip=\${s.skip||'none'}\`).join('\n')}\`}
+  function performanceText(){if(!performanceSamples.length)return'PERFORMANCE TELEMETRY\nNo recorded placements this session.';return`PERFORMANCE TELEMETRY\n${performanceSamples.map(s=>`Move ${s.move}: search ${s.searchMs}ms · animation ${s.animationMs}ms · events ${s.eventsRendered} · expanded ${s.expanded}${s.truncated?' TRUNCATED':''} · zoom ${s.cameraScale.toFixed(2)}x · skip=${s.skip||'none'}`).join('\n')}`}
 
   Object.defineProperty(window,'__monoidPerformance',{configurable:true,get:()=>performanceSamples.map(sample=>({...sample}))});
   Object.defineProperty(window,'__monoidPlaytest',{configurable:true,get:()=>PT?.snapshot()||null});
