@@ -19,7 +19,7 @@ assert.match(game,/function buyShopRandomTile\(/);
 assert.match(game,/s\.nextShopType=endOfStage\?'market':'none'/,'only Markets should be scheduled between rounds');
 assert.doesNotMatch(game,/buyMarketRandomTile/,'random tile supply must not remain a Market API');
 assert.match(ui,/GAME\.buyShopRandomTile\(\)/);
-assert.match(ui,/GAME\.buyTool\(id,qty\)/);assert.doesNotMatch(ui,/data-shop-item=/,'Tile Shop UI must not expose tool purchase controls');
+assert.match(ui,/GAME\.buyTool\(id,quantity,\{intent:'store'\}\)/);assert.match(ui,/GAME\.buyTool\(id,1,\{intent:'buy-use'\}\)/);assert.doesNotMatch(ui,/data-shop-item=/,'Tile Shop UI must not expose tool purchase controls');
 assert.match(ui,/overlayTitle\.textContent='MARKET'/);
 const marketStart=ui.indexOf('function showMarket()'),marketEnd=ui.indexOf('\n  function showFailed()',marketStart);
 assert(marketStart>=0&&marketEnd>marketStart);
