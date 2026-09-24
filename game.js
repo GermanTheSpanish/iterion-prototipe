@@ -105,6 +105,15 @@ function createGame(E,opts={}){
     return true
   }
   function drawOne(){if(!s.reserve.length)replenishPowerSet('draw');if(!s.reserve.length)return null;const t=s.reserve.shift();if(isZero(t))s.roundZero.drawn++;return t}
+  function fillEmptyHand(){
+    let filled=0;
+    for(let i=0;i<s.hand.length;i++){
+      if(s.hand[i])continue;
+      const tile=drawOne();if(!tile)break;
+      s.hand[i]=tile;filled++
+    }
+    return filled
+  }
   function initialHand(){
     const handSize=handSizeForRound();s.hand=Array(handSize).fill(null);
     if(cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!s.pieces.length){
@@ -324,7 +333,9 @@ function createGame(E,opts={}){
     const trigger=tile.a+tile.b;
     const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger));
     if(isZero(tile))s.roundZero.placed++;
-    s.hand[i]=drawOne();s.turn++;s.roundTurn++;s.undoFrame=undoFrame;
+    const generationBefore=s.setGeneration||1;s.hand[i]=drawOne();
+    if((s.setGeneration||1)>generationBefore)fillEmptyHand();
+    s.turn++;s.roundTurn++;s.undoFrame=undoFrame;
     if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
     return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,handIndex:i}
   }
