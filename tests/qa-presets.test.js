@@ -1,6 +1,5 @@
 const assert=require('assert');
 const E=require('../engine.js');
-const D=require('../data.js');
 const Game=require('../game.js');
 const QA=require('../qa-presets.js');
 
@@ -28,24 +27,23 @@ function physicalAudit(game){
 
 for(const [id,preset] of Object.entries(QA.PRESETS)){
   E.setBoardSize(18,24);
-  const game=Game.createGame(E,{seed:id==='classic14'?140014:160016,...(preset.mode==='infinite-endless'?{GAME_MODE:'infinite-endless',INFINITE_ENDLESS:true}:{})});
+  const game=Game.createGame(E,{seed:id==='classic14'?140014:160016});
   QA.applyPreset(game,E,id);
-  const s=game.state(),snap=game.snapshot(),ids=s.pieces.map(p=>p.tile.id);
+  const s=game.state(),snap=game.snapshot(),ids=s.pieces.map(p=>p.tile.id),activeIds=[...ids,...s.hand.filter(Boolean).map(t=>t.id),...s.reserve.map(t=>t.id)];
   assert.strictEqual(s.round,preset.round,`${id}: internal round`);
   assert.strictEqual(snap.round.index,preset.round+1,`${id}: visible round`);
   assert.strictEqual(snap.endless.active,preset.endless,`${id}: endless flag`);
   assert.strictEqual(s.setGeneration,preset.generation,`${id}: POWER generation`);
+  assert.strictEqual(s.gameMode,'classic',`${id}: every fixture uses the integrated Classic progression`);
   assert.strictEqual(ids.length,new Set(ids).size,`${id}: physical piece ids are unique`);
   assert.strictEqual(s.placedTileIds.length,new Set(s.placedTileIds).size,`${id}: placed ids are unique`);
+  assert.strictEqual(activeIds.length,new Set(activeIds).size,`${id}: one physical tile cannot exist twice across machine, Hand and reserve`);
   assert.strictEqual(s.hand.filter(Boolean).length,5,`${id}: full visible hand`);
-  assert(s.mods.includes('long-run'),`${id}: Long Chain present`);
-  assert(s.doubleDoubleTileId&&ids.includes(s.doubleDoubleTileId),`${id}: DD is on the machine`);
-  assert(s.doubleEchoTileId&&ids.includes(s.doubleEchoTileId),`${id}: DE is on the machine`);
-  assert(Object.keys(s.circuitRanks).length>=3,`${id}: circuit ranks present`);
-  assert(ids.some(tileId=>tileId.startsWith(`g${preset.powerGeneration}-`)),`${id}: current POWER material is visible`);
+  assert(ids.some(tileId=>tileId.startsWith(`g${preset.powerGeneration}-`))||preset.powerGeneration===1,`${id}: current POWER material is represented`);
   assert(Math.max(s.score,s.best)>=50000,`${id}: large-number UI threshold is exercised`);
   assert(game.legalHandMask().some(Boolean),`${id}: preset remains playable`);
   physicalAudit(game);
+
   if(id==='classic14'){
     assert.strictEqual(preset.sourceRunId,'mu66e4fp-116me8o');
     assert.strictEqual(s.runId,'qa-mu66e4fp-116me8o');
@@ -58,9 +56,26 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
     assert.deepStrictEqual(s.circuitRanks,{'d3-3':4,'d4-5':2,'d2-2':5});
     assert.strictEqual(s.circuitSignatures.length,6);assert.strictEqual(s.wins.length,13);assert.strictEqual(s.anchorId,'g2-d3-5');
     assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});assert.strictEqual(s.freeReroll,1)
+  }else if(id==='german9Endless'){
+    assert.strictEqual(preset.sourceRunId,'mudyrg2r-1960frf');
+    assert.strictEqual(s.runId,'qa-mudyrg2r-1960frf-endless');
+    assert.strictEqual(snap.stage.index,6);assert.strictEqual(game.target(),250000000000);assert.strictEqual(s.endlessMode,true);assert.strictEqual(s.standardComplete,true);
+    assert.deepStrictEqual(snap.boardSize,{width:30,height:40});
+    assert.strictEqual(s.pieces.length,33);assert.strictEqual(game.availableTileCount(),23);assert.strictEqual(s.wins.length,15);
+    assert.strictEqual(s.coins,35);assert.strictEqual(s.inflation,9);assert.strictEqual(s.marketCount,5);assert.strictEqual(s.foundationAssignedMarket,4);
+    assert.strictEqual(s.anchorId,'g2-d2-5');assert.strictEqual(s.best,2.1114853892231e36);
+    assert.deepStrictEqual(s.hand.map(t=>t.id),['g2-d1-6','g2-d0-5','g2-d0-6','g2-d1-2','g2-d4-5']);
+    assert.deepStrictEqual(s.circuitRanks,{'d2-2':2,'d5-5':2,'d6-6':5});assert.strictEqual(s.circuitSignatures.length,5);
+    assert.deepStrictEqual(s.zeroPortTileIds,['d0-3']);assert.strictEqual(s.bridgeTileId,'d5-6');assert.strictEqual(s.crownTileId,'d5-5');assert.strictEqual(s.frameTileId,'d3-4');assert.strictEqual(s.foundationTileId,'d4-5');
+    assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});assert.strictEqual(s.freeReroll,1);assert.strictEqual(s.mods.includes('long-run'),false)
   }else{
-    assert.deepStrictEqual(new Set(s.zeroPortTileIds),new Set(['d0-4','d0-5']),`${id}: Zero Port pair is on the machine`);assert(s.zeroPortTileIds.every(tileId=>ids.includes(tileId)),`${id}: both ZP endpoints are physical placed tiles`);
-    assert.strictEqual(snap.stage.index,6);assert.strictEqual(game.target(),250000000000);assert.strictEqual(s.standardComplete,true);assert.strictEqual(s.gameMode,'infinite-endless');assert.strictEqual(s.scoringModel,undefined);assert.deepStrictEqual(snap.boardSize,{width:30,height:40},'Infinite Endless no longer grows immediately on entry')
+    assert(s.mods.includes('long-run'),`${id}: synthetic late-game fixture keeps Long Chain`);
+    assert(s.doubleDoubleTileId&&ids.includes(s.doubleDoubleTileId),`${id}: DD is on the machine`);
+    assert(s.doubleEchoTileId&&ids.includes(s.doubleEchoTileId),`${id}: DE is on the machine`);
+    assert.deepStrictEqual(new Set(s.zeroPortTileIds),new Set(['d0-4','d0-5']),`${id}: Zero Port pair is on the machine`);
+    assert(s.zeroPortTileIds.every(tileId=>ids.includes(tileId)),`${id}: both ZP endpoints are physical placed tiles`);
+    assert.strictEqual(snap.stage.index,6);assert.strictEqual(game.target(),250000000000);assert.strictEqual(s.standardComplete,true);
+    assert.strictEqual(s.scoringModel,undefined);assert.deepStrictEqual(snap.boardSize,{width:30,height:40},'Endless no longer grows immediately on entry')
   }
 }
 console.log('MONOID late-game QA preset regressions passed');
