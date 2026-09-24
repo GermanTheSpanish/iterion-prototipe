@@ -1,8 +1,8 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
-  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1',INFINITE_MODE='infinite-endless';
-  const normalizeMode=mode=>mode==='prototype'?INFINITE_MODE:mode===INFINITE_MODE?INFINITE_MODE:'classic';
-  const gameOptions=mode=>normalizeMode(mode)===INFINITE_MODE?{GAME_MODE:INFINITE_MODE,INFINITE_ENDLESS:true}:{GAME_MODE:'classic'};
+  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
+  const normalizeMode=()=> 'classic';
+  const gameOptions=()=>({GAME_MODE:'classic'});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
@@ -21,7 +21,7 @@
   const px=n=>n/E.G*100+'%',py=n=>n/E.H*100+'%';
   const fmt=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-US'):`${n}`;
   const compact=V.compact;
-  document.title=`NOMON v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · ${D.TOTAL_ROUNDS} rounds + Endless`;
+  document.title=`NOMON v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · Classic → Endless → Infinite`;
   H.bindRun(GAME.state().runId);
   Object.defineProperty(window,'__monoidGame',{configurable:true,get:()=>GAME});
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
