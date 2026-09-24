@@ -129,7 +129,8 @@
       const placedIds=source.pieces.map(spec=>spec[0]),hands=source.hand.map(id=>byId.get(id)),reserve=source.reserve.map(id=>byId.get(id));
       if(hands.some(tile=>!tile)||reserve.some(tile=>!tile))throw new Error('Germán Run #9 Endless fixture has missing physical tiles');
       const activeIds=[...placedIds,...source.hand,...source.reserve];if(new Set(activeIds).size!==activeIds.length)throw new Error('Germán Run #9 Endless fixture duplicates a physical tile');
-      s.set=set;s.setGeneration=2;s.pieces=source.pieces.map(([id,x,y,rr],index)=>({id:index+1,tile:clone(byId.get(id)),x,y,rr}));
+      const finalOffsetForPiece=index=>index<9?[6,8]:index<14?[5,6]:index<18?[3,4]:index<26?[2,2]:[0,0];
+      s.set=set;s.setGeneration=2;s.pieces=source.pieces.map(([id,x,y,rr],index)=>{const[offsetX,offsetY]=finalOffsetForPiece(index);return{id:index+1,tile:clone(byId.get(id)),x:x+offsetX,y:y+offsetY,rr}});
       s.placedTileIds=placedIds.slice();s.hand=hands.map(clone);s.reserve=reserve.map(clone);
       s.round=15;s.roundTurn=0;s.turn=33;s.idc=33;s.rootRR=0;s.score=0;s.best=2.1114853892231e36;s.coins=35;s.inflation=9;
       s.wins=clone(source.wins);s.events=[
