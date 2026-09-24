@@ -444,10 +444,10 @@
   }
   async function settleCascadeScore(events,baseOutput,finalOutput,fallbackPiece){
     clearTransientFx();board.querySelectorAll('.cascadeSubtotal').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
-    cascadeControl.phase='summary';board.dataset.cascadePhase='summary';
     const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,V.CASCADE.contributionLimit),cards=[],allPieceIds=[...new Set(items.flatMap(item=>item.pieceIds||[]))];
-    for(const item of items){cards.push({item,el:showCascadeSubtotal(item)});if(items.length>1)await cascadeWait(45,'summary')}
+    for(const item of items){cards.push({item,el:showCascadeSubtotal(item)});if(items.length>1)await cascadeWait(45,'cascade')}
     if(items[0])setCascadeHighlight(items[0].pieceIds||[]);
+    cascadeControl.phase='summary';board.dataset.cascadePhase='summary';
     const subtotalHoldMs=tutorial?240:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:V.CASCADE.resonanceSettleMs,targetSettleMs=tutorial?260:V.CASCADE.targetSettleMs;
     await cascadeWait(subtotalHoldMs,'summary');
     const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
@@ -470,7 +470,7 @@
       else{if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,target).score;await cascadeWait(resonanceSettleMs,'summary')}
     }
     detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,target).note;setCascadeHighlight(allPieceIds);
-    cascadeControl.phase='final';board.dataset.cascadePhase='final';await cascadeWait(tutorial?120:V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
+    cascadeControl.phase='final';board.dataset.cascadePhase='final';if(!tutorial)await cascadeWait(V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
   }
   function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span><small>REBOUND</small>';d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
