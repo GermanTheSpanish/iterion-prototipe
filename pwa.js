@@ -7,7 +7,7 @@
   const nav=root.navigator||{},ua=nav.userAgent||'';
   const ios=/iPad|iPhone|iPod/i.test(ua)||(nav.platform==='MacIntel'&&(nav.maxTouchPoints||0)>1);
   const android=/Android/i.test(ua),mobile=ios||android;
-  const GUARD_KEY='monoidBackGuardV1',SHELL_BUILD='20260924.2';
+  const GUARD_KEY='monoidBackGuardV1',SHELL_BUILD='20260924.3';
   const state={deferredPrompt:null,installOutcome:null,swRegistered:false,swScope:null,backIntercepts:0,mobile,ios,android};
   const inDisplayMode=()=>!!(nav.standalone===true||root.matchMedia?.('(display-mode: fullscreen)').matches||root.matchMedia?.('(display-mode: standalone)').matches);
   Object.defineProperty(root,'__monoidPwa',{configurable:true,get:()=>({...state,installed:inDisplayMode()})});
