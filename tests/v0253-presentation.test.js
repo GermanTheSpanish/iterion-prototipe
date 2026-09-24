@@ -8,7 +8,7 @@ assert.equal(V.scoreDisplay(1e9,1e9).note,'Target reached');
 assert.equal(V.scoreDisplay(0,20).note,'Last move');
 assert.equal(V.BRAND,'MONOID');
 assert.deepEqual(Array.from({length:6},(_,i)=>V.cascadeDelay(i)),[600,600,560,520,480,440]);
-assert.equal(V.cascadeDelay(6),320);assert.equal(V.cascadeDelay(1000),60);assert.equal(V.CASCADE.scoreTweenMs,520);assert.equal(V.CASCADE.operationFlashMs,380);assert.equal(V.CASCADE.targetSettleMs,780);assert.equal(V.CASCADE.finalHoldMs,320);assert.equal(V.CASCADE.skipDebounceMs,120);
+assert.equal(V.cascadeDelay(6),320);assert.equal(V.cascadeDelay(1000),60);assert.equal(V.CASCADE.scoreTweenMs,520);assert.equal(V.CASCADE.operationFlashMs,520);assert.equal(V.CASCADE.targetSettleMs,780);assert.equal(V.CASCADE.finalHoldMs,320);assert.equal(V.CASCADE.skipDebounceMs,120);
 for(let i=1;i<100;i++){assert(V.cascadeDelay(i)<=V.cascadeDelay(i-1));assert(V.cascadeDelay(i)>=60);assert(V.effectLifetime(i)<=V.effectLifetime(i-1))}
 assert.equal(V.CASCADE.maxLabels,8);assert.equal(V.CASCADE.finalMs,500);
 const firstThree=Array.from({length:3},(_,i)=>V.cascadeDelay(i)).reduce((a,b)=>a+b,0);assert(firstThree>=1700,'first few operations must stay readable for a new player');
