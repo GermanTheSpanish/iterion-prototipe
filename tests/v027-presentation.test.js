@@ -49,10 +49,10 @@ check('Score stays absolute near Target and becomes a red-eligible Target multip
   assert.deepEqual(V.progressState(100000,100),{stage:'overdrive',progress:1,next:'×1,000 TARGET'});
 });
 check('cascade display timings keep arithmetic fleeting and topology readable',()=>{
-  assert.equal(V.CASCADE.operationFlashMs,380);assert.equal(V.CASCADE.structuralFxMs,1520);
+  assert.equal(V.CASCADE.operationFlashMs,520);assert.equal(V.CASCADE.structuralFxMs,1520);
 });
 check('cascade settlement pacing keeps readable handoff time without changing arithmetic',()=>{
-  assert.equal(V.CASCADE.subtotalHoldMs,720);assert.equal(V.CASCADE.settleItemMs,620);assert.equal(V.CASCADE.targetSettleMs,780);assert.equal(V.CASCADE.resonanceSettleMs,760);assert.equal(V.CASCADE.finalHoldMs,320);assert(V.CASCADE.targetSettleMs>V.CASCADE.settleItemMs);assert(V.CASCADE.targetSettleMs<1000);
+  assert.equal(V.CASCADE.subtotalHoldMs,720);assert.equal(V.CASCADE.settleItemMs,620);assert.equal(V.CASCADE.targetSettleMs,780);assert.equal(V.CASCADE.resonanceSettleMs,760);assert.equal(V.CASCADE.summaryPathMs,180);assert.equal(V.CASCADE.summarySegmentMs,160);assert.equal(V.CASCADE.summaryResolveMs,120);assert.equal(V.CASCADE.finalHoldMs,320);assert(V.CASCADE.targetSettleMs>V.CASCADE.settleItemMs);assert(V.CASCADE.targetSettleMs<1000);
 });
 check('cascade settlement uses terminal additive branches and preserves exact output',()=>{
   const ps=[[3,3,12,14,0],[5,3,8,14,0],[3,4,16,14,0],[5,5,6,13,1],[2,5,6,9,1],[5,4,6,17,1],[3,2,13,16,1]].map(([a,b,x,y,r],i)=>{const p=E.pieceFrom({a,b},x,y,0,r,i+1);p.tile={a,b,id:'p'+i};return p});
@@ -60,7 +60,7 @@ check('cascade settlement uses terminal additive branches and preserves exact ou
   assert(items.length>1,'split/echo fixture should expose more than one truthful contribution');
   assert.equal(items.reduce((sum,item)=>sum+item.output,0),r.output);
   assert(items.some(item=>item.family==='main'));assert(items.some(item=>item.family==='echo'));
-  assert(items.every(item=>Number.isFinite(item.output)&&item.label&&Array.isArray(item.pieceIds)&&item.pieceIds.length>0),'each visible contribution must carry the physical branch it represents');
+  assert(items.every(item=>Number.isFinite(item.output)&&item.label&&Array.isArray(item.pieceIds)&&item.pieceIds.length>0&&Array.isArray(item.segments)&&item.segments.length>0),'each visible contribution must carry the physical branch and display segments it represents');
 });
 check('cascade settlement labels Triple Double arms A/B/C and falls back instead of lying',()=>{
   const events=[
@@ -72,5 +72,20 @@ check('cascade settlement labels Triple Double arms A/B/C and falls back instead
   ];
   const items=V.cascadeSettlementPlan(events,90,9,8);assert.deepEqual(items.map(item=>item.label),['MAIN A','MAIN B','MAIN C']);assert.equal(items.reduce((sum,item)=>sum+item.output,0),90);assert.deepEqual(items.map(item=>item.pieceIds),[[9,1],[9,2],[9,3]]);
   const fallback=V.cascadeSettlementPlan(events,91,9,8);assert.equal(fallback.length,1);assert.equal(fallback[0].label,'RESULT');assert.equal(fallback[0].output,91);assert.equal(fallback[0].fallback,true);assert.deepEqual(fallback[0].pieceIds.sort((x,y)=>x-y),[1,2,3,9]);
+});
+
+check('cascade summary preserves repeated branch beats and segments long physical paths deterministically',()=>{
+  const repeated=V.groupCascadeContributions([
+    {family:'main',path:'A',output:10,pieceIds:[1,2,3]},
+    {family:'main',path:'A',output:12,pieceIds:[1,2,3]},
+    {family:'main',path:'B',output:8,pieceIds:[1,4,5]}
+  ],24);
+  assert.deepEqual(repeated.map(item=>item.path),['A','A','B'],'same branch label must remain a separate visual beat each time it contributes');
+  assert.deepEqual(V.cascadePathSegments([1,2,3]),[[1],[2],[3]]);
+  assert.deepEqual(V.cascadePathSegments([1,2,3,4,5,6,7,8],4),[[1,2],[3,4],[5,6],[7,8]]);
+  assert.deepEqual(V.cascadePathSegments([1,1,2,2,3],4),[[1],[2],[3]]);
+  assert.deepEqual(V.operationOffset(3,7),V.operationOffset(3,7),'operation afterimage offset must be deterministic');
+  assert.notDeepEqual(V.operationOffset(3,7),V.operationOffset(4,7),'successive operation frames should not land on the exact same pixel offset');
+  assert.equal(V.CASCADE.contributionLimit,24);assert.equal(V.CASCADE.maxLabels,12);assert.equal(V.CASCADE.operationFlashMs,520);
 });
 console.log(`${checks} presentation behavioural checks passed`);

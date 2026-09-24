@@ -9,7 +9,7 @@
   const UNITS=['M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
   // Hold the opening activations long enough to teach the arithmetic, then accelerate.
   // The tail still reaches the historic 60 ms floor so large Endless machines stay practical.
-  const CASCADE=Object.freeze({introMs:Object.freeze([600,600,560,520,480,440]),tailMs:320,minMs:60,decay:0.70,maxLabels:8,retainedLabels:10,settleMs:300,resolveHoldMs:190,resolveFadeMs:180,finalMs:500,scoreTweenMs:520,subtotalHoldMs:720,settleItemMs:620,targetSettleMs:780,resonanceSettleMs:760,finalHoldMs:320,skipDebounceMs:120,operationFlashMs:380,structuralFxMs:1520,contributionLimit:8});
+  const CASCADE=Object.freeze({introMs:Object.freeze([600,600,560,520,480,440]),tailMs:320,minMs:60,decay:0.70,maxLabels:12,retainedLabels:10,settleMs:300,resolveHoldMs:190,resolveFadeMs:180,finalMs:500,scoreTweenMs:520,subtotalHoldMs:720,settleItemMs:620,targetSettleMs:780,resonanceSettleMs:760,summaryPathMs:180,summarySegmentMs:160,summaryResolveMs:120,finalHoldMs:320,skipDebounceMs:120,operationFlashMs:520,structuralFxMs:1520,contributionLimit:24});
   function exact(value){return Number.isFinite(value)?Math.round(value).toLocaleString('en-US',{maximumFractionDigits:0}):String(value)}
   function scaledText(value){const decimals=value<10?2:value<1000?1:0,rounded=Number(value.toFixed(decimals));return rounded.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:decimals})}
   function compact(value){if(!Number.isFinite(value))return String(value);const whole=Math.round(value),sign=whole<0?'-':'',n=Math.abs(whole);if(n<1000000)return exact(whole);let tier=0;while(tier<UNITS.length-1&&n>=100*(10**(6+3*(tier+1))))tier++;const divisor=10**(6+3*tier),scaled=n/divisor;if(tier===UNITS.length-1&&scaled>=100000)return whole.toExponential(2).replace(/\.00e/,'e').replace(/(\.\d)0e/,'$1e').replace('e+','e');return sign+scaledText(scaled)+UNITS[tier]}
@@ -19,6 +19,13 @@
   function effectLifetime(index){return Math.max(480,cascadeDelay(index)+280)}
   function operationHalf(event,mainOperation){return event.exitHalf??(mainOperation?.piece===event.piece?mainOperation.exitHalf:undefined)}
   function fitFontSize(fontSize,measuredWidth,availableWidth){return measuredWidth>availableWidth?fontSize*Math.max(0,availableWidth)/measuredWidth:fontSize}
+  function operationOffset(index,salt=0){const offsets=[[-3,-1],[2,-2],[-2,3],[3,1],[1,3],[-4,1],[3,-3]];index=Math.floor(Number(index)||0);salt=Math.floor(Number(salt)||0);const pair=offsets[Math.abs(index*3+salt)%offsets.length];return{x:pair[0],y:pair[1]}}
+  function cascadePathSegments(pieceIds,maxSegments=4){
+    const ids=[];for(const id of pieceIds||[])if(id!=null&&!ids.includes(id))ids.push(id);
+    maxSegments=Math.max(1,Math.min(6,Math.floor(Number(maxSegments)||4)));if(ids.length<=maxSegments)return ids.map(id=>[id]);
+    const segments=[];for(let i=0;i<maxSegments;i++){const start=Math.floor(i*ids.length/maxSegments),end=Math.floor((i+1)*ids.length/maxSegments);if(end>start)segments.push(ids.slice(start,end))}
+    return segments
+  }
   function signalPlan(events){const echo=events.filter(e=>e.type.startsWith('echo-')).map(e=>({...e,type:e.type.slice(5)}));const main=events.filter(e=>!e.type.startsWith('echo-')&&e.type!=='double-echo-result');return{main,echo,result:events.find(e=>e.type==='double-echo-result')||null}}
   function forkBlock(events,start){const fork=events[start].piece,branches=[];let i=start+1;while(i<events.length){const e=events[i];if(e.type==='signal-start'&&e.fork===fork){let j=i+1;while(j<events.length&&!(events[j].type==='signal-end'&&events[j].fork===fork&&events[j].arm===e.arm))j++;if(j>=events.length)return null;branches.push({arm:e.arm,events:events.slice(i+1,j),end:events[j]});i=j+1;continue}if(e.type==='signal-join'&&e.piece===fork)return{branches:branches.sort((a,b)=>a.arm-b.arm),join:e,next:i+1};i++}return null}
   function armLabel(arm){arm=Math.max(0,Math.floor(Number(arm)||0));return arm<26?String.fromCharCode(65+arm):String(arm+1)}
@@ -52,7 +59,7 @@
     else items.push(...terminalContributions(plan.main,'main','',target,fallbackPiece));
     items=groupCascadeContributions(items,max);const sum=items.reduce((total,item)=>total+Number(item.output),0),tolerance=Math.max(1,Math.abs(target))*1e-9;
     if(!items.length||Math.abs(sum-target)>tolerance){const pieceIds=[...new Set((events||[]).map(e=>e?.piece).filter(id=>id!=null))];if(!pieceIds.length&&fallbackPiece!=null)pieceIds.push(fallbackPiece);return[{family:'main',path:'',label:'RESULT',output:target,piece:fallbackPiece,half:null,pieceIds,order:0,fallback:true}]}
-    return items
+    return items.map(item=>({...item,segments:cascadePathSegments(item.pieceIds)}))
   }
   function progressState(score,target){score=Math.max(0,Number(score)||0);target=Math.max(1,Number(target)||1);const ratio=score/target;if(score<target)return{stage:'target',progress:Math.max(0,Math.min(1,ratio)),next:'TARGET'};return{stage:ratio>=1000?'overdrive':'clear',progress:1,next:`×${multiplierText(ratio)} TARGET`}}
   function tileViewModel(tile,state={}){
@@ -108,12 +115,14 @@
       .signalValue[data-lane*="."]{display:grid!important;grid-template-columns:auto!important;gap:1px!important;padding:2px 4px!important;border:1px solid rgba(21,21,21,.2)!important;background:rgba(251,250,246,.94)!important}
       .signalValue[data-lane*="."] small{display:block!important;font-size:7px!important;line-height:1!important}.signalValue[data-lane*="."] strong{display:none!important}.signalValue[data-lane*="."] span{border:0!important;background:transparent!important;padding:0!important;font-size:10px!important;line-height:1.1!important}
       .signalValue.cascadeActive{animation:cascadeChipIn 100ms ease-out both!important}
-      .board.cascadeSummaryMode .piece{transition:opacity 160ms ease,filter 160ms ease,box-shadow 160ms ease!important}
-      .board.cascadeSummaryMode .piece.cascadeSummaryDim{opacity:.26!important;filter:brightness(.90)!important}
-      .board.cascadeSummaryMode .piece.cascadeSummaryActive{opacity:1!important;filter:brightness(1.06)!important;box-shadow:0 0 7px rgba(255,255,255,.42)!important}
-      .opfx.operationFlash{z-index:42!important;font-size:22px!important;font-weight:850!important;line-height:1!important;letter-spacing:-.035em!important;white-space:nowrap!important;-webkit-text-stroke:0!important;text-shadow:0 1px 2px rgba(0,0,0,.52),0 0 4px rgba(0,0,0,.18)!important;animation:cascadeOperationFlash var(--cascade-flash-ms,380ms) linear both!important}
+      .board.cascadeSummaryMode::after{content:"";position:absolute;inset:0;z-index:34;pointer-events:none;background:rgba(0,0,0,.24);animation:cascadeBoardDim 160ms ease-out both}
+      .board.cascadeSummaryMode .piece{z-index:35;transition:opacity 160ms ease,filter 160ms ease,box-shadow 160ms ease!important}
+      .board.cascadeSummaryMode .piece.cascadeSummaryDim{opacity:.08!important;filter:brightness(.58)!important}
+      .board.cascadeSummaryMode .piece.cascadeSummaryPath{opacity:.52!important;filter:brightness(.88)!important;box-shadow:0 0 4px rgba(255,255,255,.18)!important}
+      .board.cascadeSummaryMode .piece.cascadeSummaryActive{opacity:1!important;filter:brightness(1.09)!important;box-shadow:0 0 9px rgba(255,255,255,.56)!important}
+      .opfx.operationFlash{z-index:42!important;font-size:22px!important;font-weight:850!important;line-height:1!important;letter-spacing:-.035em!important;white-space:nowrap!important;-webkit-text-stroke:0!important;text-shadow:0 1px 2px rgba(0,0,0,.92),0 0 6px rgba(0,0,0,.62),0 0 11px rgba(0,0,0,.28)!important;animation:cascadeOperationFlash var(--cascade-flash-ms,520ms) linear both!important}
       .opfx.operationFlash.add{color:#fff!important}
-      .opfx.operationFlash.multiply{color:#151515!important;text-shadow:0 1px 2px rgba(255,255,255,.58),0 0 4px rgba(255,255,255,.24)!important}
+      .opfx.operationFlash.multiply{color:#151515!important;text-shadow:0 1px 2px rgba(255,255,255,.96),0 0 6px rgba(255,255,255,.76),0 0 11px rgba(255,255,255,.34)!important}
       .opfx.cascadeStructural{z-index:43!important;width:max-content!important;max-width:calc(100% - 16px)!important;padding:5px 8px!important;border:1px solid rgba(21,21,21,.28)!important;border-radius:4px!important;background:rgba(251,250,246,.96)!important;color:#20201d!important;font-size:15px!important;font-weight:850!important;line-height:1!important;letter-spacing:.055em!important;text-transform:uppercase!important;-webkit-text-stroke:0!important;box-shadow:none!important;animation:structuralHold var(--cascade-structure-ms,1520ms) ease-out both!important}
       .opfx.cascadeStructural.echoLane{border-style:dashed!important}
       .signalValue.echoLane{border-style:dashed!important;opacity:.88}.joinFx{font-size:15px!important;background:rgba(251,250,246,.96)!important;box-shadow:none!important;padding:5px 8px!important;border:1px solid rgba(21,21,21,.26)!important}
@@ -122,7 +131,8 @@
       .cascadeSubtotal.cascadeToScore{animation:cascadeScoreOut 220ms ease-in both!important}
       @keyframes cascadeChipIn{from{opacity:0;transform:translate(-50%,-50%) scale(.84)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
       @keyframes cascadeScoreOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-68%) scale(.88)}}
-      @keyframes cascadeOperationFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.78)}12%,48%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-64%) scale(.96)}}
+      @keyframes cascadeBoardDim{from{opacity:0}to{opacity:1}}
+      @keyframes cascadeOperationFlash{0%{opacity:0;transform:translate(calc(-50% + var(--op-shift-x,0px)),calc(-50% + var(--op-shift-y,0px))) scale(.78)}10%,40%{opacity:1;transform:translate(calc(-50% + var(--op-shift-x,0px)),calc(-50% + var(--op-shift-y,0px))) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--op-shift-x,0px)),calc(-64% + var(--op-shift-y,0px))) scale(.96)}}
       @keyframes structuralHold{0%{opacity:0;transform:translate(-50%,-50%) scale(.88)}8%,88%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-56%) scale(.98)}}
       .scoreProgress{display:block;margin-top:2px;height:11px;position:relative}.scoreProgressTrack{display:block;height:3px;background:#dddcd6;overflow:hidden}.scoreProgressFill{display:block;height:100%;width:0;background:#393934;transition:width .22s linear,background-color .22s ease}.scoreProgressNext{display:block;margin-top:1px;text-align:right;font:650 7px/1.1 ui-monospace,monospace;letter-spacing:.05em;color:#858078}
       .scoreProgress[data-stage="clear"] .scoreProgressFill{background:#6e6b63}
@@ -152,5 +162,5 @@
     const shareDebug=async textOverride=>{const text=brandDebugText(typeof textOverride==='string'?textOverride:debugTextFromUi());if(!text){feedback('Debug unavailable');return false}const batch=/^MONOID PLAYTEST BATCH\b/m.test(text),filename=debugFilename(text),file=new File([text],filename,{type:'text/plain'}),label=batch?'PLAYTEST':'DEBUG';if(root.navigator?.share){let canFiles=true;try{if(root.navigator.canShare)canFiles=root.navigator.canShare({files:[file]})}catch(_){canFiles=false}if(canFiles){try{await root.navigator.share({files:[file],title:`${BRAND} ${label}`});feedback(`${label} READY`);return true}catch(err){if(err?.name==='AbortError')return false}}}try{downloadDebug(text,filename);feedback(`${label} READY`);return true}catch(_){feedback('Debug export failed');return false}};
     const sharePlaytest=()=>typeof root.__monoidSharePlaytestBatch==='function'?root.__monoidSharePlaytestBatch():shareDebug();const patchRunlog=()=>{const ta=runlog?.querySelector('.runDataText');if(ta)ta.value=brandDebugText(ta.value);const button=runlog?.querySelector('.tool');if(!button||button.dataset.debugShare==='1')return;button.dataset.debugShare='1';button.textContent='SHARE .TXT';button.onclick=sharePlaytest};if(runlog){new MutationObserver(patchRunlog).observe(runlog,{childList:true,subtree:true});patchRunlog()}if(menuCopy){menuCopy.textContent='Share debug .txt';menuCopy.onclick=async()=>{try{if(gameMenu?.open)gameMenu.close()}catch(_){}await sharePlaytest()}}root.NomonUiPolish=Object.freeze({shareDebug,debugTextFromUi,paintProgress,snapScore,tweenScore,syncOverkillTiles,syncInspectorPreview})
   }
-  return Object.freeze({compact,exact,multiplierText,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,fitFontSize,signalPlan,forkBlock,armLabel,terminalContributions,groupCascadeContributions,cascadeSettlementPlan,progressState,tileViewModel,longChainViewModel,hudViewModel,brandDebugText,debugFilename,installUiPolish,CASCADE,BRAND});
+  return Object.freeze({compact,exact,multiplierText,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,fitFontSize,operationOffset,cascadePathSegments,signalPlan,forkBlock,armLabel,terminalContributions,groupCascadeContributions,cascadeSettlementPlan,progressState,tileViewModel,longChainViewModel,hudViewModel,brandDebugText,debugFilename,installUiPolish,CASCADE,BRAND});
 });

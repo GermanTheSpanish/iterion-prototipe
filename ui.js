@@ -388,11 +388,11 @@
   window.addEventListener('pointermove',handlePointerMove,{passive:false});window.addEventListener('pointerup',handlePointerUp);window.addEventListener('pointercancel',handlePointerCancel);
 
   function pc(id){return GAME.state().pieces.find(p=>p.id===id)}
-  function setCascadeHighlight(pieceIds=[]){
-    const active=new Set((pieceIds||[]).map(id=>pc(id)?.tile?.id).filter(Boolean)),enabled=active.size>0;board.classList.toggle('cascadeSummaryMode',enabled);
-    board.querySelectorAll('.piece').forEach(el=>{const on=enabled&&active.has(el.dataset.tileId);el.classList.toggle('cascadeSummaryActive',on);el.classList.toggle('cascadeSummaryDim',enabled&&!on)})
+  function setCascadeHighlight(pathPieceIds=[],activePieceIds=[]){
+    const path=new Set((pathPieceIds||[]).map(id=>pc(id)?.tile?.id).filter(Boolean)),active=new Set((activePieceIds||[]).map(id=>pc(id)?.tile?.id).filter(Boolean)),enabled=path.size>0;board.classList.toggle('cascadeSummaryMode',enabled);
+    board.querySelectorAll('.piece').forEach(el=>{const inPath=enabled&&path.has(el.dataset.tileId),on=inPath&&active.has(el.dataset.tileId);el.classList.toggle('cascadeSummaryActive',on);el.classList.toggle('cascadeSummaryPath',inPath&&!on);el.classList.toggle('cascadeSummaryDim',enabled&&!inPath)})
   }
-  function clearCascadeHighlight(){board.classList.remove('cascadeSummaryMode');board.querySelectorAll('.cascadeSummaryActive,.cascadeSummaryDim').forEach(el=>el.classList.remove('cascadeSummaryActive','cascadeSummaryDim'))}
+  function clearCascadeHighlight(){board.classList.remove('cascadeSummaryMode');board.querySelectorAll('.cascadeSummaryActive,.cascadeSummaryPath,.cascadeSummaryDim').forEach(el=>el.classList.remove('cascadeSummaryActive','cascadeSummaryPath','cascadeSummaryDim'))}
   function magnitude(v){const n=Math.abs(Number(v)||0);return n<1?1:Math.floor(Math.log10(n))+1}
   function fitBoardLabel(d){
     const width=Math.max(1,board.clientWidth-16),style=getComputedStyle(d),inner=Math.max(1,width-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight));
@@ -406,7 +406,7 @@
   function retainCascadeFx(d){if(!d)return d;d.classList.add('cascadeRetained');d.style.animationDuration='';trimCascadeHistory();return d}
   function clearTransientFx(){board.querySelectorAll('.operationFlash').forEach(el=>el.remove())}
   function fx(x,y,t,value=0,kind='add',index=0,lane='',retain=false,durationOverride=null){
-    const d=document.createElement('div'),duration=Math.max(1,Number(durationOverride)||V.effectLifetime(index)),size=kind.includes('operationFlash')?13:kind.includes('signal')?14:Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.style.setProperty('--cascade-flash-ms',`${duration}ms`);d.style.setProperty('--cascade-structure-ms',`${duration}ms`);d.textContent=t;board.appendChild(d);
+    const d=document.createElement('div'),duration=Math.max(1,Number(durationOverride)||V.effectLifetime(index)),size=kind.includes('operationFlash')?13:kind.includes('signal')?14:Math.min(34,24+magnitude(value));d.className=`opfx ${kind}${lane?` ${lane}`:''}`;d.style.left=px(x);d.style.top=py(y);d.style.fontSize=`${size}px`;d.style.animationDuration=`${duration}ms`;d.style.setProperty('--cascade-flash-ms',`${duration}ms`);d.style.setProperty('--cascade-structure-ms',`${duration}ms`);if(kind.includes('operationFlash')){const shift=V.operationOffset(index,Math.round(x*17+y*31));d.style.setProperty('--op-shift-x',`${shift.x}px`);d.style.setProperty('--op-shift-y',`${shift.y}px`)}d.textContent=t;board.appendChild(d);
     if(kind.includes('signal'))fitBoardLabel(d);
     if(retain)return retainCascadeFx(d);
     while(board.querySelectorAll('.opfx:not(.signalValue):not(.cascadeRetained)').length>V.CASCADE.maxLabels)board.querySelector('.opfx:not(.signalValue):not(.cascadeRetained)')?.remove();setTimeout(()=>d.remove(),duration);return d
@@ -444,17 +444,21 @@
   }
   async function settleCascadeScore(events,baseOutput,finalOutput,fallbackPiece){
     clearTransientFx();board.querySelectorAll('.cascadeSubtotal').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
-    const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,V.CASCADE.contributionLimit),cards=[],allPieceIds=[...new Set(items.flatMap(item=>item.pieceIds||[]))];
-    for(const item of items){cards.push({item,el:showCascadeSubtotal(item)});if(items.length>1)await cascadeWait(45,'cascade')}
-    if(items[0])setCascadeHighlight(items[0].pieceIds||[]);
+    const items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,tutorial?8:V.CASCADE.contributionLimit),cards=[],allPieceIds=[...new Set(items.flatMap(item=>item.pieceIds||[]))];
+    let firstCard=null;if(items[0]){firstCard=showCascadeSubtotal(items[0]);cards.push(firstCard);setCascadeHighlight(items[0].pieceIds||[],[])}
     cascadeControl.phase='summary';board.dataset.cascadePhase='summary';
-    const subtotalHoldMs=tutorial?240:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:V.CASCADE.resonanceSettleMs,targetSettleMs=tutorial?260:V.CASCADE.targetSettleMs;
+    const subtotalHoldMs=tutorial?240:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:V.CASCADE.resonanceSettleMs,targetSettleMs=tutorial?260:V.CASCADE.targetSettleMs,pathMs=tutorial?0:V.CASCADE.summaryPathMs,segmentMs=tutorial?0:V.CASCADE.summarySegmentMs,resolveMs=tutorial?0:V.CASCADE.summaryResolveMs;
     await cascadeWait(subtotalHoldMs,'summary');
     const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
-    let running=0;const activePieceIds=new Set(),target=GAME.target();
-    for(let index=0;index<cards.length;index++){
+    let running=0;const target=GAME.target();
+    for(let index=0;index<items.length;index++){
       if(cascadeControl.skipSummary)break;
-      const {item,el}=cards[index];for(const id of item.pieceIds||[])activePieceIds.add(id);setCascadeHighlight([...activePieceIds]);
+      const item=items[index],el=index===0?firstCard:showCascadeSubtotal(item);if(index>0)cards.push(el);
+      setCascadeHighlight(item.pieceIds||[],[]);await cascadeWait(pathMs,'summary');if(cascadeControl.skipSummary)break;
+      const segments=item.segments?.length?item.segments:V.cascadePathSegments(item.pieceIds||[]);
+      for(const segment of segments){setCascadeHighlight(item.pieceIds||[],segment);await cascadeWait(segmentMs,'summary');if(cascadeControl.skipSummary)break}
+      if(cascadeControl.skipSummary)break;
+      setCascadeHighlight(item.pieceIds||[],item.pieceIds||[]);await cascadeWait(resolveMs,'summary');if(cascadeControl.skipSummary)break;
       const nextRunning=running+(Number(item.output)||0),crossesTarget=running<target&&nextRunning>=target,duration=crossesTarget?targetSettleMs:settleItemMs;
       el.classList.add('cascadeToScore');note.textContent=`${item.label} · +${compact(item.output)}`;
       if(polish?.tweenScore)polish.tweenScore(nextRunning,duration);else scoreEl.textContent=V.scoreDisplay(nextRunning,target).score;
@@ -462,14 +466,14 @@
     }
     const base=Number(baseOutput)||0,tolerance=Math.max(1,Math.abs(base))*1e-9;
     if(cascadeControl.skipSummary){
-      for(const {el} of cards)el.remove();running=base;polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(base,target).score;setCascadeHighlight(allPieceIds)
+      for(const el of cards)el?.remove();running=base;polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(base,target).score;setCascadeHighlight(allPieceIds,allPieceIds)
     }else if(Math.abs(running-base)>tolerance){polish?.snapScore?.(base);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(base,target).score;running=base}
     const resolved=Number(finalOutput);if(Number.isFinite(resolved)&&Math.abs(resolved-base)>tolerance){
       const ratio=base?resolved/base:1;note.textContent=`CIRCUIT ×${compact(ratio)}`;
       if(cascadeControl.skipSummary){polish?.snapScore?.(resolved);if(!polish?.snapScore)scoreEl.textContent=V.scoreDisplay(resolved,target).score}
-      else{if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,target).score;await cascadeWait(resonanceSettleMs,'summary')}
+      else{setCascadeHighlight(allPieceIds,allPieceIds);if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,target).score;await cascadeWait(resonanceSettleMs,'summary')}
     }
-    detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,target).note;setCascadeHighlight(allPieceIds);
+    detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,target).note;setCascadeHighlight(allPieceIds,allPieceIds);
     cascadeControl.phase='final';board.dataset.cascadePhase='final';if(!tutorial)await cascadeWait(V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
   }
   function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span><small>REBOUND</small>';d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
