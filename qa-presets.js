@@ -13,7 +13,8 @@
   const PROTECTED_KEYS=new Set([ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY]);
   const PRESETS=Object.freeze({
     classic14:Object.freeze({id:'classic14',mode:'classic',round:13,generation:2,score:0,best:57863119300,coins:165,inflation:8,endless:false,powerGeneration:2,sourceRunId:'mu66e4fp-116me8o'}),
-    infinite16:Object.freeze({id:'infinite16',mode:'infinite-endless',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3})
+    infinite16:Object.freeze({id:'infinite16',mode:'classic',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3}),
+    german9Endless:Object.freeze({id:'german9Endless',mode:'classic',round:15,generation:2,score:0,best:2.1114853892231e36,coins:35,inflation:9,endless:true,powerGeneration:2,sourceRunId:'mudyrg2r-1960frf'})
   });
 
   const REAL_CLASSIC14=Object.freeze({
@@ -54,6 +55,48 @@
     ])
   });
 
+  const REAL_GERMAN9_ENDLESS=Object.freeze({
+    seed:2731076043,
+    runId:'mudyrg2r-1960frf',
+    rngState:1214970712,
+    hand:Object.freeze(['g2-d1-6','g2-d0-5','g2-d0-6','g2-d1-2','g2-d4-5']),
+    reserve:Object.freeze(['g2-d1-5','g2-d0-2','g2-d1-4','g2-d0-0','g2-d4-6','g2-d5-5','g2-d1-3','g2-d2-4','g2-d5-6','g2-d1-1','g2-d0-1','g2-d6-6','g2-d2-6','g2-d3-4','g2-d0-4','g2-d3-6','g2-d0-3','g2-d2-2']),
+    pieces:Object.freeze([
+      ['d2-2',16,14,1,0],['d2-3',16,18,1,0],['d3-4',14,20,2,0],['d2-5',16,12,3,0],['d5-5',12,10,0,0],
+      ['d4-4',8,20,0,2],['d5-6',13,8,3,0],['d0-2',12,14,0,0],['d0-4',12,16,1,0],['d3-5',9,12,0,2],
+      ['d6-6',13,6,0,3],['d0-5',11,16,3,0],['d4-5',7,22,3,0],['d3-3',7,12,1,2],['d1-6',19,6,1,3],
+      ['d4-6',12,26,1,0],['d2-6',11,8,0,3],['d1-1',19,2,1,0],['d3-6',8,17,2,2],['d1-2',10,8,1,0],
+      ['d0-1',16,4,0,0],['d1-3',20,2,3,0],['d0-6',16,6,1,3],['d1-4',22,5,0,0],['d1-5',10,6,3,0],
+      ['d0-0',14,4,1,3],['d0-3',24,0,1,0],['d2-4',24,23,0,0],['g2-d3-3',18,2,0,0],['g2-d3-5',12,22,1,0],
+      ['g2-d4-4',28,7,1,3],['g2-d2-3',14,2,0,3],['g2-d2-5',12,2,1,3]
+    ]),
+    wins:Object.freeze([
+      {round:1,target:20,output:31,turn:4,placements:4,reward:3,machineSize:4,setSize:28,setGeneration:1,upgradeCoins:0,anchor:{a:2,b:5},upgradeTier:0},
+      {round:2,target:100,output:700,turn:6,placements:2,reward:4,machineSize:6,setSize:28,setGeneration:1,upgradeCoins:0,anchor:{a:4,b:4},upgradeTier:2},
+      {round:3,target:500,output:522,turn:9,placements:3,reward:4,machineSize:9,setSize:28,setGeneration:1,upgradeCoins:4,anchor:{a:0,b:4},upgradeTier:0},
+      {round:4,target:2500,output:21200,turn:10,placements:1,reward:4,machineSize:10,setSize:28,setGeneration:1,upgradeCoins:0,anchor:{a:3,b:5},upgradeTier:2},
+      {round:5,target:10000,output:413636,turn:11,placements:1,reward:4,machineSize:11,setSize:28,setGeneration:1,upgradeCoins:2,anchor:{a:6,b:6},upgradeTier:3},
+      {round:6,target:50000,output:318150,turn:14,placements:3,reward:4,machineSize:14,setSize:28,setGeneration:1,upgradeCoins:7,anchor:{a:3,b:3},upgradeTier:2},
+      {round:7,target:250000,output:10654572,turn:15,placements:1,reward:4,machineSize:15,setSize:28,setGeneration:1,upgradeCoins:3,anchor:{a:1,b:6},upgradeTier:3},
+      {round:8,target:1000000,output:11472672,turn:17,placements:2,reward:4,machineSize:17,setSize:28,setGeneration:1,upgradeCoins:5,anchor:{a:2,b:6},upgradeTier:3},
+      {round:9,target:5000000,output:11472672,turn:18,placements:1,reward:4,machineSize:18,setSize:28,setGeneration:1,upgradeCoins:3,anchor:{a:1,b:1},upgradeTier:0},
+      {round:10,target:25000000,output:131619600,turn:19,placements:1,reward:4,machineSize:19,setSize:28,setGeneration:1,upgradeCoins:2,anchor:{a:3,b:6},upgradeTier:2},
+      {round:11,target:100000000,output:26284203132,turn:23,placements:4,reward:3,machineSize:23,setSize:28,setGeneration:1,upgradeCoins:12,anchor:{a:0,b:6},upgradeTier:3},
+      {round:12,target:500000000,output:23381539304,turn:26,placements:3,reward:4,machineSize:26,setSize:28,setGeneration:1,upgradeCoins:9,anchor:{a:0,b:0},upgradeTier:3},
+      {round:13,target:2500000000,output:189084316162589900,turn:31,placements:5,reward:3,machineSize:31,setSize:56,setGeneration:2,upgradeCoins:15,anchor:{a:4,b:4},upgradeTier:3},
+      {round:14,target:10000000000,output:7144862227892834000,turn:32,placements:1,reward:4,machineSize:32,setSize:56,setGeneration:2,upgradeCoins:3,anchor:{a:2,b:3},upgradeTier:3},
+      {round:15,target:50000000000,output:2.1114853892231e36,turn:33,placements:1,reward:4,machineSize:33,setSize:56,setGeneration:2,upgradeCoins:3,anchor:{a:2,b:5},upgradeTier:3}
+    ]),
+    circuitRanks:Object.freeze({'d2-2':2,'d5-5':2,'d6-6':5}),
+    circuitSignatures:Object.freeze([
+      '[["d0-2","d0-4"],["d0-2","d2-2"],["d0-4","d3-4"],["d2-2","d2-3"],["d2-3","d3-4"]]',
+      '[["d0-2","d0-5"],["d0-2","d2-2"],["d0-5","d3-5"],["d2-2","d2-5"],["d2-5","d5-5"],["d3-5","d5-5"]]',
+      '[["d0-1","d0-6"],["d0-1","d1-1"],["d0-6","d6-6"],["d1-1","d1-6"],["d1-6","d6-6"]]',
+      '[["d0-2","d0-4"],["d0-2","d0-5"],["d0-4","d3-4"],["d0-5","d3-5"],["d3-3","d3-5"],["d3-3","g2-d3-5"],["d3-4","d4-4"],["d4-4","d4-5"],["d4-5","g2-d3-5"]]',
+      '[["d1-1","d1-3"],["d1-1","d1-6"],["d1-2","d1-5"],["d1-2","d2-6"],["d1-3","g2-d3-3"],["d1-5","g2-d2-5"],["d1-6","d6-6"],["d2-6","d6-6"],["g2-d2-3","g2-d2-5"],["g2-d2-3","g2-d3-3"]]'
+    ])
+  });
+
   const clone=value=>JSON.parse(JSON.stringify(value));
   const powerForGeneration=generation=>Math.min(4,Math.max(1,generation));
   function makeSet(maxGeneration=1){
@@ -79,6 +122,35 @@
     const preset=PRESETS[presetId];if(!preset)throw new Error(`Unknown MONOID QA preset: ${presetId}`);
     if(!game?.exportState||!game?.restoreState)throw new Error('MONOID game state API required');
     const saved=game.exportState(),s=saved.state,set=makeSet(preset.generation),byId=new Map(set.map(tile=>[tile.id,tile]));
+
+    if(presetId==='german9Endless'){
+      const source=REAL_GERMAN9_ENDLESS;
+      for(const[id,,, ,upgrade]of source.pieces){const tile=byId.get(id);if(!tile)throw new Error(`Missing Germán Run #9 tile ${id}`);tile.upgrade=upgrade||0}
+      const placedIds=source.pieces.map(spec=>spec[0]),hands=source.hand.map(id=>byId.get(id)),reserve=source.reserve.map(id=>byId.get(id));
+      if(hands.some(tile=>!tile)||reserve.some(tile=>!tile))throw new Error('Germán Run #9 Endless fixture has missing physical tiles');
+      const activeIds=[...placedIds,...source.hand,...source.reserve];if(new Set(activeIds).size!==activeIds.length)throw new Error('Germán Run #9 Endless fixture duplicates a physical tile');
+      const finalOffsetForPiece=index=>index<9?[6,8]:index<14?[5,6]:index<18?[3,4]:index<26?[2,2]:[0,0];
+      s.set=set;s.setGeneration=2;s.pieces=source.pieces.map(([id,x,y,rr],index)=>{const[offsetX,offsetY]=finalOffsetForPiece(index);return{id:index+1,tile:clone(byId.get(id)),x:x+offsetX,y:y+offsetY,rr}});
+      s.placedTileIds=placedIds.slice();s.hand=hands.map(clone);s.reserve=reserve.map(clone);
+      s.round=15;s.roundTurn=0;s.turn=33;s.idc=33;s.rootRR=0;s.score=0;s.best=2.1114853892231e36;s.coins=35;s.inflation=9;
+      s.wins=clone(source.wins);s.events=[
+        {type:'qa-preset',preset:preset.id,round:16,mode:'classic',sourceRunId:source.runId},
+        {type:'endless-start',afterRound:15,nextRound:16,target:250000000000},
+        {type:'stage-start',stage:6,round:16,phase:'endless',coins:35,inflation:9,available:23,board:[30,40],handSize:5,freeReroll:1,setGeneration:2}
+      ];
+      s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;
+      s.anchorId='g2-d2-5';s.freeReroll=1;s.consumables={move:0,reroll:0,undo:0};s.roundZero={drawn:2,placed:0,endHand:0};
+      s.doubleDoubleTileId=null;s.doubleEchoTileId=null;s.tripleDoubleTileId=null;s.zeroPortTileIds=['d0-3'];s.parityExchangeTileId=null;s.cornerTileId=null;s.longLineTileId=null;s.overloadTileId=null;s.terminalTileId=null;s.sequenceTileId=null;s.complementTileId=null;s.twinTileId=null;s.pairTileId=null;
+      s.bridgeTileId='d5-6';s.gateTileId=null;s.fanTileId=null;s.frameTileId='d3-4';s.crownTileId='d5-5';s.frontierTileId=null;s.relayTileId=null;s.couplerTileId=null;s.resonatorTileId=null;s.forgeTileId=null;s.foundationTileId='d4-5';s.knotTileId=null;s.mirrorTileId=null;s.mintTileId=null;s.mods=[];
+      s.circuitRanks=clone(source.circuitRanks);s.circuitSignatures=clone(source.circuitSignatures);s.pendingCircuit=null;s.pendingModPlacement=null;
+      s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
+      s.standardComplete=true;s.endlessMode=true;s.endlessStartedRound=16;s.systemStrain=0;s.endlessLongRunActivations=0;s.boardStage=5;
+      s.marketCount=5;s.foundationAssignedMarket=4;s.mintPaidRound=null;
+      s.seed=source.seed;s.rngState=source.rngState;s.runId=`qa-${source.runId}-endless`;s.startedAt='2026-09-23T00:00:00.000Z';s.tileSerial=0;s.gameMode='classic';delete s.scoringModel;delete s.scoringFormula;
+      if(!game.restoreState(saved))throw new Error('Could not restore Germán Run #9 Endless fixture');
+      return game
+    }
+
     if(presetId==='classic14'){
       for(const[id,,, ,upgrade]of REAL_CLASSIC14.pieces){const tile=byId.get(id);if(!tile)throw new Error(`Missing real QA tile ${id}`);tile.upgrade=upgrade||0}
       const placedIds=REAL_CLASSIC14.pieces.map(spec=>spec[0]),hands=REAL_CLASSIC14.hand.map(id=>byId.get(id));
@@ -114,7 +186,7 @@
     s.circuitRanks={'d4-4':2,'d5-5':3,[`g${preset.powerGeneration}-d6-6`]:5};s.circuitSignatures=['qa-loop-a','qa-loop-b'];s.pendingCircuit=null;
     s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
     s.standardComplete=true;s.endlessMode=true;s.endlessStartedRound=15;s.systemStrain=8;s.endlessLongRunActivations=3;
-    s.runId=`qa-${preset.id}`;s.startedAt='2026-09-17T20:00:00.000Z';s.tileSerial=0;s.gameMode='infinite-endless';delete s.scoringModel;delete s.scoringFormula;
+    s.runId=`qa-${preset.id}`;s.startedAt='2026-09-17T20:00:00.000Z';s.tileSerial=0;s.gameMode='classic';delete s.scoringModel;delete s.scoringFormula;
     if(!game.restoreState(saved))throw new Error(`Could not restore QA preset ${presetId}`);
     return game
   }
@@ -175,7 +247,8 @@
     dialog.innerHTML=`<div class="menuHead"><h2>QA / Test runs</h2><button class="iconButton" aria-label="Close QA test runs">×</button></div>
       <p class="qaMenuIntro">Prepared late-game states. Your real saved run is protected.</p>
       <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Real R14 · 30 tiles · DD · DE · C5 · POWER ×2 · 2 clears from Endless</small></button>
-      <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>INFINITE ENDLESS · ROUND 16</strong><small>Classic scoring · 33 × 44 board · POWER ×3</small></button>
+      <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>ENDLESS · ROUND 16</strong><small>Generic late-game fixture · Classic progression</small></button>
+      <button class="qaPresetChoice" data-qa-preset="german9Endless"><strong>GERMÁN RUN #9 · ENDLESS START</strong><small>Real R16 machine · 33 tiles · POWER ×2 · 5 Markets · saved run safe</small></button>
       ${inQa?`<a class="menuAction qaReturn" data-qa-return href="${normalUrl(root)}">RETURN TO SAVED RUN</a>`:''}`;
     doc.body.appendChild(dialog);
     const close=()=>dialog.close();dialog.querySelector('.iconButton').addEventListener('click',close);
@@ -195,14 +268,14 @@
     const start=()=>{
       const modes=root.__monoidModes,flow=root.__monoidFlow,ready=modes?.select&&root.IterionGame?.createGame&&flow;
       if(!ready){if(tries++<360)root.requestAnimationFrame(start);return}
-      modes.select(preset.mode==='infinite-endless'?1:0);root.__monoidActiveMode=preset.mode;
+      modes.select(0);root.__monoidActiveMode='classic';
       const baseCreate=root.IterionGame.createGame;let armed=true;
       root.IterionGame.createGame=function(engine,options){
         const game=baseCreate.call(this,engine,options);
         if(!armed)return game;armed=false;root.IterionGame.createGame=baseCreate;return applyPreset(game,engine,id)
       };
       const title=root.document.getElementById('titleCard'),startButton=root.document.getElementById('startRun');
-      if(!title?.hidden)title.click();modes.select(preset.mode==='infinite-endless'?1:0);root.__monoidActiveMode=preset.mode;startButton?.click();
+      if(!title?.hidden)title.click();modes.select(0);root.__monoidActiveMode='classic';startButton?.click();
       const finish=()=>{const app=root.document.querySelector('.app');if(app&&!app.hidden){addQaStamp(root,preset);root.MonoidPhaseA?.sync?.();root.MonoidPhaseAMobileFix?.syncBuildStamp?.();return}root.requestAnimationFrame(finish)};finish()
     };
     root.requestAnimationFrame(start);return true

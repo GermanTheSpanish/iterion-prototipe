@@ -136,7 +136,7 @@
     if(ux.tutorialKind==='systems'&&(ux.systemsPhase==='circuit'||ux.systemsPhase==='mod')&&handRail.contains(e.target)){e.preventDefault();e.stopImmediatePropagation()}
   },true);
 
-  function wrapEndlessButton(){if(localStorage.getItem('iterion.entryBypass.v1')==='true')return;if(!overlay.classList.contains('show')||overlayTitle?.textContent.trim()!=='RUN COMPLETE'||!overlayPrimary?.textContent.includes('ENDLESS'))return;const current=overlayPrimary.onclick;if(typeof current!=='function'||current.__monoidEndlessWrapper)return;const wrapper=function(e){e?.preventDefault?.();e?.stopPropagation?.();showEndlessBrief(()=>current.call(overlayPrimary,e))};wrapper.__monoidEndlessWrapper=true;overlayPrimary.onclick=wrapper}
+  function wrapEndlessButton(){if(localStorage.getItem('iterion.entryBypass.v1')==='true')return;const snap=root.__monoidGame?.snapshot?.();if(!overlay.classList.contains('show')||overlay.dataset.action!=='enter-endless'||snap?.status!=='COMPLETE'||!snap?.endless?.available||snap?.endless?.active)return;const current=overlayPrimary.onclick;if(typeof current!=='function'||current.__monoidEndlessWrapper)return;const wrapper=function(e){e?.preventDefault?.();e?.stopPropagation?.();showEndlessBrief(()=>current.call(overlayPrimary,e))};wrapper.__monoidEndlessWrapper=true;overlayPrimary.onclick=wrapper}
 
   function setText(el,text){if(el&&el.textContent.trim()!==text)el.textContent=text}
   function enhanceCommerceCopy(title){

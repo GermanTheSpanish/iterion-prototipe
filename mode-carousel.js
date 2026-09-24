@@ -22,9 +22,8 @@
   const SETTLE_MS=SETTLE_APPROACH_MS+SETTLE_LAND_MS;
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
-    Object.freeze({id:'classic',name:'CLASSIC',description:'The original machine',available:true,kind:'classic'}),
-    Object.freeze({id:'infinite-endless',name:'INFINITE ENDLESS',description:'Classic → Endless · Infinite after 15 Endless stages',available:true,kind:'infinite'}),
-    ...Array.from({length:6},(_,i)=>Object.freeze({id:`locked-${i+1}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
+    Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite',available:true,kind:'classic'}),
+    ...Array.from({length:7},(_,i)=>Object.freeze({id:`locked-${i+1}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
   const wrapIndex=index=>{const n=Number.isFinite(index)?Math.trunc(index):0;return((n%MODES.length)+MODES.length)%MODES.length};
@@ -89,7 +88,7 @@
     const frame=doc.createElement('div');frame.id='modeCarouselFrame';frame.className='modeCard modeCarouselFrame';frame.tabIndex=0;frame.setAttribute('role','group');frame.setAttribute('aria-label','Game mode selector');
     const viewport=doc.createElement('div');viewport.id='modeCarouselViewport';viewport.className='modeCarouselViewport';
     const slides=MODES.map((mode,index)=>{const button=doc.createElement('button');button.type='button';button.className='modeSlide';button.dataset.mode=mode.id;button.dataset.index=String(index);button.setAttribute('aria-label',mode.available?mode.name:`Unavailable mode ${index-1}`);if(!mode.available)button.setAttribute('aria-disabled','true');button.innerHTML=tileMarkup(mode);viewport.appendChild(button);return button});
-    slides[0].id='modeClassic';slides[1].id='modeInfiniteEndless';
+    slides[0].id='modeClassic';
     const name=doc.createElement('strong');name.id='modeName';
     const description=doc.createElement('small');description.id='modeDescription';
     frame.append(viewport,name,description);oldClassic.replaceWith(frame);
@@ -136,7 +135,7 @@
     viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;const startShift=drag.visualX;drag=null;viewport.classList.remove('isDragging');settle(selected,startShift,0)});
     frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();settle(stepIndex(selected,1),0,-SPACING)}else if(e.key==='ArrowLeft'){e.preventDefault();settle(stepIndex(selected,-1),0,SPACING)}});
     startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!mode.available)return;const previousMode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic',beforeSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;root.localStorage?.setItem(ACTIVE_MODE_KEY,mode.id);root.__monoidActiveMode=mode.id;originalStart?.call(this,event);const afterSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;if(beforeSaved&&beforeSaved===afterSaved&&!doc.getElementById('gameSelection')?.hidden){root.localStorage?.setItem(ACTIVE_MODE_KEY,previousMode);root.__monoidActiveMode=previousMode}}
-    if(continueRun)continueRun.onclick=function(event){stopSettling(true);const mode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic';root.__monoidActiveMode=mode;return originalContinue?.call(this,event)};
+    if(continueRun)continueRun.onclick=function(event){stopSettling(true);const mode='classic';root.localStorage?.setItem(ACTIVE_MODE_KEY,mode);root.__monoidActiveMode=mode;return originalContinue?.call(this,event)};
     root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select};
     render();return true
   }

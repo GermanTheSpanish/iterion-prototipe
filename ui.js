@@ -1,8 +1,8 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
-  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1',INFINITE_MODE='infinite-endless';
-  const normalizeMode=mode=>mode==='prototype'?INFINITE_MODE:mode===INFINITE_MODE?INFINITE_MODE:'classic';
-  const gameOptions=mode=>normalizeMode(mode)===INFINITE_MODE?{GAME_MODE:INFINITE_MODE,INFINITE_ENDLESS:true}:{GAME_MODE:'classic'};
+  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
+  const normalizeMode=()=> 'classic';
+  const gameOptions=()=>({GAME_MODE:'classic'});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
@@ -21,7 +21,7 @@
   const px=n=>n/E.G*100+'%',py=n=>n/E.H*100+'%';
   const fmt=n=>Number.isFinite(Number(n))?Number(n).toLocaleString('en-US'):`${n}`;
   const compact=V.compact;
-  document.title=`NOMON v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · ${D.TOTAL_ROUNDS} rounds + Endless`;
+  document.title=`NOMON v${D.VERSION}`;versionEl.textContent=`v${D.VERSION} · Classic → Endless → Infinite`;
   H.bindRun(GAME.state().runId);
   Object.defineProperty(window,'__monoidGame',{configurable:true,get:()=>GAME});
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
@@ -178,7 +178,7 @@
   }
 
   function hideOverlay(){overlay.className='overlay';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null}
-  function resetOverlay(){overlay.className='overlay show';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
+  function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
   async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame();handFx.fill('normal');hideOverlay();render();resumePlaytest()}
@@ -256,15 +256,16 @@
   function summaryHtml(){const r=runSummary(),m=r.mvpTile;return`<div class="summary"><div class="sumCard wide"><div class="sumLabel">MVP TILE</div><div class="sumValue">${m?`[${m.a}|${m.b}] → ${fmt(m.output)}`:'—'}</div><div class="sumSmall">${m?`Best activation · Round ${m.round}, move ${m.placement}`:'No placement yet'}</div></div><div class="sumCard"><div class="sumLabel">PROGRESS</div><div class="sumValue">${r.endless?.active?`${D.TOTAL_ROUNDS}/${D.TOTAL_ROUNDS} + ${r.endless.roundsCleared}`:`${r.roundsCleared}/${r.totalRounds}`}</div><div class="sumSmall">${r.endless?.active?'Base complete · Endless clears':'Rounds cleared'}</div></div><div class="sumCard"><div class="sumLabel">MACHINE</div><div class="sumValue">${r.machine}</div><div class="sumSmall">${r.setSize} tiles · Set ${r.setGeneration}</div></div><div class="sumCard wide"><div class="sumLabel">SCORE SOURCES</div><div class="sumValue">${r.multOps} multipliers · ${r.addOps} additions</div><div class="sumSmall">${r.rebounds} rebounds · Best ${fmt(r.bestOutput)}</div></div><div class="sumCard wide"><div class="sumLabel">ECONOMY</div><div class="sumValue">${r.coins} coins · Inflation ${r.inflation}${r.endless?.active?` · Strain ${r.systemStrain}`:''}</div><div class="sumSmall">Move ${r.consumables.move} · Reroll ${r.consumables.reroll} · Undo ${r.consumables.undo} · ${r.purchases} purchases${r.endless?.active?` · Long Chain ${r.longRunActivations}/${D.ENDLESS_LONG_RUN_ACTIVATIONS||7}`:''}</div></div></div>`}
 
   function advanceRound(){
-    const before=GAME.snapshot().stage.index;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
-    syncPlaytestContext();persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();const after=GAME.snapshot().stage.index;toast(after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
+    const beforeSnapshot=GAME.snapshot(),before=beforeSnapshot.stage.index,beforeInfinite=!!beforeSnapshot.endless?.infinitePhase;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
+    syncPlaytestContext();persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();const afterSnapshot=GAME.snapshot(),after=afterSnapshot.stage.index;
+    toast(!beforeInfinite&&afterSnapshot.endless?.infinitePhase?`INFINITE · 3 TILE HAND · BOARD ${E.G}×${E.H}`:after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
   }
   function startEndless(){clearOutcomeDelay();if(!GAME.startEndless()){toast('Endless unavailable');return}syncPlaytestContext();if(GAME.state().shopOpen&&GAME.state().shopType==='market')PT?.openMarket({offers:[...GAME.state().shopOffers]});persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(GAME.state().shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${GAME.state().round+1}`)}
   function showClear(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1],target=GAME.target(),display=V.scoreDisplay(s.score,target),scoreHero=`<div class="roundClearScore${display.overdrive?' overdrive':''}"><small>SCORE</small><strong>${escapeHtml(fmt(s.score))}</strong><span>TARGET ×${escapeHtml(display.multiplier)}</span></div>`;
-    overlayTitle.textContent=complete?'RUN COMPLETE':endless?'ENDLESS ROUND CLEAR':'ROUND CLEAR';
-    overlayBody.innerHTML=complete?`${scoreHero}<p>Base run complete · Target ${fmt(target)}</p>${summaryHtml()}<p class="shopFoot">Continue with the same machine. Endless Targets scale ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round; the completed base run remains recorded.</p>`:`${scoreHero}<p>Target ${fmt(target)}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
-    if(complete){overlayPrimary.textContent='CONTINUE · ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
+    overlayTitle.textContent=complete?'CLASSIC COMPLETE':endless?'ENDLESS ROUND CLEAR':'ROUND CLEAR';
+    overlayBody.innerHTML=complete?`${scoreHero}<p>Classic complete · Target ${fmt(target)}</p>${summaryHtml()}<p class="shopFoot">Enter Endless with the same persistent machine. Targets continue scaling ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round.</p>`:`${scoreHero}<p>Target ${fmt(target)}<br>Clear +${last?.reward||0}c${last?.upgradeCoins?` · ★ activations +${last.upgradeCoins}c`:''}</p>`;
+    if(complete){overlay.dataset.action='enter-endless';overlayPrimary.textContent='ENTER ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
     const next=s.nextShopType;overlayPrimary.textContent=next==='market'?'MARKET':endless?'NEXT ENDLESS ROUND':'NEXT ROUND';overlayPrimary.onclick=()=>{if(next==='none'){advanceRound();return}if(GAME.openIntermission()){PT?.openMarket({offers:[...GAME.state().shopOffers]});persistGame();render()}else toast('Unavailable')};
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
   }
@@ -297,7 +298,7 @@
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
     if(!stalled)PT?.finalizeCurrent(s.standardComplete?'completed':'failed',{reason:s.failureReason||'run-ended'});
     const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or purchased Move can continue this round.':'You used every move for this round.'):noLegal?'No legal continuation remains after all available Rerolls were used.':'No legal continuation remains.';
-    overlayBody.innerHTML=`<p>${endless?`Base run complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
+    overlayBody.innerHTML=`<p>${endless?`Classic complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
     overlayBody.querySelector('#downloadFailedRun').onclick=downloadRunBatch;
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
     if(noTiles&&GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='TILE SHOP';b.onclick=openPermanentShop}

@@ -72,8 +72,12 @@ function clearNext(game){
     clearNext(g);assert.strictEqual(s.round+1,round);
     assert.strictEqual(s.nextShopType,round%3===0?'market':'none');
     if(round%3===0){assert(!g.advance());assert(g.openIntermission());assert(g.closeMarket());}
-    const board=g.snapshot().board;assert(g.advance());
-    assert.deepStrictEqual(g.snapshot().board,board,'logical stages never reposition the capped board');physicalIds(g);
+    const board=g.snapshot().board;assert(g.advance());const afterAdvance=g.snapshot();
+    if(round===21){
+      assert.deepStrictEqual(afterAdvance.boardSize,{width:33,height:44},'the second completed Endless stage unlocks the first +3 × +4 growth step');
+      assert.deepStrictEqual(afterAdvance.board,board.map(piece=>({...piece,x:piece.x+1,y:piece.y+2})),'board growth recentres the persistent machine without changing physical identity')
+    }else assert.deepStrictEqual(afterAdvance.board,board,'Endless rounds keep coordinates stable until the configured growth interval');
+    physicalIds(g);
   }
   s.hand=Array(D.HAND_SIZE).fill(null);s.reserve=[];g.assessContinuation();
   assert.strictEqual(g.snapshot().status,'ENDLESS FAILED');assert(g.snapshot().endless.baseComplete);
