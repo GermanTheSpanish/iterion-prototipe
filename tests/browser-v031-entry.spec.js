@@ -35,15 +35,14 @@ test('entry card uses keyboard, has no click-through and starts the real opening
   expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
-test('game mode carousel keeps its frame, swipes modes and blocks unavailable entries',async({page})=>{
+test('game mode carousel keeps its frame and exposes Classic as the only playable progression',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();
-  await expect(page.locator('#modeCarouselFrame')).toBeVisible();await expect(page.locator('.modeSlide')).toHaveCount(8);await expect(page.locator('#modeName')).toHaveText('CLASSIC');await expect(page.locator('#modeDescription')).toHaveText('The original machine');
+  await expect(page.locator('#modeCarouselFrame')).toBeVisible();await expect(page.locator('.modeSlide')).toHaveCount(8);await expect(page.locator('#modeName')).toHaveText('CLASSIC');await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
   const frame=await page.locator('#modeCarouselFrame').boundingBox(),viewport=await page.locator('#modeCarouselViewport').boundingBox();expect(frame).toBeTruthy();expect(viewport).toBeTruthy();
-  const neighbor=await page.locator('#modeInfiniteEndless').boundingBox();expect(neighbor).toBeTruthy();expect(neighbor.x).toBeLessThan(frame.x+frame.width);expect(neighbor.x+neighbor.width).toBeGreaterThan(frame.x+frame.width);
+  const neighbor=await page.locator('.modeSlide[data-index="1"]').boundingBox();expect(neighbor).toBeTruthy();expect(neighbor.x).toBeLessThan(frame.x+frame.width);expect(neighbor.x+neighbor.width).toBeGreaterThan(frame.x+frame.width);
   await page.mouse.move(viewport.x+viewport.width*.70,viewport.y+viewport.height*.5);await page.mouse.down();await page.mouse.move(viewport.x+viewport.width*.20,viewport.y+viewport.height*.5);await page.mouse.up();
-  await expect(page.locator('#modeName')).toHaveText('INFINITE ENDLESS');await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless · Infinite after 15 Endless stages');await expect(page.locator('#startRun')).toBeEnabled();
-  await page.evaluate(()=>window.__monoidModes.select(2));await expect(page.locator('#modeDescription')).toHaveText('Not available');await expect(page.locator('#startRun')).toBeDisabled();
-  await page.evaluate(()=>window.__monoidModes.select(1));await page.locator('#startRun').click();await expect(page.locator('#board')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('infinite-endless');
+  await expect(page.locator('#modeName')).toHaveText('LOCKED');await expect(page.locator('#modeDescription')).toHaveText('Not available');await expect(page.locator('#startRun')).toBeDisabled();
+  await page.evaluate(()=>window.__monoidModes.select(0));await expect(page.locator('#startRun')).toBeEnabled();await page.locator('#startRun').click();await expect(page.locator('#board')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('classic');expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('classic');
 });
 
 test('Game Selection keeps new, continue and tutorials separate and confirms replacement',async({page})=>{
