@@ -1,6 +1,6 @@
 const MONOID_SW='monoid-dev-network-v3';
-const MONOID_VERSION='0.43.0';
-const MONOID_BUILD='20260923.1';
+const MONOID_VERSION='0.44.0';
+const MONOID_BUILD='20260924.1';
 
 function compareBuilds(a,b){
   const parts=value=>String(value||'').split(/[^0-9]+/).filter(Boolean).map(Number),aa=parts(a),bb=parts(b),n=Math.max(aa.length,bb.length);
