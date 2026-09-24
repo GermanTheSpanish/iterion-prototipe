@@ -186,9 +186,9 @@
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
   function openPermanentShop(){shopRevealTile=null;if(!GAME.openShop()){toast('Tile Shop unavailable');return}persistGame();render()}
-  function openToolPurchase(id){
-    if(!GAME.canBuyTool(id)){toast(`${M.get(id)?.name||'Tool'} purchase unavailable`);return}
-    returnFocus=id==='move'?moveBtn:id==='reroll'?rerollBtn:undoBtn;press.cancel();auxOverlay={type:'tool-buy',id,quantity:1};renderAuxOverlay()
+  function openToolPurchase(id,options={}){
+    if(!GAME.canBuyTool(id)){toast(\`\${M.get(id)?.name||'Tool'} purchase unavailable\`);return}
+    returnFocus=id==='move'?moveBtn:id==='reroll'?rerollBtn:undoBtn;press.cancel();auxOverlay={type:'tool-buy',id,quantity:1,preferUse:!!options.preferUse};renderAuxOverlay()
   }
   function activateMove(){if(GAME.canUseMove())useMove();else if(GAME.canBuyTool('move'))openToolPurchase('move');else toast('Move unavailable')}
   function activateUndo(){if(GAME.canUndo())useUndo();else if(GAME.canBuyTool('undo'))openToolPurchase('undo');else toast('Undo unavailable')}
@@ -199,13 +199,31 @@
   function closeAuxOverlay(){auxOverlay=null;render();(returnFocus?.isConnected?returnFocus:helpBtn).focus();returnFocus=null}
   function openScoreDetails(kind){if(GAME.state().running||uiBusy||drag.active)return;returnFocus=document.activeElement;press.cancel();auxOverlay={type:'score',kind};renderAuxOverlay()}
   function renderScoreDetails(){const s=GAME.state(),isTarget=auxOverlay.kind==='target',target=GAME.target(),value=isTarget?target:s.score,display=V.scoreDisplay(s.score,target),multiplier=!isTarget&&s.score>=target?`<p class="scoreMultiplierDetail${display.overdrive?' overdrive':''}">TARGET ×${escapeHtml(display.multiplier)}</p>`:'';overlayTitle.textContent=isTarget?'TARGET':'SCORE';overlayBody.innerHTML=`<div class="scoreExact${!isTarget&&display.overdrive?' overdrive':''}">${escapeHtml(V.exact(value))}</div>${multiplier}<p>${isTarget?'Reach or exceed this value to clear the round.':'Result of the last Move, including Echo and Circuit Resonance. It is not a running total.'}</p><p>K = thousand · M = million<br>B = billion · T = trillion</p>`;overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay}
+  function buyToolOnly(id,quantity=1){
+    const m=M.get(id),r=GAME.buyTool(id,quantity,{intent:'store'});if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase unavailable');renderAuxOverlay();return false}
+    persistGame();auxOverlay=null;toast(\`\${m?.name||id} ×\${r.quantity} stored · Inflation \${r.inflation}\`);render();return true
+  }
+  async function buyToolAndUse(id){
+    const m=M.get(id),r=GAME.buyTool(id,1,{intent:'buy-use'});if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase unavailable');if(auxOverlay)renderAuxOverlay();return false}
+    persistGame();auxOverlay=null;hideOverlay();
+    if(id==='move'){useMove();return true}
+    if(id==='reroll'){await doReroll();return true}
+    if(id==='undo'){useUndo();return true}
+    toast(\`\${m?.name||id} stored\`);render();return true
+  }
   function renderToolPurchase(){
-    const id=auxOverlay.id,m=M.get(id),qty=Math.max(1,auxOverlay.quantity||1),quote=GAME.toolPurchaseQuote(id,qty),next=GAME.toolPurchaseQuote(id,qty+1),name=(m?.displayName||m?.name||id).toUpperCase();
-    overlayTitle.textContent=`BUY ${name}`;
-    overlayBody.innerHTML=`<div class="toolPurchase"><p>Buy stored ${escapeHtml(m?.name||id)} directly from the gameplay controls.</p><div class="toolPurchaseRow"><div class="toolQuantityValue" aria-label="Quantity">${qty}</div><div class="toolQuantityArrows"><button type="button" data-tool-qty="up" aria-label="Increase quantity">↑</button><button type="button" data-tool-qty="down" aria-label="Decrease quantity" ${qty<=1?'disabled':''}>↓</button></div><div class="toolPurchaseTotal"><span>TOTAL</span><strong>${quote.total}c</strong><small>Inflation ${quote.inflationBefore} → ${quote.inflationAfter}${quote.systemStrain?` · Strain ${quote.systemStrain}`:''}</small></div></div></div>`;
+    const id=auxOverlay.id,m=M.get(id),qty=Math.max(1,auxOverlay.quantity||1),quote=GAME.toolPurchaseQuote(id,qty),next=GAME.toolPurchaseQuote(id,qty+1),useQuote=GAME.toolPurchaseQuote(id,1),canUseNow=!!GAME.canUsePurchasedTool?.(id)&&!!useQuote.canAfford,name=(m?.displayName||m?.name||id).toUpperCase();
+    overlayTitle.textContent=\`BUY \${name}\`;
+    overlayBody.innerHTML=\`<div class="toolPurchase"><p>\${canUseNow?\`Buy one and use it immediately, or store \${escapeHtml(m?.name||id)} for later.\`:\`Buy stored \${escapeHtml(m?.name||id)} directly from the gameplay controls.\`}</p><div class="toolPurchaseRow"><div class="toolQuantityValue" aria-label="Quantity">\${qty}</div><div class="toolQuantityArrows"><button type="button" data-tool-qty="up" aria-label="Increase quantity">↑</button><button type="button" data-tool-qty="down" aria-label="Decrease quantity" \${qty<=1?'disabled':''}>↓</button></div><div class="toolPurchaseTotal"><span>TOTAL</span><strong>\${quote.total}c</strong><small>Inflation \${quote.inflationBefore} → \${quote.inflationAfter}\${quote.systemStrain?\` · Strain \${quote.systemStrain}\`:''}</small></div></div>\${canUseNow?'<div class="toolUseNote">BUY & USE always buys exactly one.</div>':''}</div>\`;
     const up=overlayBody.querySelector('[data-tool-qty="up"]'),down=overlayBody.querySelector('[data-tool-qty="down"]');up.disabled=!next.canAfford;up.onclick=()=>{auxOverlay.quantity=qty+1;renderAuxOverlay()};down.onclick=()=>{auxOverlay.quantity=Math.max(1,qty-1);renderAuxOverlay()};
-    overlayPrimary.textContent=`BUY ${qty} · ${quote.total}c`;overlayPrimary.disabled=!quote.canAfford;overlayPrimary.onclick=()=>{const r=GAME.buyTool(id,qty);if(!r.ok){toast(r.reason==='coins'?'Not enough coins':'Purchase unavailable');renderAuxOverlay();return}persistGame();auxOverlay=null;toast(`${m?.name||id} ×${r.quantity} stored · Inflation ${r.inflation}`);render()};
-    overlaySecondary.style.display='inline-block';overlaySecondary.textContent='CANCEL';overlaySecondary.onclick=closeAuxOverlay
+    if(canUseNow){
+      overlayPrimary.textContent=\`BUY & USE · \${useQuote.total}c\`;overlayPrimary.disabled=false;overlayPrimary.onclick=()=>buyToolAndUse(id);
+      overlaySecondary.style.display='inline-block';overlaySecondary.textContent=\`BUY \${qty} · \${quote.total}c\`;overlaySecondary.disabled=!quote.canAfford;overlaySecondary.onclick=()=>buyToolOnly(id,qty);
+      overlayTertiary.style.display='inline-block';overlayTertiary.textContent='CANCEL';overlayTertiary.onclick=closeAuxOverlay
+    }else{
+      overlayPrimary.textContent=\`BUY \${qty} · \${quote.total}c\`;overlayPrimary.disabled=!quote.canAfford;overlayPrimary.onclick=()=>buyToolOnly(id,qty);
+      overlaySecondary.style.display='inline-block';overlaySecondary.textContent='CANCEL';overlaySecondary.onclick=closeAuxOverlay
+    }
   }
   function openRulebook(){H.bindRun(GAME.state().runId);H.recordRulebookOpen();auxOverlay={type:'rulebook',sectionId:null};renderAuxOverlay()}
   function openRulebookSection(id){H.recordSectionOpen(id);auxOverlay={type:'rulebook',sectionId:id};renderAuxOverlay()}
@@ -294,17 +312,18 @@
   }
 
   function showFailed(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',noLegal=s.failureReason==='no-legal-moves',recovery=GAME.recoveryOptions(),stalled=!noLegal&&!!recovery.recoverable;
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',noLegal=s.failureReason==='no-legal-moves',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
     if(!stalled)PT?.finalizeCurrent(s.standardComplete?'completed':'failed',{reason:s.failureReason||'run-ended'});
-    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or purchased Move can continue this round.':'You used every move for this round.'):noLegal?'No legal continuation remains after all available Rerolls were used.':'No legal continuation remains.';
-    overlayBody.innerHTML=`<p>${endless?`Classic complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
+    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or purchased Move can continue this round.':'You used every move for this round.'):noLegal?(stalled?'No legal continuation remains. Buy & use a Reroll to redraw the Hand.':'No legal continuation remains and a Reroll cannot be purchased.'):'No legal continuation remains.';
+    overlayBody.innerHTML=\`<p>\${endless?\`Classic complete · Endless reached Round \${s.round+1}.<br>\`:''}\${reason}</p>\${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>\`;
     overlayBody.querySelector('#downloadFailedRun').onclick=downloadRunBatch;
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
     if(noTiles&&GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='TILE SHOP';b.onclick=openPermanentShop}
-    if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
-    else if(limit&&recovery.toolRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`BUY MOVE · ${recovery.prices.move}c`;b.onclick=()=>openToolPurchase('move')}
-    if(!noLegal&&GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`UNDO · ${s.consumables.undo}`;b.onclick=useUndo}
+    if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`+1 MOVE · \${s.consumables.move}\`;b.onclick=useMove}
+    else if(limit&&recovery.toolRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`BUY & USE MOVE · \${recovery.prices.move}c\`;b.onclick=()=>buyToolAndUse('move')}
+    if(noLegal&&recovery.rerollRescue&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`BUY & REROLL · \${recovery.prices.reroll}c\`;b.onclick=()=>buyToolAndUse('reroll')}
+    if(!noLegal&&GAME.canUndo()&&slot<buttons.length){const b=buttons[slot++];b.style.display='inline-block';b.textContent=\`UNDO · \${s.consumables.undo}\`;b.onclick=useUndo}
     const b=buttons[slot++]||overlayTertiary;setNewRunButton(b)
   }
 
