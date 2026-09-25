@@ -476,7 +476,12 @@ function createGame(E,opts={}){
   }
   function useUndo(){
     if(!canUndo())return{ok:false,reason:'state'};
-    const current=s,frame=deepClone(s.undoFrame),last=[...s.events].reverse().find(e=>Number.isInteger(e.turn)),preserved=preserveShopTransactions(frame,current);
+    const current=s,frame=deepClone(s.undoFrame);
+    if(Number.isInteger(frame.persistenceEventCursor)){
+      const cursor=Math.max(0,Math.min(frame.persistenceEventCursor,(current.events||[]).length));
+      frame.events=(current.events||[]).slice(0,cursor).map(deepClone);delete frame.persistenceEventCursor
+    }
+    const last=[...(s.events||[])].reverse().find(e=>Number.isInteger(e?.turn)),preserved=preserveShopTransactions(frame,current);
     frame.standardComplete=!!(frame.standardComplete||current.standardComplete);
     if(frame.standardComplete&&!frame.events.some(e=>e.type==='run-complete')){
       const completion=current.events.find(e=>e.type==='run-complete');
@@ -741,7 +746,7 @@ function createGame(E,opts={}){
     lines.push(`Recovery: recoverable=${x.recovery.recoverable?'yes':'no'} · undo=${x.recovery.undo?'yes':'no'} · ownedReroll=${x.recovery.ownedReroll?'yes':'no'} · buyReroll=${x.recovery.toolReroll?`yes@${x.recovery.prices.reroll}c`:'no'} · ownedMove=${x.recovery.ownedMove?'yes':'no'} · buyMove=${x.recovery.toolMove?`yes@${x.recovery.prices.move}c`:'no'}`);
     lines.push(`Circuits: ${Object.entries(x.circuits.ranks).map(([id,rank])=>`${id}:C${rank}`).join(',')||'-'} · slots=${Object.keys(x.circuits.ranks).length}/${x.circuits.tileLimit} · discovered=${x.circuits.signatures.length} · pending=${x.circuits.pending?.signature||'-'}`);
     for(const v of x.turns){
-      if(v.type==='signal-resolution'){lines.push(`T${v.move} SIGNAL TREE splits=${v.splitCount} base=${v.baseOutput} selection=${v.selectionOutput??v.baseOutput} trace=${JSON.stringify(v.events)}`);continue}
+      if(v.type==='signal-resolution'){const trace=Array.isArray(v.events)?JSON.stringify(v.events):v.traceCompacted?'COMPACTED_AFTER_RESTORE':'-';lines.push(`T${v.move} SIGNAL TREE splits=${v.splitCount} base=${v.baseOutput} selection=${v.selectionOutput??v.baseOutput} trace=${trace}`);continue}
       if(v.type==='power-set'){lines.push(`R${v.round} POWER SET ${v.generation} UNLOCKED size=${v.size} power=x${v.powerMultiplier} source=${v.source}`);continue}
       if(v.type==='power-set-hand-refill'){lines.push(`R${v.round} POWER SET ${v.generation} HAND REFILL +${v.filled} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
       if(v.type==='round-reroll'){lines.push(`R${v.round} FREE REROLL +${v.granted}${v.replaced?` refresh=${v.replaced}>${v.granted}`:''}`);continue}
@@ -779,11 +784,30 @@ function createGame(E,opts={}){
     return lines.join('\n')
   }
 
-  function save(){try{const x=snapshot();localStorage.setItem('iterion.latestRun.v9',JSON.stringify(x));return x}catch(_){return snapshot()}}
-  function exportState(){
-    const raw=deepClone(s);raw.pieces=s.pieces.map(p=>({id:p.id,tile:cloneTile(p.tile),x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr}));
-    return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:raw}
+  function compactEventForPersistence(event){
+    if(!event||typeof event!=='object')return event;
+    if(event.type==='signal-resolution'){
+      const compact=deepClone(event);delete compact.events;compact.traceCompacted=true;return compact
+    }
+    return deepClone(event)
   }
+  function compactEventsForPersistence(events){return(Array.isArray(events)?events:[]).map(compactEventForPersistence)}
+  function persistedUndoFrame(frame){
+    if(!frame)return null;
+    const{events,undoFrame,...rest}=frame,out=deepClone(rest);
+    out.events=[];out.persistenceEventCursor=Array.isArray(events)?events.length:0;out.undoFrame=null;return out
+  }
+  function persistedState(){
+    const{events,undoFrame,pieces,...rest}=s,raw=deepClone(rest);
+    raw.events=compactEventsForPersistence(events);raw.undoFrame=persistedUndoFrame(undoFrame);
+    raw.pieces=s.pieces.map(p=>({id:p.id,tile:cloneTile(p.tile),x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr}));return raw
+  }
+  function save(){
+    const x=snapshot();
+    try{localStorage.setItem('iterion.latestRun.v9',JSON.stringify({...x,turns:compactEventsForPersistence(x.turns)}))}catch(_){}
+    return x
+  }
+  function exportState(){return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:persistedState()}}
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
     s=deepClone(raw);const restoredMode=s.gameMode;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;if(!Number.isInteger(s.mintPaidRound))s.mintPaidRound=null;delete s.zeroMemoryTileId;ensureShopTileOffers();

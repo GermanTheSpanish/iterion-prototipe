@@ -1,6 +1,6 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
-  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
+  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1',ACTIVE_RUN_KEY='iterion.activeRun.v1',LEGACY_RUN_KEY='iterion.latestRun.v9';
   const normalizeMode=()=> 'classic';
   const gameOptions=()=>({GAME_MODE:'classic'});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
@@ -11,7 +11,7 @@
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
   const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version'),machineModStatusEl=$('machineModStatus');
-  let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null;
+  let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null,persistenceFault=false;
   const performanceSamples=[];
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal');
@@ -45,6 +45,7 @@
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
   Object.defineProperty(window,'__monoidPlaytestBatch',{configurable:true,get:()=>PT?.batchInfo?.()||null});
   Object.defineProperty(window,'__monoidPlaytestBatchStore',{configurable:true,get:()=>BATCH_STORE||null});
+  Object.defineProperty(window,'__monoidPersistence',{configurable:true,get:()=>({ok:!persistenceFault,key:ACTIVE_RUN_KEY})});
   Object.defineProperty(window,'__monoidSharePlaytestBatch',{configurable:true,value:()=>sharePlaytestBatch()});
 
   function playtestContext(){const x=GAME.snapshot();return{runId:GAME.state().runId,round:GAME.state().round+1,stage:x.stage.index}}
@@ -53,9 +54,24 @@
   function armDecisionTiming(){if(!PT||tutorial||entryState!=='game'||document.visibilityState==='hidden'||uiBusy)return;const s=GAME.state();if(!s.running&&!s.shopOpen&&!s.pendingCircuit&&!s.pendingModPlacement&&!s.cleared&&!s.blocked&&GAME.canInteract())PT.startDecision()}
   function resumePlaytest(){if(!PT||tutorial||entryState!=='game'||document.visibilityState==='hidden')return;syncPlaytestContext();PT.resume();armDecisionTiming()}
   function pausePlaytest(){PT?.pause()}
-  function storedState(){try{return JSON.parse(localStorage.getItem('iterion.activeRun.v1')||'null')}catch(_){return null}}
+  function storedState(){try{return JSON.parse(localStorage.getItem(ACTIVE_RUN_KEY)||'null')}catch(_){return null}}
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
-  function persistGame(){if(tutorial)return GAME.snapshot();const snap=GAME.save();try{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(GAME.exportState()))}catch(_){}return snap}
+  function persistGame(){
+    if(tutorial)return GAME.snapshot();
+    const snap=GAME.snapshot(),payload=JSON.stringify(GAME.exportState());
+    try{
+      localStorage.removeItem(LEGACY_RUN_KEY);
+      localStorage.setItem(ACTIVE_RUN_KEY,payload);
+      persistenceFault=false
+    }catch(error){
+      if(!persistenceFault){
+        persistenceFault=true;
+        console.error('MONOID active run save failed',error);
+        toast('SAVE FAILED · DOWNLOAD RUN DATA')
+      }
+    }
+    return snap
+  }
   function lifecycleStatus(game=GAME){
     const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.blocked&&!recovery.recoverable)return s.standardComplete?'completed':'failed';if(s.standardComplete&&!s.endlessMode&&s.cleared)return'completed';return'abandoned'
   }
