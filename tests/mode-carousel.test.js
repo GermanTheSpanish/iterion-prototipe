@@ -47,6 +47,6 @@ assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circul
 assert.match(src,/startRun\.disabled=!mode\.available/);
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20260925\.1/);
+assert.match(gesture,/mode-carousel\.js\?v=20260925\.2/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');
