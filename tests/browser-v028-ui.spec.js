@@ -9,7 +9,7 @@ test('v028 resolved SCORE progress, abbreviations and debug file sharing',async(
   });
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.locator('.wordmark')).toHaveText('MONOID');
-  await expect(page).toHaveTitle('MONOID v0.44.2');
+  await expect(page).toHaveTitle('MONOID v0.44.3');
   expect(await page.evaluate(()=>[window.IterionPresentation.cascadeDelay(0),window.IterionPresentation.cascadeDelay(1),window.IterionPresentation.cascadeDelay(2),window.IterionPresentation.cascadeDelay(1000)])).toEqual([600,600,560,60]);
   expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(520);
   await expect(page.locator('#scoreDetail .scoreProgress')).toBeVisible();
@@ -31,7 +31,7 @@ test('v028 resolved SCORE progress, abbreviations and debug file sharing',async(
   await expect.poll(()=>page.locator('#score').textContent()).toBe('3,500');await expect(page.locator('.scoreProgress')).toHaveAttribute('data-stage','clear');expect(parseFloat(await page.locator('.scoreProgressFill').evaluate(el=>el.style.width))).toBeCloseTo(100,1);await expect(page.locator('.scoreProgressNext')).toHaveText('×3.5 TARGET');
   const batchBefore=await page.evaluate(()=>window.__monoidPlaytestBatch.batchId);await page.locator('#menuButton').click();await expect(page.locator('#copyrun')).toHaveText('Share debug .txt');await page.locator('#copyrun').click();
   await expect.poll(()=>page.evaluate(()=>window.__sharedDebug?.name||'')).toMatch(/^MONOID_PLAYTEST_v0\.44\.2_.+\.txt$/);
-  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.title).toBe('MONOID PLAYTEST');expect(shared.text).toContain('MONOID PLAYTEST BATCH v1');expect(shared.text).toContain('MONOID DEBUG v0.44.2');expect(shared.text).toContain('Run ID:');expect(shared.text).toContain('PERFORMANCE TELEMETRY');expect(shared.text).toContain('Batch ID:');
+  const shared=await page.evaluate(()=>window.__sharedDebug);expect(shared.type).toBe('text/plain');expect(shared.title).toBe('MONOID PLAYTEST');expect(shared.text).toContain('MONOID PLAYTEST BATCH v1');expect(shared.text).toContain('MONOID DEBUG v0.44.3');expect(shared.text).toContain('Run ID:');expect(shared.text).toContain('PERFORMANCE TELEMETRY');expect(shared.text).toContain('Batch ID:');
   await expect.poll(()=>page.evaluate(()=>window.__monoidPlaytestBatch.batchId)).not.toBe(batchBefore);const batchAfter=await page.evaluate(()=>window.__monoidPlaytestBatch);expect(shared.text).toContain(`Batch ID: ${batchBefore}`);expect(shared.text).not.toContain(`Batch ID: ${batchAfter.batchId}`);await page.screenshot({path:testInfo.outputPath('score-progress-share.png'),fullPage:true});
 });
 
