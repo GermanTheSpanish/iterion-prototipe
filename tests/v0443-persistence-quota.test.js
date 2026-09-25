@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const D=require('../data.js'),E=require('../engine.js'),Game=require('../game.js');
 
-assert.equal(D.VERSION,'0.44.2');
+assert.equal(D.VERSION,'0.44.3');
 
 const g=Game.createGame(E,{seed:44301,STARTING_UNDO_CONSUMABLES:1});
 const s=g.state();
