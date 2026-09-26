@@ -576,6 +576,13 @@ function createGame(E,opts={}){
   }
   function shopRandomPrice(){return inflationCost(cfg.SHOP_RANDOM_TILE_COST||1)}
   function shopTileOfferPrice(){return inflationCost(cfg.SHOP_TILE_OFFER_COST||2)}
+  function shopPurchaseAvailability(){
+    const offers=ensureShopTileOffers(),generation=nextSetGeneration(),existing=new Set(s.set.map(t=>t.id)),reserved=new Set(offers.map(t=>t.id));
+    const randomAvailable=makePowerSet(generation).some(t=>!existing.has(t.id)&&!reserved.has(t.id)),exactOffers=offers.filter(t=>!existing.has(t.id)),randomPrice=shopRandomPrice(),tileOfferPrice=shopTileOfferPrice();
+    const canAffordRandom=randomAvailable&&s.coins>=randomPrice,canAffordOffer=exactOffers.length>0&&s.coins>=tileOfferPrice,hasAny=randomAvailable||exactOffers.length>0,canAffordAny=canAffordRandom||canAffordOffer,prices=[];
+    if(randomAvailable)prices.push(randomPrice);if(exactOffers.length)prices.push(tileOfferPrice);
+    return{hasAny,canAffordAny,blockedByCoins:hasAny&&!canAffordAny,randomAvailable,tileOfferCount:exactOffers.length,randomPrice,tileOfferPrice,cheapestPrice:prices.length?Math.min(...prices):null,coins:s.coins}
+  }
   function marketDoubleDoublePrice(){return inflationCost(cfg.MARKET_DOUBLE_DOUBLE_COST||8)}
   function applyPurchase(cost,meta){
     const before=s.inflation||0;s.coins-=cost;s.inflation=before+(cfg.INFLATION_PER_PURCHASE||1);
@@ -583,19 +590,23 @@ function createGame(E,opts={}){
   }
 
   function availableShopItems(){return M.all().filter(m=>m.kind==='consumable')}
-  function canOpenShop(){return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.shopOpen}
-  function openShop(){
-    if(!canOpenShop())return false;
+  function shopStateAllowsOpen(){return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.shopOpen}
+  function canOpenShop(options={}){return shopStateAllowsOpen()&&(options?.allowUnaffordable||!shopPurchaseAvailability().blockedByCoins)}
+  function openShop(options={}){
+    if(!shopStateAllowsOpen())return false;
+    const availability=shopPurchaseAvailability();if(!options?.allowUnaffordable&&availability.blockedByCoins){s.events.push({type:'shop-close',round:s.round+1,shop:'shop',reason:'insufficient-coins',opened:false,coins:s.coins,inflation:s.inflation,available:availableTileCount(),cheapestPrice:availability.cheapestPrice});return false}
     const tileOffers=ensureShopTileOffers();
     s.shopOpen=true;s.shopType='shop';s.shopOffers=[];
     s.events.push({type:'shop-open',round:s.round+1,shop:'shop',offers:[],tileOffers:tileOffers.map(t=>t.id),coins:s.coins,inflation:s.inflation,available:availableTileCount()});return true
   }
+  function closeShopState(reason='continue'){
+    s.events.push({type:'shop-close',round:s.round+1,shop:'shop',reason,coins:s.coins,inflation:s.inflation,available:availableTileCount()});
+    s.shopOpen=false;s.shopType=null;s.shopOffers=[];
+    if(!s.cleared&&!s.running)assessContinuation()
+  }
   function closeShop(){
     if(!s.shopOpen||s.shopType!=='shop')return false;
-    s.events.push({type:'shop-close',round:s.round+1,shop:'shop',reason:'continue',coins:s.coins,inflation:s.inflation,available:availableTileCount()});
-    s.shopOpen=false;s.shopType=null;s.shopOffers=[];
-    if(!s.cleared&&!s.running)assessContinuation();
-    return true
+    closeShopState('continue');return true
   }
   function buyShopItem(){return{ok:false,reason:'tools-moved'}}
 
@@ -616,7 +627,8 @@ function createGame(E,opts={}){
     const delivery=deliverPurchasedTile(tile),purchase=applyPurchase(cost);
     if(s.blocked&&s.failureReason==='no-tiles'){s.blocked=false;s.failureReason=null;s.needsReroll=false}
     s.events.push({type:'tile-buy',round:s.round+1,shop:'shop',mode:'random',tile:cloneTile(tile),delivery:delivery.location,baseCost:cfg.SHOP_RANDOM_TILE_COST||1,cost,coins:s.coins,...purchase});
-    return{ok:true,tile:cloneTile(tile),delivery:delivery.location,cost,inflation:s.inflation}
+    const affordability=shopPurchaseAvailability(),shopClosedReason=affordability.blockedByCoins?'insufficient-coins':null;if(shopClosedReason)closeShopState(shopClosedReason);
+    return{ok:true,tile:cloneTile(tile),delivery:delivery.location,cost,inflation:s.inflation,shopClosedReason}
   }
   function buyShopTileOffer(tileId){
     if(!s.shopOpen||s.shopType!=='shop')return{ok:false,reason:'shop'};
@@ -627,10 +639,15 @@ function createGame(E,opts={}){
     const delivery=deliverPurchasedTile(tile),purchase=applyPurchase(cost);
     if(s.blocked&&s.failureReason==='no-tiles'){s.blocked=false;s.failureReason=null;s.needsReroll=false}
     s.events.push({type:'tile-buy',round:s.round+1,shop:'shop',mode:'offer',tile:cloneTile(tile),delivery:delivery.location,baseCost:cfg.SHOP_TILE_OFFER_COST||2,cost,coins:s.coins,...purchase});
-    return{ok:true,tile:cloneTile(tile),delivery:delivery.location,cost,inflation:s.inflation}
+    const affordability=shopPurchaseAvailability(),shopClosedReason=affordability.blockedByCoins?'insufficient-coins':null;if(shopClosedReason)closeShopState(shopClosedReason);
+    return{ok:true,tile:cloneTile(tile),delivery:delivery.location,cost,inflation:s.inflation,shopClosedReason}
   }
 
   function marketMods(){return M.all().filter(m=>m.market)}
+  function marketOfferAffordability(offerIds=s.shopOffers){
+    const ids=Array.isArray(offerIds)?offerIds:[],prices=ids.map(id=>marketModPrice(id)).filter(Number.isFinite),hasAny=prices.length>0,canAffordAny=prices.some(price=>s.coins>=price);
+    return{hasAny,canAffordAny,blockedByCoins:hasAny&&!canAffordAny,cheapestPrice:prices.length?Math.min(...prices):null,coins:s.coins}
+  }
   function marketModPrice(id){
     const m=M.get(id),base=m?.marketCostKey?Number(cfg[m.marketCostKey]):NaN;
     return Number.isFinite(base)?inflationCost(base):Infinity
@@ -686,7 +703,9 @@ function createGame(E,opts={}){
   function openIntermission(){
     if(s.pendingCircuit||s.pendingModPlacement||!s.cleared||s.intermissionResolved||s.nextShopType!=='market'||s.shopOpen)return false;
     s.marketCount=(s.marketCount||0)+1;s.shopOpen=true;s.shopType='market';s.marketBuys=[];s.shopOffers=generateMarketOffers();
-    s.events.push({type:'shop-open',round:s.round+1,shop:'market',offers:[...s.shopOffers],offerWeights:Object.fromEntries(s.shopOffers.map(id=>[id,marketOfferWeight(id)])),coins:s.coins,inflation:s.inflation,available:availableTileCount(),purchaseLimit:cfg.MARKET_PURCHASE_LIMIT||1});return true
+    const affordability=marketOfferAffordability(s.shopOffers);s.events.push({type:'shop-open',round:s.round+1,shop:'market',offers:[...s.shopOffers],offerWeights:Object.fromEntries(s.shopOffers.map(id=>[id,marketOfferWeight(id)])),coins:s.coins,inflation:s.inflation,available:availableTileCount(),purchaseLimit:cfg.MARKET_PURCHASE_LIMIT||1,cheapestPrice:affordability.cheapestPrice});
+    if(affordability.blockedByCoins){closeMarketState('insufficient-coins',true);return advance()}
+    return true
   }
   function closeMarketState(reason,resolved){
     s.events.push({type:'shop-close',round:s.round+1,shop:'market',reason,coins:s.coins,inflation:s.inflation,available:availableTileCount()});
@@ -885,7 +904,7 @@ function createGame(E,opts={}){
     s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});pruneInactiveTopologyMods({record:false});return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,marketDoubleDoublePrice,marketModPrice,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopPurchaseAvailability,marketDoubleDoublePrice,marketModPrice,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });

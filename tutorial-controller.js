@@ -50,13 +50,13 @@
       game.candidatesForIndex=function(i){if(i!==0)return[];return candidates(i)};
       game.openShop=function(...args){
         if(getTutorialKind()==='basics'&&gameFlow().screen==='tutorial'&&gameFlow().tutorialStep===5&&game.state().turn<7)return true;
-        return openShop(...args)
+        const options=args[0]&&typeof args[0]==='object'?{...args[0],allowUnaffordable:true}:{allowUnaffordable:true};return openShop(options)
       };
       game.finishPlacement=function(ctx){
         const step=gameFlow().tutorialStep,result=finishPlacement(ctx);if(gameFlow().screen!=='tutorial'||!result?.ok||getTutorialKind()!=='basics')return result;
         if(step===3)queueMicrotask(()=>{if(gameFlow().tutorialStep===4&&currentGame()===game)prepareHand(game,'d2-5')});
         if(step===4)queueMicrotask(()=>{if(gameFlow().tutorialStep===5&&currentGame()===game){game.config.TARGETS[0]=1e9;prepareHand(game,'d5-6')}});
-        if(step===5){if(game.state().turn===6)queueMicrotask(()=>{if(currentGame()===game)prepareHand(game,'d2-6')});else if(game.state().turn>=7){const state=game.state();state.cleared=false;openShop()}}
+        if(step===5){if(game.state().turn===6)queueMicrotask(()=>{if(currentGame()===game)prepareHand(game,'d2-6')});else if(game.state().turn>=7){const state=game.state();state.cleared=false;openShop({allowUnaffordable:true})}}
         return result
       }
     }
