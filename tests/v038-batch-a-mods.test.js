@@ -31,17 +31,18 @@ for(const retired of ['sequence','complement'])assert.equal(M.get(retired),null,
   const inactive=replay([piece(2,3,2,2,0,1)],'pair',1,3);assert.equal(inactive.events[0].pair,false);assert.equal(inactive.events[0].modMultiplier,1);
 }
 {
-  const g=G.createGame(E,{seed:3802}),s=setPlaced(g,['d1-5','d0-3']);
-  const twinTile=s.set.find(t=>t.id==='d1-5'),pairTile=s.set.find(t=>t.id==='d0-3');
+  const g=G.createGame(E,{seed:3802}),s=g.state(),twinTile=s.set.find(t=>t.id==='d1-5');
+  const pairTile={...twinTile,id:'g2-d1-5',source:'power-set',generation:2,powerMultiplier:2};s.set.push(pairTile);s.placedTileIds=['d1-5','g2-d1-5'];
   const twinPiece=E.pieceFrom(twinTile,2,2,0,0,1);twinPiece.tile={...twinTile};
   const pairPiece=E.pieceFrom(pairTile,2,4,0,0,2);pairPiece.tile={...pairTile};
-  s.pieces=[twinPiece,pairPiece];assert.equal(E.modGeometryFacts(pairPiece,s.pieces).pair,true,'PAIR persistence fixture must satisfy the active topology lifecycle');
-  s.twinTileId='d1-5';s.pairTileId='d0-3';
+  s.pieces=[twinPiece,pairPiece];const facts=E.modGeometryFacts(pairPiece,s.pieces);
+  assert.equal(facts.pair,true,'PAIR persistence fixture must satisfy the active topology lifecycle');assert.equal(facts.twin,true,'duplicate printed tiles should remain legitimate distinct physical instances');
+  s.twinTileId='d1-5';s.pairTileId='g2-d1-5';
   const saved=g.exportState(),restored=G.createGame(E,{seed:9});assert(restored.restoreState(saved));
   const rs=restored.state(),snap=restored.snapshot();
-  assert.equal(rs.twinTileId,'d1-5');assert.equal(rs.pairTileId,'d0-3');
-  assert.deepEqual(snap.tileMods.twin,['d1-5']);assert.deepEqual(snap.tileMods.pair,['d0-3']);
-  assert.match(restored.debugText(),/TW=d1-5 · PR=d0-3/);
+  assert.equal(rs.twinTileId,'d1-5');assert.equal(rs.pairTileId,'g2-d1-5');
+  assert.deepEqual(snap.tileMods.twin,['d1-5']);assert.deepEqual(snap.tileMods.pair,['g2-d1-5']);
+  assert.match(restored.debugText(),/TW=d1-5 · PR=g2-d1-5/);
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
