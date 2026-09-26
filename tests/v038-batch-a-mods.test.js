@@ -32,6 +32,10 @@ for(const retired of ['sequence','complement'])assert.equal(M.get(retired),null,
 }
 {
   const g=G.createGame(E,{seed:3802}),s=setPlaced(g,['d1-5','d0-3']);
+  const twinTile=s.set.find(t=>t.id==='d1-5'),pairTile=s.set.find(t=>t.id==='d0-3');
+  const twinPiece=E.pieceFrom(twinTile,2,2,0,0,1);twinPiece.tile={...twinTile};
+  const pairPiece=E.pieceFrom(pairTile,2,4,0,0,2);pairPiece.tile={...pairTile};
+  s.pieces=[twinPiece,pairPiece];assert.equal(E.modGeometryFacts(pairPiece,s.pieces).pair,true,'PAIR persistence fixture must satisfy the active topology lifecycle');
   s.twinTileId='d1-5';s.pairTileId='d0-3';
   const saved=g.exportState(),restored=G.createGame(E,{seed:9});assert(restored.restoreState(saved));
   const rs=restored.state(),snap=restored.snapshot();
