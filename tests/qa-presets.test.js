@@ -66,7 +66,7 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
     assert.strictEqual(s.anchorId,'g2-d2-5');assert.strictEqual(s.best,2.1114853892231e36);
     assert.deepStrictEqual(s.hand.map(t=>t.id),['g2-d1-6','g2-d0-5','g2-d0-6','g2-d1-2','g2-d4-5']);
     assert.deepStrictEqual(s.circuitRanks,{'d2-2':2,'d5-5':2,'d6-6':5});assert.strictEqual(s.circuitSignatures.length,5);
-    assert.deepStrictEqual(s.zeroPortTileIds,['d0-3']);assert.strictEqual(s.bridgeTileId,'d5-6');assert.strictEqual(s.crownTileId,'d5-5');assert.strictEqual(s.frameTileId,'d3-4');assert.strictEqual(s.foundationTileId,'d4-5');
+    assert.deepStrictEqual(s.zeroPortTileIds,['d0-3']);assert.strictEqual(s.bridgeTileId,'d5-6');assert.strictEqual(s.crownTileId,'d5-5');assert.strictEqual(s.brokerTileId,'d3-4');assert.strictEqual(s.frameTileId,undefined);assert.strictEqual(s.foundationTileId,'d4-5');
     assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});assert.strictEqual(s.freeReroll,1);assert.strictEqual(s.mods.includes('long-run'),false)
   }else{
     assert(s.mods.includes('long-run'),`${id}: synthetic late-game fixture keeps Long Chain`);

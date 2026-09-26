@@ -9,7 +9,7 @@ function piece(a,b,x,y,rr,id){const p=E.pieceFrom({a,b},x,y,0,rr,id);p.tile={id:
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 
 check('roster replaces four generic multipliers without expanding the 28-Mod collection',()=>{
-  assert.equal(D.VERSION,'0.46.0');assert.equal(D.ENGINE_VERSION,'0.16.0-signal-v2');
+  assert.equal(D.VERSION,'0.47.0');assert.equal(D.ENGINE_VERSION,'0.17.0-economy-v2');
   assert.deepEqual(['diode','return','merge','hinge'].map(id=>M.get(id).collectionCode),['DI','RT','MG','HG']);
   assert.deepEqual(['diode','return','merge','hinge'].map(id=>M.get(id).category),['signal','signal','signal','signal']);
   for(const id of ['sequence','complement','relay','coupler'])assert.equal(M.get(id),null);
@@ -75,7 +75,7 @@ check('old Signal-v1 replacement fields are migration-only and protected compara
   const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8'),game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
   assert.match(source,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/);
   assert.doesNotMatch(source,/mods\.has\('sequence'\)|mods\.has\('complement'\)|mods\.has\('relay'\)|mods\.has\('coupler'\)/);
-  assert.match(game,/\['zeroMemoryTileId','sequenceTileId','complementTileId','relayTileId','couplerTileId'\]/);
+  assert.match(game,/\['zeroMemoryTileId','sequenceTileId','complementTileId','relayTileId','couplerTileId','frameTileId','frontierTileId','resonatorTileId','forgeTileId'\]/);
 });
 
 console.log(`${checks} MONOID Signal v2 regressions passed`);
