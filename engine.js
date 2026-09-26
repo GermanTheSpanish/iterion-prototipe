@@ -152,6 +152,24 @@
       mirror:!!mirror&&mirror[0]===mirror[1]
     })
   }
+  function hingeAlternates(piece,pieces){
+    if(!piece||piece.double||piece.tile?.a===0||piece.tile?.b===0)return[];
+    const out=[],others=pieces.filter(p=>p.id!==piece.id),center={x:(piece.rect.minx+piece.rect.maxx)/2,y:(piece.rect.miny+piece.rect.maxy)/2};
+    for(const c of uniquePhysicalConnections(piece,pieces)){
+      const pivot=pieceById(pieces,c.toPieceId);if(!pivot)continue;
+      const pivotCenter={x:(pivot.rect.minx+pivot.rect.maxx)/2,y:(pivot.rect.miny+pivot.rect.maxy)/2},target={x:2*pivotCenter.x-center.x,y:2*pivotCenter.y-center.y};
+      for(let rr=0;rr<4;rr++){
+        const [dx,dy]=DIR[rr],x=target.x-S/2-dx*S/2,y=target.y-S/2-dy*S/2;
+        if(!Number.isInteger(x)||!Number.isInteger(y))continue;
+        if(x===piece.cubes[0].x&&y===piece.cubes[0].y&&rr===piece.rr)continue;
+        const valid=validatePlacement(piece.tile,x,y,piece.z,rr,others);if(!valid.ok)continue;
+        const candidate=pieceFrom(piece.tile,x,y,piece.z,rr,piece.id),contact=contactBetweenPieces(candidate,pivot);
+        if(!contact.touch||!contact.ok)continue;
+        out.push({pivotPieceId:pivot.id,pivotTileId:pivot.tile?.id||null,placement:{x,y,z:piece.z,rr},key:`${String(pivot.id).padStart(8,'0')}:${placementKey(piece.tile,{x,y,z:piece.z,rr})}`})
+      }
+    }
+    const seen=new Set();return out.sort((a,b)=>a.key.localeCompare(b.key)).filter(item=>{const k=`${item.pivotPieceId}:${item.placement.x},${item.placement.y},${item.placement.rr}`;if(seen.has(k))return false;seen.add(k);return true})
+  }
   function applyOp(v,isDouble,state,doubleDouble=false,powerMultiplier=1){
     const before=state.output||0,power=Math.max(1,Number(powerMultiplier)||1);
     if(v===0)return{type:'zero',before,after:before,delta:0,doubleDouble:false,powerMultiplier:power};
@@ -162,8 +180,9 @@
   function startChoices(newPieceId,pieces){const p=pieceById(pieces,newPieceId);if(!p)return[];const out=[];for(const c of connectionsForPiece(p,pieces)){out.push({...c,entryHalf:c.toHalf,flipped:false,key:connectionKey(c)+':N'});out.push({...c,entryHalf:1-c.toHalf,flipped:true,key:connectionKey(c)+':F'})}const seen=new Set();return out.filter(c=>{const k=`${c.toPieceId}:${c.entryHalf}:${c.fromHalf}`;if(seen.has(k))return false;seen.add(k);return true}).sort((a,b)=>a.key.localeCompare(b.key))}
   const extKey=(a,ah,b,bh)=>`E:${a}:${ah}>${b}:${bh}`;
   const cloneMap=m=>new Map(m);
-  const cloneState=s=>({current:{...s.current},mode:s.mode,output:s.output,initialOutput:s.initialOutput,suppressZeroPiece:s.suppressZeroPiece,doubleDoubleUsed:!!s.doubleDoubleUsed,splitUsed:new Set(s.splitUsed||[]),usedEdges:new Set(s.usedEdges),zeroCharges:cloneMap(s.zeroCharges),zeroPortUsed:new Set(s.zeroPortUsed||[]),back:s.back.map(x=>({...x})),forward:s.forward.map(x=>({...x})),path:s.path.map(x=>({...x})),segments:s.segments.map(x=>({...x,from:{...x.from},to:{...x.to}})),events:s.events.map(x=>({...x})),traversals:s.traversals,rebounds:s.rebounds});
-  function terminal(s,reason,meta={}){const events=[...s.events,{type:'die',reason}],output=s.output||0;return{output,gain:output-(s.initialOutput||0),path:s.path,segments:s.segments,events,zeroCharges:s.zeroCharges,reason,traversals:s.traversals,rebounds:s.rebounds,...meta}}
+  const clonePiece=p=>p?{...p,tile:{...p.tile},cubes:p.cubes.map(c=>({...c})),rect:{...p.rect}}:null;
+  const cloneState=s=>({current:{...s.current},mode:s.mode,output:s.output,initialOutput:s.initialOutput,suppressZeroPiece:s.suppressZeroPiece,doubleDoubleUsed:!!s.doubleDoubleUsed,splitUsed:new Set(s.splitUsed||[]),usedEdges:new Set(s.usedEdges),zeroCharges:cloneMap(s.zeroCharges),zeroPortUsed:new Set(s.zeroPortUsed||[]),returnUsed:!!s.returnUsed,mergeCapture:!!s.mergeCapture,mergeConsumed:!!s.mergeConsumed,mergeFromPieceIds:new Set(s.mergeFromPieceIds||[]),hingeMoved:!!s.hingeMoved,hingeOverride:clonePiece(s.hingeOverride),back:s.back.map(x=>({...x})),forward:s.forward.map(x=>({...x})),path:s.path.map(x=>({...x})),segments:s.segments.map(x=>({...x,from:{...x.from},to:{...x.to}})),events:s.events.map(x=>({...x})),traversals:s.traversals,rebounds:s.rebounds});
+  function terminal(s,reason,meta={}){const events=[...s.events,{type:'die',reason}],output=s.output||0;return{output,gain:output-(s.initialOutput||0),path:s.path,segments:s.segments,events,zeroCharges:s.zeroCharges,zeroPortUsed:new Set(s.zeroPortUsed||[]),splitUsed:new Set(s.splitUsed||[]),usedEdges:new Set(s.usedEdges||[]),doubleDoubleUsed:!!s.doubleDoubleUsed,returnUsed:!!s.returnUsed,mergeConsumed:!!s.mergeConsumed,hingeMoved:!!s.hingeMoved,hingeOverride:clonePiece(s.hingeOverride),reason,traversals:s.traversals,rebounds:s.rebounds,...meta}}
   function better(a,b){if(!b)return true;const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length],bv=[b.traversals||0,b.output||0,b.rebounds||0,(b.path||[]).length];for(let i=0;i<av.length;i++){if(av[i]!==bv[i])return av[i]>bv[i]}return false}
   function replaySelectedScoring(result,initialOutput,opts={}){
     const powers=opts.powerByPiece||new Map(),pieces=opts.pieces||[],modsByPiece=opts.modIdsByPiece||new Map(),circuitRanks=opts.circuitRankByPiece||new Map(),foundationAges=opts.foundationAgeByPiece||new Map(),knotCycles=opts.knotCycleCountByPiece||new Map(),powered=[...powers.values()].some(p=>p>1),modified=[...modsByPiece.values()].some(v=>v&&v.size);
@@ -369,7 +388,7 @@
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}
   function exposedPorts(tile,z,pieces){const placements=allPlacements(tile,z,pieces),groups=new Map();for(const pl of placements)for(const group of pl.contacts||[]){if(group.kind==='double-centered'&&group.piece.double){const side=group.relation.sideB,key=`${group.piece.id}:center:${side}`;if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:null,side,value:group.piece.tile.a,centered:true,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl);continue}for(const c of group.contacts||[]){const key=portKey(group.piece.id,c.bHalf,c.otherSide);if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:c.bHalf,side:c.otherSide,value:c.bV,centered:false,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl)}}return[...groups.values()]}
-  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,replaySelectedEcho,bestSignal,simulateSignal,exposedPorts,modGeometryFacts};
+  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,replaySelectedEcho,bestSignal,simulateSignal,exposedPorts,modGeometryFacts,hingeAlternates};
   Object.defineProperties(api,{G:{enumerable:true,get:()=>G},H:{enumerable:true,get:()=>H}});
   return api;
 });
