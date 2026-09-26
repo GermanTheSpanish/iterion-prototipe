@@ -180,7 +180,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20260926.1';
+    const BUILD_ID='20260926.2';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);

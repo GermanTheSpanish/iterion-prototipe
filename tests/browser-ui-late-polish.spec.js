@@ -103,10 +103,10 @@ test('board Mod tap reveals canonical values for 3 seconds with independent time
 
 test('Shop uses compact geometry without revealing its face-down domino',async({page})=>{
   await page.setViewportSize({width:375,height:667});
-  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){return value.createGame(engine,{...options,STARTING_COINS:200})}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish&&!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
-  await page.evaluate(()=>{window.__monoidGame.state().coins=200});await page.locator('#shopButton').click();
+  await page.locator('#shopButton').click();
   const preview=page.locator('.randomTilePreview .domino');await expect(preview).toHaveClass(/compactPreview/);await expect(preview).toHaveClass(/back/);
   expect(await preview.locator('.half').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
   await expect(preview.locator('.tileModMark')).toHaveCount(0);
@@ -120,7 +120,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260926.1');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20260926.2');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
