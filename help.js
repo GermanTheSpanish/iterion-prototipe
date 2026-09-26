@@ -83,8 +83,8 @@
     if(state.longLineTileId===tileId)ids.push('long-line');
     if(state.overloadTileId===tileId)ids.push('overload');
     if(state.terminalTileId===tileId)ids.push('terminal');
-    if(state.sequenceTileId===tileId)ids.push('sequence');
-    if(state.complementTileId===tileId)ids.push('complement');
+    if(state.diodeTileId===tileId)ids.push('diode');
+    if(state.returnTileId===tileId)ids.push('return');
     if(state.twinTileId===tileId)ids.push('twin');
     if(state.pairTileId===tileId)ids.push('pair');
     if(state.bridgeTileId===tileId)ids.push('bridge');
@@ -93,8 +93,8 @@
     if(state.frameTileId===tileId)ids.push('frame');
     if(state.crownTileId===tileId)ids.push('crown');
     if(state.frontierTileId===tileId)ids.push('frontier');
-    if(state.relayTileId===tileId)ids.push('relay');
-    if(state.couplerTileId===tileId)ids.push('coupler');
+    if(state.mergeTileId===tileId)ids.push('merge');
+    if(state.hingeTileId===tileId)ids.push('hinge');
     if(state.resonatorTileId===tileId)ids.push('resonator');
     if(state.forgeTileId===tileId)ids.push('forge');
     if(state.foundationTileId===tileId)ids.push('foundation');

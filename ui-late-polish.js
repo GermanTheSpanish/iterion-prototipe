@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260926.2',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20260926.3',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -114,7 +114,7 @@
     for(const[el,value]of pairs){if(!el||!Number.isFinite(Number(value)))continue;const extreme=Math.abs(Number(value))>=EXTREME_THRESHOLD;el.classList.toggle('extremeValue',extreme);if(extreme){const text=scientific(value);if(el.textContent!==text)el.textContent=text}}
     const final=doc.querySelector('.finalfx>span');if(final&&Math.abs(Number(s.score))>=EXTREME_THRESHOLD){const text=scientific(s.score);if(final.textContent!==text)final.textContent=text}
   }
-  const OFFER_LABELS=Object.freeze({'double-double':'DD','double-echo':'DE','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','sequence':'SQ','complement':'C6','twin':'TW','pair':'PR','bridge':'BR','gate':'GT','fan':'FN','frame':'FM','crown':'CW','frontier':'FT','relay':'RL','coupler':'CP','resonator':'RS','forge':'FG','foundation':'FD','knot':'KN','mirror':'MR','mint':'MT'});
+  const OFFER_LABELS=Object.freeze({'double-double':'DD','double-echo':'DE','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','diode':'DI','return':'RT','twin':'TW','pair':'PR','bridge':'BR','gate':'GT','fan':'FN','frame':'FM','crown':'CW','frontier':'FT','merge':'MG','hinge':'HG','resonator':'RS','forge':'FG','foundation':'FD','knot':'KN','mirror':'MR','mint':'MT'});
   const offerLabel=id=>OFFER_LABELS[id]||null;
   function assignedTiles(){
     const map=new Map();
