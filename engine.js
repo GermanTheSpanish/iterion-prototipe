@@ -239,7 +239,7 @@
   }
   function replaySelectedEcho(result,opts={}){
     if(!opts.doubleEchoPieceId)return result;
-    const events=[],scope=[],echoForks=new Map();let echoActive=false,echoDone=false,activationScope=[],echoOutput=0,echoRebounds=0;
+    const events=[],scope=[],echoForks=new Map(),echoReturnScores=new Map();let echoActive=false,echoDone=false,activationScope=[],echoOutput=0,echoRebounds=0;
     const normalEchoOp=raw=>{
       const before=echoOutput,v=raw.value,power=Math.max(1,Number(raw.powerMultiplier)||1),modMultiplier=Math.max(1,Number(raw.modMultiplier)||1);let op=raw.op||'zero',add=0,factor=0;
       if(op==='add'){add=Number(raw.normalAdd)||v*power*modMultiplier;echoOutput+=add}
@@ -277,7 +277,12 @@
         const fork=echoForks.get(raw.piece);if(fork){echoOutput=fork.results.reduce((sum,v)=>sum+(Number(v)||0),0);events.push({type:'echo-signal-join',piece:raw.piece,output:echoOutput});echoForks.delete(raw.piece)}
         continue
       }
-      if(raw.type==='op')events.push(normalEchoOp(raw));
+      if(raw.type==='signal-merge'){
+        const fork=echoForks.get(raw.fork);if(fork){echoOutput=fork.results.reduce((sum,v)=>sum+(Number(v)||0),0);events.push({type:'echo-signal-merge',fork:raw.fork,piece:raw.piece,output:echoOutput});echoForks.delete(raw.fork)}
+        continue
+      }
+      if(raw.type==='return'){if(echoReturnScores.has(raw.piece))echoOutput=echoReturnScores.get(raw.piece);events.push({type:'echo-return',piece:raw.piece,output:echoOutput});continue}
+      if(raw.type==='op'){const echoOp=normalEchoOp(raw);events.push(echoOp);if(raw.piece===opts.returnPieceId)echoReturnScores.set(raw.piece,echoOutput)}
       else if(raw.type==='rebound'){echoRebounds++;events.push({type:'echo-rebound',piece:raw.piece,charge:raw.charge})}
     }
     if(!echoActive&&!echoDone&&events.every(e=>e.type!=='double-echo-start'))return result;
