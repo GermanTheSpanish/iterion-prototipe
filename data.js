@@ -4,8 +4,8 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.46.0',
-    ENGINE_VERSION:'0.16.0-signal-v2',
+    VERSION:'0.47.0',
+    ENGINE_VERSION:'0.17.0-economy-v2',
     BIFURCATION_ENABLED:true,
     TARGETS:[
       20,100,500,2500,10000,
