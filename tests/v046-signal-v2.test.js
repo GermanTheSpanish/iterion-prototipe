@@ -75,7 +75,7 @@ check('old Signal-v1 replacement fields are migration-only and protected compara
   const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8'),game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
   assert.match(source,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/);
   assert.doesNotMatch(source,/mods\.has\('sequence'\)|mods\.has\('complement'\)|mods\.has\('relay'\)|mods\.has\('coupler'\)/);
-  assert.match(game,/\['zeroMemoryTileId','sequenceTileId','complementTileId','relayTileId','couplerTileId'\]/);
+  assert.match(game,/\['zeroMemoryTileId','sequenceTileId','complementTileId','relayTileId','couplerTileId','frameTileId','frontierTileId','resonatorTileId','forgeTileId'\]/);
 });
 
 console.log(`${checks} MONOID Signal v2 regressions passed`);
