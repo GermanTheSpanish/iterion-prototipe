@@ -14,7 +14,7 @@ function replay(pieces,modId,pieceId,value,initial=5){
 }
 function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*8,8+Math.floor(i/3)*8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s}
 
-assert.equal(D.VERSION,'0.46.0');
+assert.equal(D.VERSION,'0.47.0');
 assert.deepEqual([D.TWIN_MOD_MULTIPLIER,D.PAIR_MOD_MULTIPLIER],[3,3]);
 assert.deepEqual(['twin','pair'].map(id=>M.get(id).collectionCode),['TW','PR']);
 for(const retired of ['sequence','complement'])assert.equal(M.get(retired),null,`${retired} was replaced by Signal v2`);
@@ -46,4 +46,4 @@ for(const retired of ['sequence','complement'])assert.equal(M.get(retired),null,
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
-console.log('v0.46.0 retained Batch A Mod regressions passed');
+console.log('v0.47.0 retained Batch A Mod regressions passed');
