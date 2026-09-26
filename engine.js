@@ -297,6 +297,10 @@
     const starts=startChoices(newPieceId,pieces);if(!starts.length)return{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-start',traversals:0,rebounds:0,search:{starts:0,expanded:0,leaves:1,truncated:false}};
     const maxExpanded=opts.maxExpanded||50000;let expanded=0,leaves=0,truncated=false,best=null;
     let searchLimit=maxExpanded;
+    const runtimePieces=s=>s.hingeOverride?pieces.map(p=>p.id===s.hingeOverride.id?s.hingeOverride:p):pieces;
+    const runtimePiece=(s,id)=>s.hingeOverride?.id===id?s.hingeOverride:pieceById(pieces,id);
+    const unionSets=(...sets)=>new Set(sets.flatMap(set=>[...(set||[])]));
+    const maxMaps=(...maps)=>{const out=new Map();for(const map of maps)for(const [k,v] of map||[])out.set(k,Math.max(Number(out.get(k))||0,Number(v)||0));return out};
     function finish(s,reason){leaves++;return{...terminal(s,reason),splitUsed:new Set(s.splitUsed||[]),doubleDoubleUsed:!!s.doubleDoubleUsed}}
     function follow(s,conns,exitHalf){
       let selected=null;
@@ -310,84 +314,129 @@
       }
       return selected||finish(s,'search-limit')
     }
+    function branchCarry(branch,result){
+      branch.splitUsed=new Set(result.splitUsed||branch.splitUsed||[]);branch.doubleDoubleUsed=!!result.doubleDoubleUsed;branch.returnUsed=!!result.returnUsed;branch.mergeConsumed=!!result.mergeConsumed;
+      branch.hingeMoved=!!result.hingeMoved;branch.hingeOverride=clonePiece(result.hingeOverride||branch.hingeOverride);
+      return branch
+    }
+    function resumeMergeWait(result){
+      if(result?.reason!=='merge-wait'||!result.mergeState)return result;
+      const state=cloneState(result.mergeState);state.mergeCapture=false;return walk(state)
+    }
+    function mergeCapturedFork(s,cur,results,splitKind){
+      if(results.length!==2||results.some(r=>r?.reason!=='merge-wait'||!r.mergeState))return null;
+      if(results[0].mergeAt!==results[1].mergeAt||results[0].mergeEntryHalf!==results[1].mergeEntryHalf)return null;
+      const first=results[0].mergeState,second=results[1].mergeState,mergePiece=runtimePiece(second,results[0].mergeAt)||runtimePiece(first,results[0].mergeAt);if(!mergePiece)return null;
+      const events=[...s.events,{type:'signal-fork',piece:cur.id,output:s.output,splitKind}];
+      results.forEach((r,arm)=>events.push({type:'signal-start',fork:cur.id,arm,output:s.output},...r.events,{type:'signal-end',fork:cur.id,arm,output:r.output}));
+      const output=results.reduce((sum,r)=>sum+(Number(r.output)||0),0);events.push({type:'signal-merge',fork:cur.id,piece:mergePiece.id,entryHalf:results[0].mergeEntryHalf,output});
+      const merged=cloneState(second);merged.output=output;merged.current={...second.current};merged.mode=1;merged.suppressZeroPiece=null;merged.mergeCapture=false;merged.mergeConsumed=true;merged.mergeFromPieceIds=new Set(results.map(r=>r.mergeState.current.fromPieceId).filter(id=>id!=null));merged.usedEdges=unionSets(first.usedEdges,second.usedEdges);merged.splitUsed=unionSets(first.splitUsed,second.splitUsed);merged.zeroPortUsed=unionSets(first.zeroPortUsed,second.zeroPortUsed);merged.zeroCharges=maxMaps(first.zeroCharges,second.zeroCharges);merged.doubleDoubleUsed=!!(first.doubleDoubleUsed||second.doubleDoubleUsed);merged.returnUsed=!!(first.returnUsed||second.returnUsed);merged.hingeMoved=!!(first.hingeMoved||second.hingeMoved);merged.hingeOverride=clonePiece(second.hingeOverride||first.hingeOverride);merged.back=[];merged.forward=[];merged.path=[...s.path,...results.flatMap(r=>r.path||[])];merged.segments=[...s.segments,...results.flatMap(r=>r.segments||[])];merged.events=events;merged.traversals=s.traversals+results.reduce((sum,r)=>sum+(r.traversals||0),0);merged.rebounds=s.rebounds+results.reduce((sum,r)=>sum+(r.rebounds||0),0);
+      return walk(merged)
+    }
     function tripleDoubleFork(s,cur,connections){
-      if(!opts.bifurcate||cur.id!==opts.tripleDoublePieceId||s.splitUsed.has(cur.id)||!isFullCross(cur,pieces))return null;
+      if(!opts.bifurcate||cur.id!==opts.tripleDoublePieceId||s.splitUsed.has(cur.id)||!isFullCross(cur,runtimePieces(s)))return null;
       const byPiece=new Map();for(const c of connections)if(!byPiece.has(c.toPieceId))byPiece.set(c.toPieceId,c);const arms=[...byPiece.values()].sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
       if(arms.length!==3)return null;
       if(searchLimit-expanded<3){truncated=true;return null}
-      const seed=cloneState(s);seed.splitUsed.add(cur.id);
-      const results=[],parentLimit=searchLimit;let spent=seed.splitUsed,ddUsed=seed.doubleDoubleUsed;
+      const seed=cloneState(s);seed.splitUsed.add(cur.id);seed.mergeCapture=false;
+      const results=[],parentLimit=searchLimit;let carry=cloneState(seed);
       for(let arm=0;arm<arms.length;arm++){
         searchLimit=parentLimit-Math.max(0,arms.length-1-arm);
-        const branch=cloneState(seed);branch.splitUsed=new Set(spent);branch.doubleDoubleUsed=ddUsed;branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
-        const c=arms[arm],r=follow(branch,[c],c.fromHalf);results.push(r);spent=r.splitUsed;ddUsed=r.doubleDoubleUsed
+        const branch=cloneState(seed);branch.splitUsed=new Set(carry.splitUsed);branch.doubleDoubleUsed=carry.doubleDoubleUsed;branch.returnUsed=carry.returnUsed;branch.mergeConsumed=carry.mergeConsumed;branch.hingeMoved=carry.hingeMoved;branch.hingeOverride=clonePiece(carry.hingeOverride);branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
+        const c=arms[arm],r=follow(branch,[c],c.fromHalf);results.push(r);branchCarry(carry,r)
       }
       searchLimit=parentLimit;
       const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:cur.id,output:s.output,splitKind:'triple-double'}];
       results.forEach((r,arm)=>events.push({type:'signal-start',fork:cur.id,arm,output:s.output},...r.events,{type:'signal-end',fork:cur.id,arm,output:r.output}));events.push({type:'signal-join',piece:cur.id,output});
-      return{output,gain:output-s.initialOutput,events,reason:'triple-double-split',path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),splitUsed:spent,doubleDoubleUsed:ddUsed,zeroCharges:s.zeroCharges}
+      return{output,gain:output-s.initialOutput,events,reason:'triple-double-split',path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),splitUsed:new Set(carry.splitUsed),doubleDoubleUsed:!!carry.doubleDoubleUsed,returnUsed:!!carry.returnUsed,mergeConsumed:!!carry.mergeConsumed,hingeMoved:!!carry.hingeMoved,hingeOverride:clonePiece(carry.hingeOverride),zeroCharges:s.zeroCharges,zeroPortUsed:s.zeroPortUsed,usedEdges:s.usedEdges}
     }
     function fork(s,cur,connections){
       if(!opts.bifurcate||!cur.double||cur.tile.a===0||s.splitUsed.has(cur.id))return null;
-      const previous=pieceById(pieces,s.current.fromPieceId),relation=previous&&pieceEdgeRelation(cur,previous);
+      const ps=runtimePieces(s),previous=pieceById(ps,s.current.fromPieceId),relation=previous&&pieceEdgeRelation(cur,previous);
       if(!relation||!isLongSide(cur,relation.sideA)||relation.len!==S)return null;
       const splitKind=isCenteredOnDouble(cur,relation,relation.sideA)?'centered':'offset-L';
-      // Only the two physical short ends distribute. Side contacts are not
-      // extra arms. Half 0 precedes half 1, independent of board-array order.
       const arms=[0,1].map(half=>connections.filter(c=>c.fromHalf===half&&!isLongSide(cur,c.fromSide)));
       if(arms.some(cs=>!cs.length))return null;
-      // Never award a copied arm that the search budget could not even enter.
       if(searchLimit-expanded<2){truncated=true;return null}
       const seed=cloneState(s);seed.splitUsed.add(cur.id);
-      const results=[],parentLimit=searchLimit;let spent=seed.splitUsed,ddUsed=seed.doubleDoubleUsed;
+      const results=[],parentLimit=searchLimit;let carry=cloneState(seed);
       for(let half=0;half<2;half++){
         searchLimit=parentLimit-(half===0?1:0);
-        const branch=cloneState(seed);branch.splitUsed=new Set(spent);branch.doubleDoubleUsed=ddUsed;
-        branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
-        const r=follow(branch,arms[half],half);results.push(r);spent=r.splitUsed;ddUsed=r.doubleDoubleUsed
+        const branch=cloneState(seed);branch.splitUsed=new Set(carry.splitUsed);branch.doubleDoubleUsed=carry.doubleDoubleUsed;branch.returnUsed=carry.returnUsed;branch.mergeConsumed=carry.mergeConsumed;branch.hingeMoved=carry.hingeMoved;branch.hingeOverride=clonePiece(carry.hingeOverride);branch.mergeCapture=!!opts.mergePieceId&&!carry.mergeConsumed;branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
+        const r=follow(branch,arms[half],half);results.push(r);branchCarry(carry,r.mergeState||r)
       }
       searchLimit=parentLimit;
+      const merged=mergeCapturedFork(s,cur,results,splitKind);if(merged)return merged;
+      for(let i=0;i<results.length;i++)results[i]=resumeMergeWait(results[i]);
       const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:cur.id,output:s.output,splitKind}];
       results.forEach((r,arm)=>events.push({type:'signal-start',fork:cur.id,arm,output:s.output},...r.events,{type:'signal-end',fork:cur.id,arm,output:r.output}));
       events.push({type:'signal-join',piece:cur.id,output});
-      return{output,gain:output-s.initialOutput,events,reason:'split-complete',
-        path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],
-        traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),
-        splitUsed:spent,doubleDoubleUsed:ddUsed,zeroCharges:s.zeroCharges}
+      const last=results[results.length-1]||s;
+      return{output,gain:output-s.initialOutput,events,reason:'split-complete',path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),splitUsed:unionSets(...results.map(r=>r.splitUsed)),doubleDoubleUsed:results.some(r=>r.doubleDoubleUsed),returnUsed:results.some(r=>r.returnUsed),mergeConsumed:results.some(r=>r.mergeConsumed),hingeMoved:results.some(r=>r.hingeMoved),hingeOverride:clonePiece(last.hingeOverride),zeroCharges:s.zeroCharges,zeroPortUsed:s.zeroPortUsed,usedEdges:unionSets(...results.map(r=>r.usedEdges))}
     }
     function zeroPortFork(s,dest){
-      const available=connectionsForPiece(dest,pieces).map(c=>({...c,key:extKey(dest.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!s.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
-      const arms=[0,1].map(half=>available.filter(c=>c.fromHalf===half&&!isLongSide(dest,c.fromSide)));
-      const results=[],seed=cloneState(s);seed.current={pieceId:dest.id,entryHalf:0,fromPieceId:s.current.pieceId,fromHalf:0};seed.back=[];seed.forward=[];
+      const ps=runtimePieces(s),liveDest=pieceById(ps,dest.id)||dest,available=connectionsForPiece(liveDest,ps).map(c=>({...c,key:extKey(liveDest.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!s.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
+      const arms=[0,1].map(half=>available.filter(c=>c.fromHalf===half&&!isLongSide(liveDest,c.fromSide)));
+      const results=[],seed=cloneState(s);seed.current={pieceId:liveDest.id,entryHalf:0,fromPieceId:s.current.pieceId,fromHalf:0};seed.back=[];seed.forward=[];let carry=cloneState(seed);
       for(let half=0;half<2;half++){
-        const branch=cloneState(seed);branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
-        const r=arms[half].length?follow(branch,arms[half],half):finish(branch,'zero-port-open-end');results.push(r)
+        const branch=cloneState(seed);branch.returnUsed=carry.returnUsed;branch.mergeConsumed=carry.mergeConsumed;branch.hingeMoved=carry.hingeMoved;branch.hingeOverride=clonePiece(carry.hingeOverride);branch.mergeCapture=!!opts.mergePieceId&&!carry.mergeConsumed;branch.events=[];branch.path=[];branch.segments=[];branch.traversals=0;branch.rebounds=0;
+        const r=arms[half].length?follow(branch,arms[half],half):finish(branch,'zero-port-open-end');results.push(r);branchCarry(carry,r.mergeState||r)
       }
-      const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:dest.id,output:s.output,splitKind:'zero-port'}];
-      results.forEach((r,arm)=>events.push({type:'signal-start',fork:dest.id,arm,output:s.output},...r.events,{type:'signal-end',fork:dest.id,arm,output:r.output}));
-      events.push({type:'signal-join',piece:dest.id,output});
-      return{output,gain:output-s.initialOutput,events,reason:'zero-port-split',path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),splitUsed:new Set(s.splitUsed||[]),doubleDoubleUsed:!!s.doubleDoubleUsed,zeroCharges:s.zeroCharges,zeroPortUsed:s.zeroPortUsed}
+      const merged=mergeCapturedFork(s,liveDest,results,'zero-port');if(merged)return merged;
+      for(let i=0;i<results.length;i++)results[i]=resumeMergeWait(results[i]);
+      const output=results.reduce((sum,r)=>sum+r.output,0),events=[...s.events,{type:'signal-fork',piece:liveDest.id,output:s.output,splitKind:'zero-port'}];
+      results.forEach((r,arm)=>events.push({type:'signal-start',fork:liveDest.id,arm,output:s.output},...r.events,{type:'signal-end',fork:liveDest.id,arm,output:r.output}));
+      events.push({type:'signal-join',piece:liveDest.id,output});
+      const last=results[results.length-1]||s;
+      return{output,gain:output-s.initialOutput,events,reason:'zero-port-split',path:[...s.path,...results.flatMap(r=>r.path)],segments:[...s.segments,...results.flatMap(r=>r.segments)],traversals:s.traversals+results.reduce((sum,r)=>sum+r.traversals,0),rebounds:s.rebounds+results.reduce((sum,r)=>sum+r.rebounds,0),splitUsed:unionSets(...results.map(r=>r.splitUsed)),doubleDoubleUsed:results.some(r=>r.doubleDoubleUsed),returnUsed:results.some(r=>r.returnUsed),mergeConsumed:results.some(r=>r.mergeConsumed),hingeMoved:results.some(r=>r.hingeMoved),hingeOverride:clonePiece(last.hingeOverride),zeroCharges:s.zeroCharges,zeroPortUsed:unionSets(...results.map(r=>r.zeroPortUsed)),usedEdges:unionSets(...results.map(r=>r.usedEdges))}
+    }
+    function returnFollow(s,cur,connections,exitHalf){
+      if(cur.id!==opts.returnPieceId||s.returnUsed||s.mode!==1||connections.length<2)return null;
+      let selected=null;const checkpoint=cloneState(s);checkpoint.returnUsed=true;
+      for(const first of connections){
+        const firstResult=follow(cloneState(checkpoint),[first],exitHalf);
+        if(firstResult.reason==='search-limit'||firstResult.reason==='merge-wait')continue;
+        const retry=cloneState(checkpoint);retry.returnUsed=true;retry.output=checkpoint.output;retry.events=[...firstResult.events,{type:'return',piece:cur.id,output:checkpoint.output}];retry.path=[...(firstResult.path||[])];retry.segments=[...(firstResult.segments||[])];retry.traversals=firstResult.traversals||0;retry.rebounds=firstResult.rebounds||0;retry.usedEdges=new Set(firstResult.usedEdges||checkpoint.usedEdges);retry.splitUsed=new Set(firstResult.splitUsed||checkpoint.splitUsed);retry.zeroCharges=cloneMap(firstResult.zeroCharges||checkpoint.zeroCharges);retry.zeroPortUsed=new Set(firstResult.zeroPortUsed||checkpoint.zeroPortUsed);retry.doubleDoubleUsed=!!firstResult.doubleDoubleUsed;retry.mergeConsumed=!!firstResult.mergeConsumed;retry.hingeMoved=!!firstResult.hingeMoved;retry.hingeOverride=clonePiece(firstResult.hingeOverride||checkpoint.hingeOverride);retry.back=[];retry.forward=[];retry.current={...checkpoint.current};retry.mode=1;
+        const retryPieces=runtimePieces(retry),retryCur=pieceById(retryPieces,cur.id)||cur,blocked=new Set([checkpoint.current.fromPieceId].filter(id=>id!=null));
+        const alternatives=connectionsForPiece(retryCur,retryPieces).filter(c=>c.fromHalf===exitHalf&&!blocked.has(c.toPieceId)).map(c=>({...c,key:extKey(retryCur.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!retry.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
+        for(const second of alternatives){const result=follow(cloneState(retry),[second],exitHalf);if(better(result,selected))selected=result}
+      }
+      return selected
     }
     function walk(s){
-      s.splitUsed??=new Set();
+      s.splitUsed??=new Set();s.zeroPortUsed??=new Set();s.mergeFromPieceIds??=new Set();
       if(++expanded>searchLimit){truncated=true;return finish(s,'search-limit')}
-      const cur=pieceById(pieces,s.current.pieceId);if(!cur)return finish(s,'missing-piece');
-      const entryHalf=s.mode===1?s.current.entryHalf:1-s.current.entryHalf,inC=cur.cubes.find(c=>c.half===entryHalf)||cur.cubes[0],outC=cur.cubes.find(c=>c.half!==inC.half)||cur.cubes[1],from=cubeCenter(inC),to=cubeCenter(outC);
+      let cur=runtimePiece(s,s.current.pieceId);if(!cur)return finish(s,'missing-piece');
+      const entryHalf=s.mode===1?s.current.entryHalf:1-s.current.entryHalf;
+      if(s.mergeCapture&&!s.mergeConsumed&&cur.id===opts.mergePieceId)return{output:s.output,gain:s.output-s.initialOutput,path:s.path,segments:s.segments,events:s.events,reason:'merge-wait',traversals:s.traversals,rebounds:s.rebounds,mergeAt:cur.id,mergeEntryHalf:entryHalf,mergeState:cloneState(s),splitUsed:new Set(s.splitUsed),doubleDoubleUsed:!!s.doubleDoubleUsed,returnUsed:!!s.returnUsed,mergeConsumed:!!s.mergeConsumed,hingeMoved:!!s.hingeMoved,hingeOverride:clonePiece(s.hingeOverride)};
+      if(cur.id===opts.diodePieceId&&Number.isInteger(opts.diodeInHalf)&&entryHalf!==opts.diodeInHalf){s.events.push({type:'diode-block',piece:cur.id,entryHalf,inHalf:opts.diodeInHalf});return finish(s,'diode-blocked')}
+      const inC=cur.cubes.find(c=>c.half===entryHalf)||cur.cubes[0],outC=cur.cubes.find(c=>c.half!==inC.half)||cur.cubes[1],from=cubeCenter(inC),to=cubeCenter(outC);
       s.path.push(from,to);s.segments.push({piece:cur.id,from,to,reverse:s.mode===-1,entryHalf:inC.half,exitHalf:outC.half});s.traversals++;
-      const previous=pieceById(pieces,s.current.fromPieceId),entryRelation=previous&&pieceEdgeRelation(cur,previous),entrySide=entryRelation?.sideA||null;
+      const psBefore=runtimePieces(s),previous=pieceById(psBefore,s.current.fromPieceId),entryRelation=previous&&pieceEdgeRelation(cur,previous),entrySide=entryRelation?.sideA||null;
       const doubleDouble=cur.id===opts.doubleDoublePieceId&&!s.doubleDoubleUsed,powerMultiplier=1;const op=applyOp(outC.v,cur.double,s,doubleDouble,powerMultiplier);if(op.doubleDouble)s.doubleDoubleUsed=true;s.events.push({type:'op',piece:cur.id,entryHalf:inC.half,exitHalf:outC.half,fromPieceId:s.current.fromPieceId||null,entrySide,value:outC.v,op:op.type,before:op.before,after:op.after,add:op.add||0,factor:op.factor||0,delta:op.delta||0,doubleDouble:!!op.doubleDouble,powerMultiplier,reverse:s.mode===-1});
-      if(outC.v===0){const zeroPorts=Array.isArray(opts.zeroPortPieceIds)?opts.zeroPortPieceIds.filter(Boolean):[];if(zeroPorts.length===2&&zeroPorts.includes(cur.id)){if(s.zeroPortUsed.has(cur.id))return finish(s,'zero-port-spent');const partner=pieceById(pieces,zeroPorts.find(id=>id!==cur.id));if(partner){s.zeroPortUsed.add(cur.id);s.events.push({type:'zero-port',piece:cur.id,toPieceId:partner.id,fromHalf:outC.half});if(partner.double&&partner.tile.a===0)return zeroPortFork(s,partner);const zeroCube=partner.cubes.find(c=>c.v===0);if(zeroCube){s.mode=1;s.back=[];s.forward=[];s.current={pieceId:partner.id,entryHalf:zeroCube.half,fromPieceId:cur.id,fromHalf:outC.half};return walk(s)}}}
+      if(cur.id===opts.hingePieceId&&!s.hingeMoved){
+        s.hingeMoved=true;const target=opts.hingeTargetPlacement,pivotId=opts.hingePivotPieceId;
+        if(opts.hingeBlockedReason||!target||pivotId==null)s.events.push({type:'hinge-blocked',piece:cur.id,reason:opts.hingeBlockedReason||'no-target'});
+        else{
+          const live=runtimePieces(s),others=live.filter(p=>p.id!==cur.id),valid=validatePlacement(cur.tile,target.x,target.y,target.z||0,target.rr,others),candidate=valid.ok?pieceFrom(cur.tile,target.x,target.y,target.z||0,target.rr,cur.id):null,pivot=candidate?pieceById(others,pivotId):null,contact=candidate&&pivot?contactBetweenPieces(candidate,pivot):null;
+          if(candidate&&contact?.touch&&contact.ok){candidate.tile={...cur.tile};const before={x:cur.cubes[0].x,y:cur.cubes[0].y,z:cur.z||0,rr:cur.rr};s.hingeOverride=candidate;cur=candidate;s.events.push({type:'hinge-move',piece:cur.id,pivotPieceId:pivotId,from:before,to:{x:target.x,y:target.y,z:target.z||0,rr:target.rr}})}
+          else s.events.push({type:'hinge-blocked',piece:cur.id,reason:'occupied'})
+        }
+      }
+      if(outC.v===0){const zeroPorts=Array.isArray(opts.zeroPortPieceIds)?opts.zeroPortPieceIds.filter(Boolean):[];if(zeroPorts.length===2&&zeroPorts.includes(cur.id)){if(s.zeroPortUsed.has(cur.id))return finish(s,'zero-port-spent');const live=runtimePieces(s),partner=pieceById(live,zeroPorts.find(id=>id!==cur.id));if(partner){s.zeroPortUsed.add(cur.id);s.events.push({type:'zero-port',piece:cur.id,toPieceId:partner.id,fromHalf:outC.half});if(partner.double&&partner.tile.a===0)return zeroPortFork(s,partner);const zeroCube=partner.cubes.find(c=>c.v===0);if(zeroCube){s.mode=1;s.back=[];s.forward=[];s.current={pieceId:partner.id,entryHalf:zeroCube.half,fromPieceId:cur.id,fromHalf:outC.half};return walk(s)}}}
         const cap=cur.double?2:1,used=s.zeroCharges.get(cur.id)||0;if(s.suppressZeroPiece===cur.id){s.suppressZeroPiece=null;s.events.push({type:'zero-pass',piece:cur.id})}else if(used<cap){s.zeroCharges.set(cur.id,used+1);s.mode*=-1;s.rebounds++;if(cur.double)s.suppressZeroPiece=cur.id;s.events.push({type:'rebound',piece:cur.id,charge:used+1});return walk(s)}else return finish(s,'zero-spent')}
       if(s.mode===-1){if(!s.back.length)return finish(s,'back-at-origin');const prev=s.back[s.back.length-1],k=extKey(cur.id,outC.half,prev.pieceId,1-prev.entryHalf);s.forward.push({...s.current});s.current=s.back.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:1-s.current.entryHalf,reverse:true,retrace:true,key:k});return walk(s)}
       if(s.forward.length){const nxt=s.forward[s.forward.length-1],k=extKey(cur.id,outC.half,nxt.pieceId,nxt.entryHalf);s.back.push({...s.current});s.current=s.forward.pop();s.events.push({type:'move',fromPiece:cur.id,fromHalf:outC.half,toPiece:s.current.pieceId,toHalf:s.current.entryHalf,reverse:false,replay:true,retrace:true,key:k});return walk(s)}
-      const available=connectionsForPiece(cur,pieces).filter(c=>c.toPieceId!==s.current.fromPieceId).map(c=>({...c,key:extKey(cur.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!s.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
-      const tripleSplit=tripleDoubleFork(s,cur,available);if(tripleSplit)return tripleSplit;
-      const split=fork(s,cur,available);if(split)return split;
+      const live=runtimePieces(s),routeCur=pieceById(live,cur.id)||cur,blockedFrom=new Set([s.current.fromPieceId,...s.mergeFromPieceIds].filter(id=>id!=null));s.mergeFromPieceIds=new Set();
+      const available=connectionsForPiece(routeCur,live).filter(c=>!blockedFrom.has(c.toPieceId)).map(c=>({...c,key:extKey(routeCur.id,c.fromHalf,c.toPieceId,c.toHalf),choiceKey:connectionKey(c)})).filter(c=>!s.usedEdges.has(c.key)).sort((a,b)=>a.choiceKey.localeCompare(b.choiceKey));
+      const tripleSplit=tripleDoubleFork(s,routeCur,available);if(tripleSplit)return tripleSplit;
+      const split=fork(s,routeCur,available);if(split)return split;
       const conns=available.filter(c=>c.fromHalf===outC.half);if(!conns.length)return finish(s,'no-exit');
+      const returned=returnFollow(s,routeCur,conns,outC.half);if(returned)return returned;
       return follow(s,conns,outC.half)
     }
-    for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:initialOutput,initialOutput,suppressZeroPiece:null,doubleDoubleUsed:false,splitUsed:new Set(),usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),zeroPortUsed:new Set(),back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
-    best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};best=replaySelectedScoring(best,initialOutput,{...opts,pieces,powerByPiece:new Map(pieces.map(p=>[p.id,Math.max(1,Number(p.tile?.powerMultiplier)||1)]))});return replaySelectedEcho(best,{...opts,initialOutput})
+    for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:initialOutput,initialOutput,suppressZeroPiece:null,doubleDoubleUsed:false,splitUsed:new Set(),usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),zeroPortUsed:new Set(),returnUsed:false,mergeCapture:false,mergeConsumed:false,mergeFromPieceIds:new Set(),hingeMoved:false,hingeOverride:null,back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
+    best=best||{output:initialOutput,gain:0,path:[],segments:[],events:[],reason:'no-route',traversals:0,rebounds:0};best.search={starts:starts.length,expanded,leaves,truncated};if(best.hingeOverride)best.hingeFinalPlacement={x:best.hingeOverride.cubes[0].x,y:best.hingeOverride.cubes[0].y,z:best.hingeOverride.z||0,rr:best.hingeOverride.rr};best=replaySelectedScoring(best,initialOutput,{...opts,pieces,powerByPiece:new Map(pieces.map(p=>[p.id,Math.max(1,Number(p.tile?.powerMultiplier)||1)]))});return replaySelectedEcho(best,{...opts,initialOutput})
   }
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}
