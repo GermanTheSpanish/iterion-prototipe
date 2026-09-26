@@ -57,7 +57,7 @@ function readyAdvance(g,roundIndex){const s=g.state();s.round=roundIndex;s.clear
 
 {
   const g=game(2715),s=g.state();
-  s.standardComplete=true;s.cleared=true;s.round=D.TOTAL_ROUNDS-1;s.intermissionResolved=true;s.shopOpen=false;s.freeReroll=0;
+  s.standardComplete=true;s.cleared=true;s.round=D.TOTAL_ROUNDS-1;s.intermissionResolved=true;s.shopOpen=false;s.freeReroll=0;s.coins=100;
   assert.equal(g.startEndless(),true,'completed base run can enter Endless flow');
   assert.equal(s.shopOpen,true,'existing Stage Market remains before Endless Stage 6');
   assert.equal(g.closeMarket(),true);

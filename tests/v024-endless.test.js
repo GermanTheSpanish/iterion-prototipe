@@ -96,7 +96,7 @@ function clearNext(game){
   clearNext(g);assert(g.useUndo().ok);assert(g.snapshot().endless.baseComplete);assert(g.snapshot().endless.active);
 }
 {
-  const g=Game.createGame(E,{seed:2403}),s=g.state();
+  const g=Game.createGame(E,{seed:2403,STARTING_COINS:100}),s=g.state();
   E.setBoardSize(30,40);s.round=14;s.boardStage=4;s.cleared=true;s.standardComplete=true;
   const double=s.set.find(t=>t.id==='d5-5'),zero=s.set.find(t=>t.id==='d0-5');
   s.pieces=[E.pieceFrom(double,4,0,0,0,1),E.pieceFrom(zero,8,0,0,2,2)];
