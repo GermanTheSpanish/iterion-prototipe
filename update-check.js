@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUpdateBootstrapped)return;
   root.__monoidUpdateBootstrapped=true;
 
-  const CURRENT_BUILD='20260926.2',CHECK_MIN_MS=60000;
+  const CURRENT_BUILD='20260926.3',CHECK_MIN_MS=60000;
   const state={currentBuild:CURRENT_BUILD,latestBuild:null,latestVersion:null,updateAvailable:false,status:'idle',lastCheck:0};
   let checkButton=null,applyButton=null,startupTimer=0;
   Object.defineProperty(root,'__monoidUpdate',{configurable:true,get:()=>({...state})});
