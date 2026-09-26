@@ -374,3 +374,8 @@ body.monoidCommerceActive .commerceModal .marketTile{transform:scale(.82);transf
   .gameArea{grid-template-columns:minmax(0,1fr) 50px;gap:6px}.handHeader{height:20px}.hand{gap:3px}.handSlot{height:58px;flex-basis:58px}.tile{width:44px}.domino{width:34px}.half{width:32px;height:32px;max-height:30px}
   .hint{min-height:24px;font-size:11px}.btn{min-height:42px;font-size:12px}.domino>.tileModMark{font-size:12px!important}.piece>.tileModMark{font-size:9px!important}
 }
+
+/* Topology Mod lifecycle preview */
+.piece.topologyBreakWarning{outline:2px dashed currentColor;outline-offset:2px;z-index:8}
+.topologyBreakMark{position:absolute;left:50%;top:-17px;transform:translateX(-50%);z-index:12;white-space:nowrap;padding:2px 4px;border:1px solid currentColor;border-radius:2px;background:var(--paper,#fbfaf6);color:var(--ink,#151515);font-size:8px;font-style:normal;font-weight:800;letter-spacing:.05em;line-height:1.1;pointer-events:none}
+.piece.dragCandidate.breaksTopology{outline:2px dashed currentColor;outline-offset:2px}

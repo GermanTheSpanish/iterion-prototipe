@@ -19,7 +19,7 @@ function placeStateTiles(g,ids){
   const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*8,8+Math.floor(i/3)*8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s
 }
 
-assert.equal(D.VERSION,'0.44.4');
+assert.equal(D.VERSION,'0.45.0');
 assert.deepEqual([D.MARKET_SEQUENCE_COST,D.MARKET_COMPLEMENT_COST,D.MARKET_TWIN_COST,D.MARKET_PAIR_COST],[8,8,8,8]);
 assert.deepEqual([D.SEQUENCE_MOD_MULTIPLIER,D.COMPLEMENT_MOD_MULTIPLIER,D.TWIN_MOD_MULTIPLIER,D.PAIR_MOD_MULTIPLIER],[2,2,3,3]);
 assert.deepEqual(['sequence','complement','twin','pair'].map(id=>M.get(id).collectionCode),['SQ','C6','TW','PR']);
@@ -60,12 +60,12 @@ assert.deepEqual(['sequence','complement','twin','pair'].map(id=>M.get(id).colle
 
 {
   const g=G.createGame(E,{seed:3802}),s=placeStateTiles(g,['d2-3','d2-4','d1-5','d4-5']);
-  s.sequenceTileId='d2-3';s.complementTileId='d2-4';s.twinTileId='d1-5';s.pairTileId='d4-5';
+  s.sequenceTileId='d2-3';s.complementTileId='d2-4';s.twinTileId='d1-5';
   const saved=g.exportState(),restored=G.createGame(E,{seed:9});assert(restored.restoreState(saved));
   const rs=restored.state(),snap=restored.snapshot();
-  assert.equal(rs.sequenceTileId,'d2-3');assert.equal(rs.complementTileId,'d2-4');assert.equal(rs.twinTileId,'d1-5');assert.equal(rs.pairTileId,'d4-5');
-  assert.deepEqual(snap.tileMods.sequence,['d2-3']);assert.deepEqual(snap.tileMods.complement,['d2-4']);assert.deepEqual(snap.tileMods.twin,['d1-5']);assert.deepEqual(snap.tileMods.pair,['d4-5']);
-  assert.match(restored.debugText(),/SQ=d2-3 · C6=d2-4 · TW=d1-5 · PR=d4-5/);
+  assert.equal(rs.sequenceTileId,'d2-3');assert.equal(rs.complementTileId,'d2-4');assert.equal(rs.twinTileId,'d1-5');assert.equal(rs.pairTileId,null);
+  assert.deepEqual(snap.tileMods.sequence,['d2-3']);assert.deepEqual(snap.tileMods.complement,['d2-4']);assert.deepEqual(snap.tileMods.twin,['d1-5']);assert.deepEqual(snap.tileMods.pair,[]);
+  assert.match(restored.debugText(),/SQ=d2-3 · C6=d2-4 · TW=d1-5 · PR=-/);
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');

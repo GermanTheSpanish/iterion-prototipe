@@ -16,7 +16,7 @@
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal');
   const MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
-  let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
+  let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,topologyBreaks:[],float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const cascadeControl={active:false,phase:'idle',skipCascade:false,skipSummary:false,lastTap:0,waiters:new Set()};
   function beginCascadeControl(){cascadeControl.active=true;cascadeControl.phase='cascade';cascadeControl.skipCascade=false;cascadeControl.skipSummary=false;cascadeControl.lastTap=0;cascadeControl.waiters.clear();board.dataset.cascadePhase='cascade'}
@@ -138,7 +138,7 @@
     if(tutorial.step<4){tutorial.step++;if(tutorial.step===4)GAME.config.TARGETS[0]=0;prepareTutorialHand(tutorial.step===4?'d4-4':sequence[tutorial.step-1]);updateTutorial();return}
     if(tutorial.step===4&&result.cleared){tutorial.step=5;tutorialInstruction.textContent=tutorialCopy[5];tutorialStep.textContent='LEARN MONOID · 6/6';tutorialPanel.hidden=false;GAME.state().cleared=false;GAME.openShop()}
   }
-  function cancelTutorialDrag(){if(!drag.active)return;press.cancel();drag.float?.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();renderHand()}
+  function cancelTutorialDrag(){if(!drag.active)return;press.cancel();drag.float?.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,topologyBreaks:[],float:null};renderBoard();renderHand()}
   function requestTutorialExit(){if(!tutorial)return;if(drag.active)cancelTutorialDrag();if(uiBusy||GAME.state().running){tutorial.exitPending=true;$('leaveTutorial').disabled=true;return}leaveTutorial(false)}
 
   function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
@@ -181,8 +181,9 @@
   }
   function renderBoard(){
     const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
+    const topologyBreakByTile=new Map((drag.topologyBreaks||[]).map(loss=>[loss.tileId,loss]));
     s.pieces.forEach(p=>{
-      const el=pieceEl(p),circuitPending=s.pendingCircuit,modPending=s.pendingModPlacement,pending=circuitPending||modPending,eligible=!!pending?.eligibleTileIds?.includes(p.tile.id),power=powerMultiplier(p.tile),modded=tileView(p.tile).modifiers.length>0;
+      const el=pieceEl(p),circuitPending=s.pendingCircuit,modPending=s.pendingModPlacement,pending=circuitPending||modPending,eligible=!!pending?.eligibleTileIds?.includes(p.tile.id),power=powerMultiplier(p.tile),modded=tileView(p.tile).modifiers.length>0,topologyBreak=topologyBreakByTile.get(p.tile.id);
       el.classList.add('inspectable');el.setAttribute('role','button');
       el.setAttribute('aria-label',pending?`Choose domino ${p.tile.a}|${p.tile.b}${power>1?` · POWER ×${power}`:''}${circuitRank(p.tile)?` · Circuit rank ${D.CIRCUIT_RANKS[circuitRank(p.tile)-1].roman}`:''}`:`Domino ${p.tile.a}|${p.tile.b}${power>1?` · POWER ×${power}`:''}${circuitRank(p.tile)?` · Circuit rank ${D.CIRCUIT_RANKS[circuitRank(p.tile)-1].roman}`:''}.${modded?' Tap to reveal values.':''} Hold to inspect.`);
       if(pending){
@@ -193,9 +194,10 @@
         el.onpointerdown=e=>{if(!eligible||auxOverlay||uiBusy||e.button!=null&&e.button!==0)return;e.preventDefault();press.begin(e,{kind,tileId:p.tile.id,allowDrag:false})};
         el.onkeydown=e=>{if(eligible&&!auxOverlay&&!uiBusy&&(e.key==='Enter'||e.key===' ')){e.preventDefault();choose(p.tile.id)}};
       }else el.onpointerdown=e=>beginTilePress(e,{kind:'board',tileId:p.tile.id,allowDrag:false});
+      if(topologyBreak){el.classList.add('topologyBreakWarning');el.setAttribute('aria-label',`${el.getAttribute('aria-label')} Placement will remove ${topologyBreak.label}.`);const warning=document.createElement('i');warning.className='topologyBreakMark';warning.textContent=`LOSE ${topologyBreak.label}`;warning.setAttribute('aria-hidden','true');el.appendChild(warning)}
       board.appendChild(el)
     });
-    if(drag.active&&drag.candidate){const c=drag.candidate,p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);p.tile={...drag.tile};board.appendChild(pieceEl(p,'piece dragCandidate'))}
+    if(drag.active&&drag.candidate){const c=drag.candidate,p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,-1);p.tile={...drag.tile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');board.appendChild(candidate)}
     board.classList.toggle('dragging',drag.active)
   }
   function renderHand(){
@@ -374,11 +376,11 @@
   function nearest(x,y){const r=board.getBoundingClientRect(),lx=x-r.left,ly=(y-D.DRAG_Y_OFFSET)-r.top;if(lx<0||ly<0||lx>r.width||ly>r.height)return null;let pick=null,d0=1e9;for(const c of drag.candidates){const q=center(c,r),d=Math.hypot(q.x-lx,q.y-ly);if(d<d0){d0=d;pick=c}}return d0<=82?pick:null}
   function maybeShakeRotate(e){const s=GAME.state();if(s.pieces.length)return;const now=performance.now(),dx=e.clientX-drag.lastX;if(Math.abs(dx)>=D.SHAKE_THRESHOLD){const sign=Math.sign(dx);if(drag.lastSign&&sign!==drag.lastSign){if(!drag.shakeStarted||now-drag.shakeStarted>D.SHAKE_WINDOW_MS){drag.switches=1;drag.shakeStarted=now}else drag.switches++;if(drag.switches>=D.SHAKE_SWITCHES&&now-drag.lastRotate>D.SHAKE_COOLDOWN_MS){GAME.rotateRoot();drag.candidates=GAME.candidatesForIndex(drag.index);drag.candidate=null;drag.lastRotate=now;drag.switches=0;drag.shakeStarted=now;if(navigator.vibrate)navigator.vibrate(12);updateFloatRotation();toast(`Opening tile ${ARROW[GAME.state().rootRR]}`)}}drag.lastSign=sign;drag.lastX=e.clientX}}
   function updateFloatRotation(){if(drag.float)drag.float.style.setProperty('--rr',GAME.state().rootRR)}
-  function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=placementCandidates(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
-  function moveDrag(e){if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){const r=board.getBoundingClientRect(),inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom,boardTileWidth=r.width/E.G*2,scale=inside?Math.max(.18,Math.min(1.2,boardTileWidth/30)):1.2;drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px';drag.float.style.setProperty('--drag-scale',scale)}const c=nearest(e.clientX,e.clientY),o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()}
+  function startDrag(e,i){if(uiBusy||auxOverlay||!GAME.canInteract())return;e.preventDefault();const s=GAME.state(),cs=placementCandidates(i);if(!cs.length)return;const f=document.createElement('div');f.className='dragFloat';f.innerHTML=mini(s.hand[i]);document.body.appendChild(f);drag={active:true,index:i,tile:{...s.hand[i]},candidates:cs,candidate:null,topologyBreaks:[],float:f,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};renderHand();updateFloatRotation()}
+  function moveDrag(e){if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){const r=board.getBoundingClientRect(),inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom,boardTileWidth=r.width/E.G*2,scale=inside?Math.max(.18,Math.min(1.2,boardTileWidth/30)):1.2;drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px';drag.float.style.setProperty('--drag-scale',scale)}const c=nearest(e.clientX,e.clientY),o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;if(changed)drag.topologyBreaks=c?(GAME.topologyBreaksForPlacement?.(drag.index,c)||[]):[];if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()}
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
   async function endDrag(e){
-    if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,float:null};renderBoard();if(!c){renderHand();return}
+    if(!drag.active)return;moveDrag(e);const i=drag.index,c=drag.candidate;if(drag.float)drag.float.remove();drag={active:false,index:-1,tile:null,candidates:[],candidate:null,topologyBreaks:[],float:null};renderBoard();if(!c){renderHand();return}
     const game=GAME,generationBefore=game.state().setGeneration||1;if(!tutorial)PT?.recordDecision();const decision=!tutorial?game.decisionTelemetry(i,c,{maxEvaluations:48,timeBudgetMs:32}):null,searchStarted=performance.now(),ctx=GAME.beginPlacement(i,c),searchMs=performance.now()-searchStarted;if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();armDecisionTiming();return}
     uiBusy=true;beginCascadeControl();const drawAnim=animateDrawSlot(i);renderBoard();const camera=rootCamera(),animationStarted=performance.now();let result=null,animationMeta={skippedCascade:false,skippedSummary:false},exitPending=false;
     try{

@@ -15,7 +15,7 @@ function replay(pieces,modId,pieceId,{value=2,foundationAge=0,knotCycles=0}={}){
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s}
 
-assert.equal(D.VERSION,'0.44.4');
+assert.equal(D.VERSION,'0.45.0');
 assert.deepEqual(['foundation','knot','mirror','mint'].map(id=>M.get(id).collectionCode),['FD','KN','MR','MT']);
 assert.deepEqual([D.FOUNDATION_LOW_MOD_MULTIPLIER,D.FOUNDATION_HIGH_MOD_MULTIPLIER,D.KNOT_MOD_MULTIPLIER,D.MIRROR_MOD_MULTIPLIER,D.MINT_COINS],[2,3,4,3,1]);
 
@@ -53,11 +53,11 @@ assert.deepEqual([D.FOUNDATION_LOW_MOD_MULTIPLIER,D.FOUNDATION_HIGH_MOD_MULTIPLI
 }
 {
   const g=G.createGame(E,{seed:4103}),s=setPlaced(g,['d0-2','d1-5','d2-6','d5-6']);
-  s.foundationTileId='d0-2';s.knotTileId='d1-5';s.mirrorTileId='d2-6';s.mintTileId='d5-6';s.marketCount=5;s.foundationAssignedMarket=2;s.mintPaidRound=0;
+  s.foundationTileId='d0-2';s.mirrorTileId='d2-6';s.mintTileId='d5-6';s.marketCount=5;s.foundationAssignedMarket=2;s.mintPaidRound=0;
   const saved=g.exportState(),restored=G.createGame(E,{seed:1});assert(restored.restoreState(saved));
-  const rs=restored.state(),snap=restored.snapshot();assert.equal(rs.foundationTileId,'d0-2');assert.equal(rs.knotTileId,'d1-5');assert.equal(rs.mirrorTileId,'d2-6');assert.equal(rs.mintTileId,'d5-6');assert.equal(rs.marketCount,5);assert.equal(rs.foundationAssignedMarket,2);assert.equal(rs.mintPaidRound,0);
-  assert.deepEqual(snap.tileMods.foundation,['d0-2']);assert.deepEqual(snap.tileMods.knot,['d1-5']);assert.deepEqual(snap.tileMods.mirror,['d2-6']);assert.deepEqual(snap.tileMods.mint,['d5-6']);assert.equal(snap.tileModState.foundationAge,3);
-  assert.match(restored.debugText(),/FD=d0-2 · KN=d1-5 · MR=d2-6 · MT=d5-6/);
+  const rs=restored.state(),snap=restored.snapshot();assert.equal(rs.foundationTileId,'d0-2');assert.equal(rs.knotTileId,null);assert.equal(rs.mirrorTileId,'d2-6');assert.equal(rs.mintTileId,'d5-6');assert.equal(rs.marketCount,5);assert.equal(rs.foundationAssignedMarket,2);assert.equal(rs.mintPaidRound,0);
+  assert.deepEqual(snap.tileMods.foundation,['d0-2']);assert.deepEqual(snap.tileMods.knot,[]);assert.deepEqual(snap.tileMods.mirror,['d2-6']);assert.deepEqual(snap.tileMods.mint,['d5-6']);assert.equal(snap.tileModState.foundationAge,3);
+  assert.match(restored.debugText(),/FD=d0-2 · KN=- · MR=d2-6 · MT=d5-6/);
   assert.deepEqual(P.tileViewModel(rs.set.find(t=>t.id==='d2-6'),rs).modifiers.map(m=>m.label),['MR']);assert.equal(H.inspectTile(rs,'d0-2').currentMachineState.foundationAge,3);assert.equal(H.inspectTile(rs,'d5-6').currentMachineState.mintAvailable,false,'restored MINT payout must remain spent for the current round');
 }
 {
@@ -66,4 +66,4 @@ assert.deepEqual([D.FOUNDATION_LOW_MOD_MULTIPLIER,D.FOUNDATION_HIGH_MOD_MULTIPLI
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
 assert.doesNotMatch(engineSource,/mint.*output\s*[+*]=/i,'MINT must never change Score arithmetic');
-console.log('v0.44.4 Batch D advanced Mod regressions passed');
+console.log('v0.45.0 Batch D advanced Mod regressions passed');

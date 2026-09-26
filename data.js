@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.44.4',
+    VERSION:'0.45.0',
     ENGINE_VERSION:'0.15.0-l-split',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -60,6 +60,7 @@
     SHOP_TILE_OFFER_COUNT:4,
     SHOP_TILE_OFFER_COST:2,
     MARKET_OFFER_COUNT:3,
+    MARKET_ACTIVE_TOPOLOGY_WEIGHT:0.25,
     MARKET_PURCHASE_LIMIT:1,
     MARKET_DOUBLE_DOUBLE_COST:8,
     MARKET_LONG_RUN_COST:8,
