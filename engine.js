@@ -187,20 +187,22 @@
   function replaySelectedScoring(result,initialOutput,opts={}){
     const powers=opts.powerByPiece||new Map(),pieces=opts.pieces||[],modsByPiece=opts.modIdsByPiece||new Map(),circuitRanks=opts.circuitRankByPiece||new Map(),foundationAges=opts.foundationAgeByPiece||new Map(),knotCycles=opts.knotCycleCountByPiece||new Map(),powered=[...powers.values()].some(p=>p>1),modified=[...modsByPiece.values()].some(v=>v&&v.size);
     if(!powered&&!modified)return result;
-    let output=initialOutput;const events=[],forks=new Map(),pieceMap=new Map(pieces.map(p=>[p.id,p]));
+    let output=initialOutput;const events=[],forks=new Map(),returnScores=new Map(),pieceMap=new Map(pieces.map(p=>[p.id,p]));
     let topologyGraph=null;const graph=()=>topologyGraph||(topologyGraph=physicalAdjacencyGraph(pieces));
     for(const raw of result.events||[]){
       if(raw.type==='signal-fork'){forks.set(raw.piece,{output,results:[]});events.push({...raw,output});continue}
       if(raw.type==='signal-start'){const fork=forks.get(raw.fork);output=fork.output;events.push({...raw,output});continue}
       if(raw.type==='signal-end'){const fork=forks.get(raw.fork);fork.results.push(output);events.push({...raw,output});continue}
-      if(raw.type==='signal-join'){const fork=forks.get(raw.piece);output=fork.results.reduce((a,b)=>a+b,0);events.push({...raw,output});forks.delete(raw.piece);continue}
+      if(raw.type==='signal-join'){const fork=forks.get(raw.piece);output=fork.results.reduce((a,b)=>a+(Number(b)||0),0);events.push({...raw,output});forks.delete(raw.piece);continue}
+      if(raw.type==='signal-merge'){const fork=forks.get(raw.fork);if(fork){output=fork.results.reduce((a,b)=>a+(Number(b)||0),0);forks.delete(raw.fork)}events.push({...raw,output});continue}
+      if(raw.type==='return'){output=returnScores.get(raw.piece)??output;events.push({...raw,output});continue}
       if(raw.type==='op'){
         const e={...raw,before:output},mods=modsByPiece.get(e.piece)||new Set(),piece=pieceMap.get(e.piece),power=Math.max(1,Number(powers.get(e.piece))||1);
         const connections=piece?uniqueConnectionCount(piece,pieces):0,cornerTopology=piece?isCornerTopology(piece,pieces):false,straightLine=piece?straightLineLength(piece,pieces):0;
-        const sequenceEligible=!!piece&&Math.abs(Number(piece.tile?.a)-Number(piece.tile?.b))===1,complementEligible=!!piece&&Number(piece.tile?.a)+Number(piece.tile?.b)===6,twinConnected=piece?hasTwinConnection(piece,pieces):false,pairTopology=piece?isPairTopology(piece,pieces):false;
+        const twinConnected=piece?hasTwinConnection(piece,pieces):false,pairTopology=piece?isPairTopology(piece,pieces):false;
         const needsProfiles=!!piece&&(mods.has('gate')||mods.has('fan')||mods.has('crown')||mods.has('frontier')),profiles=needsProfiles?physicalNeighbourProfiles(piece,pieces):[];
         const bridgeTopology=!!piece&&mods.has('bridge')?isBridgeTopology(piece,graph()):false,gateTopology=mods.has('gate')?isGateTopology(piece,profiles):false,fanTopology=mods.has('fan')?isFanTopology(profiles):false,frameTopology=!!piece&&mods.has('frame')?isFrameTopology(piece,graph()):false,crownTopology=mods.has('crown')?isCrownTopology(profiles):false,frontierTopology=mods.has('frontier')?isFrontierTopology(piece,profiles):false;
-        const powerNeighbours=!!piece&&(mods.has('relay')||mods.has('coupler'))?poweredNeighbourCount(piece,pieces):0,relayActive=mods.has('relay')&&powerNeighbours>=2,couplerActive=mods.has('coupler')&&powerNeighbours>=1;
+        const powerNeighbours=piece?poweredNeighbourCount(piece,pieces):0;
         const circuitRank=Math.max(0,Number(circuitRanks.get(e.piece))||0),resonatorActive=mods.has('resonator')&&circuitRank>0,upgradeTier=Math.max(0,Number(piece?.tile?.upgrade)||0),forgeActive=mods.has('forge')&&upgradeTier>0;
         const foundationAge=Math.max(0,Number(foundationAges.get(e.piece))||0),foundationActive=mods.has('foundation')&&foundationAge>=Math.max(1,Number(opts.foundationLowMarkets)||1),knotCycleCount=Math.max(0,Number(knotCycles.get(e.piece))||0),knotActive=mods.has('knot')&&knotCycleCount>=2,mirrorActive=!!piece&&mods.has('mirror')&&isMirrorTopology(piece,pieces),mintAssigned=mods.has('mint');
         let modMultiplier=1,operation=e.op;
@@ -209,8 +211,6 @@
         if(mods.has('long-line')&&straightLine>=Math.max(1,Number(opts.longLineThreshold)||3))modMultiplier*=straightLine>=Math.max(1,Number(opts.longLineHighThreshold)||5)?Math.max(1,Number(opts.longLineHighMultiplier)||3):Math.max(1,Number(opts.longLineMultiplier)||2);
         if(mods.has('overload'))modMultiplier*=Math.max(1,Math.min(Math.max(1,Number(opts.overloadMaxMultiplier)||4),connections||1));
         if(mods.has('terminal')&&connections===1)modMultiplier*=Math.max(1,Number(opts.terminalMultiplier)||3);
-        if(mods.has('sequence')&&sequenceEligible)modMultiplier*=Math.max(1,Number(opts.sequenceMultiplier)||2);
-        if(mods.has('complement')&&complementEligible)modMultiplier*=Math.max(1,Number(opts.complementMultiplier)||2);
         if(mods.has('twin')&&twinConnected)modMultiplier*=Math.max(1,Number(opts.twinMultiplier)||3);
         if(mods.has('pair')&&pairTopology)modMultiplier*=Math.max(1,Number(opts.pairMultiplier)||3);
         if(mods.has('bridge')&&bridgeTopology)modMultiplier*=Math.max(1,Number(opts.bridgeMultiplier)||3);
@@ -219,8 +219,6 @@
         if(mods.has('frame')&&frameTopology)modMultiplier*=Math.max(1,Number(opts.frameMultiplier)||2);
         if(mods.has('crown')&&crownTopology)modMultiplier*=Math.max(1,Number(opts.crownMultiplier)||4);
         if(mods.has('frontier')&&frontierTopology)modMultiplier*=Math.max(1,Number(opts.frontierMultiplier)||2);
-        if(relayActive)modMultiplier*=Math.max(1,Number(opts.relayMultiplier)||3);
-        if(couplerActive)modMultiplier*=Math.max(1,Number(opts.couplerMultiplier)||2);
         if(resonatorActive)modMultiplier*=circuitRank>=Math.max(1,Number(opts.resonatorHighRankThreshold)||3)?Math.max(1,Number(opts.resonatorHighMultiplier)||3):Math.max(1,Number(opts.resonatorLowMultiplier)||2);
         if(forgeActive)modMultiplier*=upgradeTier>=Math.max(1,Number(opts.forgeHighUpgradeThreshold)||3)?Math.max(1,Number(opts.forgeHighMultiplier)||3):Math.max(1,Number(opts.forgeLowMultiplier)||2);
         if(foundationActive)modMultiplier*=foundationAge>=Math.max(1,Number(opts.foundationHighMarkets)||3)?Math.max(1,Number(opts.foundationHighMultiplier)||3):Math.max(1,Number(opts.foundationLowMultiplier)||2);
@@ -228,10 +226,11 @@
         if(mirrorActive)modMultiplier*=Math.max(1,Number(opts.mirrorMultiplier)||3);
         const magnitude=power*modMultiplier,v=e.value,baseAdd=v*(e.doubleDouble?2:1),baseFactor=e.doubleDouble?v*v:v;
         const normalAdd=v*magnitude,normalFactor=v*magnitude;
-        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.sequence=sequenceEligible;e.complement=complementEligible;e.twin=twinConnected;e.pair=pairTopology;e.bridge=bridgeTopology;e.gate=gateTopology;e.fan=fanTopology;e.frame=frameTopology;e.crown=crownTopology;e.frontier=frontierTopology;e.powerNeighbourCount=powerNeighbours;e.relay=relayActive;e.coupler=couplerActive;e.circuitRank=circuitRank;e.resonator=resonatorActive;e.upgradeTier=upgradeTier;e.forge=forgeActive;e.foundationAge=foundationAge;e.foundation=foundationActive;e.knotCycleCount=knotCycleCount;e.knot=knotActive;e.mirror=mirrorActive;e.mint=mintAssigned;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
+        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.twin=twinConnected;e.pair=pairTopology;e.bridge=bridgeTopology;e.gate=gateTopology;e.fan=fanTopology;e.frame=frameTopology;e.crown=crownTopology;e.frontier=frontierTopology;e.powerNeighbourCount=powerNeighbours;e.circuitRank=circuitRank;e.resonator=resonatorActive;e.upgradeTier=upgradeTier;e.forge=forgeActive;e.foundationAge=foundationAge;e.foundation=foundationActive;e.knotCycleCount=knotCycleCount;e.knot=knotActive;e.mirror=mirrorActive;e.mint=mintAssigned;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
         if(operation==='multiply'){e.factor=baseFactor*magnitude;e.add=0;e.after=output*(e.factor||1);e.delta=e.after-output;output=e.after}
         else if(operation==='add'){e.add=baseAdd*magnitude;e.factor=0;e.after=output+(e.add||0);e.delta=e.after-output;output=e.after}
         else{e.add=0;e.factor=0;e.after=output;e.delta=0}
+        if(mods.has('return'))returnScores.set(e.piece,output);
         events.push(e);continue
       }
       events.push({...raw})
