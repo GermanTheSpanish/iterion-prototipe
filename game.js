@@ -690,11 +690,11 @@ function createGame(E,opts={}){
     }
     if(m.target==='tile'){
       let candidates=placed.filter(t=>!current.has(t.id)&&!tileHasAnyTileMod(t.id,id));
-      if(m.eligibility==='consecutive')candidates=candidates.filter(t=>Math.abs(Number(t.a)-Number(t.b))===1);
-      if(m.eligibility==='sum-six')candidates=candidates.filter(t=>Number(t.a)+Number(t.b)===6);
       if(m.eligibility==='non-double')candidates=candidates.filter(t=>!isDouble(t));
       if(m.eligibility==='non-power')candidates=candidates.filter(t=>(Number(t.powerMultiplier)||1)<=1);
       if(m.eligibility==='upgraded')candidates=candidates.filter(t=>(Number(t.upgrade)||0)>0);
+      if(m.eligibility==='signal-nonzero-nondouble')candidates=candidates.filter(t=>!isDouble(t)&&!isZero(t));
+      if(m.eligibility==='hinge')candidates=candidates.filter(t=>{if(isDouble(t)||isZero(t))return false;const piece=s.pieces.find(p=>p.tile.id===t.id);return!!piece&&E.hingeAlternates(piece,s.pieces).length>0});
       if(m.category==='topology')candidates=candidates.filter(t=>topologyModActive(id,t.id,s.pieces));
       return candidates
     }
@@ -777,6 +777,11 @@ function createGame(E,opts={}){
       s.events.push({type:'market-mod-relocate-source',round:s.round+1,mod:pending.mod,sourceTileId:tileId,eligibleTileIds:[...targets]});
       return{ok:true,pending:true,mod:pending.mod,stage:'target',sourceTileId:tileId,eligibleTileIds:[...targets]}
     }
+    if(pending.mod==='diode'&&pending.stage==='target'){
+      pending.stage='direction';pending.targetTileId=tileId;pending.eligibleTileIds=[tileId];
+      s.events.push({type:'market-mod-direction',round:s.round+1,mod:'diode',targetTileId:tileId});
+      return{ok:true,pending:true,mod:'diode',stage:'direction',targetTileId:tileId,eligibleTileIds:[tileId]}
+    }
     let previousTileId=pending.previousTileId||null;
     if(pending.mod==='zero-port'){
       const pair=assignedTileIdsForMod('zero-port');
@@ -785,13 +790,31 @@ function createGame(E,opts={}){
         const source=pending.sourceTileId;if(!source||!pair.includes(source))return{ok:false,reason:'source'};
         previousTileId=source;s.zeroPortTileIds=pair.map(id=>id===source?tileId:id)
       }
-    }else if(!setSingleTileMod(pending.mod,tileId))return{ok:false,reason:'unsupported'};
+    }else{
+      let hingeState=null;
+      if(pending.mod==='hinge'){
+        const piece=s.pieces.find(p=>p.tile.id===tileId),alternate=piece&&E.hingeAlternates(piece,s.pieces)[0];if(!piece||!alternate)return{ok:false,reason:'no-target'};
+        hingeState={tileId,pivotTileId:alternate.pivotTileId,positions:[{x:piece.cubes[0].x,y:piece.cubes[0].y,z:piece.z||0,rr:piece.rr},{...alternate.placement}],active:0}
+      }
+      if(!setSingleTileMod(pending.mod,tileId))return{ok:false,reason:'unsupported'};
+      if(pending.mod==='hinge')s.hingeState=hingeState
+    }
     if(pending.mod==='foundation')s.foundationAssignedMarket=s.marketCount||0;
     const tile=s.set.find(t=>t.id===tileId)||s.pieces.find(p=>p.tile.id===tileId)?.tile||null,record=s.marketBuys[pending.recordIndex];
     if(record){record.tile=cloneTile(tile);record.targetTileId=tileId;record.previousTileId=previousTileId;record.pending=false}
     s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none';
     s.events.push({type:'market-mod-assign',mod:pending.mod,round:s.round+1,tile:cloneTile(tile),targetTileId:tileId,previousTileId,zeroPortTileIds:pending.mod==='zero-port'?[...s.zeroPortTileIds]:undefined});
     return{ok:true,pending:false,mod:pending.mod,tile:cloneTile(tile),targetTileId:tileId,previousTileId,zeroPortTileIds:pending.mod==='zero-port'?[...s.zeroPortTileIds]:undefined}
+  }
+  function chooseMarketModHalf(tileId,half){
+    const pending=s.pendingModPlacement;if(!pending||pending.mod!=='diode'||pending.stage!=='direction'||s.running||s.shopOpen)return{ok:false,reason:'state'};
+    half=Number(half);if(pending.targetTileId!==tileId||!pending.eligibleTileIds.includes(tileId)||(half!==0&&half!==1))return{ok:false,reason:'target'};
+    if(!setSingleTileMod('diode',tileId))return{ok:false,reason:'unsupported'};s.diodeInHalf=half;
+    const previousTileId=pending.previousTileId||null,tile=s.set.find(t=>t.id===tileId)||s.pieces.find(p=>p.tile.id===tileId)?.tile||null,record=s.marketBuys[pending.recordIndex];
+    if(record){record.tile=cloneTile(tile);record.targetTileId=tileId;record.previousTileId=previousTileId;record.pending=false;record.inHalf=half}
+    s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none';
+    s.events.push({type:'market-mod-assign',mod:'diode',round:s.round+1,tile:cloneTile(tile),targetTileId:tileId,previousTileId,inHalf:half});
+    return{ok:true,pending:false,mod:'diode',tile:cloneTile(tile),targetTileId:tileId,previousTileId,inHalf:half}
   }
   function buyDoubleDouble(){return buyMarketMod('double-double')}
   function closeMarket(){return resolveIntermission('continue')}
