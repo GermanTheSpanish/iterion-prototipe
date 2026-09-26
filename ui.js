@@ -508,7 +508,7 @@
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
         if(pp){const splitLabel=e.splitKind==='triple-double'?'TRIPLE DOUBLE':e.splitKind==='zero-port'?'ZERO PORT':'SPLIT';fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?`ECHO ${splitLabel}`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
-        if(pp){const d=fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'JOIN',0,'signal cascadeStructural joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);d.dataset.family=lane.family;d.dataset.output=block.join.output;await cascadeWait(Math.max(220,V.cascadeDelay(index+1)),'cascade')}
+        const joinPiece=block.merged?pc(block.join.piece):pp;if(joinPiece){const d=fx((joinPiece.rect.minx+joinPiece.rect.maxx)/2,(joinPiece.rect.miny+joinPiece.rect.maxy)/2,block.merged?'MERGE':'JOIN',0,'signal cascadeStructural joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);d.dataset.family=lane.family;d.dataset.output=block.join.output;await cascadeWait(Math.max(220,V.cascadeDelay(index+1)),'cascade')}
         i=block.next;index+=2;continue
       }
       if(e.type==='op'){lastOp=e;showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await cascadeWait(V.cascadeDelay(index),'cascade');index++;i++;continue}
@@ -519,6 +519,10 @@
       if(e.type==='rebound'){
         const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
         if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle,index,lane.family==='echo'?'echoLane':'lane0');await cascadeWait(Math.max(160,V.cascadeDelay(index)),'cascade')}i++;continue
+      }
+      if(['diode-block','return','hinge-move','hinge-blocked'].includes(e.type)){
+        const pp=pc(e.piece),label=e.type==='diode-block'?'DIODE · BLOCK':e.type==='return'?'RETURN':e.type==='hinge-move'?'HINGE':'HINGE · BLOCKED';
+        if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,label,0,'signal cascadeStructural',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}i++;continue
       }
       if(e.type==='double-echo-start'){startEcho(e,index);i++;continue}i++
     }
