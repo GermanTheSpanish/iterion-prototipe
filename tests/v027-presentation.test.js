@@ -28,7 +28,7 @@ check('Inspector exposes original values, generation, actual operations and Circ
 });
 check('Batch B Tile Mods expose distinct physical board marks',()=>{
   const tile={id:'physical',a:2,b:3},base={set:[tile],circuitRanks:{}};
-  for(const [field,label] of [['bridgeTileId','BR'],['gateTileId','GT'],['fanTileId','FN'],['frameTileId','FM'],['crownTileId','CW'],['frontierTileId','FT']]){
+  for(const [field,label] of [['bridgeTileId','BR'],['gateTileId','GT'],['fanTileId','FN'],['brokerTileId','BO'],['crownTileId','CW'],['spendTileId','SP']]){
     const model=V.tileViewModel(tile,{...base,[field]:'physical'});assert.equal(model.modifiers.length,1);assert.equal(model.modifiers[0].label,label)
   }
 });
