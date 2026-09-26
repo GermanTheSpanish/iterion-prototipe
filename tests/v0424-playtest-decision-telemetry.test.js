@@ -62,4 +62,4 @@ const capped=G.createGame(E,{seed:42402}),ci=capped.state().hand.findIndex(t=>t&
 const rootCap=capped.decisionTelemetry(ci,cc[0],{maxEvaluations:1,timeBudgetMs:0});
 assert(rootCap.evaluationComplete,'root remains exact without evaluating equivalent board positions');
 
-console.log('v0.44.4 coverage and signal playtest telemetry regressions passed');
+console.log('v0.45.0 coverage and signal playtest telemetry regressions passed');
