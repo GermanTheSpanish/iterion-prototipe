@@ -30,26 +30,18 @@ assert.deepEqual(
   assert.equal(g.marketOfferInfo('corner').offerWeight,0.25,'installed active Topology Mods use reduced Market weight');
   const restoredActive=G.createGame(E,{seed:9});assert(restoredActive.restoreState(g.exportState()));assert.equal(restoredActive.state().cornerTileId,'d3-4','valid Topology assignment survives save/restore');
 
-  let choice=null;
-  for(const tile of s.set){
-    if(s.placedTileIds.includes(tile.id))continue;
-    s.hand=[tile,null,null,null,null];
-    for(const candidate of g.candidatesForIndex(0)){
-      const losses=g.topologyBreaksForPlacement(0,candidate);
-      if(losses.some(loss=>loss.mod==='corner')){choice={tile,candidate,losses};break}
-    }
-    if(choice)break
-  }
-  assert(choice,'fixture must find a legal placement that breaks Corner');
-  assert(choice.losses.some(loss=>loss.tileId==='d3-4'&&loss.label==='CORNER'));
-  s.hand=[choice.tile,null,null,null,null];
-  s.reserve=s.reserve.filter(t=>t.id!==choice.tile.id);
+  const breaker=s.set.find(t=>t.id==='d4-5'),candidate={x:10,y:8,rr:0};
+  assert(breaker,'fixture needs [4|5]');
+  s.hand=[breaker,null,null,null,null];
+  s.reserve=s.reserve.filter(t=>t.id!==breaker.id);
+  const losses=g.topologyBreaksForPlacement(0,candidate);
+  assert(losses.some(loss=>loss.mod==='corner'&&loss.tileId==='d3-4'&&loss.label==='CORNER'),'placing [4|5] on the open right side must warn that Corner is lost');
   s.consumables.undo=1;
 
-  const ctx=g.beginPlacement(0,choice.candidate);assert(ctx.ok);
+  const ctx=g.beginPlacement(0,candidate);assert(ctx.ok);
   assert.deepEqual(ctx.topologyLosses.map(loss=>loss.mod),['corner']);
   assert.equal(s.cornerTileId,null,'Corner is removed before scoring the breaking placement');
-  assert(s.events.some(e=>e.type==='topology-mod-lost'&&e.mod==='corner'&&e.tileId==='d3-4'&&e.causeTileId===choice.tile.id));
+  assert(s.events.some(e=>e.type==='topology-mod-lost'&&e.mod==='corner'&&e.tileId==='d3-4'&&e.causeTileId===breaker.id));
   assert.equal(g.marketOfferInfo('corner').offerWeight,1,'lost Topology Mod returns to normal Market weight');
 
   g.finishPlacement(ctx);
