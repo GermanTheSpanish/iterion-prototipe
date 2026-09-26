@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20260926\.3'/);
+assert.match(source,/BUILD_ID='20260926\.4'/);
 assert.match(source,/marketAssignments \.marketTile/,'Assigned physical modifiers must come from canonical Market state');
 assert.match(source,/marketAssignedGroup/);assert.match(source,/marketPoolGroup/,'Installed and compatible groups must remain distinct');assert.match(source,/COMPATIBLE · \$\{count\}/);
 assert.match(source,/offer\.replaceChildren\(head,description,visual,context\)/,'Each offer must be rebuilt into one authoritative head / guidance / schematic / context structure');assert.match(source,/marketModDiagram/,'Every structured Market offer must reserve a compact Mod schematic band');

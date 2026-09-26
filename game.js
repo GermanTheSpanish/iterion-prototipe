@@ -719,19 +719,29 @@ function createGame(E,opts={}){
     const installed=mod.category==='topology'&&assignedTileIdsForMod(id).some(tileId=>topologyModActive(id,tileId,s.pieces));
     return installed?Math.max(0.01,Number(cfg.MARKET_ACTIVE_TOPOLOGY_WEIGHT)||0.25):1
   }
+  function zeroPortCompletionPriority(){
+    return assignedTileIdsForMod('zero-port').length===1&&marketTargetCount('zero-port')>0
+  }
   function generateMarketOffers(){
-    const pool=marketMods().filter(m=>marketTargetCount(m.id)>0).map(m=>({id:m.id,weight:marketOfferWeight(m.id)})),out=[],limit=Math.max(0,Number(cfg.MARKET_OFFER_COUNT)||3);
+    const pool=marketMods().filter(m=>marketTargetCount(m.id)>0).map(m=>({id:m.id,weight:marketOfferWeight(m.id)})),out=[],limit=Math.max(0,Number(cfg.MARKET_OFFER_COUNT)||3),prioritizeZeroPort=zeroPortCompletionPriority();
     while(pool.length&&out.length<limit){
       const total=pool.reduce((sum,item)=>sum+item.weight,0);let roll=rnd()*total,index=pool.length-1;
       for(let i=0;i<pool.length;i++){roll-=pool[i].weight;if(roll<=0){index=i;break}}
       out.push(pool.splice(index,1)[0].id)
+    }
+    if(prioritizeZeroPort&&limit>0&&!out.includes('zero-port')){
+      const zpIndex=pool.findIndex(item=>item.id==='zero-port');
+      if(zpIndex>=0){
+        if(out.length<limit)out.push(pool.splice(zpIndex,1)[0].id);
+        else out[out.length-1]='zero-port'
+      }
     }
     return out
   }
   function openIntermission(){
     if(s.pendingCircuit||s.pendingModPlacement||!s.cleared||s.intermissionResolved||s.nextShopType!=='market'||s.shopOpen)return false;
     s.marketCount=(s.marketCount||0)+1;s.shopOpen=true;s.shopType='market';s.marketBuys=[];s.shopOffers=generateMarketOffers();
-    const affordability=marketOfferAffordability(s.shopOffers);s.events.push({type:'shop-open',round:s.round+1,shop:'market',offers:[...s.shopOffers],offerWeights:Object.fromEntries(s.shopOffers.map(id=>[id,marketOfferWeight(id)])),coins:s.coins,inflation:s.inflation,available:availableTileCount(),purchaseLimit:cfg.MARKET_PURCHASE_LIMIT||1,cheapestPrice:affordability.cheapestPrice});
+    const affordability=marketOfferAffordability(s.shopOffers);s.events.push({type:'shop-open',round:s.round+1,shop:'market',offers:[...s.shopOffers],offerWeights:Object.fromEntries(s.shopOffers.map(id=>[id,marketOfferWeight(id)])),zeroPortCompletionPriority:zeroPortCompletionPriority(),coins:s.coins,inflation:s.inflation,available:availableTileCount(),purchaseLimit:cfg.MARKET_PURCHASE_LIMIT||1,cheapestPrice:affordability.cheapestPrice});
     if(affordability.blockedByCoins){closeMarketState('insufficient-coins',true);return advance()}
     return true
   }
