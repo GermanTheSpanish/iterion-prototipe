@@ -29,7 +29,7 @@
     if(id==='overload'){const n=facts&&facts.connectionCount||0;return result(n>1?'active':'ready','CURRENT ×'+Math.max(1,n),n+' physical neighbour'+(n===1?'':'s'))}
     if(id==='terminal')return active(facts&&facts.connectionCount===1,'ACTIVE ×3',(facts&&facts.connectionCount||0)+' physical neighbours');
     if(id==='triple-double')return active(!!(facts&&facts.fullCross),'READY · 3-WAY SPLIT',facts&&facts.fullCross?'Complete cross':'Needs all 4 sides connected');
-    if(id==='diode')return result('ready','IN HALF '+((state&&state.diodeInHalf??0)+1),'Only this entry direction passes.');
+    if(id==='diode'){const half=state&&Number.isInteger(state.diodeInHalf)?state.diodeInHalf:0;return result('ready','IN HALF '+(half+1),'Only this entry direction passes.');}
     if(id==='return')return result('ready','READY · RETURN','First dead branch can retry another exit once.');
     if(id==='twin')return active(!!(facts&&facts.twin),'ACTIVE ×3',facts&&facts.twin?'Identical neighbour connected':'Needs an identical printed neighbour');
     if(id==='pair')return active(!!(facts&&facts.pair),'ACTIVE ×3',facts&&facts.pair?'Exact parallel 2×2 block':'Needs one aligned parallel neighbour');
