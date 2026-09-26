@@ -103,10 +103,10 @@ test('board Mod tap reveals canonical values for 3 seconds with independent time
 
 test('Shop uses compact geometry without revealing its face-down domino',async({page})=>{
   await page.setViewportSize({width:375,height:667});
-  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){return value.createGame(engine,{...options,STARTING_COINS:200})}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish&&!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
-  await page.evaluate(()=>{window.__monoidGame.state().coins=200});await page.locator('#shopButton').click();
+  await page.locator('#shopButton').click();
   const preview=page.locator('.randomTilePreview .domino');await expect(preview).toHaveClass(/compactPreview/);await expect(preview).toHaveClass(/back/);
   expect(await preview.locator('.half').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
   await expect(preview.locator('.tileModMark')).toHaveCount(0);
