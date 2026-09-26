@@ -10,7 +10,7 @@ function placed(g,id,x,y,rr,pieceId){
 function elbow(g){
   const s=g.state();
   s.pieces=[placed(g,'d3-4',6,8,0,1),placed(g,'d3-5',4,8,2,2),placed(g,'d4-6',8,10,1,3)];
-  s.placedTileIds=['d3-4','d3-5','d4-6'];
+  s.placedTileIds=['d3-4','d3-5','d4-6'];s.idc=3;
   s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.shopOpen=false;s.pendingCircuit=null;s.pendingModPlacement=null;
   return s
 }
