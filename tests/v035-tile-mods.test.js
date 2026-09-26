@@ -52,6 +52,21 @@ check('Zero Port builds a pair then relocates exactly one chosen endpoint',()=>{
   const moved=g.chooseMarketModTile('d0-4');assert(moved.ok&&!moved.pending);assert.deepEqual(s.zeroPortTileIds,['d0-4','d0-3']);assert.equal(new Set(s.zeroPortTileIds).size,2);
 });
 
+check('one installed Zero Port is guaranteed in the next eligible Market',()=>{
+  for(let seed=3510;seed<3530;seed++){
+    const g=G.createGame(E,{seed,STARTING_COINS:100}),s=g.state(),ids=['d0-2','d0-3','d5-5'];
+    s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.zeroPortTileIds=['d0-2'];
+    s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];s.coins=100;
+    assert.equal(g.openIntermission(),true);assert(s.shopOffers.includes('zero-port'),`seed ${seed} must offer ZERO PORT while the pair can be completed`);
+    const opened=[...s.events].reverse().find(e=>e.type==='shop-open'&&e.shop==='market');assert.equal(opened.zeroPortCompletionPriority,true)
+  }
+  const g=G.createGame(E,{seed:3531,STARTING_COINS:100}),s=g.state(),ids=['d0-2','d5-5'];
+  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.zeroPortTileIds=['d0-2'];
+  s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];s.coins=100;
+  assert.equal(g.openIntermission(),true);assert(!s.shopOffers.includes('zero-port'),'ZERO PORT must not be forced without a second eligible zero');
+  const opened=[...s.events].reverse().find(e=>e.type==='shop-open'&&e.shop==='market');assert.equal(opened.zeroPortCompletionPriority,false)
+});
+
 check('Zero Port replaces rebound with teleport',()=>{
   const ps=[piece(3,3,6,8,0,1),piece(0,3,2,8,0,2),piece(3,0,10,8,0,3),piece(3,2,7,10,1,4)];
   const base=E.bestSignal(4,ps,{initialOutput:5,bifurcate:true}),zp=E.bestSignal(4,ps,{initialOutput:5,bifurcate:true,zeroPortPieceIds:[2,3]});
