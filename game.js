@@ -45,13 +45,13 @@ function createGame(E,opts={}){
     'bridge':'bridgeTileId',
     'gate':'gateTileId',
     'fan':'fanTileId',
-    'frame':'frameTileId',
+    'broker':'brokerTileId',
     'crown':'crownTileId',
-    'frontier':'frontierTileId',
+    'spend':'spendTileId',
     'merge':'mergeTileId',
     'hinge':'hingeTileId',
-    'resonator':'resonatorTileId',
-    'forge':'forgeTileId',
+    'bank':'bankTileId',
+    'toll':'tollTileId',
     'foundation':'foundationTileId',
     'knot':'knotTileId',
     'mirror':'mirrorTileId',
@@ -77,8 +77,23 @@ function createGame(E,opts={}){
     for(const p of pieces){const set=new Set();for(const [id,ids] of Object.entries(byTile))if(ids.includes(p.tile.id))set.add(id);if(set.size)out.set(p.id,set)}
     return out
   }
-  function foundationAgeForTile(tileId){if(!tileId||tileId!==s.foundationTileId)return 0;const assigned=Number.isInteger(s.foundationAssignedMarket)?s.foundationAssignedMarket:(s.marketCount||0);return Math.max(0,(s.marketCount||0)-assigned)}
-  function foundationAgeByPiece(pieces=s.pieces){const out=new Map();if(!s.foundationTileId)return out;for(const p of pieces)if(p.tile.id===s.foundationTileId)out.set(p.id,foundationAgeForTile(p.tile.id));return out}
+  function foundationAgeForTile(tileId){
+    if(!tileId||tileId!==s.foundationTileId)return 0;
+    const baseline=Number.isInteger(s.foundationLastPayoutMarket)?s.foundationLastPayoutMarket:Number.isInteger(s.foundationAssignedMarket)?s.foundationAssignedMarket:(s.marketCount||0);
+    return Math.max(0,(s.marketCount||0)-baseline)
+  }
+  function foundationMaturity(){
+    if(!s.foundationTileId)return{cycles:0,amount:0,progress:0};
+    const interval=Math.max(1,Number(cfg.FOUNDATION_MARKETS)||3),elapsed=foundationAgeForTile(s.foundationTileId),cycles=Math.floor(elapsed/interval),amount=cycles*Math.max(0,Number(cfg.FOUNDATION_COINS)||3);
+    return{cycles,amount,progress:elapsed%interval,interval}
+  }
+  function awardFoundationIncome(){
+    const income=foundationMaturity();if(!income.cycles||!income.amount)return{...income,total:0};
+    const interval=income.interval||Math.max(1,Number(cfg.FOUNDATION_MARKETS)||3);
+    s.foundationLastPayoutMarket=(Number.isInteger(s.foundationLastPayoutMarket)?s.foundationLastPayoutMarket:Number.isInteger(s.foundationAssignedMarket)?s.foundationAssignedMarket:(s.marketCount||0))+(income.cycles*interval);
+    s.coins+=income.amount;s.events.push({type:'foundation-coins',round:s.round+1,marketCount:s.marketCount||0,amount:income.amount,cycles:income.cycles,tileId:s.foundationTileId,coins:s.coins});
+    return{...income,total:income.amount,progress:foundationAgeForTile(s.foundationTileId)}
+  }
   function knotCycleCountByPiece(ERef=E,pieces=s.pieces){const out=new Map();if(!s.knotTileId)return out;const p=pieces.find(q=>q.tile.id===s.knotTileId);if(!p)return out;const graph=C.adjacency(pieces,ERef.contactBetweenPieces),signatures=C.cycleSignaturesThrough(graph,s.knotTileId,cfg.KNOT_MIN_CYCLE_SIZE||4);out.set(p.id,signatures.length);return out}
 
   function topologyModIds(){return M.all().filter(m=>m.category==='topology'&&m.topologyRule).map(m=>m.id)}
@@ -303,7 +318,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,twinTileId:null,pairTileId:null,bridgeTileId:null,gateTileId:null,fanTileId:null,frameTileId:null,crownTileId:null,frontierTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,resonatorTileId:null,forgeTileId:null,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,mintPaidRound:null};
+    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,twinTileId:null,pairTileId:null,bridgeTileId:null,gateTileId:null,fanTileId:null,brokerTileId:null,crownTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
     startRound(true);return s
   }
