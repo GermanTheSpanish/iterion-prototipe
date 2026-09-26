@@ -38,8 +38,8 @@ function createGame(E,opts={}){
     'long-line':'longLineTileId',
     'overload':'overloadTileId',
     'terminal':'terminalTileId',
-    'sequence':'sequenceTileId',
-    'complement':'complementTileId',
+    'diode':'diodeTileId',
+    'return':'returnTileId',
     'twin':'twinTileId',
     'pair':'pairTileId',
     'bridge':'bridgeTileId',
@@ -48,8 +48,8 @@ function createGame(E,opts={}){
     'frame':'frameTileId',
     'crown':'crownTileId',
     'frontier':'frontierTileId',
-    'relay':'relayTileId',
-    'coupler':'couplerTileId',
+    'merge':'mergeTileId',
+    'hinge':'hingeTileId',
     'resonator':'resonatorTileId',
     'forge':'forgeTileId',
     'foundation':'foundationTileId',
@@ -135,6 +135,29 @@ function createGame(E,opts={}){
     return removeTopologyMods(losses,null,{record})
   }
 
+  function topologyRuntimeKey(id,tileId,pieces=s.pieces){
+    const piece=pieces.find(p=>p.tile?.id===tileId),facts=piece&&E.modGeometryFacts(piece,pieces);if(!facts)return'absent';
+    if(id==='corner')return String(!!facts.corner);
+    if(id==='long-line')return String(facts.straightLineLength>=Math.max(1,Number(cfg.LONG_LINE_HIGH_THRESHOLD)||5)?3:facts.straightLineLength>=Math.max(1,Number(cfg.LONG_LINE_THRESHOLD)||3)?2:0);
+    if(id==='overload')return String(Math.min(Math.max(0,Number(facts.connectionCount)||0),Math.max(1,Number(cfg.OVERLOAD_MAX_MULTIPLIER)||4)));
+    if(id==='terminal')return String(facts.connectionCount===1);
+    if(id==='pair')return String(!!facts.pair);
+    if(id==='bridge')return String(!!facts.bridge);
+    if(id==='knot'){const graph=C.adjacency(pieces,E.contactBetweenPieces);return String(C.cycleSignaturesThrough(graph,tileId,cfg.KNOT_MIN_CYCLE_SIZE||4).length)}
+    return String(topologyModActive(id,tileId,pieces))
+  }
+  function hingeOptionForPieces(pieces=s.pieces){
+    const state=s.hingeState,tileId=s.hingeTileId;if(!state||!tileId||state.tileId!==tileId||!Array.isArray(state.positions)||state.positions.length!==2)return null;
+    const piece=pieces.find(p=>p.tile.id===tileId),pivot=pieces.find(p=>p.tile.id===state.pivotTileId);if(!piece||!pivot)return null;
+    const target=state.positions[state.active===1?0:1],others=pieces.filter(p=>p.id!==piece.id);if(!target)return null;
+    const valid=E.validatePlacement(piece.tile,target.x,target.y,target.z||0,target.rr,others);let blockedReason=valid.ok?null:(valid.reason||'occupied'),candidate=null;
+    if(!blockedReason){candidate=E.pieceFrom(piece.tile,target.x,target.y,target.z||0,target.rr,piece.id);candidate.tile={...piece.tile};const contact=E.contactBetweenPieces(candidate,pivot);if(!contact.touch||!contact.ok)blockedReason='pivot'}
+    if(!blockedReason&&candidate){
+      const next=pieces.map(p=>p.id===piece.id?candidate:p);
+      for(const id of topologyModIds()){const assigned=assignedTileIdsForMod(id)[0];if(assigned&&topologyRuntimeKey(id,assigned,pieces)!==topologyRuntimeKey(id,assigned,next)){blockedReason='topology';break}}
+    }
+    return{pieceId:piece.id,pivotPieceId:pivot.id,targetPlacement:{x:target.x,y:target.y,z:target.z||0,rr:target.rr},blockedReason}
+  }
   function zeroPortPieceIds(pieces=s.pieces){const ids=new Set(assignedTileIdsForMod('zero-port'));return pieces.filter(p=>ids.has(p.tile.id)).map(p=>p.id)}
   const pairList=()=>{const out=[];for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)out.push([a,b]);return out};
   const deepClone=x=>JSON.parse(JSON.stringify(x));
