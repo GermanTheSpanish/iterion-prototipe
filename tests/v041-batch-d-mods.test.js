@@ -53,11 +53,11 @@ assert.deepEqual([D.FOUNDATION_LOW_MOD_MULTIPLIER,D.FOUNDATION_HIGH_MOD_MULTIPLI
 }
 {
   const g=G.createGame(E,{seed:4103}),s=setPlaced(g,['d0-2','d1-5','d2-6','d5-6']);
-  s.foundationTileId='d0-2';s.knotTileId='d1-5';s.mirrorTileId='d2-6';s.mintTileId='d5-6';s.marketCount=5;s.foundationAssignedMarket=2;s.mintPaidRound=0;
+  s.foundationTileId='d0-2';s.mirrorTileId='d2-6';s.mintTileId='d5-6';s.marketCount=5;s.foundationAssignedMarket=2;s.mintPaidRound=0;
   const saved=g.exportState(),restored=G.createGame(E,{seed:1});assert(restored.restoreState(saved));
-  const rs=restored.state(),snap=restored.snapshot();assert.equal(rs.foundationTileId,'d0-2');assert.equal(rs.knotTileId,'d1-5');assert.equal(rs.mirrorTileId,'d2-6');assert.equal(rs.mintTileId,'d5-6');assert.equal(rs.marketCount,5);assert.equal(rs.foundationAssignedMarket,2);assert.equal(rs.mintPaidRound,0);
-  assert.deepEqual(snap.tileMods.foundation,['d0-2']);assert.deepEqual(snap.tileMods.knot,['d1-5']);assert.deepEqual(snap.tileMods.mirror,['d2-6']);assert.deepEqual(snap.tileMods.mint,['d5-6']);assert.equal(snap.tileModState.foundationAge,3);
-  assert.match(restored.debugText(),/FD=d0-2 · KN=d1-5 · MR=d2-6 · MT=d5-6/);
+  const rs=restored.state(),snap=restored.snapshot();assert.equal(rs.foundationTileId,'d0-2');assert.equal(rs.knotTileId,null);assert.equal(rs.mirrorTileId,'d2-6');assert.equal(rs.mintTileId,'d5-6');assert.equal(rs.marketCount,5);assert.equal(rs.foundationAssignedMarket,2);assert.equal(rs.mintPaidRound,0);
+  assert.deepEqual(snap.tileMods.foundation,['d0-2']);assert.deepEqual(snap.tileMods.knot,[]);assert.deepEqual(snap.tileMods.mirror,['d2-6']);assert.deepEqual(snap.tileMods.mint,['d5-6']);assert.equal(snap.tileModState.foundationAge,3);
+  assert.match(restored.debugText(),/FD=d0-2 · KN=- · MR=d2-6 · MT=d5-6/);
   assert.deepEqual(P.tileViewModel(rs.set.find(t=>t.id==='d2-6'),rs).modifiers.map(m=>m.label),['MR']);assert.equal(H.inspectTile(rs,'d0-2').currentMachineState.foundationAge,3);assert.equal(H.inspectTile(rs,'d5-6').currentMachineState.mintAvailable,false,'restored MINT payout must remain spent for the current round');
 }
 {

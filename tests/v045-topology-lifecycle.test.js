@@ -28,6 +28,7 @@ assert.deepEqual(
   assert(!targets.includes('d3-5'),'Terminal-like edge tiles are not valid Corner targets');
   s.cornerTileId='d3-4';
   assert.equal(g.marketOfferInfo('corner').offerWeight,0.25,'installed active Topology Mods use reduced Market weight');
+  const restoredActive=G.createGame(E,{seed:9});assert(restoredActive.restoreState(g.exportState()));assert.equal(restoredActive.state().cornerTileId,'d3-4','valid Topology assignment survives save/restore');
 
   let choice=null;
   for(const tile of s.set){

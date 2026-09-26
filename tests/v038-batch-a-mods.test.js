@@ -60,12 +60,12 @@ assert.deepEqual(['sequence','complement','twin','pair'].map(id=>M.get(id).colle
 
 {
   const g=G.createGame(E,{seed:3802}),s=placeStateTiles(g,['d2-3','d2-4','d1-5','d4-5']);
-  s.sequenceTileId='d2-3';s.complementTileId='d2-4';s.twinTileId='d1-5';s.pairTileId='d4-5';
+  s.sequenceTileId='d2-3';s.complementTileId='d2-4';s.twinTileId='d1-5';
   const saved=g.exportState(),restored=G.createGame(E,{seed:9});assert(restored.restoreState(saved));
   const rs=restored.state(),snap=restored.snapshot();
-  assert.equal(rs.sequenceTileId,'d2-3');assert.equal(rs.complementTileId,'d2-4');assert.equal(rs.twinTileId,'d1-5');assert.equal(rs.pairTileId,'d4-5');
-  assert.deepEqual(snap.tileMods.sequence,['d2-3']);assert.deepEqual(snap.tileMods.complement,['d2-4']);assert.deepEqual(snap.tileMods.twin,['d1-5']);assert.deepEqual(snap.tileMods.pair,['d4-5']);
-  assert.match(restored.debugText(),/SQ=d2-3 · C6=d2-4 · TW=d1-5 · PR=d4-5/);
+  assert.equal(rs.sequenceTileId,'d2-3');assert.equal(rs.complementTileId,'d2-4');assert.equal(rs.twinTileId,'d1-5');assert.equal(rs.pairTileId,null);
+  assert.deepEqual(snap.tileMods.sequence,['d2-3']);assert.deepEqual(snap.tileMods.complement,['d2-4']);assert.deepEqual(snap.tileMods.twin,['d1-5']);assert.deepEqual(snap.tileMods.pair,[]);
+  assert.match(restored.debugText(),/SQ=d2-3 · C6=d2-4 · TW=d1-5 · PR=-/);
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');

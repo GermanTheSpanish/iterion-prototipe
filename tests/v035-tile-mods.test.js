@@ -28,9 +28,9 @@ check('Market purchase closes before exact player assignment',()=>{
 
 check('one physical tile can hold only one Tile Mod',()=>{
   const g=G.createGame(E,{seed:3502,STARTING_COINS:100}),s=g.state(),ids=['d3-3','d5-5','d2-4','d0-3'];
-  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.doubleDoubleTileId='d3-3';s.parityExchangeTileId='d2-4';s.terminalTileId='d0-3';
-  fakeMarket(g,'corner');const info=g.marketOfferInfo('corner');assert(!info.targetTiles.some(t=>['d3-3','d2-4','d0-3'].includes(t.id)));assert(info.targetTiles.some(t=>t.id==='d5-5'));
-  const r=g.buyMarketMod('corner');assert(r.ok);assert(g.chooseMarketModTile('d5-5').ok);assert.equal(s.cornerTileId,'d5-5');
+  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.doubleDoubleTileId='d3-3';s.parityExchangeTileId='d2-4';s.foundationTileId='d0-3';
+  fakeMarket(g,'mint');const info=g.marketOfferInfo('mint');assert(!info.targetTiles.some(t=>['d3-3','d2-4','d0-3'].includes(t.id)));assert(info.targetTiles.some(t=>t.id==='d5-5'));
+  const r=g.buyMarketMod('mint');assert(r.ok);assert(g.chooseMarketModTile('d5-5').ok);assert.equal(s.mintTileId,'d5-5');
   fakeMarket(g,'triple-double');assert.equal(g.marketOfferInfo('triple-double').targetCount,0);
   fakeMarket(g,'zero-port');assert(!g.marketOfferInfo('zero-port').targetTiles.some(t=>t.id==='d0-3'));
 });
@@ -111,10 +111,10 @@ check('Terminal is x3 with exactly one physical neighbour and inactive otherwise
 
 check('snapshot and restore persist physical Mod assignments and pending targeting',()=>{
   const g=G.createGame(E,{seed:3504,STARTING_COINS:100}),s=g.state(),ids=['d0-2','d3-3','d2-4','d4-5'];
-  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.cornerTileId='d2-4';s.tripleDoubleTileId='d3-3';s.zeroPortTileIds=['d0-2'];s.pendingModPlacement={mod:'terminal',stage:'target',eligibleTileIds:['d4-5'],sourceTileId:null,previousTileId:null,recordIndex:0};
+  s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];s.parityExchangeTileId='d2-4';s.tripleDoubleTileId='d3-3';s.zeroPortTileIds=['d0-2'];s.pendingModPlacement={mod:'mint',stage:'target',eligibleTileIds:['d4-5'],sourceTileId:null,previousTileId:null,recordIndex:0};
   const exported=g.exportState(),restored=G.createGame(E,{seed:99});assert(restored.restoreState(exported));
-  assert.equal(restored.state().cornerTileId,'d2-4');assert.equal(restored.state().tripleDoubleTileId,'d3-3');assert.deepEqual(restored.state().zeroPortTileIds,['d0-2']);assert.deepEqual(restored.state().pendingModPlacement,s.pendingModPlacement);
-  assert(restored.snapshot().board.find(p=>p.tileId==='d2-4').modifiers.includes('corner'));assert(restored.snapshot().board.find(p=>p.tileId==='d3-3').modifiers.includes('triple-double'));assert.match(restored.debugText(),/TD=d3-3/);assert.match(restored.debugText(),/ZP=d0-2/);assert.doesNotMatch(restored.debugText(),/ZM=/);
+  assert.equal(restored.state().parityExchangeTileId,'d2-4');assert.equal(restored.state().tripleDoubleTileId,'d3-3');assert.deepEqual(restored.state().zeroPortTileIds,['d0-2']);assert.deepEqual(restored.state().pendingModPlacement,s.pendingModPlacement);
+  assert(restored.snapshot().board.find(p=>p.tileId==='d2-4').modifiers.includes('parity-exchange'));assert(restored.snapshot().board.find(p=>p.tileId==='d3-3').modifiers.includes('triple-double'));assert.match(restored.debugText(),/TD=d3-3/);assert.match(restored.debugText(),/ZP=d0-2/);assert.doesNotMatch(restored.debugText(),/ZM=/);
 });
 
 console.log(`${checks} MONOID topology Tile Mod checks passed`);

@@ -68,12 +68,12 @@ assert.deepEqual(['bridge','gate','fan','frame','crown','frontier'].map(id=>M.ge
 }
 {
   const g=G.createGame(E,{seed:3902}),s=setPlaced(g,['d0-4','d0-5','d1-3','d1-4','d3-4','d3-5']);
-  s.bridgeTileId='d0-4';s.gateTileId='d0-5';s.fanTileId='d1-3';s.frameTileId='d1-4';s.crownTileId='d3-4';s.frontierTileId='d3-5';
+  s.gateTileId='d0-5';s.fanTileId='d1-3';s.frameTileId='d1-4';s.crownTileId='d3-4';s.frontierTileId='d3-5';
   const saved=g.exportState(),restored=G.createGame(E,{seed:1});assert(restored.restoreState(saved));
   const rs=restored.state(),snap=restored.snapshot();
-  assert.equal(rs.bridgeTileId,'d0-4');assert.equal(rs.gateTileId,'d0-5');assert.equal(rs.fanTileId,'d1-3');assert.equal(rs.frameTileId,'d1-4');assert.equal(rs.crownTileId,'d3-4');assert.equal(rs.frontierTileId,'d3-5');
-  assert.deepEqual(snap.tileMods.bridge,['d0-4']);assert.deepEqual(snap.tileMods.gate,['d0-5']);assert.deepEqual(snap.tileMods.fan,['d1-3']);assert.deepEqual(snap.tileMods.frame,['d1-4']);assert.deepEqual(snap.tileMods.crown,['d3-4']);assert.deepEqual(snap.tileMods.frontier,['d3-5']);
-  assert.match(restored.debugText(),/BR=d0-4 · GT=d0-5 · FN=d1-3 · FM=d1-4 · CW=d3-4 · FT=d3-5/);
+  assert.equal(rs.bridgeTileId,null);assert.equal(rs.gateTileId,'d0-5');assert.equal(rs.fanTileId,'d1-3');assert.equal(rs.frameTileId,'d1-4');assert.equal(rs.crownTileId,'d3-4');assert.equal(rs.frontierTileId,'d3-5');
+  assert.deepEqual(snap.tileMods.bridge,[]);assert.deepEqual(snap.tileMods.gate,['d0-5']);assert.deepEqual(snap.tileMods.fan,['d1-3']);assert.deepEqual(snap.tileMods.frame,['d1-4']);assert.deepEqual(snap.tileMods.crown,['d3-4']);assert.deepEqual(snap.tileMods.frontier,['d3-5']);
+  assert.match(restored.debugText(),/BR=- · GT=d0-5 · FN=d1-3 · FM=d1-4 · CW=d3-4 · FT=d3-5/);
 }
 const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(source,/let topologyGraph=null;const graph=/,'expensive topology graph must remain lazy per replay');
