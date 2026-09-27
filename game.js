@@ -888,6 +888,11 @@ function createGame(E,opts={}){
       if(m.eligibility==='nonzero')candidates=candidates.filter(t=>!isZero(t));
       if(m.eligibility==='signal-nonzero-nondouble')candidates=candidates.filter(t=>!isDouble(t)&&!isZero(t));
       if(m.eligibility==='hinge')candidates=candidates.filter(t=>{if(isDouble(t)||isZero(t))return false;const piece=s.pieces.find(p=>p.tile.id===t.id);return!!piece&&E.hingeAlternates(piece,s.pieces).length>0});
+      if(m.eligibility==='mutation-mirror')candidates=candidates.filter(t=>mirrorMutationOptions(t.id).length>0);
+      if(m.eligibility==='mutation-pivot')candidates=candidates.filter(t=>pivotMutationOptions(t.id).length>0);
+      if(m.eligibility==='mutation-recall')candidates=candidates.filter(t=>recallMutationOptions(t.id).length>0);
+      if(m.eligibility==='mutation-scrap')candidates=candidates.filter(t=>scrapMutationOptions(t.id).length>0);
+      if(m.eligibility==='mutation-swap')candidates=candidates.filter(t=>swapMutationOptions(t.id).length>0);
       if(m.category==='topology')candidates=candidates.filter(t=>topologyModActive(id,t.id,s.pieces));
       return candidates
     }
