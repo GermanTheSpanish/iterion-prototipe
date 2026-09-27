@@ -23,7 +23,8 @@
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite → Ouroboros',available:true,kind:'classic'}),
-    ...Array.from({length:7},(_,i)=>Object.freeze({id:`locked-${i+1}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
+    Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · Two Cores · Signal infrastructure',available:true,kind:'eyes'}),
+    ...Array.from({length:6},(_,i)=>Object.freeze({id:`locked-${i+2}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
   const wrapIndex=index=>{const n=Number.isFinite(index)?Math.trunc(index):0;return((n%MODES.length)+MODES.length)%MODES.length};
@@ -58,6 +59,7 @@
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
+.modeTileZero i:after{display:none}
 .modeCarouselViewport.isDragging .modeTile,.modeCarouselViewport.isRebasing .modeTile{transition:none!important}
 .modeCarouselViewport.isPulling .modeTile{transition:transform var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1)}
 .modeCarouselViewport.isLanding .modeTile{transition:transform var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1)}
@@ -74,7 +76,8 @@
     doc.head.appendChild(style)
   }
   function tileMarkup(mode){
-    if(mode.kind==='classic')return '<span class="selectionDouble modeTile modeTileClassic" aria-hidden="true"><i></i><i></i></span>';
+    if(mode.kind==='classic')return '<span class="selectionDouble modeTile modeTileClassic modeTileZero" aria-hidden="true"><i></i><i></i></span>';
+    if(mode.kind==='eyes')return '<span class="selectionDouble modeTile modeTileEyes" aria-hidden="true"><i></i><i></i></span>';
     if(mode.kind==='infinite')return '<span class="selectionDouble modeTile modeTileInfinite" aria-hidden="true"><b>∞</b></span>';
     return '<span class="selectionDouble modeTile modeTileLocked" aria-hidden="true"></span>'
   }
@@ -135,7 +138,7 @@
     viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;const startShift=drag.visualX;drag=null;viewport.classList.remove('isDragging');settle(selected,startShift,0)});
     frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();settle(stepIndex(selected,1),0,-SPACING)}else if(e.key==='ArrowLeft'){e.preventDefault();settle(stepIndex(selected,-1),0,SPACING)}});
     startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!mode.available)return;const previousMode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic',beforeSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;root.localStorage?.setItem(ACTIVE_MODE_KEY,mode.id);root.__monoidActiveMode=mode.id;originalStart?.call(this,event);const afterSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;if(beforeSaved&&beforeSaved===afterSaved&&!doc.getElementById('gameSelection')?.hidden){root.localStorage?.setItem(ACTIVE_MODE_KEY,previousMode);root.__monoidActiveMode=previousMode}}
-    if(continueRun)continueRun.onclick=function(event){stopSettling(true);const mode='classic';root.localStorage?.setItem(ACTIVE_MODE_KEY,mode);root.__monoidActiveMode=mode;return originalContinue?.call(this,event)};
+    if(continueRun)continueRun.onclick=function(event){stopSettling(true);return originalContinue?.call(this,event)};
     root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select};
     render();return true
   }

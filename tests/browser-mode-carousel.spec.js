@@ -26,8 +26,8 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await expect(page.locator('#modeCarouselViewport')).not.toHaveClass(/isPulling|isLanding/,{timeout:800});
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
 
-  // The first neighbour is now a locked future mode. Its physical settle remains
-  // unchanged even though Classic is the only playable mode.
+  // The first neighbour is The Eyes. The physical settle remains unchanged
+  // while the new mode becomes a real selectable 1|1 entry.
   await page.mouse.move(viewportCenter,pointerY);await page.mouse.down();await page.mouse.move(viewportCenter-34,pointerY);await page.mouse.up();
   await expect(page.locator('#modeCarouselViewport')).toHaveClass(/isPulling/);
   const farProfile=await page.evaluate(()=>window.MonoidModeCarousel.settleProfile(-34,-window.MonoidModeCarousel.SPACING));
@@ -39,8 +39,9 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   });
   expect(Math.min(...trace)).toBeLessThan(-3,'a far release must carry the incoming tile slightly through centre');
   expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
-  await expect(page.locator('#modeName')).toHaveText('LOCKED',{timeout:900});
-  await expect(page.locator('#startRun')).toBeDisabled();
+  await expect(page.locator('#modeName')).toHaveText('THE EYES',{timeout:900});
+  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal infrastructure');
+  await expect(page.locator('#startRun')).toBeEnabled();
 
   await page.evaluate(()=>window.__monoidModes.select(6));
   const frame=await page.locator('#modeCarouselFrame').boundingBox();
@@ -65,13 +66,13 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
 });
 
-test('Classic is the single playable mode and owns the full progression',async({page})=>{
+test('Classic and The Eyes are the playable modes while Classic keeps its full progression',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
   await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
 
-  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic']);
+  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes']);
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
   await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
   await page.locator('#startRun').click();
@@ -79,4 +80,31 @@ test('Classic is the single playable mode and owns the full progression',async({
   expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel??null)).toBeNull();
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('classic');
   expect(await page.evaluate(()=>window.__monoidGame.debugText())).toContain('Mode: CLASSIC');
+});
+
+
+test('The Eyes starts a persisted 1|1 run with two Core shadow fixtures and Signal 24 telemetry',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.waitForFunction(()=>!!window.__monoidModes);
+  await page.locator('#titleCard').click();
+  await page.evaluate(()=>window.__monoidModes.select(1));
+  await expect(page.locator('#modeName')).toHaveText('THE EYES');
+  await page.locator('#startRun').click();
+  await expect(page.locator('#board .coreNode')).toHaveCount(2);
+  const state=await page.evaluate(()=>({
+    gameMode:window.__monoidGame.state().gameMode,
+    cores:window.__monoidGame.state().cores,
+    snapshot:window.__monoidGame.snapshot(),
+    storedMode:localStorage.getItem('iterion.activeRunMode.v1'),
+    savedMode:JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.gameMode
+  }));
+  expect(state.gameMode).toBe('eyes');
+  expect(state.storedMode).toBe('eyes');
+  expect(state.savedMode).toBe('eyes');
+  expect(state.cores).toHaveLength(2);
+  expect(state.snapshot.cores.interaction).toBe('shadow');
+  expect(state.snapshot.signal.shadowEnabled).toBe(true);
+  expect(state.snapshot.signal.base).toBe(24);
+  expect(state.snapshot.signal.max).toBe(24);
 });

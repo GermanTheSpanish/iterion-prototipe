@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.49.0',
+    VERSION:'0.50.0',
     ENGINE_VERSION:'0.18.0-mutation-v2',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -23,6 +23,10 @@
     ENDLESS_TARGET_MULTIPLIER:5,
     POWER_MULTIPLIERS:Object.freeze([1,2,3,4]),
     MAX_SET_GENERATION:3,
+    CORE_SIGNAL_BASE:24,
+    CORE_SIGNAL_MAX:24,
+    CORE_SIGNAL_SHADOW:true,
+    CORE_ARCHETYPES:Object.freeze(['relay','reservoir','distributor','conductor']),
     CIRCUIT_TILE_LIMIT:3,
     CIRCUIT_MAX_RANK:5,
     CIRCUIT_REWARDS:[{minSize:4,ranks:1},{minSize:7,ranks:2},{minSize:10,ranks:3}],
