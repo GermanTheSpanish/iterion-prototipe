@@ -19,8 +19,14 @@
   let drag={active:false,index:-1,tile:null,candidates:[],candidate:null,topologyBreaks:[],float:null,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const cascadeControl={active:false,phase:'idle',skipCascade:false,skipSummary:false,lastTap:0,waiters:new Set()};
-  function beginCascadeControl(){cascadeControl.active=true;cascadeControl.phase='cascade';cascadeControl.skipCascade=false;cascadeControl.skipSummary=false;cascadeControl.lastTap=0;cascadeControl.waiters.clear();board.dataset.cascadePhase='cascade'}
-  function endCascadeControl(){for(const waiter of [...cascadeControl.waiters])waiter.done();cascadeControl.waiters.clear();cascadeControl.active=false;cascadeControl.phase='idle';cascadeControl.lastTap=0;delete board.dataset.cascadePhase}
+  let cascadeSkipHintTimer=0;
+  function clearCascadeSkipHint(){if(cascadeSkipHintTimer){clearTimeout(cascadeSkipHintTimer);cascadeSkipHintTimer=0}board.querySelector('.cascadeSkipHint')?.remove()}
+  function armCascadeSkipHint(){
+    clearCascadeSkipHint();if(tutorial)return;
+    cascadeSkipHintTimer=setTimeout(()=>{cascadeSkipHintTimer=0;if(!cascadeControl.active||cascadeControl.phase==='final')return;const d=document.createElement('div');d.className='cascadeSkipHint';d.setAttribute('role','status');d.setAttribute('aria-live','polite');d.textContent='TAP SCREEN TO SKIP';board.appendChild(d)},V.CASCADE.skipHintAfterMs||6000)
+  }
+  function beginCascadeControl(){cascadeControl.active=true;cascadeControl.phase='cascade';cascadeControl.skipCascade=false;cascadeControl.skipSummary=false;cascadeControl.lastTap=0;cascadeControl.waiters.clear();board.dataset.cascadePhase='cascade';armCascadeSkipHint()}
+  function endCascadeControl(){for(const waiter of [...cascadeControl.waiters])waiter.done();cascadeControl.waiters.clear();clearCascadeSkipHint();cascadeControl.active=false;cascadeControl.phase='idle';cascadeControl.lastTap=0;delete board.dataset.cascadePhase}
   function cascadePhaseSkipped(phase){return phase==='cascade'?cascadeControl.skipCascade:phase==='summary'?cascadeControl.skipSummary:false}
   function releaseCascadeWaiters(phase){for(const waiter of [...cascadeControl.waiters])if(waiter.phase===phase)waiter.done()}
   function cascadeWait(ms,phase=cascadeControl.phase){
@@ -33,7 +39,7 @@
     const now=performance.now();if(now-cascadeControl.lastTap<(V.CASCADE.skipDebounceMs||120))return;
     cascadeControl.lastTap=now;
     if(cascadeControl.phase==='cascade'&&!cascadeControl.skipCascade){cascadeControl.skipCascade=true;releaseCascadeWaiters('cascade');return}
-    if(cascadeControl.phase==='summary'&&!cascadeControl.skipSummary){cascadeControl.skipSummary=true;releaseCascadeWaiters('summary')}
+    if(cascadeControl.phase==='summary'&&!cascadeControl.skipSummary){cascadeControl.skipSummary=true;clearCascadeSkipHint();releaseCascadeWaiters('summary')}
   }
   window.addEventListener('pointerdown',handleCascadeSkip,{capture:true,passive:false});
   const px=n=>n/E.G*100+'%',py=n=>n/E.H*100+'%';
@@ -502,7 +508,7 @@
       else{setCascadeHighlight(allPieceIds,allPieceIds);if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,target).score;await cascadeWait(resonanceSettleMs,'summary')}
     }
     detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,target).note;setCascadeHighlight(allPieceIds,allPieceIds);
-    cascadeControl.phase='final';board.dataset.cascadePhase='final';if(!tutorial)await cascadeWait(V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
+    cascadeControl.phase='final';board.dataset.cascadePhase='final';clearCascadeSkipHint();if(!tutorial)await cascadeWait(V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
   }
   function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span><small>REBOUND</small>';d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
