@@ -59,7 +59,7 @@ const core=first.state().cores[0],tile=first.state().set.find(t=>t.id==='d1-2'),
 const corePhysical=first.coreShadowTelemetry([overlapPiece],[core]);
 assert.deepEqual(corePhysical.overlapTileIds,[tile.id],'Core telemetry must still expose invalid legacy overlaps');
 
-const rootTile=first.state().set.find(t=>t.id==='d1-1');first.state().hand[0]=rootTile;
+const rootTile=first.state().set.find(t=>t.id==='d1-1'),replacedHandTile=first.state().hand[0];first.state().reserve=first.state().reserve.filter(t=>t.id!==rootTile.id);if(replacedHandTile&&replacedHandTile.id!==rootTile.id)first.state().reserve.push(replacedHandTile);first.state().hand[0]=rootTile;
 assert.deepEqual(first.previewPlacement(0,{x:core.x,y:core.y,z:0,rr:0}),{ok:false,reason:'core-overlap'});
 assert.deepEqual(first.beginPlacement(0,{x:core.x,y:core.y,z:0,rr:0}),{ok:false,reason:'core-overlap'});
 const rootCandidates=first.candidatesForIndex(0);
@@ -85,7 +85,7 @@ assert.equal(restored.snapshot().cores.interaction,'physical');
 assert.equal(restored.snapshot().signal.shadowEnabled,true);
 
 const legacy=first.exportState(),legacyCore=legacy.state.cores[0],legacyTile=legacy.state.set.find(t=>t.id==='d1-2');
-legacy.state.pieces=[{id:991,tile:{...legacyTile},x:legacyCore.x,y:legacyCore.y,rr:0}];legacy.state.placedTileIds=[legacyTile.id];
+legacy.state.hand=legacy.state.hand.map(t=>t?.id===legacyTile.id?null:t);legacy.state.reserve=legacy.state.reserve.filter(t=>t?.id!==legacyTile.id);legacy.state.pieces=[{id:991,tile:{...legacyTile},x:legacyCore.x,y:legacyCore.y,rr:0}];legacy.state.placedTileIds=[legacyTile.id];
 const migrated=G.createGame(E,{seed:2,GAME_MODE:'classic'});
 assert.equal(migrated.restoreState(legacy),true);
 assert.equal(migrated.coreShadowTelemetry().overlapTileIds.length,0,'v0.50.0 Core-shadow saves must migrate away from occupied Core footprints');
