@@ -199,35 +199,30 @@
       if(raw.type==='op'){
         const e={...raw,before:output},mods=modsByPiece.get(e.piece)||new Set(),piece=pieceMap.get(e.piece),power=Math.max(1,Number(powers.get(e.piece))||1);
         const connections=piece?uniqueConnectionCount(piece,pieces):0,cornerTopology=piece?isCornerTopology(piece,pieces):false,straightLine=piece?straightLineLength(piece,pieces):0;
-        const twinConnected=piece?hasTwinConnection(piece,pieces):false,pairTopology=piece?isPairTopology(piece,pieces):false;
-        const needsProfiles=!!piece&&(mods.has('gate')||mods.has('fan')||mods.has('crown')||mods.has('frontier')),profiles=needsProfiles?physicalNeighbourProfiles(piece,pieces):[];
-        const bridgeTopology=!!piece&&mods.has('bridge')?isBridgeTopology(piece,graph()):false,gateTopology=mods.has('gate')?isGateTopology(piece,profiles):false,fanTopology=mods.has('fan')?isFanTopology(profiles):false,frameTopology=!!piece&&mods.has('frame')?isFrameTopology(piece,graph()):false,crownTopology=mods.has('crown')?isCrownTopology(profiles):false,frontierTopology=mods.has('frontier')?isFrontierTopology(piece,profiles):false;
+        const pairTopology=piece?isPairTopology(piece,pieces):false;
+        const needsProfiles=!!piece&&mods.has('frontier'),profiles=needsProfiles?physicalNeighbourProfiles(piece,pieces):[];
+        const bridgeTopology=!!piece&&mods.has('bridge')?isBridgeTopology(piece,graph()):false,frameTopology=!!piece&&mods.has('frame')?isFrameTopology(piece,graph()):false,frontierTopology=mods.has('frontier')?isFrontierTopology(piece,profiles):false;
         const powerNeighbours=piece?poweredNeighbourCount(piece,pieces):0;
         const circuitRank=Math.max(0,Number(circuitRanks.get(e.piece))||0),upgradeTier=Math.max(0,Number(piece?.tile?.upgrade)||0);
         const bankMultiplier=mods.has('bank')?(economyCoins>=Math.max(0,Number(opts.bankHighCoins)||20)?Math.max(1,Number(opts.bankHighMultiplier)||3):economyCoins>=Math.max(0,Number(opts.bankLowCoins)||10)?Math.max(1,Number(opts.bankLowMultiplier)||2):1):1;
         const spendActive=mods.has('spend')&&economyCoins<Math.max(0,Number(opts.spendCoinThreshold)||5),tollActive=mods.has('toll')&&!!opts.tollArmed&&!tollUsed&&economyCoins>=Math.max(1,Number(opts.tollCoins)||1);
-        const knotCycleCount=Math.max(0,Number(knotCycles.get(e.piece))||0),knotActive=mods.has('knot')&&knotCycleCount>=2,mirrorActive=!!piece&&mods.has('mirror')&&isMirrorTopology(piece,pieces),mintAssigned=mods.has('mint'),brokerAssigned=mods.has('broker'),foundationAssigned=mods.has('foundation');
+        const knotCycleCount=Math.max(0,Number(knotCycles.get(e.piece))||0),knotActive=mods.has('knot')&&knotCycleCount>=2,mintAssigned=mods.has('mint'),brokerAssigned=mods.has('broker'),foundationAssigned=mods.has('foundation');
         let modMultiplier=1,operation=e.op;
         if(mods.has('parity-exchange')&&e.value!==0)operation=e.value%2===0?'multiply':'add';
         if(mods.has('corner')&&cornerTopology)modMultiplier*=Math.max(1,Number(opts.cornerMultiplier)||3);
         if(mods.has('long-line')&&straightLine>=Math.max(1,Number(opts.longLineThreshold)||3))modMultiplier*=straightLine>=Math.max(1,Number(opts.longLineHighThreshold)||5)?Math.max(1,Number(opts.longLineHighMultiplier)||3):Math.max(1,Number(opts.longLineMultiplier)||2);
         if(mods.has('overload'))modMultiplier*=Math.max(1,Math.min(Math.max(1,Number(opts.overloadMaxMultiplier)||4),connections||1));
         if(mods.has('terminal')&&connections===1)modMultiplier*=Math.max(1,Number(opts.terminalMultiplier)||3);
-        if(mods.has('twin')&&twinConnected)modMultiplier*=Math.max(1,Number(opts.twinMultiplier)||3);
         if(mods.has('pair')&&pairTopology)modMultiplier*=Math.max(1,Number(opts.pairMultiplier)||3);
         if(mods.has('bridge')&&bridgeTopology)modMultiplier*=Math.max(1,Number(opts.bridgeMultiplier)||3);
-        if(mods.has('gate')&&gateTopology)modMultiplier*=Math.max(1,Number(opts.gateMultiplier)||2);
-        if(mods.has('fan')&&fanTopology)modMultiplier*=Math.max(1,Number(opts.fanMultiplier)||4);
         if(mods.has('frame')&&frameTopology)modMultiplier*=Math.max(1,Number(opts.frameMultiplier)||2);
-        if(mods.has('crown')&&crownTopology)modMultiplier*=Math.max(1,Number(opts.crownMultiplier)||4);
         if(mods.has('frontier')&&frontierTopology)modMultiplier*=Math.max(1,Number(opts.frontierMultiplier)||2);
         if(bankMultiplier>1)modMultiplier*=bankMultiplier;
         if(spendActive)modMultiplier*=Math.max(1,Number(opts.spendMultiplier)||3);
         if(knotActive)modMultiplier*=Math.max(1,Number(opts.knotMultiplier)||4);
-        if(mirrorActive)modMultiplier*=Math.max(1,Number(opts.mirrorMultiplier)||3);
         const magnitude=power*modMultiplier,v=e.value,baseAdd=v*(e.doubleDouble?2:1),baseFactor=e.doubleDouble?v*v:v;
         const normalAdd=v*magnitude,normalFactor=v*magnitude;
-        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.twin=twinConnected;e.pair=pairTopology;e.bridge=bridgeTopology;e.gate=gateTopology;e.fan=fanTopology;e.frame=frameTopology;e.crown=crownTopology;e.frontier=frontierTopology;e.powerNeighbourCount=powerNeighbours;e.circuitRank=circuitRank;e.upgradeTier=upgradeTier;e.bankMultiplier=bankMultiplier;e.bank=bankMultiplier>1;e.spend=spendActive;e.toll=tollActive;e.broker=brokerAssigned;e.foundation=foundationAssigned;e.knotCycleCount=knotCycleCount;e.knot=knotActive;e.mirror=mirrorActive;e.mint=mintAssigned;e.economyCoins=economyCoins;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
+        e.op=operation;e.powerMultiplier=power;e.modMultiplier=modMultiplier;e.connectionCount=connections;e.corner=cornerTopology;e.straightLineLength=straightLine;e.pair=pairTopology;e.bridge=bridgeTopology;e.frame=frameTopology;e.frontier=frontierTopology;e.powerNeighbourCount=powerNeighbours;e.circuitRank=circuitRank;e.upgradeTier=upgradeTier;e.bankMultiplier=bankMultiplier;e.bank=bankMultiplier>1;e.spend=spendActive;e.toll=tollActive;e.broker=brokerAssigned;e.foundation=foundationAssigned;e.knotCycleCount=knotCycleCount;e.knot=knotActive;e.mint=mintAssigned;e.economyCoins=economyCoins;e.normalAdd=normalAdd;e.normalFactor=normalFactor;
         if(operation==='multiply'){e.factor=baseFactor*magnitude;e.add=0;e.after=output*(e.factor||1);e.delta=e.after-output;output=e.after}
         else if(operation==='add'){e.add=baseAdd*magnitude;e.factor=0;e.after=output+(e.add||0);e.delta=e.after-output;output=e.after}
         else{e.add=0;e.factor=0;e.after=output;e.delta=0}
