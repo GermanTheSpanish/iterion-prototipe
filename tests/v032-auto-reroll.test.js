@@ -58,10 +58,18 @@ function configureBlockedGame({rerolls,handSize,reserve=[]}){
 
 {
   const legal={id:'legal-runtime-2-3',a:2,b:3,upgrade:0,source:'base'};
-  const g=configureBlockedGame({rerolls:0,handSize:3,reserve:[legal]}),s=g.state();
-  s.freeReroll=1;s.running=true;
-  const p=s.pieces[0],tile=p.tile;
-  const result=g.finishPlacement({ok:true,tile,p,trigger:4,sim:{output:4,events:[],reason:'fixture',rebounds:0,search:{starts:1,leaves:1,expanded:1}}});
+  const action={id:'runtime-action-2-4',a:2,b:4,upgrade:0,source:'base'};
+  const g=configureBlockedGame({rerolls:0,handSize:3}),s=g.state();
+  s.round=1;s.hand=[action,null,null];s.reserve=[];
+  const candidate=g.candidatesForIndex(0)[0];assert(candidate,'runtime fixture needs one legal placement');
+  const ctx=g.beginPlacement(0,candidate);assert.equal(ctx.ok,true);assert.equal(s.running,true);
+  s.hand=[
+    {id:'runtime-blocked-0-0',a:0,b:0,upgrade:0,source:'base'},
+    {id:'runtime-blocked-1-1',a:1,b:1,upgrade:0,source:'base'},
+    null
+  ];
+  s.reserve=[legal];s.freeReroll=1;
+  const result=g.finishPlacement(ctx);
   assert.equal(result.ok,true);
   assert.equal(result.autoRerolls,1,'finishPlacement must release running state before automatic recovery');
   assert.equal(s.freeReroll,0);
@@ -75,7 +83,7 @@ function configureBlockedGame({rerolls,handSize,reserve=[]}){
 {
   const legal={id:'legal-after-circuit-2-3',a:2,b:3,upgrade:0,source:'base'};
   const g=configureBlockedGame({rerolls:0,handSize:3,reserve:[legal]}),s=g.state(),tileId=s.pieces[0].tile.id;
-  s.freeReroll=1;s.pendingCircuit={eligibleTileIds:[tileId],reward:1,signature:'fixture-circuit'};
+  s.round=1;s.freeReroll=1;s.pendingCircuit={eligibleTileIds:[tileId],reward:1,signature:'fixture-circuit'};
   const result=g.chooseCircuitTile(tileId);
   assert.equal(result.ok,true);
   assert.equal(result.autoRerolls,1,'Circuit selection must resolve before automatic reroll recovery');
