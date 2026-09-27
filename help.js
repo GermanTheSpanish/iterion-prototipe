@@ -85,13 +85,13 @@
     if(state.terminalTileId===tileId)ids.push('terminal');
     if(state.diodeTileId===tileId)ids.push('diode');
     if(state.returnTileId===tileId)ids.push('return');
-    if(state.twinTileId===tileId)ids.push('twin');
+    if(state.recallTileId===tileId)ids.push('recall');
     if(state.pairTileId===tileId)ids.push('pair');
     if(state.bridgeTileId===tileId)ids.push('bridge');
-    if(state.gateTileId===tileId)ids.push('gate');
-    if(state.fanTileId===tileId)ids.push('fan');
+    if(state.pivotTileId===tileId)ids.push('pivot');
+    if(state.scrapTileId===tileId)ids.push('scrap');
     if(state.brokerTileId===tileId)ids.push('broker');
-    if(state.crownTileId===tileId)ids.push('crown');
+    if(state.swapTileId===tileId)ids.push('swap');
     if(state.spendTileId===tileId)ids.push('spend');
     if(state.mergeTileId===tileId)ids.push('merge');
     if(state.hingeTileId===tileId)ids.push('hinge');
