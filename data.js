@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.47.0',
+    VERSION:'0.47.1',
     ENGINE_VERSION:'0.17.0-economy-v2',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -24,7 +24,7 @@
     POWER_MULTIPLIERS:Object.freeze([1,2,3,4]),
     CIRCUIT_TILE_LIMIT:3,
     CIRCUIT_MAX_RANK:5,
-    CIRCUIT_REWARDS:[{minSize:4,ranks:2},{minSize:7,ranks:3},{minSize:10,ranks:4}],
+    CIRCUIT_REWARDS:[{minSize:4,ranks:1},{minSize:7,ranks:2},{minSize:10,ranks:3}],
     CIRCUIT_RANKS:[
       {roman:'I',color:'white',bonus:0.5},
       {roman:'II',color:'green',bonus:1},
