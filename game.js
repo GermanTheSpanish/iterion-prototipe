@@ -308,11 +308,14 @@ function createGame(E,opts={}){
     return{base,quick,exact,total:base+quick+exact}
   }
   function clearReward(){return clearRewardBreakdown().total}
-  function hasLegal(){return s.hand.some(tile=>tile&&placementCandidatesForTile(tile).length>0)}
+  function hasLegal(){
+    if(!physicalCoreMode()){if(!s.pieces.length){if(cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0)return s.hand.some(isDouble);return s.hand.some(Boolean)}return E.hasLegalMove(s.hand.filter(Boolean),s.pieces,[0])}
+    return s.hand.some(tile=>tile&&placementCandidatesForTile(tile).length>0)
+  }
   function openingProtectionActive(){return s.round===0&&s.roundTurn===1&&s.turn===1&&s.pieces.length===1}
   function ensureOpeningContinuation(source){
     if(!openingProtectionActive()||hasLegal())return null;
-    const legal=t=>placementCandidatesForTile(t).length>0;
+    const legal=t=>physicalCoreMode()?placementCandidatesForTile(t).length>0:(E.hasAnyPlacement?E.hasAnyPlacement(t,0,s.pieces):E.allPlacements(t,0,s.pieces).length>0);
     const ri=s.reserve.findIndex(legal);if(ri<0)return null;
     const tile=s.reserve[ri];let slot=s.hand.findIndex(t=>!t),replaced=null;
     if(slot<0){slot=s.hand.length-1;replaced=s.hand[slot];s.reserve[ri]=replaced}else s.reserve.splice(ri,1);
