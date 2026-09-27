@@ -391,3 +391,12 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .ouroborosAction{width:100%;min-height:48px;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--ink);font:800 9px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;letter-spacing:.08em;padding:0}
 .ouroborosAction:disabled{opacity:.35}
 .ouroborosFire{background:var(--ink);color:var(--paper)}
+
+/* Core Shadow v1: visible infrastructure fixtures; they do not affect placement yet. */
+.coreNode{position:absolute;z-index:0;box-sizing:border-box;border:1px solid rgba(21,21,21,.68);background:rgba(236,236,230,.8);pointer-events:none}
+.coreNode::after{content:"";position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);border-radius:50%;background:#151515}
+.coreNode>b{position:absolute;right:2px;bottom:1px;font:750 6px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#61615b}
+.corePort{position:absolute;display:block;background:#151515}
+.corePortU,.corePortD{left:35%;width:30%;height:2px}.corePortL,.corePortR{top:35%;height:30%;width:2px}
+.corePortU{top:-2px}.corePortD{bottom:-2px}.corePortL{left:-2px}.corePortR{right:-2px}
+body.ouroborosPalette .coreNode{opacity:.45}
