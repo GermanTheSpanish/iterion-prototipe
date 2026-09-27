@@ -168,7 +168,7 @@ function createGame(E,opts={}){
     const piece=pieces.find(p=>p.tile.id===tileId),pivot=pieces.find(p=>p.tile.id===state.pivotTileId);if(!piece||!pivot)return null;
     const target=state.positions[state.active===1?0:1],others=pieces.filter(p=>p.id!==piece.id);if(!target)return null;
     const valid=E.validatePlacement(piece.tile,target.x,target.y,target.z||0,target.rr,others);let blockedReason=valid.ok?null:(valid.reason||'occupied'),candidate=null;
-    if(!blockedReason){candidate=E.pieceFrom(piece.tile,target.x,target.y,target.z||0,target.rr,piece.id);candidate.tile={...piece.tile};const contact=E.contactBetweenPieces(candidate,pivot);if(!contact.touch||!contact.ok)blockedReason='pivot'}
+    if(!blockedReason){candidate=E.pieceFrom(piece.tile,target.x,target.y,target.z||0,target.rr,piece.id);candidate.tile={...piece.tile};if(pieceOverlapsCore(candidate))blockedReason='core-overlap';const contact=!blockedReason&&E.contactBetweenPieces(candidate,pivot);if(!blockedReason&&(!contact.touch||!contact.ok))blockedReason='pivot'}
     if(!blockedReason&&candidate){
       const next=pieces.map(p=>p.id===piece.id?candidate:p);
       for(const id of topologyModIds()){const assigned=assignedTileIdsForMod(id)[0];if(assigned&&topologyRuntimeKey(id,assigned,pieces)!==topologyRuntimeKey(id,assigned,next)){blockedReason='topology';break}}
@@ -204,6 +204,40 @@ function createGame(E,opts={}){
       {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsFor(seed,0),archetype:archetypes[coreHash(seed,0,99)%archetypes.length],level:1},
       {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsFor(seed,1),archetype:archetypes[coreHash(seed,1,99)%archetypes.length],level:1}
     ]
+  }
+
+  function physicalCoreMode(){return canonicalGameMode(s.gameMode)==='eyes'&&Array.isArray(s.cores)&&s.cores.length>0}
+  function coreSize(core){return Math.max(1,Number(core?.size)||Number(E.S)||2)}
+  function cubeOverlapsCore(cube,core){
+    const cell=Math.max(1,Number(E.S)||2),size=coreSize(core);
+    return cube.x<core.x+size&&cube.x+cell>core.x&&cube.y<core.y+size&&cube.y+cell>core.y
+  }
+  function pieceOverlapsCore(piece,cores=s.cores){return physicalCoreMode()&&(cores||[]).some(core=>(piece?.cubes||[]).some(cube=>cubeOverlapsCore(cube,core)))}
+  function placementOverlapsCore(tile,x,y,rr){return physicalCoreMode()&&pieceOverlapsCore(E.pieceFrom(tile,x,y,0,rr,-1))}
+  function coreRectsOverlap(a,b){
+    const as=coreSize(a),bs=coreSize(b);
+    return a.x<b.x+bs&&a.x+as>b.x&&a.y<b.y+bs&&a.y+as>b.y
+  }
+  function relocateLegacyCoreOverlaps(){
+    if(!physicalCoreMode()||!s.pieces.length)return[];
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},placed=[],moved=[],next=[];
+    for(const core of s.cores){
+      const size=coreSize(core),fits=candidate=>candidate.x>=0&&candidate.y>=0&&candidate.x+size<=board.G&&candidate.y+size<=board.H&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!placed.some(other=>coreRectsOverlap(candidate,other));
+      let chosen={...core,size};
+      if(!fits(chosen)){
+        const candidates=[];
+        for(let y=0;y<=board.H-size;y++)for(let x=0;x<=board.G-size;x++){
+          const candidate={...core,size,x,y};if(!fits(candidate))continue;
+          const wrongHalf=core.slot==='north'?(y+size>board.H/2):core.slot==='south'?(y<board.H/2):false;
+          candidates.push({candidate,wrongHalf:wrongHalf?1:0,distance:Math.abs(x-core.x)+Math.abs(y-core.y),xDistance:Math.abs(x-core.x)})
+        }
+        candidates.sort((a,b)=>a.wrongHalf-b.wrongHalf||a.distance-b.distance||a.xDistance-b.xDistance||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);
+        if(candidates.length){chosen=candidates[0].candidate;moved.push({id:core.id,from:{x:core.x,y:core.y},to:{x:chosen.x,y:chosen.y}})}
+      }
+      placed.push(chosen);next.push(chosen)
+    }
+    if(moved.length)s.cores=next;
+    return moved
   }
 
   function availableTileCount(){
@@ -274,11 +308,11 @@ function createGame(E,opts={}){
     return{base,quick,exact,total:base+quick+exact}
   }
   function clearReward(){return clearRewardBreakdown().total}
-  function hasLegal(){if(!s.pieces.length){if(cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0)return s.hand.some(isDouble);return s.hand.some(Boolean)}return E.hasLegalMove(s.hand.filter(Boolean),s.pieces,[0])}
+  function hasLegal(){return s.hand.some(tile=>tile&&placementCandidatesForTile(tile).length>0)}
   function openingProtectionActive(){return s.round===0&&s.roundTurn===1&&s.turn===1&&s.pieces.length===1}
   function ensureOpeningContinuation(source){
     if(!openingProtectionActive()||hasLegal())return null;
-    const legal=t=>E.hasAnyPlacement?E.hasAnyPlacement(t,0,s.pieces):E.allPlacements(t,0,s.pieces).length>0;
+    const legal=t=>placementCandidatesForTile(t).length>0;
     const ri=s.reserve.findIndex(legal);if(ri<0)return null;
     const tile=s.reserve[ri];let slot=s.hand.findIndex(t=>!t),replaced=null;
     if(slot<0){slot=s.hand.length-1;replaced=s.hand[slot];s.reserve[ri]=replaced}else s.reserve.splice(ri,1);
@@ -359,14 +393,19 @@ function createGame(E,opts={}){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
     s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[]};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
-    startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'shadow',cores:deepClone(s.cores)});return s
+    startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});return s
   }
 
   function setRootRotation(rr){if(s.pieces.length||s.running)return false;s.rootRR=((rr%4)+4)%4;return true}
   function rotateRoot(){return setRootRotation(s.rootRR+1)}
-  function rootPlacements(tile){let out=[];for(let y=0;y<=E.H-E.S;y++)for(let x=0;x<=E.G-E.S;x++){let p=E.pieceFrom(tile,x,y,0,s.rootRR,-1);if(p.rect.minx>=0&&p.rect.miny>=0&&p.rect.maxx<=E.G&&p.rect.maxy<=E.H)out.push({x,y,z:0,rr:s.rootRR})}return out}
-  function candidatesForIndex(i){const tile=s.hand[i];if(!tile)return[];if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return[];return s.pieces.length?E.allPlacements(tile,0,s.pieces):rootPlacements(tile)}
-  function legalHandMask(){return s.hand.map(t=>{if(!t)return false;if(!s.pieces.length)return !(cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(t));return E.hasAnyPlacement?E.hasAnyPlacement(t,0,s.pieces):E.allPlacements(t,0,s.pieces).length>0})}
+  function rootPlacements(tile){let out=[];for(let y=0;y<=E.H-E.S;y++)for(let x=0;x<=E.G-E.S;x++){let p=E.pieceFrom(tile,x,y,0,s.rootRR,-1);if(p.rect.minx>=0&&p.rect.miny>=0&&p.rect.maxx<=E.G&&p.rect.maxy<=E.H&&!pieceOverlapsCore(p))out.push({x,y,z:0,rr:s.rootRR})}return out}
+  function placementCandidatesForTile(tile){
+    if(!tile)return[];if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return[];
+    const candidates=s.pieces.length?E.allPlacements(tile,0,s.pieces):rootPlacements(tile);
+    return physicalCoreMode()?candidates.filter(c=>!placementOverlapsCore(tile,c.x,c.y,c.rr)):candidates
+  }
+  function candidatesForIndex(i){return placementCandidatesForTile(s.hand[i])}
+  function legalHandMask(){return s.hand.map(tile=>!!tile&&placementCandidatesForTile(tile).length>0)}
   function handPlacementDiagnostics(){return s.hand.map((tile,index)=>tile?{index,tile:cloneTile(tile),legalPlacements:candidatesForIndex(index).length}:null).filter(Boolean)}
   function canInteract(){return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.blocked&&!s.needsReroll&&!s.shopOpen}
   function ouroborosPlacementPreview(tileId,placement){
@@ -376,7 +415,7 @@ function createGame(E,opts={}){
     if(!Number.isInteger(x)||!Number.isInteger(y))return{ok:false,reason:'grid'};
     const others=s.pieces.filter(p=>p.id!==piece.id),validation=E.validatePlacement(piece.tile,x,y,0,rr,others);
     if(!validation.ok&&validation.reason!=='no-contact'&&!(validation.reason==='root-zone'&&!others.length))return{ok:false,reason:validation.reason||'invalid'};
-    const moved=E.pieceFrom(piece.tile,x,y,0,rr,piece.id);moved.tile={...piece.tile};
+    const moved=E.pieceFrom(piece.tile,x,y,0,rr,piece.id);moved.tile={...piece.tile};if(pieceOverlapsCore(moved))return{ok:false,reason:'core-overlap'};
     const nextPieces=s.pieces.map(p=>p.id===piece.id?moved:p),topologyLosses=topologyBreaksForPieces(nextPieces);
     return{ok:true,tileId,placement:{x,y,z:0,rr},topologyLosses:deepClone(topologyLosses)}
   }
@@ -426,6 +465,7 @@ function createGame(E,opts={}){
     return seen.size===pieces.length
   }
   function mutationMachineValid(pieces){
+    if(pieces.some(piece=>pieceOverlapsCore(piece)))return false;
     if(!machineConnected(pieces))return false;
     for(let i=0;i<pieces.length;i++)for(let j=i+1;j<pieces.length;j++){
       const contact=E.contactBetweenPieces(pieces[i],pieces[j]);
@@ -626,15 +666,17 @@ function createGame(E,opts={}){
       return false
     };
     const details=items.map(core=>{
-      const overlapping=[],connected=[];
+      const overlapping=[],connected=[],connectedPorts=new Set();
       for(const piece of pieces||[]){
         const hit=(piece.cubes||[]).some(cube=>overlap({x:core.x,y:core.y,w:core.size,h:core.size},{x:cube.x,y:cube.y,w:cell,h:cell}));
         if(hit)overlapping.push(piece.tile?.id||piece.id);
-        if((piece.cubes||[]).some(cube=>(core.ports||[]).some(side=>portTouch(core,cube,side))))connected.push(piece.tile?.id||piece.id)
+        let touches=false;
+        for(const cube of piece.cubes||[])for(const side of core.ports||[])if(portTouch(core,cube,side)){connectedPorts.add(side);touches=true}
+        if(touches)connected.push(piece.tile?.id||piece.id)
       }
-      return{id:core.id,slot:core.slot,archetype:core.archetype,level:core.level||1,ports:[...(core.ports||[])],x:core.x,y:core.y,size:core.size,overlapTileIds:[...new Set(overlapping)],connectedTileIds:[...new Set(connected)]}
+      return{id:core.id,slot:core.slot,archetype:core.archetype,level:core.level||1,ports:[...(core.ports||[])],connectedPorts:[...connectedPorts],x:core.x,y:core.y,size:core.size,overlapTileIds:[...new Set(overlapping)],connectedTileIds:[...new Set(connected)]}
     });
-    return{enabled:canonicalGameMode(s.gameMode)==='eyes',interaction:'shadow',coreCount:details.length,connectedCoreCount:details.filter(core=>core.connectedTileIds.length).length,overlapTileIds:[...new Set(details.flatMap(core=>core.overlapTileIds))],cores:details}
+    return{enabled:canonicalGameMode(s.gameMode)==='eyes',interaction:'physical',coreCount:details.length,connectedCoreCount:details.filter(core=>core.connectedTileIds.length).length,overlapTileIds:[...new Set(details.flatMap(core=>core.overlapTileIds))],cores:details}
   }
 
   function spreadEntries(entries){
@@ -662,6 +704,7 @@ function createGame(E,opts={}){
     if(i<0||i>=s.hand.length||!s.hand[i]||!c)return{ok:false,reason:'state'};const tile=s.hand[i];
     if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
+    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};
     if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
     else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
     const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...cloneTile(tile)};const pieces=[...s.pieces,p],topologyBreaks=topologyBreaksForPieces(pieces),trigger=tile.a+tile.b;
@@ -697,6 +740,7 @@ function createGame(E,opts={}){
     const tile=s.hand[i];
     if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
+    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};
     if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
     else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
     const undoFrame=captureUndoFrame();
@@ -1187,7 +1231,7 @@ function createGame(E,opts={}){
     const tileById=id=>id?cloneTile(s.set.find(t=>t.id===id)):null,lastSignalShadow=[...(s.events||[])].reverse().find(e=>e?.signalShadow)?.signalShadow||null;
     return{
       circuits:{ranks:{...s.circuitRanks},signatures:[...s.circuitSignatures],pending:deepClone(s.pendingCircuit),tileLimit:circuitTileLimit()},
-      cores:{mode:s.gameMode==='eyes'?'eyes':'none',interaction:'shadow',items:deepClone(s.cores||[]),telemetry:deepClone(coreShadow)},
+      cores:{mode:s.gameMode==='eyes'?'eyes':'none',interaction:s.gameMode==='eyes'?'physical':'none',items:deepClone(s.cores||[]),telemetry:deepClone(coreShadow)},
       signal:{shadowEnabled:s.gameMode==='eyes'&&cfg.CORE_SIGNAL_SHADOW!==false,base:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),last:deepClone(lastSignalShadow)},
       powerSets:{generation:s.setGeneration||1,powerMultiplier:generationPower(s.setGeneration||1),maxGeneration:maxSetGeneration()},
       schema:'iterion.run.v9',gameVersion:cfg.VERSION,engineVersion:cfg.ENGINE_VERSION,gameMode:s.gameMode||'classic',runId:s.runId,seed:s.seed,startedAt:s.startedAt,savedAt:new Date().toISOString(),
@@ -1223,7 +1267,7 @@ function createGame(E,opts={}){
     lines.push(`Current hand: ${hand.map(h=>`#${h.index+1} ${tileText(h.tile)} legal=${h.legalPlacements}`).join(' | ')||'-'}`);
     lines.push(`Recovery: recoverable=${x.recovery.recoverable?'yes':'no'} · undo=${x.recovery.undo?'yes':'no'} · ownedReroll=${x.recovery.ownedReroll?'yes':'no'} · buyReroll=${x.recovery.toolReroll?`yes@${x.recovery.prices.reroll}c`:'no'} · ownedMove=${x.recovery.ownedMove?'yes':'no'} · buyMove=${x.recovery.toolMove?`yes@${x.recovery.prices.move}c`:'no'}`);
     lines.push(`Circuits: ${Object.entries(x.circuits.ranks).map(([id,rank])=>`${id}:C${rank}`).join(',')||'-'} · slots=${Object.keys(x.circuits.ranks).length}/${x.circuits.tileLimit} · discovered=${x.circuits.signatures.length} · pending=${x.circuits.pending?.signature||'-'}`);
-    if(x.cores.mode==='eyes')lines.push(`Cores: THE EYES · shadow · ${x.cores.items.map(core=>`${core.id}:${String(core.archetype||'-').toUpperCase()} I ports=${(core.ports||[]).join('')||'-'} @${core.x},${core.y}`).join(' | ')} · connected=${x.cores.telemetry.connectedCoreCount}/${x.cores.telemetry.coreCount} · overlaps=${x.cores.telemetry.overlapTileIds.join(',')||'-'}`);
+    if(x.cores.mode==='eyes')lines.push(`Cores: THE EYES · physical · ${x.cores.items.map(core=>`${core.id}:${String(core.archetype||'-').toUpperCase()} I ports=${(core.ports||[]).join('')||'-'} @${core.x},${core.y}`).join(' | ')} · connected=${x.cores.telemetry.connectedCoreCount}/${x.cores.telemetry.coreCount} · overlaps=${x.cores.telemetry.overlapTileIds.join(',')||'-'}`);
     if(x.signal.shadowEnabled)lines.push(`Signal Shadow: ${x.signal.base}/${x.signal.max}${x.signal.last?` · charged=${x.signal.last.chargedVisits} · min=${x.signal.last.minRemaining} · wouldStop=${x.signal.last.wouldStop?'yes':'no'}${x.signal.last.firstStop?` at=${x.signal.last.firstStop.pieceId}`:''}`:' · no moves yet'}`);
     for(const v of x.turns){
       if(v.type==='signal-resolution'){const trace=Array.isArray(v.events)?JSON.stringify(v.events):v.traceCompacted?'COMPACTED_AFTER_RESTORE':'-';lines.push(`T${v.move} SIGNAL TREE splits=${v.splitCount} base=${v.baseOutput} selection=${v.selectionOutput??v.baseOutput} trace=${trace}`);continue}
@@ -1317,7 +1361,7 @@ function createGame(E,opts={}){
     if(['sequence','complement','relay','coupler'].includes(s.pendingModPlacement?.mod)){s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none'}ensureShopTileOffers();
     const desiredHandSize=handSizeForRound();if(Array.isArray(s.hand)&&s.hand.length>desiredHandSize){const overflow=s.hand.slice(desiredHandSize).filter(Boolean);s.hand=s.hand.slice(0,desiredHandSize);if(!Array.isArray(s.reserve))s.reserve=[];s.reserve.push(...overflow)}
     const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
-    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);pruneInactiveTopologyMods({record:false});
+    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});pruneInactiveTopologyMods({record:false});
     if(!s.ouroborosMode&&(s.setGeneration||1)>=maxSetGeneration()&&availableTileCount()===0&&!s.hand.some(Boolean)&&!s.reserve.length)activateOuroboros('restore');
     return true
   }
