@@ -255,7 +255,7 @@
       body.endlessPalette .railActions .btn:disabled{color:#8b8a83!important;border-color:#3f3f3a!important}
       body.endlessPalette .railActions .btn:disabled small{color:#72716b!important}
       body.endlessPalette .powerTile.power2{--power-pale:#243d55!important}
-      body.endlessPalette .powerTile.power3{--power-pale:#45304f!important}
+      body.endlessPalette .powerTile.power3{--power-pale:#66551f!important}
       body.endlessPalette .powerTile.power4{--power-pale:#66551f!important}
       body.endlessPalette .domino.powerTile:not(.circuitTile),body.endlessPalette .piece.powerTile:not(.circuitTile){color:#f5f2e9!important;border-color:#807c73!important}
       body.endlessPalette .powerTile:not(.circuitTile) .pip,body.endlessPalette .powerTile:not(.circuitTile) .spip{background:#f5f2e9!important}
@@ -335,7 +335,7 @@
   
       /* POWER keeps its material colour in Endless. Circuit+POWER keeps the dark tinted body. */
       body.endlessPalette .powerTile.power2{--power-pale:#b4c4cb!important}
-      body.endlessPalette .powerTile.power3{--power-pale:#c1b4c6!important}
+      body.endlessPalette .powerTile.power3{--power-pale:#c5b780!important}
       body.endlessPalette .powerTile.power4{--power-pale:#c5b780!important}
       body.endlessPalette .domino.powerTile:not(.circuitTile),body.endlessPalette .piece.powerTile:not(.circuitTile){
         color:#171717!important;border-color:#504f4a!important
@@ -380,7 +380,7 @@
 
       /* POWER survives on a Mod as a near-black material tint; it does not restore face values. */
       .app .modTile.power2,.commerceModal .domino.modTile.power2{--mod-body:#172127}
-      .app .modTile.power3,.commerceModal .domino.modTile.power3{--mod-body:#211a24}
+      .app .modTile.power3,.commerceModal .domino.modTile.power3{--mod-body:#292516}
       .app .modTile.power4,.commerceModal .domino.modTile.power4{--mod-body:#292516}
 
       /* Circuit material is grey. A Circuit that also carries a Mod becomes the darker reverse. */
@@ -389,7 +389,7 @@
       }
       .app .circuitTile.modTile,.commerceModal .domino.circuitTile.modTile{--mod-body:#383835}
       .app .circuitTile.modTile.power2,.commerceModal .domino.circuitTile.modTile.power2{--mod-body:#323a3e}
-      .app .circuitTile.modTile.power3,.commerceModal .domino.circuitTile.modTile.power3{--mod-body:#39333b}
+      .app .circuitTile.modTile.power3,.commerceModal .domino.circuitTile.modTile.power3{--mod-body:#3d392d}
       .app .circuitTile.modTile.power4,.commerceModal .domino.circuitTile.modTile.power4{--mod-body:#3d392d}
 
       /* Existing Star tier line moves from the physical centre to the whole perimeter. */

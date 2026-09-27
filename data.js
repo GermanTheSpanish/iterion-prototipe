@@ -22,6 +22,7 @@
     TOTAL_ROUNDS:15,
     ENDLESS_TARGET_MULTIPLIER:5,
     POWER_MULTIPLIERS:Object.freeze([1,2,3,4]),
+    MAX_SET_GENERATION:3,
     CIRCUIT_TILE_LIMIT:3,
     CIRCUIT_MAX_RANK:5,
     CIRCUIT_REWARDS:[{minSize:4,ranks:1},{minSize:7,ranks:2},{minSize:10,ranks:3}],
