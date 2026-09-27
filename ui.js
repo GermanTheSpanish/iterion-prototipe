@@ -293,7 +293,7 @@
     overlayBody.querySelectorAll('[data-rule]').forEach(b=>b.onclick=()=>openRulebookSection(b.dataset.rule));overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
   }
   function mutationOptionLabel(option,state){
-    if(option.kind==='mirror')return'REVERSE TILE';
+    if(option.kind==='mirror')return`ANCHOR ${(option.anchorHalf||0)+1} · 180°`;
     if(option.kind==='recall')return'RETURN TO HAND';
     if(option.kind==='pivot')return`ANCHOR ${(option.anchorHalf||0)+1} · ${option.turn||'90°'}`;
     const target=state.set.find(t=>t.id===option.targetTileId),tile=target?`[${target.a}|${target.b}]`:option.targetTileId||'TILE';
