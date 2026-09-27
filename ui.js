@@ -616,6 +616,13 @@
         const pp=pc(e.piece),label=e.type==='diode-block'?'DIODE · BLOCK':e.type==='return'?'RETURN':e.type==='hinge-move'?'HINGE':e.type==='toll-spend'?'TOLL · −1c':'HINGE · BLOCKED';
         if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,label,0,'signal cascadeStructural',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}i++;continue
       }
+      if(e.type==='core-activate'){
+        const core=GAME.state().cores?.find(core=>core.id===e.coreId),el=core&&board.querySelector(`[data-core-id="${e.coreId}"]`),role=String(e.role||'follow').toUpperCase(),label=`${role} · SIGNAL ${e.afterSignal??D.CORE_SIGNAL_MAX??24}`;
+        if(core){el?.classList.add('coreActivated',`coreRole${role}`);fx(core.x+(core.size||2)/2,core.y+(core.size||2)/2,label,0,'signal cascadeStructural coreActivationFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);setTimeout(()=>el?.classList.remove('coreActivated',`coreRole${role}`),V.CASCADE.structuralFxMs);await cascadeWait(Math.max(220,V.cascadeDelay(index)),'cascade')}i++;continue
+      }
+      if(e.type==='signal-depleted'){
+        const pp=pc(e.piece),c=pp?.cubes?.[0];if(c){fx(c.x+1,c.y+1,'SIGNAL 0',0,'signal cascadeStructural signalDepletedFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(260,V.cascadeDelay(index)),'cascade')}i++;continue
+      }
       if(e.type==='double-echo-start'){startEcho(e,index);i++;continue}i++
     }
     return index
