@@ -40,7 +40,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   expect(Math.min(...trace)).toBeLessThan(-3,'a far release must carry the incoming tile slightly through centre');
   expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
   await expect(page.locator('#modeName')).toHaveText('THE EYES',{timeout:900});
-  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal infrastructure');
+  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal 24');
   await expect(page.locator('#startRun')).toBeEnabled();
 
   await page.evaluate(()=>window.__monoidModes.select(6));
