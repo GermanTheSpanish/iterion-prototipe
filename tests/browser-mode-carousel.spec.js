@@ -83,7 +83,7 @@ test('Classic and The Eyes are the playable modes while Classic keeps its full p
 });
 
 
-test('The Eyes starts a persisted 1|1 run with two Core shadow fixtures and Signal 24 telemetry',async({page})=>{
+test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Signal 24 telemetry',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
   await page.waitForFunction(()=>!!window.__monoidModes);
@@ -103,10 +103,18 @@ test('The Eyes starts a persisted 1|1 run with two Core shadow fixtures and Sign
   expect(state.storedMode).toBe('eyes');
   expect(state.savedMode).toBe('eyes');
   expect(state.cores).toHaveLength(2);
-  expect(state.snapshot.cores.interaction).toBe('shadow');
+  expect(state.snapshot.cores.interaction).toBe('physical');
+  expect(state.snapshot.cores.telemetry.overlapTileIds).toEqual([]);
   expect(state.snapshot.signal.shadowEnabled).toBe(true);
   expect(state.snapshot.signal.base).toBe(24);
   expect(state.snapshot.signal.max).toBe(24);
+  const placementSafety=await page.evaluate(()=>{
+    const game=window.__monoidGame,E=window.IterionEngine,s=game.state();let checked=0,overlaps=0;
+    s.hand.forEach((tile,index)=>{if(!tile)return;for(const candidate of game.candidatesForIndex(index)){const piece=E.pieceFrom(tile,candidate.x,candidate.y,0,candidate.rr,-1);piece.tile={...tile};checked++;if(game.coreShadowTelemetry([piece]).overlapTileIds.length)overlaps++}});
+    return{checked,overlaps}
+  });
+  expect(placementSafety.checked).toBeGreaterThan(0);
+  expect(placementSafety.overlaps).toBe(0);
 });
 
 test('The Eyes keeps its 1|1 selector and replaces a saved Classic run without reverting to Classic',async({page})=>{

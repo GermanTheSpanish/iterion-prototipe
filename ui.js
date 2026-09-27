@@ -187,10 +187,13 @@
   }
   function renderBoard(){
     const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
+    const coreTelemetry=GAME.coreShadowTelemetry?GAME.coreShadowTelemetry():null,coreTelemetryById=new Map((coreTelemetry?.cores||[]).map(core=>[core.id,core]));
     for(const core of s.cores||[]){
-      const el=document.createElement('div');el.className='coreNode coreShadow';el.dataset.coreId=core.id;el.dataset.coreType=core.archetype||'';el.setAttribute('aria-hidden','true');
+      const live=coreTelemetryById.get(core.id),el=document.createElement('div');el.className='coreNode corePhysical';el.dataset.coreId=core.id;el.dataset.coreType=core.archetype||'';el.setAttribute('aria-hidden','true');
+      if(live?.connectedTileIds?.length)el.classList.add('isConnected');if(live?.overlapTileIds?.length)el.classList.add('isObstructed');
       Object.assign(el.style,{left:px(core.x),top:py(core.y),width:px(core.size||2),height:py(core.size||2)});
-      for(const side of core.ports||[]){const port=document.createElement('i');port.className=`corePort corePort${side}`;el.appendChild(port)}
+      const connectedPorts=new Set(live?.connectedPorts||[]);
+      for(const side of core.ports||[]){const port=document.createElement('i');port.className=`corePort corePort${side}`;if(connectedPorts.has(side))port.classList.add('isConnected');el.appendChild(port)}
       const level=document.createElement('b');level.textContent=String(core.level||1);el.appendChild(level);board.appendChild(el)
     }
     const topologyBreakByTile=new Map((drag.topologyBreaks||[]).map(loss=>[loss.tileId,loss]));

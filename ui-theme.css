@@ -392,11 +392,15 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .ouroborosAction:disabled{opacity:.35}
 .ouroborosFire{background:var(--ink);color:var(--paper)}
 
-/* Core Shadow v1: visible infrastructure fixtures; they do not affect placement yet. */
-.coreNode{position:absolute;z-index:0;box-sizing:border-box;border:1px solid rgba(21,21,21,.68);background:rgba(236,236,230,.8);pointer-events:none}
+/* Physical Cores occupy board space. Ports strengthen when the machine reaches them. */
+.coreNode{position:absolute;z-index:3;box-sizing:border-box;border:1px solid rgba(21,21,21,.68);background:rgba(236,236,230,.92);pointer-events:none}
 .coreNode::after{content:"";position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);border-radius:50%;background:#151515}
 .coreNode>b{position:absolute;right:2px;bottom:1px;font:750 6px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#61615b}
-.corePort{position:absolute;display:block;background:#151515}
+.coreNode.isConnected{border-width:2px}
+.coreNode.isObstructed{outline:1px dashed #151515;outline-offset:1px}
+.corePort{position:absolute;display:block;background:#151515;opacity:.58}
+.corePort.isConnected{opacity:1}
 .corePortU,.corePortD{left:35%;width:30%;height:2px}.corePortL,.corePortR{top:35%;height:30%;width:2px}
+.corePort.isConnected.corePortU,.corePort.isConnected.corePortD{height:3px}.corePort.isConnected.corePortL,.corePort.isConnected.corePortR{width:3px}
 .corePortU{top:-2px}.corePortD{bottom:-2px}.corePortL{left:-2px}.corePortR{right:-2px}
-body.ouroborosPalette .coreNode{opacity:.45}
+body.ouroborosPalette .coreNode{opacity:.7}
