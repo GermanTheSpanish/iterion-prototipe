@@ -13,7 +13,7 @@ function replay(pieces,modId,pieceId,{value=2,knotCycles=0}={}){
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s}
 
-assert.equal(D.VERSION,'0.47.0');
+assert.equal(D.VERSION,'0.47.1');
 assert.deepEqual(['foundation','knot','mirror','mint'].map(id=>M.get(id).collectionCode),['FD','KN','MR','MT']);
 assert.deepEqual([D.FOUNDATION_MARKETS,D.FOUNDATION_COINS,D.KNOT_MOD_MULTIPLIER,D.MIRROR_MOD_MULTIPLIER,D.MINT_COINS],[3,3,4,3,1]);
 
@@ -57,4 +57,4 @@ assert.deepEqual([D.FOUNDATION_MARKETS,D.FOUNDATION_COINS,D.KNOT_MOD_MULTIPLIER,
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
 assert.doesNotMatch(engineSource,/mint.*output\s*[+*]=/i,'MINT must never change Score arithmetic');
-console.log('v0.47.0 retained Batch D and Foundation economy regressions passed');
+console.log('v0.47.1 retained Batch D and Foundation economy regressions passed');

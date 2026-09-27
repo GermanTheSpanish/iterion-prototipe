@@ -57,6 +57,44 @@ function configureBlockedGame({rerolls,handSize,reserve=[]}){
 }
 
 {
+  const legal={id:'legal-runtime-2-3',a:2,b:3,upgrade:0,source:'base'};
+  const action={id:'runtime-action-2-4',a:2,b:4,upgrade:0,source:'base'};
+  const g=configureBlockedGame({rerolls:0,handSize:3}),s=g.state();
+  s.round=1;s.hand=[action,null,null];s.reserve=[];
+  const candidate=g.candidatesForIndex(0)[0];assert(candidate,'runtime fixture needs one legal placement');
+  const ctx=g.beginPlacement(0,candidate);assert.equal(ctx.ok,true);assert.equal(s.running,true);
+  s.hand=[
+    {id:'runtime-blocked-0-0',a:0,b:0,upgrade:0,source:'base'},
+    {id:'runtime-blocked-1-1',a:1,b:1,upgrade:0,source:'base'},
+    null
+  ];
+  s.reserve=[legal];s.freeReroll=1;
+  const result=g.finishPlacement(ctx);
+  assert.equal(result.ok,true);
+  assert.equal(result.autoRerolls,1,'finishPlacement must release running state before automatic recovery');
+  assert.equal(s.freeReroll,0);
+  assert.equal(s.running,false);
+  assert.equal(s.blocked,false);
+  assert.equal(s.failureReason,null);
+  assert.equal(g.hasLegal(),true);
+  assert.equal(s.events.filter(e=>e.type==='reroll'&&e.automatic).length,1);
+}
+
+{
+  const legal={id:'legal-after-circuit-2-3',a:2,b:3,upgrade:0,source:'base'};
+  const g=configureBlockedGame({rerolls:0,handSize:3,reserve:[legal]}),s=g.state(),tileId=s.pieces[0].tile.id;
+  s.round=1;s.freeReroll=1;s.pendingCircuit={eligibleTileIds:[tileId],reward:1,signature:'fixture-circuit'};
+  const result=g.chooseCircuitTile(tileId);
+  assert.equal(result.ok,true);
+  assert.equal(result.autoRerolls,1,'Circuit selection must resolve before automatic reroll recovery');
+  assert.equal(s.circuitRanks[tileId],1);
+  assert.equal(s.pendingCircuit,null);
+  assert.equal(s.freeReroll,0);
+  assert.equal(s.blocked,false);
+  assert.equal(g.hasLegal(),true);
+}
+
+{
   const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
   assert.doesNotMatch(ui,/function showNoMoves\(\)/);
   assert.doesNotMatch(ui,/else if\(s\.needsReroll\)/);
