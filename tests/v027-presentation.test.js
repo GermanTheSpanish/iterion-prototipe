@@ -21,7 +21,7 @@ check('Rulebook retains semantic free Reroll and POWER progression coverage',()=
   assert.match(sections.economy,/Every round grants one free Reroll/);assert.match(sections.economy,/before stored Rerolls/);assert.match(sections.economy,/refreshes to one rather than accumulating/);
   for(const concept of [/every physical tile.*placed/i,/before Endless/,/Set II.*×2/,/Set III ×3/,/Set IV.*×4/,/initial|trigger/,/never changes.*routing/,/Buying extra tiles.*delays/,/inherit.*generation/,/retain.*generation/])assert.match(sections.power,concept);
   assert.match(sections.doubles,/both arms receive that full Score/);assert.match(sections.doubles,/\[0\|0\].*never splits/);assert.match(sections.doubles,/Echo.*same split rule/);assert.match(sections.doubles,/never create another Echo/);
-  assert.match(sections.circuits,/\+2 \/ \+3 \/ \+4/);assert.match(sections.circuits,/only once/);assert.match(sections.circuits,/overlapping/);
+  assert.match(sections.circuits,/\+1 \/ \+2 \/ \+3/);assert.match(sections.circuits,/only once/);assert.match(sections.circuits,/overlapping/);
 });
 check('Inspector exposes original values, generation, actual operations and Circuit rank together',()=>{
   for(const power of [2,3,4]){const t={id:'physical',a:3,b:5,generation:power,powerMultiplier:power},model=H.inspectTile({set:[t],events:[],mods:[],circuitRanks:{physical:3}},t.id);assert.deepEqual(model.baseTile.values,[3,5]);assert.equal(model.power.generation,power);assert.equal(model.power.powerMultiplier,power);assert.equal(model.baseTile.operations[1].factor,5*power);assert.equal(model.circuit.roman,'III')}
