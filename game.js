@@ -437,10 +437,10 @@ function createGame(E,opts={}){
     if(!s.ouroborosMode||!canInteract())return{ok:false,reason:'state'};
     const p=s.pieces.find(piece=>piece.tile?.id===tileId),tile=p&&(s.set.find(t=>t.id===tileId)||p.tile);if(!p||!tile)return{ok:false,reason:'tile'};
     const undoFrame=captureUndoFrame(),trigger=tile.a+tile.b;s.running=true;
-    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalShadow=signalShadowTelemetry(sim);
+    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
     s.turn++;s.roundTurn++;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
     s.events.push({type:'ouroboros-fire',round:s.round+1,roundTurn:s.roundTurn,turn:s.turn,tileId,trigger});
-    return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalShadow,handIndex:-1,topologyLosses:[],ouroboros:true}
+    return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalRuntime,signalShadow:signalRuntime,handIndex:-1,topologyLosses:[],ouroboros:true}
   }
   function setTollArmed(value){
     if(!s.tollTileId||s.running||s.shopOpen||s.pendingCircuit||s.pendingModPlacement)return{ok:false,reason:'state'};
@@ -603,7 +603,12 @@ function createGame(E,opts={}){
 
   function signalOptionsForPieces(pieces,trigger){
     const doubleDoublePieceId=pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,doubleEchoPieceId=pieces.find(x=>x.tile.id===s.doubleEchoTileId)?.id||null,tripleDoublePieceId=pieces.find(x=>x.tile.id===s.tripleDoubleTileId)?.id||null,diodePieceId=pieces.find(x=>x.tile.id===s.diodeTileId)?.id||null,returnPieceId=pieces.find(x=>x.tile.id===s.returnTileId)?.id||null,mergePieceId=pieces.find(x=>x.tile.id===s.mergeTileId)?.id||null,hinge=hingeOptionForPieces(pieces);
-    return{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED}
+    const signalEnabled=canonicalGameMode(s.gameMode)==='eyes'&&cfg.CORE_SIGNAL_ENABLED!==false,signalCoreIdsByPiece=new Map();
+    if(signalEnabled){
+      const pieceIdByTileId=new Map(pieces.map(piece=>[piece.tile?.id,piece.id])),coreTelemetry=coreShadowTelemetry(pieces);
+      for(const core of coreTelemetry.cores||[])for(const tileId of core.connectedTileIds||[]){const pieceId=pieceIdByTileId.get(tileId);if(pieceId==null)continue;if(!signalCoreIdsByPiece.has(pieceId))signalCoreIdsByPiece.set(pieceId,[]);const ids=signalCoreIdsByPiece.get(pieceId);if(!ids.includes(core.id))ids.push(core.id)}
+    }
+    return{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED,signalEnabled,signalBase:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),signalMax:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),signalCoreIdsByPiece}
   }
 
   function topologyTelemetry(pieces=s.pieces){
@@ -623,39 +628,18 @@ function createGame(E,opts={}){
     for(const e of physicalOps)if(e.piece!=null)visits.set(e.piece,(visits.get(e.piece)||0)+1);
     const uniqueVisitedPieceCount=visits.size,reentryOperationCount=[...visits.values()].reduce((sum,n)=>sum+Math.max(0,n-1),0),revisitedPieceCount=[...visits.values()].filter(n=>n>1).length;
     const reboundCount=events.filter(e=>e.type==='rebound').length,zeroPortCount=events.filter(e=>e.type==='zero-port').length;
-    return{operationCount:ops.length,physicalOperationCount:physicalOps.length,tollRepeatCount:ops.filter(e=>e.tollRepeat).length,uniqueVisitedPieceCount,reentryOperationCount,revisitedPieceCount,revisitRatio:physicalOps.length?reentryOperationCount/physicalOps.length:0,visitedMachineFraction:pieces.length?uniqueVisitedPieceCount/pieces.length:0,retraceMoveCount:events.filter(e=>e.type==='move'&&e.retrace).length,reverseOperationCount:ops.filter(e=>e.reverse).length,reboundCount,zeroPortCount,zeroReturnCount:reboundCount+zeroPortCount,forkCount:events.filter(e=>e.type==='signal-fork').length,diodeBlockCount:events.filter(e=>e.type==='diode-block').length,returnCount:events.filter(e=>e.type==='return').length,mergeCount:events.filter(e=>e.type==='signal-merge').length,hingeMoveCount:events.filter(e=>e.type==='hinge-move').length,hingeBlockedCount:events.filter(e=>e.type==='hinge-blocked').length,powerActivationCount:ops.filter(e=>(e.powerMultiplier||1)>1).length,modActivationCount:ops.filter(e=>(e.modMultiplier||1)>1).length}
+    return{operationCount:ops.length,physicalOperationCount:physicalOps.length,tollRepeatCount:ops.filter(e=>e.tollRepeat).length,uniqueVisitedPieceCount,reentryOperationCount,revisitedPieceCount,revisitRatio:physicalOps.length?reentryOperationCount/physicalOps.length:0,visitedMachineFraction:pieces.length?uniqueVisitedPieceCount/pieces.length:0,retraceMoveCount:events.filter(e=>e.type==='move'&&e.retrace).length,reverseOperationCount:ops.filter(e=>e.reverse).length,reboundCount,zeroPortCount,zeroReturnCount:reboundCount+zeroPortCount,forkCount:events.filter(e=>e.type==='signal-fork').length,diodeBlockCount:events.filter(e=>e.type==='diode-block').length,returnCount:events.filter(e=>e.type==='return').length,mergeCount:events.filter(e=>e.type==='signal-merge').length,hingeMoveCount:events.filter(e=>e.type==='hinge-move').length,hingeBlockedCount:events.filter(e=>e.type==='hinge-blocked').length,powerActivationCount:ops.filter(e=>(e.powerMultiplier||1)>1).length,modActivationCount:ops.filter(e=>(e.modMultiplier||1)>1).length,coreActivationCount:events.filter(e=>e.type==='core-activate').length,signalDepleted:events.some(e=>e.type==='signal-depleted'),signalRemaining:sim?.signalRuntime?.remaining??null}
   }
 
   function signalShadowTelemetry(sim){
-    const base=Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max=Math.max(base,Number(cfg.CORE_SIGNAL_MAX)||base),events=sim?.events||[],forks=new Map(),branchEnds=[],splits=[],merges=[],globalVisited=new Set();
-    const makeBranch=(remaining=base,visited=new Set(),path='root')=>({remaining:Math.max(0,Math.min(max,Number(remaining)||0)),visited:new Set(visited||[]),path});
-    const cloneBranch=b=>makeBranch(b?.remaining,b?.visited,b?.path||'root');
-    let current=makeBranch(),minRemaining=current.remaining,chargedVisits=0,firstStop=null;
-    const splitBudget=(remaining,arms)=>{const safe=Math.max(0,Number(remaining)||0),baseShare=Math.floor(safe/arms),extra=safe%arms;return Array.from({length:arms},(_,i)=>baseShare+(i<extra?1:0))};
-    for(let index=0;index<events.length;index++){
-      const e=events[index];
-      if(e.type==='op'&&!e.tollRepeat&&e.piece!=null&&!current.visited.has(e.piece)){
-        globalVisited.add(e.piece);
-        if(current.remaining<=0&&!firstStop)firstStop={eventIndex:index,pieceId:e.piece,branch:current.path};
-        current.visited.add(e.piece);chargedVisits++;
-        if(current.remaining>0)current.remaining--;
-        minRemaining=Math.min(minRemaining,current.remaining)
-      }else if(e.type==='signal-fork'){
-        const arms=e.splitKind==='triple-double'?3:2,budgets=splitBudget(current.remaining,arms),ctx={fork:e.piece,parent:cloneBranch(current),budgets,results:[],splitKind:e.splitKind||'double'};
-        forks.set(e.piece,ctx);splits.push({pieceId:e.piece,branch:current.path,remaining:current.remaining,budgets:[...budgets],splitKind:ctx.splitKind})
-      }else if(e.type==='signal-start'){
-        const ctx=forks.get(e.fork);if(!ctx)continue;current=makeBranch(ctx.budgets[e.arm]??0,ctx.parent.visited,ctx.parent.path+`.${e.arm}`)
-      }else if(e.type==='signal-end'){
-        const ctx=forks.get(e.fork);if(!ctx)continue;ctx.results[e.arm]=cloneBranch(current);branchEnds.push({fork:e.fork,arm:e.arm,branch:current.path,remaining:current.remaining});current=cloneBranch(ctx.parent)
-      }else if(e.type==='signal-join'){
-        const ctx=forks.get(e.piece);if(ctx){current=cloneBranch(ctx.parent);forks.delete(e.piece)}
-      }else if(e.type==='signal-merge'){
-        const ctx=forks.get(e.fork);if(!ctx)continue;const results=ctx.results.filter(Boolean),remaining=results.length?Math.max(...results.map(r=>r.remaining)):ctx.parent.remaining,visited=new Set(ctx.parent.visited);
-        for(const result of results)for(const pieceId of result.visited)visited.add(pieceId);
-        current=makeBranch(remaining,visited,ctx.parent.path+'.merge');merges.push({fork:e.fork,pieceId:e.piece,remaining,policy:'max-remaining-shadow'});forks.delete(e.fork)
-      }
-    }
-    return{enabled:canonicalGameMode(s.gameMode)==='eyes'&&cfg.CORE_SIGNAL_SHADOW!==false,interaction:'shadow',baseSignal:base,maxSignal:max,tileFirstVisitCost:1,retraceCost:0,chargedVisits,uniqueVisitedPieceCount:globalVisited.size,minRemaining,wouldStop:!!firstStop,firstStop,splits,branchEnds,merges}
+    const base=Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max=Math.max(base,Number(cfg.CORE_SIGNAL_MAX)||base),enabled=canonicalGameMode(s.gameMode)==='eyes'&&cfg.CORE_SIGNAL_ENABLED!==false,events=sim?.events||[];
+    const ops=events.filter(e=>e.type==='op'&&!e.tollRepeat),activations=events.filter(e=>e.type==='core-activate').map(e=>({coreId:e.coreId,pieceId:e.piece,order:e.order,role:e.role||null,lead:!!e.lead,last:!!e.last,beforeSignal:e.beforeSignal,afterSignal:e.afterSignal}));
+    const depleted=events.find(e=>e.type==='signal-depleted')||null,remaining=Number.isFinite(sim?.signalRuntime?.remaining)?sim.signalRuntime.remaining:(ops.length&&Number.isFinite(ops.at(-1)?.signalAfter)?ops.at(-1).signalAfter:base);
+    const levels=[base,...ops.map(e=>e.signalAfter).filter(Number.isFinite),...activations.flatMap(e=>[e.beforeSignal,e.afterSignal]).filter(Number.isFinite),depleted?.remaining].filter(Number.isFinite);
+    const splits=events.filter(e=>e.type==='signal-fork').map(e=>({pieceId:e.piece,splitKind:e.splitKind||'double',remaining:e.signalRemaining,budgets:Array.isArray(e.signalBudgets)?[...e.signalBudgets]:[]}));
+    const branchEnds=events.filter(e=>e.type==='signal-end').map(e=>({fork:e.fork,arm:e.arm,remaining:e.signalRemaining}));
+    const merges=events.filter(e=>e.type==='signal-merge').map(e=>({fork:e.fork,pieceId:e.piece,remaining:e.signalRemaining,policy:'max-remaining-runtime'}));
+    return{enabled,interaction:enabled?'runtime':'off',baseSignal:base,maxSignal:max,tileFirstVisitCost:1,retraceCost:0,chargedVisits:ops.filter(e=>e.signalCost===1).length,uniqueVisitedPieceCount:new Set(ops.map(e=>e.piece)).size,minRemaining:levels.length?Math.min(...levels):base,remaining,wouldStop:!!depleted,stopped:!!depleted,firstStop:depleted?{pieceId:depleted.piece,remaining:depleted.remaining}:null,activatedCoreIds:activations.map(e=>e.coreId),activations,splits,branchEnds,merges}
   }
 
   function coreShadowTelemetry(pieces=s.pieces,cores=s.cores){
@@ -753,7 +737,7 @@ function createGame(E,opts={}){
     s.pieces.push(p);s.placedTileIds.push(tile.id);
     const topologyLosses=removeTopologyMods(topologyBreaks,tile.id);
     const trigger=tile.a+tile.b;
-    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalShadow=signalShadowTelemetry(sim);
+    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
     if(isZero(tile))s.roundZero.placed++;
     const generationBefore=s.setGeneration||1;s.hand[i]=drawOne();
     if((s.setGeneration||1)>generationBefore){
@@ -762,7 +746,7 @@ function createGame(E,opts={}){
     }
     s.turn++;s.roundTurn++;s.undoFrame=undoFrame;
     if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
-    return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalShadow,handIndex:i,topologyLosses}
+    return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalRuntime,signalShadow:signalRuntime,handIndex:i,topologyLosses}
   }
 
   function upgradeIncomeFor(sim){
@@ -825,9 +809,9 @@ function createGame(E,opts={}){
     const{tile,p,trigger,sim}=ctx,resonance=moveResonance(sim,trigger);s.score=resonance.output;s.best=Math.max(s.best,s.score);s.cleared=s.score>=target();
     const st=(sim.events||[]).find(e=>e.type==='start'),rs=(sim.events||[]).filter(e=>e.type==='route'),income=upgradeIncomeFor(sim),mintIncome=mintIncomeFor(sim,resonance.output),tollSpend=tollSpendFor(sim),brokerPrepared=brokerActivatedFor(sim)&&!s.brokerDiscountReady;
     const activatedPieceIds=[...new Set((sim.events||[]).filter(e=>e.type==='op').map(e=>e.piece))],activatedTileIds=[...new Set([tile.id,...activatedPieceIds.map(id=>s.pieces.find(p=>p.id===id)?.tile?.id).filter(Boolean)])];
-    const zeroPortEvents=(sim.events||[]).filter(e=>e.type==='zero-port'),echoEvent=(sim.events||[]).find(e=>e.type==='double-echo-result')||null;
+    const zeroPortEvents=(sim.events||[]).filter(e=>e.type==='zero-port'),echoEvent=(sim.events||[]).find(e=>e.type==='double-echo-result')||null,signalRuntime=deepClone(ctx.signalRuntime||ctx.signalShadow||signalShadowTelemetry(sim)),coreActivations=(signalRuntime.activations||[]).map(a=>({...a}));
     const zeroPorts=zeroPortEvents.map(e=>({fromTileId:s.pieces.find(q=>q.id===e.piece)?.tile?.id||null,toTileId:s.pieces.find(q=>q.id===e.toPieceId)?.tile?.id||null}));
-    s.events.push({turn:s.turn,round:s.round+1,roundTurn:s.roundTurn,mode:ctx.ouroboros?'ouroboros':'placement',signalShadow:deepClone(ctx.signalShadow||signalShadowTelemetry(sim)),coreShadow:deepClone(coreShadowTelemetry()),tile:cloneTile(tile),activatedTileIds,topologyLosses:deepClone(ctx.topologyLosses||[]),placement:{x:p.cubes[0].x,y:p.cubes[0].y,z:0,rr:p.rr},dir:E.ARROW[p.rr],target:target(),trigger,baseTrigger:trigger,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,output:s.score,upgradeCoins:income.total,mintCoins:mintIncome.total,tollCoins:tollSpend.total,brokerPrepared,starCoins:income.total,longRunActivated:income.longRunActive,longRunCapped:income.longRunCapped,systemStrain:s.systemStrain||0,uniquePieces:income.uniquePieces,zeroPorts,echo:echoEvent?{tileId:s.doubleEchoTileId,mainOutput:echoEvent.mainOutput,echoOutput:echoEvent.echoOutput,finalOutput:echoEvent.finalOutput,rebounds:echoEvent.echoRebounds||0}:null,rebounds:sim.rebounds||0,start:st?.key||'-',flipped:!!st?.flipped,reason:sim.reason,ops:(sim.events||[]).filter(e=>e.type==='op').map(e=>{const mod=e.modMultiplier>1?` MOD×${e.modMultiplier}`:'';return e.op==='multiply'?`${e.piece}:×${e.factor}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`:`${e.piece}:+${e.add}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`}).join(','),routes:rs.map(e=>`${e.piece}:${e.entryHalf}>${e.toPieceId}:${e.toHalf}`).join(';'),search:sim.search?`${sim.search.starts}/${sim.search.leaves}/${sim.search.expanded}${sim.search.truncated?'!':''}`:'-',clear:s.cleared});
+    s.events.push({turn:s.turn,round:s.round+1,roundTurn:s.roundTurn,mode:ctx.ouroboros?'ouroboros':'placement',signal:signalRuntime,signalShadow:deepClone(signalRuntime),coreActivations,coreShadow:deepClone(coreShadowTelemetry()),tile:cloneTile(tile),activatedTileIds,topologyLosses:deepClone(ctx.topologyLosses||[]),placement:{x:p.cubes[0].x,y:p.cubes[0].y,z:0,rr:p.rr},dir:E.ARROW[p.rr],target:target(),trigger,baseTrigger:trigger,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,output:s.score,upgradeCoins:income.total,mintCoins:mintIncome.total,tollCoins:tollSpend.total,brokerPrepared,starCoins:income.total,longRunActivated:income.longRunActive,longRunCapped:income.longRunCapped,systemStrain:s.systemStrain||0,uniquePieces:income.uniquePieces,zeroPorts,echo:echoEvent?{tileId:s.doubleEchoTileId,mainOutput:echoEvent.mainOutput,echoOutput:echoEvent.echoOutput,finalOutput:echoEvent.finalOutput,rebounds:echoEvent.echoRebounds||0}:null,rebounds:sim.rebounds||0,start:st?.key||'-',flipped:!!st?.flipped,reason:sim.reason,ops:(sim.events||[]).filter(e=>e.type==='op').map(e=>{const mod=e.modMultiplier>1?` MOD×${e.modMultiplier}`:'';return e.op==='multiply'?`${e.piece}:×${e.factor}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`:`${e.piece}:+${e.add}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`}).join(','),routes:rs.map(e=>`${e.piece}:${e.entryHalf}>${e.toPieceId}:${e.toHalf}`).join(';'),search:sim.search?`${sim.search.starts}/${sim.search.leaves}/${sim.search.expanded}${sim.search.truncated?'!':''}`:'-',clear:s.cleared});
     const tollCoins=applyTollSpend(tollSpend),brokerReady=prepareBrokerDiscount(sim),upgradeCoins=awardUpgradeIncome(income),mintCoins=awardMintIncome(mintIncome);
     const forks=(sim.events||[]).filter(e=>e.type==='signal-fork');
     if(forks.length)s.events.push({type:'signal-resolution',round:s.round+1,move:s.turn,baseOutput:sim.output,splitCount:forks.length,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,events:sim.events.map(e=>({...e,tileId:s.pieces.find(q=>q.id===e.piece)?.tile.id||null}))});
@@ -1231,11 +1215,11 @@ function createGame(E,opts={}){
 
   function snapshot(){
     const size=stageSize(),stage=stageIndex(),bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},tileMods=allTileModAssignments(),coreShadow=coreShadowTelemetry();
-    const tileById=id=>id?cloneTile(s.set.find(t=>t.id===id)):null,lastSignalShadow=[...(s.events||[])].reverse().find(e=>e?.signalShadow)?.signalShadow||null;
+    const tileById=id=>id?cloneTile(s.set.find(t=>t.id===id)):null,lastSignalEvent=[...(s.events||[])].reverse().find(e=>e?.signal||e?.signalShadow)||null,lastSignal=lastSignalEvent?.signal||lastSignalEvent?.signalShadow||null;
     return{
       circuits:{ranks:{...s.circuitRanks},signatures:[...s.circuitSignatures],pending:deepClone(s.pendingCircuit),tileLimit:circuitTileLimit()},
       cores:{mode:s.gameMode==='eyes'?'eyes':'none',interaction:s.gameMode==='eyes'?'physical':'none',items:deepClone(s.cores||[]),telemetry:deepClone(coreShadow)},
-      signal:{shadowEnabled:s.gameMode==='eyes'&&cfg.CORE_SIGNAL_SHADOW!==false,base:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),last:deepClone(lastSignalShadow)},
+      signal:{enabled:s.gameMode==='eyes'&&cfg.CORE_SIGNAL_ENABLED!==false,shadowEnabled:false,interaction:s.gameMode==='eyes'?'runtime':'off',base:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),last:deepClone(lastSignal)},
       powerSets:{generation:s.setGeneration||1,powerMultiplier:generationPower(s.setGeneration||1),maxGeneration:maxSetGeneration()},
       schema:'iterion.run.v9',gameVersion:cfg.VERSION,engineVersion:cfg.ENGINE_VERSION,gameMode:s.gameMode||'classic',runId:s.runId,seed:s.seed,startedAt:s.startedAt,savedAt:new Date().toISOString(),
       status:status(),failureReason:s.failureReason,recovery:recoveryOptions(),
@@ -1271,7 +1255,7 @@ function createGame(E,opts={}){
     lines.push(`Recovery: recoverable=${x.recovery.recoverable?'yes':'no'} · undo=${x.recovery.undo?'yes':'no'} · ownedReroll=${x.recovery.ownedReroll?'yes':'no'} · buyReroll=${x.recovery.toolReroll?`yes@${x.recovery.prices.reroll}c`:'no'} · ownedMove=${x.recovery.ownedMove?'yes':'no'} · buyMove=${x.recovery.toolMove?`yes@${x.recovery.prices.move}c`:'no'}`);
     lines.push(`Circuits: ${Object.entries(x.circuits.ranks).map(([id,rank])=>`${id}:C${rank}`).join(',')||'-'} · slots=${Object.keys(x.circuits.ranks).length}/${x.circuits.tileLimit} · discovered=${x.circuits.signatures.length} · pending=${x.circuits.pending?.signature||'-'}`);
     if(x.cores.mode==='eyes')lines.push(`Cores: THE EYES · physical · ${x.cores.items.map(core=>`${core.id}:${String(core.archetype||'-').toUpperCase()} I ports=${(core.ports||[]).join('')||'-'} @${core.x},${core.y}`).join(' | ')} · connected=${x.cores.telemetry.connectedCoreCount}/${x.cores.telemetry.coreCount} · overlaps=${x.cores.telemetry.overlapTileIds.join(',')||'-'}`);
-    if(x.signal.shadowEnabled)lines.push(`Signal Shadow: ${x.signal.base}/${x.signal.max}${x.signal.last?` · charged=${x.signal.last.chargedVisits} · min=${x.signal.last.minRemaining} · wouldStop=${x.signal.last.wouldStop?'yes':'no'}${x.signal.last.firstStop?` at=${x.signal.last.firstStop.pieceId}`:''}`:' · no moves yet'}`);
+    if(x.signal.enabled)lines.push(`Signal: ${x.signal.base}/${x.signal.max}${x.signal.last?` · charged=${x.signal.last.chargedVisits} · remaining=${x.signal.last.remaining} · min=${x.signal.last.minRemaining} · cores=${x.signal.last.activatedCoreIds?.join('>')||'-'} · stopped=${x.signal.last.stopped?'yes':'no'}${x.signal.last.firstStop?` at=${x.signal.last.firstStop.pieceId}`:''}`:' · no moves yet'}`);
     for(const v of x.turns){
       if(v.type==='signal-resolution'){const trace=Array.isArray(v.events)?JSON.stringify(v.events):v.traceCompacted?'COMPACTED_AFTER_RESTORE':'-';lines.push(`T${v.move} SIGNAL TREE splits=${v.splitCount} base=${v.baseOutput} selection=${v.selectionOutput??v.baseOutput} trace=${trace}`);continue}
       if(v.type==='power-set'){lines.push(`R${v.round} POWER SET ${v.generation} UNLOCKED size=${v.size} power=x${v.powerMultiplier} source=${v.source}`);continue}

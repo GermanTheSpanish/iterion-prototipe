@@ -40,7 +40,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   expect(Math.min(...trace)).toBeLessThan(-3,'a far release must carry the incoming tile slightly through centre');
   expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
   await expect(page.locator('#modeName')).toHaveText('THE EYES',{timeout:900});
-  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal infrastructure');
+  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal 24');
   await expect(page.locator('#startRun')).toBeEnabled();
 
   await page.evaluate(()=>window.__monoidModes.select(6));
@@ -105,7 +105,9 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.cores).toHaveLength(2);
   expect(state.snapshot.cores.interaction).toBe('physical');
   expect(state.snapshot.cores.telemetry.overlapTileIds).toEqual([]);
-  expect(state.snapshot.signal.shadowEnabled).toBe(true);
+  expect(state.snapshot.signal.enabled).toBe(true);
+  expect(state.snapshot.signal.shadowEnabled).toBe(false);
+  expect(state.snapshot.signal.interaction).toBe('runtime');
   expect(state.snapshot.signal.base).toBe(24);
   expect(state.snapshot.signal.max).toBe(24);
   const placementSafety=await page.evaluate(()=>{

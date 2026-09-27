@@ -12,7 +12,7 @@ function replay(modId,{coins=0,circuitRank=0,upgrade=0,tollArmed=false}={}){
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s}
 
-assert.equal(D.VERSION,'0.50.0');assert.equal(D.ENGINE_VERSION,'0.18.0-mutation-v2');
+assert.equal(D.VERSION,'0.51.0');assert.equal(D.ENGINE_VERSION,'0.19.0-core-signal-v1');
 assert.equal(M.get('resonator'),null);assert.equal(M.get('forge'),null);
 assert.deepEqual(['bank','toll'].map(id=>M.get(id).collectionCode),['BK','TL']);
 
@@ -41,4 +41,4 @@ assert.deepEqual(['bank','toll'].map(id=>M.get(id).collectionCode),['BK','TL']);
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
-console.log('v0.50.0 Economy replacement regressions passed');
+console.log('v0.51.0 Economy replacement regressions passed');

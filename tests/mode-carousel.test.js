@@ -7,7 +7,7 @@ assert.strictEqual(C.MODES.length,8);
 assert.deepStrictEqual(C.MODES.filter(m=>m.available).map(m=>m.id),['classic','eyes']);
 assert.strictEqual(C.MODES[0].description,'Classic → Endless → Infinite → Ouroboros');
 assert.strictEqual(C.MODES[1].name,'THE EYES');
-assert.strictEqual(C.MODES[1].description,'1|1 · Two Cores · Signal infrastructure');
+assert.strictEqual(C.MODES[1].description,'1|1 · Two Cores · Signal 24');
 assert.strictEqual(C.MODES.slice(2).length,6);
 assert(C.MODES.slice(2).every(m=>m.available===false&&m.description==='Not available'));
 assert.strictEqual(C.clampIndex(-3),0);
@@ -49,6 +49,6 @@ assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circul
 assert.match(src,/startRun\.disabled=!mode\.available/);
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20260927\.6/);
+assert.match(gesture,/mode-carousel\.js\?v=20260927\.7/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');

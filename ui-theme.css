@@ -403,4 +403,9 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .corePortU,.corePortD{left:35%;width:30%;height:2px}.corePortL,.corePortR{top:35%;height:30%;width:2px}
 .corePort.isConnected.corePortU,.corePort.isConnected.corePortD{height:3px}.corePort.isConnected.corePortL,.corePort.isConnected.corePortR{width:3px}
 .corePortU{top:-2px}.corePortD{bottom:-2px}.corePortL{left:-2px}.corePortR{right:-2px}
+.coreNode.coreActivated{z-index:5;outline:2px solid #151515;outline-offset:2px;animation:coreActivationPulse 760ms ease-out both}
+.coreNode.coreActivated::after{transform:translate(-50%,-50%) scale(1.45)}
+.coreActivationFx{font-size:10px!important;font-weight:800;letter-spacing:.04em;background:#fff;padding:3px 5px;border:1px solid #151515}
+.signalDepletedFx{font-size:11px!important;font-weight:800;letter-spacing:.05em;background:#151515;color:#fff;padding:3px 5px}
+@keyframes coreActivationPulse{0%{transform:scale(.9)}38%{transform:scale(1.08)}100%{transform:scale(1)}}
 body.ouroborosPalette .coreNode{opacity:.7}
