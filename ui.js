@@ -1,8 +1,8 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1',ACTIVE_RUN_KEY='iterion.activeRun.v1',LEGACY_RUN_KEY='iterion.latestRun.v9';
-  const normalizeMode=()=> 'classic';
-  const gameOptions=()=>({GAME_MODE:'classic'});
+  const normalizeMode=mode=>mode==='eyes'?'eyes':'classic';
+  const gameOptions=mode=>({GAME_MODE:normalizeMode(mode)});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
@@ -187,6 +187,12 @@
   }
   function renderBoard(){
     const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
+    for(const core of s.cores||[]){
+      const el=document.createElement('div');el.className='coreNode coreShadow';el.dataset.coreId=core.id;el.dataset.coreType=core.archetype||'';el.setAttribute('aria-hidden','true');
+      Object.assign(el.style,{left:px(core.x),top:py(core.y),width:px(core.size||2),height:py(core.size||2)});
+      for(const side of core.ports||[]){const port=document.createElement('i');port.className=`corePort corePort${side}`;el.appendChild(port)}
+      const level=document.createElement('b');level.textContent=String(core.level||1);el.appendChild(level);board.appendChild(el)
+    }
     const topologyBreakByTile=new Map((drag.topologyBreaks||[]).map(loss=>[loss.tileId,loss]));
     s.pieces.forEach(p=>{
       const el=pieceEl(p),circuitPending=s.pendingCircuit,modPending=s.pendingModPlacement,pending=circuitPending||modPending,eligible=!!pending?.eligibleTileIds?.includes(p.tile.id),power=powerMultiplier(p.tile),modded=tileView(p.tile).modifiers.length>0,topologyBreak=topologyBreakByTile.get(p.tile.id);
