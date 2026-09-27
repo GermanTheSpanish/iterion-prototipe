@@ -22,7 +22,7 @@
   const SETTLE_MS=SETTLE_APPROACH_MS+SETTLE_LAND_MS;
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
-    Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite',available:true,kind:'classic'}),
+    Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite → Ouroboros',available:true,kind:'classic'}),
     ...Array.from({length:7},(_,i)=>Object.freeze({id:`locked-${i+1}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));

@@ -37,7 +37,7 @@ test('entry card uses keyboard, has no click-through and starts the real opening
 
 test('game mode carousel keeps its frame and exposes Classic as the only playable progression',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();
-  await expect(page.locator('#modeCarouselFrame')).toBeVisible();await expect(page.locator('.modeSlide')).toHaveCount(8);await expect(page.locator('#modeName')).toHaveText('CLASSIC');await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
+  await expect(page.locator('#modeCarouselFrame')).toBeVisible();await expect(page.locator('.modeSlide')).toHaveCount(8);await expect(page.locator('#modeName')).toHaveText('CLASSIC');await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
   const frame=await page.locator('#modeCarouselFrame').boundingBox(),viewport=await page.locator('#modeCarouselViewport').boundingBox();expect(frame).toBeTruthy();expect(viewport).toBeTruthy();
   const neighbor=await page.locator('.modeSlide[data-index="1"]').boundingBox();expect(neighbor).toBeTruthy();expect(neighbor.x).toBeLessThan(frame.x+frame.width);expect(neighbor.x+neighbor.width).toBeGreaterThan(frame.x+frame.width);
   await page.mouse.move(viewport.x+viewport.width*.70,viewport.y+viewport.height*.5);await page.mouse.down();await page.mouse.move(viewport.x+viewport.width*.20,viewport.y+viewport.height*.5);await page.mouse.up();
@@ -137,7 +137,7 @@ test('critical raised title and screen isolation survive a missing presentation 
   const centerY=title.y+title.height/2;expect(centerY).toBeGreaterThan(844*.40);expect(centerY).toBeLessThan(844*.48);
   const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
   expect(assets.length).toBeGreaterThan(1);
-  expect(assets.every(url=>url.includes('?v=entry-0311')||url.endsWith('?v=20260927.2'))).toBe(true);
+  expect(assets.every(url=>url.includes('?v=entry-0311')||url.endsWith('?v=20260927.3'))).toBe(true);
   await page.mouse.click(12,12);
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();

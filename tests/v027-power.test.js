@@ -49,21 +49,23 @@ const stateEngine={...E,hasLegalMove:()=>true};
 function stateGame(){return G.createGame(stateEngine,{seed:2701,TARGETS:Array(15).fill(1e12),FIRST_TILE_MUST_BE_DOUBLE:false})}
 function consumeSupply(g){const s=g.state();s.placedTileIds=s.set.map(t=>t.id);s.hand=Array(5).fill(null);s.reserve=[];s.cleared=false;s.roundTurn=0;g.assessContinuation()}
 function uniqueLocations(s){const ids=[...s.placedTileIds,...s.hand.filter(Boolean).map(t=>t.id),...s.reserve.map(t=>t.id)];assert.equal(new Set(ids).size,ids.length);assert.equal(ids.length,s.set.length);assert.equal(new Set(s.set.map(t=>t.id)).size,s.set.length)}
-check('complete sets I through VII, capped POWER, unique IDs and deterministic draws',()=>{
-  const a=stateGame(),b=stateGame();assert.equal(a.state().set.length,28);uniqueLocations(a.state());
-  for(let generation=2;generation<=7;generation++){
-    consumeSupply(a);consumeSupply(b);const s=a.state(),tiles=s.set.filter(t=>t.generation===generation);assert.equal(tiles.length,28);assert.equal(new Set(tiles.map(t=>`${t.a}|${t.b}`)).size,28);assert(tiles.every(t=>t.powerMultiplier===Math.min(4,generation)));assert.equal(s.setGeneration,generation);assert.equal(s.failureReason,null);assert.equal(s.round,0);assert(!s.endlessMode);uniqueLocations(s);
+check('Base, Blue x2 and Gold x3 are the complete deck progression before Ouroboros',()=>{
+  const a=stateGame(),b=stateGame();assert.equal(a.state().set.length,28);assert.equal(a.config.MAX_SET_GENERATION,3);uniqueLocations(a.state());
+  for(let generation=2;generation<=3;generation++){
+    consumeSupply(a);consumeSupply(b);const s=a.state(),tiles=s.set.filter(t=>t.generation===generation);assert.equal(tiles.length,28);assert.equal(new Set(tiles.map(t=>`${t.a}|${t.b}`)).size,28);assert(tiles.every(t=>t.powerMultiplier===generation));assert.equal(s.setGeneration,generation);assert.equal(s.failureReason,null);assert.equal(s.ouroborosMode,false);uniqueLocations(s);
     assert.deepEqual(s.hand,b.state().hand);assert.deepEqual(s.reserve,b.state().reserve);assert.equal(s.rngState,b.state().rngState);
-    const events=s.events.filter(e=>e.type==='power-set');assert.equal(events.length,generation-1);assert.equal(events.at(-1).powerMultiplier,Math.min(4,generation));
-    assert.equal(a.snapshot().powerSets.powerMultiplier,Math.min(4,generation));assert.match(a.debugText(),new RegExp(`POWER SET ${generation} UNLOCKED size=28 power=x${Math.min(4,generation)}`));
+    const events=s.events.filter(e=>e.type==='power-set');assert.equal(events.length,generation-1);assert.equal(events.at(-1).powerMultiplier,generation);
+    assert.equal(a.snapshot().powerSets.powerMultiplier,generation);assert.match(a.debugText(),new RegExp(`POWER SET ${generation} UNLOCKED size=28 power=x${generation}`));
   }
+  consumeSupply(a);consumeSupply(b);assert.equal(a.state().setGeneration,3);assert.equal(a.state().set.filter(t=>t.generation===4).length,0);assert.equal(a.state().ouroborosMode,true);assert.equal(a.state().failureReason,null);assert.equal(a.snapshot().endless.phase,'ouroboros');assert.match(a.debugText(),/OUROBOROS START/);uniqueLocations(a.state())
 });
-check('purchases claim the next generation, retain identity and do not delay exhaustion',()=>{
-  const g=stateGame();for(let generation=1;generation<=5;generation++){
-    const s=g.state();s.coins=100;s.cleared=false;assert(g.openShop());const buy=g.buyShopRandomTile();assert(buy.ok);g.closeShop();assert.equal(buy.tile.generation,generation+1);assert.equal(buy.tile.powerMultiplier,Math.min(4,generation+1));
+check('purchases can claim Blue and Gold but never create a fourth deck',()=>{
+  const g=stateGame();for(let generation=1;generation<=2;generation++){
+    const s=g.state();s.coins=100;s.cleared=false;assert(g.openShop());const buy=g.buyShopRandomTile();assert(buy.ok);g.closeShop();assert.equal(buy.tile.generation,generation+1);assert.equal(buy.tile.powerMultiplier,generation+1);
     const before=clone(buy.tile),available=g.availableTileCount();assert.equal(available,s.set.filter(t=>(t.generation||1)<=generation&&!s.placedTileIds.includes(t.id)).length);
     consumeSupply(g);assert.equal(g.state().setGeneration,generation+1);assert.deepEqual(g.state().set.find(t=>t.id===buy.tile.id),before);assert.equal(g.state().set.filter(t=>t.id===buy.tile.id).length,1);assert.equal(g.state().set.filter(t=>t.generation===generation+1).length,28);
   }
+  const s=g.state();s.coins=100;s.cleared=false;assert.equal(g.shopPurchaseAvailability().hasAny,false);assert.equal(g.openShop(),false);consumeSupply(g);assert.equal(s.ouroborosMode,true);assert.equal(s.setGeneration,3);assert.equal(s.set.some(t=>t.generation===4),false)
 });
 function lastTileGame(){const g=G.createGame(E,{seed:2707,TARGETS:Array(15).fill(1e12)}),s=g.state(),root=s.set.find(t=>t.id==='d2-2'),last=s.set.find(t=>t.id==='d2-4');s.set=[root,last];s.pieces=[E.pieceFrom(root,6,8,0,0,1)];s.pieces[0].tile={...root};s.placedTileIds=[root.id];s.hand=[last,null,null,null,null];s.reserve=[];s.idc=1;s.turn=1;s.roundTurn=1;s.consumables.undo=2;s.coins=100;return g}
 check('Undo restores exact supply, generation, RNG, coordinates and repeatable unlock',()=>{

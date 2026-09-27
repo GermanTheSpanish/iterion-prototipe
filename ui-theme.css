@@ -151,7 +151,7 @@ body.endlessPalette button:focus-visible{outline-color:#f4f4ee}
 body.endlessPalette .board{background:#d6d3cb;box-shadow:inset 0 0 0 1px #b7b3aa}
 body.endlessPalette .board .piece:not(.circuitTile):not(.powerTile),body.endlessPalette .hand .domino:not(.circuitTile):not(.powerTile){background:#c8c4b9;color:#20201e;border-color:#34332f}
 body.endlessPalette .powerTile.power2{--power-pale:#b4c4cb}
-body.endlessPalette .powerTile.power3{--power-pale:#c1b4c6}
+body.endlessPalette .powerTile.power3{--power-pale:#c5b780}
 body.endlessPalette .powerTile.power4{--power-pale:#c5b780}
 body.endlessPalette .hand .domino.circuitTile:not(.powerTile){background:#141414}
 body.endlessPalette .hand .domino.powerTile.circuitTile{background:var(--power-circuit)}
@@ -214,7 +214,7 @@ body.endlessPalette .hand .domino.powerTile.circuitTile{background:var(--power-c
 .shopFoot{margin:12px 0 0;line-height:1.5;font-size:12px!important}
 
 /* POWER is a material; Circuit identity overrides its body, never its mark. */
-.powerTile.power2{--power-body:#243d55;--power-circuit:#172a38}.powerTile.power3{--power-body:#45304f;--power-circuit:#2c2033}.powerTile.power4{--power-body:#66551f;--power-circuit:#383017}
+.powerTile.power2{--power-body:#243d55;--power-circuit:#172a38}.powerTile.power3{--power-body:#66551f;--power-circuit:#383017}.powerTile.power4{--power-body:#66551f;--power-circuit:#383017}
 .domino.powerTile,.piece.powerTile{background:var(--power-body);border-color:#191c20;color:#fff8e8}
 .powerTile .pip,.powerTile .spip{background:#fff8e8}
 .powerTile .half+.half,.piece.powerTile.h .cube+.cube,.piece.powerTile.v .cube+.cube{border-color:#bdb7ab}
@@ -381,3 +381,13 @@ body.monoidCommerceActive .commerceModal .marketTile{transform:scale(.82);transf
 .piece.topologyBreakWarning{outline:2px dashed currentColor;outline-offset:2px;z-index:8}
 .topologyBreakMark{position:absolute;left:50%;top:-17px;transform:translateX(-50%);z-index:12;white-space:nowrap;padding:2px 4px;border:1px solid currentColor;border-radius:2px;background:var(--paper,#fbfaf6);color:var(--ink,#151515);font-size:8px;font-style:normal;font-weight:800;letter-spacing:.05em;line-height:1.1;pointer-events:none}
 .piece.dragCandidate.breaksTopology{outline:2px dashed currentColor;outline-offset:2px}
+
+/* Ouroboros: board tiles become editable; the Hand rail becomes REBUILD/FIRE controls. */
+body.ouroborosPalette .piece{cursor:grab}
+body.ouroborosPalette .piece.ouroborosMoving{opacity:.22}
+body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;outline-offset:2px;z-index:18}
+.ouroborosSelectionSlot{display:flex;align-items:center;justify-content:center}
+.ouroborosSelectionSlot .domino{pointer-events:none}
+.ouroborosAction{width:100%;min-height:48px;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--ink);font:800 9px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;letter-spacing:.08em;padding:0}
+.ouroborosAction:disabled{opacity:.35}
+.ouroborosFire{background:var(--ink);color:var(--paper)}

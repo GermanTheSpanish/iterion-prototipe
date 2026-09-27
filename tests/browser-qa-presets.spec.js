@@ -36,7 +36,7 @@ async function assertLateGameSurface(page,id,{expectZp=2,minPieces=19,minPower=5
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260927.2');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20260927.3');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -68,11 +68,11 @@ test('Endless R16 QA link keeps the base board and POWER x3 inside Classic progr
   const normalPower=page.locator('#board .power3:not(.circuitTile)').first();
   const circuitPower=page.locator('#board .power3.circuitTile').first();
   if(await normalPower.count()){
-    expect(await normalPower.evaluate(el=>getComputedStyle(el,'::before').backgroundColor)).toBe('rgb(193, 180, 198)');
+    expect(await normalPower.evaluate(el=>getComputedStyle(el,'::before').backgroundColor)).toBe('rgb(197, 183, 128)');
     expect(await normalPower.locator('.pip').first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(23, 23, 23)')
   }
   if(await circuitPower.count()){
-    expect(await circuitPower.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(44, 32, 51)')
+    expect(await circuitPower.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(56, 48, 23)')
   }
   await page.screenshot({path:testInfo.outputPath('qa-endless-r16.png'),fullPage:true});
   await assertRealSaveSurvived(page)

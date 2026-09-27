@@ -8,7 +8,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await page.locator('#titleCard').click();
   await expect(page.locator('#modeCarouselFrame')).toBeVisible();
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
-  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
+  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
 
   const viewport=await page.locator('#modeCarouselViewport').boundingBox();
   const before=await page.locator('#modeClassic').boundingBox();
@@ -62,7 +62,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await page.mouse.move(lx,ly);await page.mouse.down();await page.mouse.move(lx-78,ly);await page.mouse.up();
   for(const wait of [25,45,55,65,75,85]){await page.waitForTimeout(wait);const box=await farTile.boundingBox();expect(box).toBeTruthy();expect(intersects(box,seamViewport)).toBe(false)}
   await expect(page.locator('#modeName')).toHaveText('CLASSIC',{timeout:1200});
-  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
+  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
 });
 
 test('Classic is the single playable mode and owns the full progression',async({page})=>{
@@ -73,7 +73,7 @@ test('Classic is the single playable mode and owns the full progression',async({
 
   expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic']);
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
-  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
+  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
   await page.locator('#startRun').click();
   expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('classic');
   expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel??null)).toBeNull();
