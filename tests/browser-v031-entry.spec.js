@@ -41,7 +41,7 @@ test('game mode carousel keeps its frame and exposes The Eyes beside Classic',as
   const frame=await page.locator('#modeCarouselFrame').boundingBox(),viewport=await page.locator('#modeCarouselViewport').boundingBox();expect(frame).toBeTruthy();expect(viewport).toBeTruthy();
   const neighbor=await page.locator('.modeSlide[data-index="1"]').boundingBox();expect(neighbor).toBeTruthy();expect(neighbor.x).toBeLessThan(frame.x+frame.width);expect(neighbor.x+neighbor.width).toBeGreaterThan(frame.x+frame.width);
   await page.mouse.move(viewport.x+viewport.width*.70,viewport.y+viewport.height*.5);await page.mouse.down();await page.mouse.move(viewport.x+viewport.width*.20,viewport.y+viewport.height*.5);await page.mouse.up();
-  await expect(page.locator('#modeName')).toHaveText('THE EYES');await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal infrastructure');await expect(page.locator('#startRun')).toBeEnabled();
+  await expect(page.locator('#modeName')).toHaveText('THE EYES');await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal 24');await expect(page.locator('#startRun')).toBeEnabled();
   await page.evaluate(()=>window.__monoidModes.select(0));await expect(page.locator('#startRun')).toBeEnabled();await page.locator('#startRun').click();await expect(page.locator('#board')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('classic');expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('classic');
 });
 
