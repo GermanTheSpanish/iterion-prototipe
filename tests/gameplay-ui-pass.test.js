@@ -3,11 +3,15 @@ const path=require('path');
 const runtime=fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'utf8');
 const v2=fs.readFileSync(path.join(__dirname,'..','ui-gameplay-v2.css'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
+const presentation=fs.readFileSync(path.join(__dirname,'..','presentation.js'),'utf8');
 
 assert.strictEqual(fs.existsSync(path.join(__dirname,'..','ui-phase-a.js')),false,'Phase A must remain consolidated into the runtime UI layer');
 assert(runtime.includes('function installPhaseA()'),'runtime UI layer must own the consolidated Phase A installer');
 assert(ui.includes('V.hudViewModel('),'gameplay HUD must consume the presentation view model');
 assert(ui.includes('V.tileViewModel('),'tile rendering must consume the presentation view model');
+assert.match(presentation,/skipHintAfterMs:6000/,'long cascades need a stable delayed skip-hint threshold');
+assert.match(ui,/TAP SCREEN TO SKIP/,'long cascades must explicitly teach the existing screen-tap skip gesture');
+assert.match(ui,/clearCascadeSkipHint\(\);if\(!tutorial\)await cascadeWait\(V\.CASCADE\.finalHoldMs,'final'\)/,'skip hint must disappear before the non-skippable final hold');
 
 assert(runtime.includes('aspect-ratio:3 / 4!important'),'runtime board must preserve canonical 3:4 geometry');
 for(const side of ['top','right','bottom','left'])assert(runtime.includes(`'${side}'`),`missing ${side} board marker`);
