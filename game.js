@@ -517,7 +517,7 @@ function createGame(E,opts={}){
       s.wins.push({round:s.round+1,target:target(),output:s.score,turn:s.turn,placements:s.roundTurn,reward,rewardBreakdown,upgradeCoins:s.roundUpgradeCoins,anchor:cloneTile(tile),upgradeTier:tile.upgrade||0,machineSize:s.pieces.length,setSize:s.set.length,setGeneration:s.setGeneration||1,zeros:{...s.roundZero}});
       if(!s.standardComplete&&s.round===cfg.TOTAL_ROUNDS-1){s.standardComplete=true;s.events.push({type:'run-complete',round:s.round+1,target:target(),output:s.score,coins:s.coins,inflation:s.inflation})}
       s.events.push({type:'coins',round:s.round+1,amount:reward,breakdown:rewardBreakdown,coins:s.coins});scheduleIntermission()
-    }else{const protection=ensureOpeningContinuation('draw');if(protection)s.events.push(protection);continuation=assessContinuation()||continuation}
+    }else{const protection=ensureOpeningContinuation('draw');if(protection)s.events.push(protection)}
     s.events.push({type:'circuit-resonance',round:s.round+1,move:s.turn,...resonance});
     let hingeMoved=false;
     if(sim.hingeFinalPlacement&&s.hingeTileId&&s.hingeState?.tileId===s.hingeTileId){
@@ -525,7 +525,9 @@ function createGame(E,opts={}){
       if(current){const moved=E.pieceFrom(current.tile,pl.x,pl.y,pl.z||0,pl.rr,current.id);moved.tile={...current.tile};s.pieces[index]=moved;s.hingeState.active=s.hingeState.active===1?0:1;hingeMoved=true;s.events.push({type:'hinge-state',round:s.round+1,move:s.turn,tileId:s.hingeTileId,pivotTileId:s.hingeState.pivotTileId,active:s.hingeState.active,placement:{x:pl.x,y:pl.y,z:pl.z||0,rr:pl.rr}})}
     }
     discoverCircuit(tile.id);
-    s.running=false;return{ok:true,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,nextShopType:s.nextShopType,upgradeCoins,autoRerolls:continuation.autoRerolls||0,pendingCircuit:!!s.pendingCircuit,resonance,mintCoins,tollCoins,brokerReady,hingeMoved}
+    s.running=false;
+    if(!s.cleared&&!s.pendingCircuit)continuation=assessContinuation()||continuation;
+    return{ok:true,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,nextShopType:s.nextShopType,upgradeCoins,autoRerolls:continuation.autoRerolls||0,pendingCircuit:!!s.pendingCircuit,resonance,mintCoins,tollCoins,brokerReady,hingeMoved}
   }
 
   function moveResonance(sim,trigger=0){return C.resonance(sim.output??trigger,sim.events,s.pieces,s.circuitRanks,cfg)}
@@ -544,7 +546,8 @@ function createGame(E,opts={}){
     const before=s.circuitRanks[tileId]||0,after=C.upgradedRank(before,pending.reward,cfg);
     s.circuitRanks[tileId]=after;s.pendingCircuit=null;
     s.events.push({type:'circuit-upgrade',round:s.round+1,move:s.turn,signature:pending.signature,tileId,tile:cloneTile(s.set.find(t=>t.id===tileId)),before,after,reward:pending.reward});
-    return{ok:true,tileId,before,after}
+    const continuation=!s.cleared?assessContinuation():{autoRerolls:0};
+    return{ok:true,tileId,before,after,autoRerolls:continuation.autoRerolls||0,blocked:s.blocked,failureReason:s.failureReason}
   }
 
   function canUsePurchasedTool(id){
