@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.48.0');
+assert.strictEqual(D.VERSION,'0.49.0');
 assert.strictEqual(D.ENGINE_VERSION,'0.18.0-mutation-v2');
 assert.strictEqual(D.LONG_RUN_UNIQUE_THRESHOLD,10);
 assert.strictEqual(D.MARKET_LONG_RUN_COST,8);
