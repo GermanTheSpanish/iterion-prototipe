@@ -336,6 +336,151 @@ function createGame(E,opts={}){
     return{ok:true,armed:s.tollArmed,tileId:s.tollTileId,coins:s.coins}
   }
 
+  const ROUND_MUTATION_IDS=Object.freeze(['mirror','pivot','recall','swap']);
+  function piecePlacement(piece){return{x:piece.cubes[0].x,y:piece.cubes[0].y,z:piece.z||0,rr:piece.rr}}
+  function pieceAt(piece,placement){
+    const p=E.pieceFrom(piece.tile,placement.x,placement.y,placement.z||0,placement.rr,piece.id);p.tile={...piece.tile};return p
+  }
+  function hingeProtectedTile(tileId){return!!tileId&&(tileId===s.hingeTileId||tileId===s.hingeState?.pivotTileId)}
+  function machineConnected(pieces){
+    if(!pieces.length)return false;if(pieces.length===1)return true;
+    const seen=new Set([pieces[0].id]),queue=[pieces[0]];
+    for(let i=0;i<queue.length;i++){
+      const current=queue[i];
+      for(const other of pieces){
+        if(other.id===current.id||seen.has(other.id))continue;
+        const contact=E.contactBetweenPieces(current,other);
+        if(contact.touch&&contact.ok){seen.add(other.id);queue.push(other)}
+      }
+    }
+    return seen.size===pieces.length
+  }
+  function mutationMachineValid(pieces){
+    if(!machineConnected(pieces))return false;
+    for(let i=0;i<pieces.length;i++)for(let j=i+1;j<pieces.length;j++){
+      const contact=E.contactBetweenPieces(pieces[i],pieces[j]);
+      if(contact.touch&&!contact.ok)return false
+    }
+    return true
+  }
+  function mutationConsequences(tileId){
+    const tile=s.set.find(t=>t.id===tileId)||s.pieces.find(p=>p.tile.id===tileId)?.tile||null;
+    return{tile:cloneTile(tile),upgrade:Math.max(0,Number(tile?.upgrade)||0),circuitRank:Math.max(0,Number(s.circuitRanks?.[tileId])||0),mods:tileModIdsForTile(tileId)}
+  }
+  function mirrorMutationOptions(tileId){
+    const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece||piece.double||hingeProtectedTile(tileId))return[];
+    const placement={x:piece.cubes[1].x,y:piece.cubes[1].y,z:piece.z||0,rr:(piece.rr+2)%4},candidate=pieceAt(piece,placement),next=s.pieces.map(p=>p.id===piece.id?candidate:p);
+    if(!mutationMachineValid(next))return[];
+    return[{key:'mirror',kind:'mirror',tileId,placement,topologyLosses:topologyBreaksForPieces(next)}]
+  }
+  function pivotMutationOptions(tileId){
+    const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece||hingeProtectedTile(tileId))return[];
+    const others=s.pieces.filter(p=>p.id!==piece.id),out=[],seen=new Set();
+    for(const anchorHalf of [0,1]){
+      const anchor=piece.cubes.find(c=>c.half===anchorHalf);if(!anchor)continue;
+      const currentVector=anchorHalf===0?piece.rr:(piece.rr+2)%4;
+      for(const delta of [1,3]){
+        const nextVector=(currentVector+delta)%4,rr=anchorHalf===0?nextVector:(nextVector+2)%4,[dx,dy]=E.DIR[rr];
+        const x=anchorHalf===0?anchor.x:anchor.x-dx*E.S,y=anchorHalf===0?anchor.y:anchor.y-dy*E.S,placement={x,y,z:piece.z||0,rr};
+        const key=`pivot:${anchorHalf}:${rr}`;if(seen.has(`${x},${y},${rr}`))continue;
+        const valid=E.validatePlacement(piece.tile,x,y,piece.z||0,rr,others);if(!valid.ok)continue;
+        const candidate=pieceAt(piece,placement),next=s.pieces.map(p=>p.id===piece.id?candidate:p);if(!mutationMachineValid(next))continue;
+        seen.add(`${x},${y},${rr}`);out.push({key,kind:'pivot',tileId,anchorHalf,turn:delta===1?'CW':'CCW',placement,topologyLosses:topologyBreaksForPieces(next)})
+      }
+    }
+    return out
+  }
+  function recallMutationOptions(tileId){
+    const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece||s.pieces.length<=1||hingeProtectedTile(tileId))return[];
+    const next=s.pieces.filter(p=>p.id!==piece.id);if(!mutationMachineValid(next))return[];
+    return[{key:'recall',kind:'recall',tileId,topologyLosses:topologyBreaksForPieces(next)}]
+  }
+  function directlyConnectedPieces(piece){
+    const out=[];for(const other of s.pieces){if(other.id===piece.id)continue;const contact=E.contactBetweenPieces(piece,other);if(contact.touch&&contact.ok)out.push(other)}return out
+  }
+  function scrapMutationOptions(tileId){
+    const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece)return[];
+    const out=[];
+    for(const target of directlyConnectedPieces(piece)){
+      if(hingeProtectedTile(target.tile.id))continue;
+      const next=s.pieces.filter(p=>p.id!==target.id);if(!mutationMachineValid(next))continue;
+      out.push({key:`scrap:${target.tile.id}`,kind:'scrap',tileId,targetTileId:target.tile.id,topologyLosses:topologyBreaksForPieces(next),consequences:mutationConsequences(target.tile.id)})
+    }
+    return out
+  }
+  function swapMutationOptions(tileId){
+    const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece||hingeProtectedTile(tileId))return[];
+    const sourcePlacement=piecePlacement(piece),out=[];
+    for(const target of directlyConnectedPieces(piece)){
+      if(hingeProtectedTile(target.tile.id))continue;
+      const targetPlacement=piecePlacement(target),a=pieceAt(piece,targetPlacement),b=pieceAt(target,sourcePlacement),next=s.pieces.map(p=>p.id===piece.id?a:p.id===target.id?b:p);
+      if(!mutationMachineValid(next))continue;
+      out.push({key:`swap:${target.tile.id}`,kind:'swap',tileId,targetTileId:target.tile.id,sourcePlacement,targetPlacement,topologyLosses:topologyBreaksForPieces(next)})
+    }
+    return out
+  }
+  function mutationOptionsFor(id,tileId){
+    if(id==='mirror')return mirrorMutationOptions(tileId);
+    if(id==='pivot')return pivotMutationOptions(tileId);
+    if(id==='recall')return recallMutationOptions(tileId);
+    if(id==='scrap')return scrapMutationOptions(tileId);
+    if(id==='swap')return swapMutationOptions(tileId);
+    return[]
+  }
+  function mutationUseAvailable(id){
+    if(id==='scrap')return s.scrapUsedMarket!==(s.marketCount||0);
+    return ROUND_MUTATION_IDS.includes(id)&&s.mutationUseRound?.[id]!==s.round
+  }
+  function mutationOptions(tileId){
+    const id=['mirror','pivot','recall','scrap','swap'].find(mod=>assignedTileIdsForMod(mod).includes(tileId))||null;
+    if(!id)return{mod:null,available:false,reason:'no-mutation',options:[]};
+    if(!canInteract())return{mod:id,available:false,reason:'state',options:[]};
+    if(!mutationUseAvailable(id))return{mod:id,available:false,reason:'used',options:[]};
+    const options=mutationOptionsFor(id,tileId);return{mod:id,available:options.length>0,reason:options.length?null:'no-target',options:deepClone(options)}
+  }
+  function clearTileModAssignments(tileId){
+    const removed=[];
+    for(const [id,field] of Object.entries(TILE_MOD_FIELDS)){
+      if(s[field]!==tileId)continue;s[field]=null;removed.push(id);
+      if(id==='diode')s.diodeInHalf=null;
+      if(id==='hinge')s.hingeState=null;
+      if(id==='toll')s.tollArmed=false;
+      if(id==='foundation'){s.foundationAssignedMarket=null;s.foundationLastPayoutMarket=null}
+    }
+    if((s.zeroPortTileIds||[]).includes(tileId)){s.zeroPortTileIds=s.zeroPortTileIds.filter(id=>id!==tileId);removed.push('zero-port')}
+    return removed
+  }
+  function applyMutation(tileId,optionKey){
+    const available=mutationOptions(tileId);if(!available.available)return{ok:false,reason:available.reason||'state',mod:available.mod};
+    const option=available.options.find(item=>item.key===optionKey);if(!option)return{ok:false,reason:'option',mod:available.mod};
+    const mod=available.mod,piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece)return{ok:false,reason:'tile',mod};
+    let targetTileId=option.targetTileId||null,destroyed=null,delivery=null,before={source:piecePlacement(piece)},after=null;
+    if(mod==='mirror'||mod==='pivot'){
+      const candidate=pieceAt(piece,option.placement);s.pieces=s.pieces.map(p=>p.id===piece.id?candidate:p);after={source:piecePlacement(candidate)}
+    }else if(mod==='swap'){
+      const target=s.pieces.find(p=>p.tile.id===targetTileId);if(!target)return{ok:false,reason:'target',mod};
+      const a=pieceAt(piece,option.targetPlacement),b=pieceAt(target,option.sourcePlacement);before.target=piecePlacement(target);s.pieces=s.pieces.map(p=>p.id===piece.id?a:p.id===target.id?b:p);after={source:piecePlacement(a),target:piecePlacement(b)}
+    }else if(mod==='recall'){
+      const tile=cloneTile(s.set.find(t=>t.id===tileId)||piece.tile),slot=s.hand.findIndex(t=>!t);
+      s.pieces=s.pieces.filter(p=>p.id!==piece.id);s.placedTileIds=s.placedTileIds.filter(id=>id!==tileId);
+      if(slot>=0){s.hand[slot]=tile;delivery={location:'hand',slot}}else{s.reserve.unshift(tile);delivery={location:'reserve',slot:null}}
+      if(s.anchorId===tileId)s.anchorId=null
+    }else if(mod==='scrap'){
+      const target=s.pieces.find(p=>p.tile.id===targetTileId);if(!target)return{ok:false,reason:'target',mod};
+      destroyed=mutationConsequences(targetTileId);s.pieces=s.pieces.filter(p=>p.id!==target.id);s.placedTileIds=s.placedTileIds.filter(id=>id!==targetTileId);
+      removeTopologyMods(option.topologyLosses,targetTileId);const removedMods=clearTileModAssignments(targetTileId);destroyed.removedMods=removedMods;
+      delete s.circuitRanks[targetTileId];s.set=s.set.filter(t=>t.id!==targetTileId);s.hand=s.hand.map(t=>t?.id===targetTileId?null:t);s.reserve=s.reserve.filter(t=>t?.id!==targetTileId);
+      if(s.anchorId===targetTileId)s.anchorId=null
+    }
+    if(mod!=='scrap')removeTopologyMods(option.topologyLosses,targetTileId||tileId);
+    if(mod==='scrap')s.scrapUsedMarket=s.marketCount||0;
+    else{s.mutationUseRound=s.mutationUseRound||{};s.mutationUseRound[mod]=s.round}
+    s.undoFrame=null;
+    s.events.push({type:'mutation-use',mod,round:s.round+1,roundTurn:s.roundTurn,tileId,targetTileId,option:option.key,before,after,delivery,topologyLosses:deepClone(option.topologyLosses||[]),destroyed:deepClone(destroyed)});
+    const continuation=assessContinuation()||{autoRerolls:0};
+    return{ok:true,mod,tileId,targetTileId,delivery,topologyLosses:deepClone(option.topologyLosses||[]),destroyed:deepClone(destroyed),autoRerolls:continuation.autoRerolls||0}
+  }
+
   function signalOptionsForPieces(pieces,trigger){
     const doubleDoublePieceId=pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,doubleEchoPieceId=pieces.find(x=>x.tile.id===s.doubleEchoTileId)?.id||null,tripleDoublePieceId=pieces.find(x=>x.tile.id===s.tripleDoubleTileId)?.id||null,diodePieceId=pieces.find(x=>x.tile.id===s.diodeTileId)?.id||null,returnPieceId=pieces.find(x=>x.tile.id===s.returnTileId)?.id||null,mergePieceId=pieces.find(x=>x.tile.id===s.mergeTileId)?.id||null,hinge=hingeOptionForPieces(pieces);
     return{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED}
