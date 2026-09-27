@@ -368,10 +368,17 @@ function createGame(E,opts={}){
     return{tile:cloneTile(tile),upgrade:Math.max(0,Number(tile?.upgrade)||0),circuitRank:Math.max(0,Number(s.circuitRanks?.[tileId])||0),mods:tileModIdsForTile(tileId)}
   }
   function mirrorMutationOptions(tileId){
-    const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece||piece.double||hingeProtectedTile(tileId))return[];
-    const placement={x:piece.cubes[1].x,y:piece.cubes[1].y,z:piece.z||0,rr:(piece.rr+2)%4},candidate=pieceAt(piece,placement),next=s.pieces.map(p=>p.id===piece.id?candidate:p);
-    if(!mutationMachineValid(next))return[];
-    return[{key:'mirror',kind:'mirror',tileId,placement,topologyLosses:topologyBreaksForPieces(next)}]
+    const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece||hingeProtectedTile(tileId))return[];
+    const others=s.pieces.filter(p=>p.id!==piece.id),out=[];
+    for(const anchorHalf of [0,1]){
+      const anchor=piece.cubes.find(c=>c.half===anchorHalf);if(!anchor)continue;
+      const currentVector=anchorHalf===0?piece.rr:(piece.rr+2)%4,nextVector=(currentVector+2)%4,rr=anchorHalf===0?nextVector:(nextVector+2)%4,[dx,dy]=E.DIR[rr];
+      const x=anchorHalf===0?anchor.x:anchor.x-dx*E.S,y=anchorHalf===0?anchor.y:anchor.y-dy*E.S,placement={x,y,z:piece.z||0,rr};
+      const valid=E.validatePlacement(piece.tile,x,y,piece.z||0,rr,others);if(!valid.ok)continue;
+      const candidate=pieceAt(piece,placement),next=s.pieces.map(p=>p.id===piece.id?candidate:p);if(!mutationMachineValid(next))continue;
+      out.push({key:`mirror:${anchorHalf}`,kind:'mirror',tileId,anchorHalf,placement,topologyLosses:topologyBreaksForPieces(next)})
+    }
+    return out
   }
   function pivotMutationOptions(tileId){
     const piece=s.pieces.find(p=>p.tile.id===tileId);if(!piece||hingeProtectedTile(tileId))return[];
