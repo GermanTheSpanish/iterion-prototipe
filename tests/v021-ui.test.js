@@ -14,7 +14,7 @@ assert.match(ui,/window\.IterionHelp/);assert.match(ui,/window\.IterionGesture/)
 assert.match(help,/function tileRecord\(/);assert.match(help,/E\.applyOp\(value,isDouble,state,doubleDouble,powerMultiplier\)/);assert.doesNotMatch(ui,/E\.applyOp\(/);
 assert.match(help,/help_open_count/);assert.match(help,/help_section_opened/);assert.match(ui,/fullDebugText\(\)/);
 assert.match(ui,/b\.disabled=uiBusy/);assert.doesNotMatch(ui,/b\.disabled=!mask\[i\]\|\|uiBusy/);assert.match(ui,/onDragStart:\(meta,e\)=>\{if\(meta\.kind==='hand'\)startDrag/);assert.strictEqual((ui.match(/GAME\.beginPlacement/g)||[]).length,1);
-assert.match(ui,/kind:'board',tileId:p\.tile\.id,allowDrag:false/);assert.match(html,/html,body\{[^}]*overflow:hidden/);assert.match(html,/\.app\{[^}]*overflow:hidden/);
+assert.match(ui,/kind:ouroboros\?'ouroboros-board':'board',tileId:p\.tile\.id,allowDrag:ouroboros/);assert.match(html,/html,body\{[^}]*overflow:hidden/);assert.match(html,/\.app\{[^}]*overflow:hidden/);
 assert.match(ui,/Best Score with this tile:/,'Inspector must show best Output for Moves involving the physical tile');
 assert.match(ui,/can pay \+\$\{m\.starCoins\}c when activated/,'Inspector must show star coin income');
 assert.doesNotMatch(ui,/Location: \$\{m\.location\}|Orientation: \$\{m\.axis\}|Connections: \$\{m\.connectionCount\}/,'Inspector must not expose tile position/orientation/connectivity');
