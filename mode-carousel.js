@@ -59,7 +59,7 @@
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
-.modeTileZero i:after{display:none}
+.modeTileZero i:after{display:none}.modeTileEyes i:after{display:block!important}
 .modeCarouselViewport.isDragging .modeTile,.modeCarouselViewport.isRebasing .modeTile{transition:none!important}
 .modeCarouselViewport.isPulling .modeTile{transition:transform var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1)}
 .modeCarouselViewport.isLanding .modeTile{transition:transform var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1)}
@@ -95,7 +95,8 @@
     const name=doc.createElement('strong');name.id='modeName';
     const description=doc.createElement('small');description.id='modeDescription';
     frame.append(viewport,name,description);oldClassic.replaceWith(frame);
-    let selected=0,drag=null,suppressClickUntil=0,settleTimer=0,settleState=null;
+    const initialMode=root.__monoidSelectedMode||root.__monoidActiveMode||root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic';
+    let selected=Math.max(0,MODES.findIndex(mode=>mode.id===initialMode)),drag=null,suppressClickUntil=0,settleTimer=0,settleState=null;
     function render(trackX=0){
       const mode=MODES[selected];frame.dataset.mode=mode.id;frame.dataset.modeAvailable=String(mode.available);name.textContent=mode.name;description.textContent=mode.description;startRun.disabled=!mode.available;
       slides.forEach((slide,i)=>{const offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+trackX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.setProperty('--mode-x',`${x}px`);slide.style.setProperty('--tile-scale',String(scale))});
@@ -137,7 +138,7 @@
     }
     viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;const startShift=drag.visualX;drag=null;viewport.classList.remove('isDragging');settle(selected,startShift,0)});
     frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();settle(stepIndex(selected,1),0,-SPACING)}else if(e.key==='ArrowLeft'){e.preventDefault();settle(stepIndex(selected,-1),0,SPACING)}});
-    startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!mode.available)return;const previousMode=root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic',beforeSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;root.localStorage?.setItem(ACTIVE_MODE_KEY,mode.id);root.__monoidActiveMode=mode.id;originalStart?.call(this,event);const afterSaved=root.localStorage?.getItem('iterion.activeRun.v1')||null;if(beforeSaved&&beforeSaved===afterSaved&&!doc.getElementById('gameSelection')?.hidden){root.localStorage?.setItem(ACTIVE_MODE_KEY,previousMode);root.__monoidActiveMode=previousMode}}
+    startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!mode.available)return false;root.__monoidSelectedMode=mode.id;return originalStart?.call(this,event)}
     if(continueRun)continueRun.onclick=function(event){stopSettling(true);return originalContinue?.call(this,event)};
     root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select};
     render();return true

@@ -108,3 +108,24 @@ test('The Eyes starts a persisted 1|1 run with two Core shadow fixtures and Sign
   expect(state.snapshot.signal.base).toBe(24);
   expect(state.snapshot.signal.max).toBe(24);
 });
+
+test('The Eyes keeps its 1|1 selector and replaces a saved Classic run without reverting to Classic',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.waitForFunction(()=>!!window.__monoidModes);
+  await page.locator('#titleCard').click();
+  await page.locator('#startRun').click();
+  await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('classic');
+  await page.evaluate(()=>document.getElementById('gameSelectionButton').click());
+  await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.evaluate(()=>window.__monoidModes.select(1));
+  await expect(page.locator('#modeName')).toHaveText('THE EYES');
+  const eyesPips=await page.evaluate(()=>[...document.querySelectorAll('.modeSlide[data-mode="eyes"] .modeTileEyes i')].map(half=>getComputedStyle(half,'::after').display));
+  expect(eyesPips).toEqual(['block','block']);
+  expect(await page.evaluate(()=>window.__monoidSelectedMode)).toBe('eyes');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#startRun').click();
+  await expect(page.locator('#board .coreNode')).toHaveCount(2);
+  const state=await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,cores:window.__monoidGame.state().cores.length,storedMode:localStorage.getItem('iterion.activeRunMode.v1'),savedMode:JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.gameMode}));
+  expect(state).toEqual({mode:'eyes',cores:2,storedMode:'eyes',savedMode:'eyes'});
+});
