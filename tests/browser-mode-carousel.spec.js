@@ -105,7 +105,9 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.cores).toHaveLength(2);
   expect(state.snapshot.cores.interaction).toBe('physical');
   expect(state.snapshot.cores.telemetry.overlapTileIds).toEqual([]);
-  expect(state.snapshot.signal.shadowEnabled).toBe(true);
+  expect(state.snapshot.signal.enabled).toBe(true);
+  expect(state.snapshot.signal.shadowEnabled).toBe(false);
+  expect(state.snapshot.signal.interaction).toBe('runtime');
   expect(state.snapshot.signal.base).toBe(24);
   expect(state.snapshot.signal.max).toBe(24);
   const placementSafety=await page.evaluate(()=>{
