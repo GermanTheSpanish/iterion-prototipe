@@ -292,6 +292,42 @@
     overlayBody.innerHTML=`<div class="rulebookList">${sections.map(s=>`<button class="rulebookItem" data-rule="${s.id}"><strong>${escapeHtml(s.displayName)}</strong><span>${escapeHtml(s.shortDescription)}</span></button>`).join('')}</div><div class="rulebookFoot">Hold any domino for about ${Math.round((D.LONG_PRESS_MS||500)/100)/10}s to inspect that physical tile.</div>`;
     overlayBody.querySelectorAll('[data-rule]').forEach(b=>b.onclick=()=>openRulebookSection(b.dataset.rule));overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
   }
+  function mutationOptionLabel(option,state){
+    if(option.kind==='mirror')return`ANCHOR ${(option.anchorHalf||0)+1} · 180°`;
+    if(option.kind==='recall')return'RETURN TO HAND';
+    if(option.kind==='pivot')return`ANCHOR ${(option.anchorHalf||0)+1} · ${option.turn||'90°'}`;
+    const target=state.set.find(t=>t.id===option.targetTileId),tile=target?`[${target.a}|${target.b}]`:option.targetTileId||'TILE';
+    return option.kind==='scrap'?`SCRAP ${tile}`:option.kind==='swap'?`SWAP ${tile}`:String(option.kind||'MUTATE').toUpperCase()
+  }
+  function mutationWarning(option){
+    const warnings=[];
+    if(option.topologyLosses?.length)warnings.push(`LOSE ${option.topologyLosses.map(x=>x.label||String(x.mod||'').toUpperCase()).join(', ')}`);
+    const c=option.consequences;
+    if(c){
+      if(c.upgrade)warnings.push(`DESTROY ★${c.upgrade}`);
+      if(c.circuitRank)warnings.push(`DESTROY CIRCUIT ${D.CIRCUIT_RANKS?.[c.circuitRank-1]?.roman||c.circuitRank}`);
+      if(c.mods?.length)warnings.push(`DESTROY MOD ${c.mods.map(id=>M.get(id)?.displayName||id.toUpperCase()).join(', ')}`)
+    }
+    return warnings
+  }
+  function applyInspectorMutation(optionKey){
+    const tileId=auxOverlay?.tileId,info=tileId&&GAME.mutationOptions?.(tileId),option=info?.options?.find(x=>x.key===optionKey);if(!option){toast('Mutation unavailable');renderAuxOverlay();return}
+    const warnings=mutationWarning(option);
+    if(warnings.length&&!confirm(`${warnings.join(' · ')}. Continue?`))return;
+    const r=GAME.applyMutation(tileId,optionKey);if(!r.ok){toast(r.reason==='used'?'Mutation already used':'Mutation unavailable');renderAuxOverlay();return}
+    persistGame();closeAuxOverlay();render();
+    const mod=M.get(r.mod),suffix=r.delivery?` · ${r.delivery.location.toUpperCase()}`:r.destroyed?.tile?` · REMOVED [${r.destroyed.tile.a}|${r.destroyed.tile.b}]`:'';
+    toast(`${mod?.displayName||String(r.mod).toUpperCase()}${suffix}`)
+  }
+  function mutationInspectorHtml(tileId,state){
+    const info=GAME.mutationOptions?.(tileId);if(!info?.mod)return'';
+    const mod=M.get(info.mod),cadence=info.mod==='scrap'?'MARKET':'ROUND';
+    if(!info.available){
+      const reason=info.reason==='used'?`USED THIS ${cadence}`:info.reason==='state'?'AVAILABLE BETWEEN MOVES':'NO LEGAL ACTION';
+      return`<section class="inspectSection"><div class="inspectLabel">Mutation</div><p class="inspectEmpty">${escapeHtml(reason)}</p></section>`
+    }
+    return`<section class="inspectSection"><div class="inspectLabel">Mutation · ${escapeHtml(mod?.displayName||info.mod)}</div><div class="mutationActions">${info.options.map(option=>{const warnings=mutationWarning(option),warning=warnings.length?`<small>${escapeHtml(warnings.join(' · '))}</small>`:'';return`<button class="shopBuy mutationAction" data-mutation-action="${escapeHtml(option.key)}"><strong>${escapeHtml(mutationOptionLabel(option,state))}</strong>${warning}</button>`}).join('')}</div><p class="inspectEmpty">1 use per ${cadence.toLowerCase()}. Using a Mutation commits the machine and clears the current Undo frame.</p></section>`
+  }
   function renderInspector(){
     const state=GAME.state(),model=H.inspectTile(state,auxOverlay.tileId)||auxOverlay.model,b=model.baseTile,m=model.currentMachineState;
     auxOverlay.model=model;overlayTitle.textContent=`[${b.a}|${b.b}]`;
@@ -303,7 +339,9 @@
     const longRunState=state.endlessMode?`LONG CHAIN · ${Math.max(0,(D.ENDLESS_LONG_RUN_ACTIVATIONS||7)-(state.endlessLongRunActivations||0))}/${D.ENDLESS_LONG_RUN_ACTIVATIONS||7} Endless activations remaining.`:'LONG CHAIN · at 10+ unique routed tiles, every activated star pays once.';
     const foundationState=m.foundationProgress==null?null:`FOUNDATION · MATURITY ${m.foundationProgress}/${m.foundationInterval||3}`,mintState=m.mintAvailable==null?null:`MINT · ${m.mintAvailable?'ready this round':'already paid this round'}`,bankState=m.bankMultiplier==null?null:`BANK · current wallet ×${m.bankMultiplier}`,spendState=m.spendActive==null?null:`SPEND · ${m.spendActive?'active ×'+(D.SPEND_MOD_MULTIPLIER||3):'inactive'}`,brokerState=m.brokerDiscountReady==null?null:`BROKER · ${m.brokerDiscountReady?'−'+(D.BROKER_DISCOUNT||1)+'c ready':'activate to prepare discount'}`,tollState=m.tollArmed==null?null:`TOLL · ${m.tollArmed?'armed':'disarmed'}`;
     const stateRows=[starLabel,bestLabel,`Recorded Move activations: ${m.activations||0}`,bankState,spendState,brokerState,tollState,foundationState,mintState,longRun?longRunState:m.upgradeTier?'Normal star rule · only the highest activated tier pays.':'Round-clearing overkill can add stars to this physical tile.'].filter(Boolean);
-    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section>${powerInspectorHtml(model.power)}${circuitInspectorHtml(model.circuit)}<section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section><section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
+    const mutationHtml=mutationInspectorHtml(auxOverlay.tileId,state);
+    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section>${powerInspectorHtml(model.power)}${circuitInspectorHtml(model.circuit)}<section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section>${mutationHtml}<section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
+    overlayBody.querySelectorAll('[data-mutation-action]').forEach(button=>button.onclick=()=>applyInspectorMutation(button.dataset.mutationAction));
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay;
     if(state.tollTileId===auxOverlay.tileId){
       overlaySecondary.style.display='inline-block';overlaySecondary.textContent=state.tollArmed?'DISARM TOLL':'ARM TOLL';
@@ -353,7 +391,7 @@
   function showMarket(){
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),nextStage=x.stage.index+1,nextSize=GAME.boardSizeForStage(nextStage-1),strain=s.systemStrain||0;overlayTitle.textContent='MARKET';modalEl.classList.add('commerceModal');
     const supply=x.availableTileCount,nextMarket=x.endless?.active?`Next Market in ${D.STAGE_SIZE||3} rounds`:x.round.index<D.TOTAL_ROUNDS-(D.STAGE_SIZE||3)?`Next Market in ${D.STAGE_SIZE||3} rounds`:'Final stage · no later Market',offers=s.shopOffers.map(id=>GAME.marketOfferInfo(id)),tileById=id=>s.set.find(t=>t.id===id);
-    const labels={'double-double':'DD','double-echo':'DE','triple-double':'TD','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','sequence':'SQ','complement':'C6','twin':'TW','pair':'PR','bridge':'BR','gate':'GT','fan':'FN','frame':'FM','crown':'CW','frontier':'FT','relay':'RL','coupler':'CP','broker':'BO','spend':'SP','bank':'BK','toll':'TL','foundation':'FD','knot':'KN','mirror':'MR','mint':'MT'},assignments=[];
+    const labels={'double-double':'DD','double-echo':'DE','triple-double':'TD','zero-port':'ZP','parity-exchange':'PX','corner':'CR','long-line':'LN','overload':'OV','terminal':'TE','sequence':'SQ','complement':'C6','recall':'RC','pair':'PR','bridge':'BR','pivot':'PV','scrap':'SC','frame':'FM','swap':'SW','frontier':'FT','relay':'RL','coupler':'CP','broker':'BO','spend':'SP','bank':'BK','toll':'TL','foundation':'FD','knot':'KN','mirror':'MR','mint':'MT'},assignments=[];
     for(const [id,ids] of Object.entries(x.tileMods||{}))for(const tileId of ids||[]){const tile=tileById(tileId);if(tile)assignments.push([labels[id]||id.toUpperCase(),tile])}
     const assignedHtml=assignments.length?`<div class="marketAssignments"><div class="marketChoiceTitle">INSTALLED</div><div class="marketTileList">${assignments.map(([label,tile])=>marketTileHtml(tile,label)).join('')}</div></div>`:'';
     overlayBody.innerHTML=`<div class="bigShop"><div class="shopHero"><div><div class="label">Stage ${x.stage.index} complete</div><strong>${s.coins}c</strong><div class="shopInflation">Inflation ${s.inflation}${x.endless?.active?` · System Strain ${strain}`:''}</div><div class="shopSupply">SUPPLY ${supply} · ${nextMarket}</div></div><div class="label">Next board<br>${nextSize[0]} × ${nextSize[1]}</div></div>${assignedHtml}<div class="marketChoiceTitle">CHOOSE ONE</div><div class="marketOfferGrid">${offers.length?offers.map(info=>{const mod=info.mod,noTarget=info.targetCount<1,assigned=info.assignedTileIds||[],relocate=info.id==='zero-port'?assigned.length===2:assigned.length>0,label=noTarget?'NO VALID TARGET':`${relocate?'RELOCATE':'BUY'} · ${info.price}c`,target=mod.target==='machine'?'Machine modifier':`${info.targetCount} compatible physical tile${info.targetCount===1?'':'s'}`;return `<section class="marketOffer" data-market-offer="${info.id}"><div class="marketOfferHead"><strong>${escapeHtml(mod.displayName||mod.name)}</strong><span>${info.price}c</span></div><p>${escapeHtml(mod.shortDescription||mod.description)}</p><div class="marketTarget ${noTarget?'invalid':''}">${escapeHtml(target)}</div><button class="shopBuy" data-market-mod="${info.id}" ${noTarget||s.coins<info.price?'disabled':''}>${label}</button></section>`}).join(''):'<p class="inspectEmpty">No valid Market mods for the current machine.</p>'}</div><div class="shopFoot">Buy one Mod or continue. Tile Mods close the Market, then you choose a highlighted physical tile on the board. Each physical tile can hold one Tile Mod. ZP uses one slot on each endpoint and links two zero tiles; once paired, a later ZP purchase relocates one endpoint. Every purchase raises global Inflation by 1.${x.endless?.active?' Endless System Strain also applies to Market prices.':''}</div></div>`;

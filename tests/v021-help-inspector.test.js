@@ -24,9 +24,9 @@ function testModifierBelongsToExactPhysicalInstance(){
 }
 function testBatchBModifierBelongsToExactPhysicalInstance(){
   const game=Game.createGame(E,{seed:230}),s=game.state(),tile=s.set.find(t=>t.id==='d0-4'),other=s.set.find(t=>t.id==='d0-5');
-  s.bridgeTileId=tile.id;s.gateTileId=other.id;
+  s.bridgeTileId=tile.id;s.pivotTileId=other.id;
   assert.deepStrictEqual(Help.inspectTile(s,tile.id).modifiers.map(m=>m.id),['bridge']);
-  assert.deepStrictEqual(Help.inspectTile(s,other.id).modifiers.map(m=>m.id),['gate']);
+  assert.deepStrictEqual(Help.inspectTile(s,other.id).modifiers.map(m=>m.id),['pivot']);
 }
 function testTileRecordTracksBestOutputAndStarsWithoutPositionData(){
   const game=Game.createGame(E,{seed:24}),s=game.state(),tile=s.set.find(t=>t.id==='d2-2');tile.upgrade=2;

@@ -11,7 +11,7 @@ E.setBoardSize(30,40);
 
 check('registry exposes twenty-seven targeted tile Mods and removes Zero Memory',()=>{
   const tileMods=M.all().filter(m=>m.kind==='market-tile-mod').map(m=>m.id).sort();
-  assert.deepEqual(tileMods,['bank','bridge','broker','corner','crown','diode','double-double','double-echo','fan','foundation','gate','hinge','knot','long-line','merge','mint','mirror','overload','pair','parity-exchange','return','spend','terminal','toll','triple-double','twin','zero-port']);
+  assert.deepEqual(tileMods,['bank','bridge','broker','corner','diode','double-double','double-echo','foundation','hinge','knot','long-line','merge','mint','mirror','overload','pair','parity-exchange','pivot','recall','return','scrap','spend','swap','terminal','toll','triple-double','zero-port']);
   assert.equal(M.get('zero-memory'),null);
   assert.equal(D.MARKET_ZERO_MEMORY_COST,undefined);
 });
