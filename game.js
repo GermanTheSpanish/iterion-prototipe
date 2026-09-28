@@ -204,6 +204,16 @@ function createGame(E,opts={}){
     }
     return ports
   }
+  function normalizeLegacyCoreArchetypes(reason='restore'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||!Array.isArray(s.cores)||s.cores.length<2||(s.coreProgressMilestones||[]).length)return[];
+    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],seen=new Set(),changed=[];
+    s.cores=s.cores.map((core,index)=>{
+      let archetype=core.archetype;if(!archetypes.includes(archetype))archetype=archetypes[coreHash(s.seed||0,index,197)%archetypes.length];
+      if(seen.has(archetype)){const missing=archetypes.filter(id=>!seen.has(id));if(missing.length)archetype=missing[coreHash(s.seed||0,index,199)%missing.length]}
+      seen.add(archetype);if(archetype===core.archetype)return core;changed.push({coreId:core.id,from:core.archetype||null,to:archetype});return{...core,archetype}
+    });
+    if(changed.length)s.events.push({type:'core-archetype-migrate',reason,cores:deepClone(changed)});return changed
+  }
   function normalizeLegacyCorePorts(reason='restore'){
     if(canonicalGameMode(s.gameMode)!=='eyes'||!Array.isArray(s.cores))return[];
     const changed=[];
@@ -1358,6 +1368,8 @@ function createGame(E,opts={}){
       if(v.type==='core-discover'){lines.push(`STAGE ${v.stage} CORE DISCOVER ${String(v.core?.archetype||'core').toUpperCase()} I id=${v.core?.id||'-'} ports=${(v.core?.ports||[]).join('')||'-'} @${v.core?.x},${v.core?.y} recharge=${v.recharge} reason=${v.reason||'-'}`);continue}
       if(v.type==='core-upgrade'){lines.push(`STAGE ${v.stage} CORE UPGRADE ${String(v.archetype||'core').toUpperCase()} id=${v.coreId} ${coreLevelRoman(v.before)}>${coreLevelRoman(v.after)} recharge=${v.recharge} reason=${v.reason||'-'}`);continue}
       if(v.type==='core-progress-blocked'){lines.push(`STAGE ${v.stage} CORE PROGRESS BLOCKED action=${v.action||'-'} slot=${v.slot||'-'} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-archetype-migrate'){lines.push(`CORE LEGACY ARCHETYPE MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${String(core.from||'-').toUpperCase()}>${String(core.to||'-').toUpperCase()}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-port-migrate'){lines.push(`CORE LEGACY PORT MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${(core.from||[]).join('')}>${(core.to||[]).join('')}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='stage-start'){lines.push(`STAGE ${v.stage} START R${v.round} coins=${v.coins} inflation=${v.inflation} available=${v.available} board=${v.board.join('x')} freeReroll=${v.freeReroll||0} generation=${v.setGeneration||1}`);continue}
       if(v.type==='shop-scheduled'){lines.push(`R${v.round} NEXT ${v.shop.toUpperCase()}`);continue}
       if(v.type==='shop-open'){lines.push(`R${v.round} ${v.shop.toUpperCase()} OPEN coins=${v.coins} inflation=${v.inflation} available=${v.available}${v.offers?.length?` offers=${v.offers.join(',')}`:''}`);continue}
@@ -1418,7 +1430,7 @@ function createGame(E,opts={}){
     if(['sequence','complement','relay','coupler'].includes(s.pendingModPlacement?.mod)){s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none'}ensureShopTileOffers();
     const desiredHandSize=handSizeForRound();if(Array.isArray(s.hand)&&s.hand.length>desiredHandSize){const overflow=s.hand.slice(desiredHandSize).filter(Boolean);s.hand=s.hand.slice(0,desiredHandSize);if(!Array.isArray(s.reserve))s.reserve=[];s.reserve.push(...overflow)}
     const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
-    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);normalizeLegacyCorePorts('restore');const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});syncCoreProgressToStage(stageIndex()+1,'restore');pruneInactiveTopologyMods({record:false});
+    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);normalizeLegacyCoreArchetypes('restore');normalizeLegacyCorePorts('restore');const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});syncCoreProgressToStage(stageIndex()+1,'restore');pruneInactiveTopologyMods({record:false});
     if(!s.ouroborosMode&&(s.setGeneration||1)>=maxSetGeneration()&&availableTileCount()===0&&!s.hand.some(Boolean)&&!s.reserve.length)activateOuroboros('restore');
     return true
   }
