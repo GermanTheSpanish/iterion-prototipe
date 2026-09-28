@@ -187,11 +187,11 @@
   }
   function renderBoard(){
     const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
-    const coreTelemetry=GAME.coreShadowTelemetry?GAME.coreShadowTelemetry():null,coreTelemetryById=new Map((coreTelemetry?.cores||[]).map(core=>[core.id,core])),lastCoreSignal=[...(s.events||[])].reverse().find(event=>event?.signal?.activations?.length)?.signal||null,lastCoreRoles=new Map((lastCoreSignal?.activations||[]).map(activation=>[activation.coreId,activation.role]));
+    const coreTelemetry=GAME.coreShadowTelemetry?GAME.coreShadowTelemetry():null,coreTelemetryById=new Map((coreTelemetry?.cores||[]).map(core=>[core.id,core])),lastCoreSignal=[...(s.events||[])].reverse().find(event=>event?.signal?.activations?.length)?.signal||null,lastCoreRoles=new Map((lastCoreSignal?.activations||[]).map(activation=>[activation.coreId,activation.role])),coreIntroduced=(s.events||[]).some(event=>(event?.coreActivations||event?.signal?.activations||[]).length);
     for(const core of s.cores||[]){
       const live=coreTelemetryById.get(core.id),role=lastCoreRoles.get(core.id)||null,el=document.createElement('div'),roman=['I','II','III','IV','V'][Math.max(0,Math.min(4,(Number(core.level)||1)-1))]||'I',connected=!!live?.connectedTileIds?.length;el.className='coreNode corePhysical inspectable';el.dataset.coreId=core.id;el.dataset.coreType=core.archetype||'';if(role)el.dataset.lastRole=role;
       el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${String(core.archetype||'Core').toUpperCase()} Core ${roman}. ${connected?'Connected':'Disconnected'}. Tap or hold to inspect.`);
-      el.classList.toggle('isConnected',connected);el.classList.toggle('isDisconnected',!connected);if(live?.overlapTileIds?.length)el.classList.add('isObstructed');if(role)el.classList.add(`lastRole${role[0].toUpperCase()+role.slice(1)}`);
+      el.classList.toggle('isConnected',connected);el.classList.toggle('isDisconnected',!connected);el.classList.toggle('coreNeedsConnection',!coreIntroduced);if(live?.overlapTileIds?.length)el.classList.add('isObstructed');if(role)el.classList.add(`lastRole${role[0].toUpperCase()+role.slice(1)}`);
       Object.assign(el.style,{left:px(core.x),top:py(core.y),width:px(core.size||2),height:py(core.size||2)});
       const connectedPorts=new Set(live?.connectedPorts||[]);
       for(const side of core.ports||[]){const port=document.createElement('i');port.className=`corePort corePort${side}`;if(connectedPorts.has(side))port.classList.add('isConnected');el.appendChild(port)}
