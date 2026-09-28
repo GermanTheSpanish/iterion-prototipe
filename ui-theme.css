@@ -383,7 +383,7 @@ body.monoidCommerceActive .commerceModal .marketTile{transform:scale(.82);transf
 .piece.dragCandidate.breaksTopology{outline:2px dashed currentColor;outline-offset:2px}
 
 /* Ouroboros: board tiles become editable; the Hand rail becomes REBUILD/FIRE controls. */
-body.ouroborosPalette .piece{cursor:grab}
+body.ouroborosPalette .piece{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 body.ouroborosPalette .piece.ouroborosMoving{opacity:.22}
 body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;outline-offset:2px;z-index:18}
 .ouroborosSelectionSlot{display:flex;align-items:center;justify-content:center}
