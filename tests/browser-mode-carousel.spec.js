@@ -103,6 +103,8 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.storedMode).toBe('eyes');
   expect(state.savedMode).toBe('eyes');
   expect(state.cores).toHaveLength(2);
+  const coreSpacing=await page.locator('#board .coreNode').evaluateAll(nodes=>{const centers=nodes.map(node=>{const r=node.getBoundingClientRect();return r.top+r.height/2}).sort((a,b)=>a-b),board=document.getElementById('board').getBoundingClientRect();return(centers[1]-centers[0])/board.height});
+  expect(coreSpacing).toBeGreaterThan(.30);expect(coreSpacing).toBeLessThan(.36);
   expect(state.snapshot.cores.interaction).toBe('physical');
   expect(state.snapshot.cores.telemetry.overlapTileIds).toEqual([]);
   expect(state.snapshot.signal.enabled).toBe(true);

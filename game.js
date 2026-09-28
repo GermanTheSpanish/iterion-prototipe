@@ -222,7 +222,7 @@ function createGame(E,opts={}){
   }
   function coreLayoutForMode(mode=s.gameMode,seed=s.seed){
     if(canonicalGameMode(mode)!=='eyes')return[];
-    const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),x=Math.floor((bs.G-size)/2),topY=Math.max(2,Math.floor(bs.H*.25)-Math.floor(size/2)),bottomY=Math.min(bs.H-size-2,bs.H-topY-size);
+    const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),x=Math.floor((bs.G-size)/2),pipOffset=Math.max(size*2,Math.round(bs.H/6)),topY=Math.max(2,Math.round(bs.H/2-pipOffset-size/2)),bottomY=Math.min(bs.H-size-2,Math.round(bs.H/2+pipOffset-size/2));
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,99)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,99)%(southPool.length||archetypes.length)];
     return[
       {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsForArchetype(seed,0,northArchetype),archetype:northArchetype,level:1},
