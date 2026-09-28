@@ -111,6 +111,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.snapshot.signal.base).toBe(24);
   expect(state.snapshot.signal.max).toBe(24);
   if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
+  await expect(page.locator('#hint')).toContainText('CONNECT A CORE · FIRST CORE REACHED LEADS THE MOVE');
   expect(new Set(state.cores.map(core=>core.archetype)).size).toBe(2);
   const coreAccessibility=await page.locator('#board .coreNode').evaluateAll(nodes=>nodes.map(node=>({hidden:node.getAttribute('aria-hidden'),role:node.getAttribute('role'),tabIndex:node.tabIndex})));
   expect(coreAccessibility.every(core=>core.hidden===null&&core.role==='button'&&core.tabIndex===0)).toBe(true);
