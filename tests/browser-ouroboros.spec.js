@@ -29,6 +29,24 @@ test('Ouroboros turns the machine into the playable surface on mobile',async({pa
   expect(mismatchFreedom.found).toBe(true);expect(mismatchFreedom.previewOk).toBe(true);expect(mismatchFreedom.previewReason).toBeNull();
   await expect(page.locator('#hand .ouroborosAction')).toHaveCount(2);await expect(page.locator('#hand .ouroborosFire')).toHaveText('FIRE');await expect(page.locator('#hand .domino')).toHaveCount(1);
   expect(await page.evaluate(()=>({phase:window.__monoidGame.snapshot().endless.phase,hand:window.__monoidGame.state().hand.length,maxGeneration:window.__monoidGame.snapshot().powerSets.maxGeneration}))).toEqual({phase:'ouroboros',hand:0,maxGeneration:3});
+  const dragPlan=await page.evaluate(()=>{
+    const game=window.__monoidGame,E=window.IterionEngine,s=game.state(),moving=s.pieces[0],from={x:moving.cubes[0].x,y:moving.cubes[0].y};
+    for(let y=0;y<=E.H-E.S;y++)for(let x=0;x<=E.G-E.S;x++){
+      if(Math.abs(x-from.x)+Math.abs(y-from.y)<8)continue;
+      const preview=game.ouroborosPlacementPreview(moving.tile.id,{x,y,z:0,rr:moving.rr});if(!preview.ok)continue;
+      const candidate=E.pieceFrom(moving.tile,x,y,0,moving.rr,moving.id),others=s.pieces.filter(piece=>piece.id!==moving.id);
+      if(others.some(piece=>E.contactBetweenPieces(candidate,piece).touch))continue;
+      return{tileId:moving.tile.id,from,to:{x,y},rr:moving.rr}
+    }
+    return null
+  });
+  expect(dragPlan).toBeTruthy();
+  const boardBox=await page.locator('#board').boundingBox(),movingTile=page.locator(`#board .piece[data-tile-id="${dragPlan.tileId}"]`),pieceBox=await movingTile.boundingBox();
+  expect(boardBox).toBeTruthy();expect(pieceBox).toBeTruthy();expect(await movingTile.evaluate(el=>getComputedStyle(el).touchAction)).toBe('none');
+  const boardSize=await page.evaluate(()=>window.IterionEngine.getBoardSize()),startX=pieceBox.x+pieceBox.width/2,startY=pieceBox.y+pieceBox.height/2,targetX=startX+(dragPlan.to.x-dragPlan.from.x)/boardSize.G*boardBox.width,targetY=startY+(dragPlan.to.y-dragPlan.from.y)/boardSize.H*boardBox.height;
+  await page.mouse.move(startX,startY);await page.mouse.down();await page.mouse.move(targetX,targetY);await page.mouse.up();
+  await expect.poll(()=>page.evaluate(tileId=>{const p=window.__monoidGame.state().pieces.find(piece=>piece.tile.id===tileId);return{x:p.cubes[0].x,y:p.cubes[0].y}},dragPlan.tileId)).toEqual(dragPlan.to);
+  expect(await page.evaluate(tileId=>window.__monoidGame.state().events.some(event=>event.type==='ouroboros-rebuild'&&event.tileId===tileId),dragPlan.tileId)).toBe(true);
   const first=page.locator('#board .piece').first();await first.click();await expect(first).toHaveClass(/ouroborosSelected/);
   const before=await page.evaluate(()=>window.__monoidGame.state().roundTurn);await page.locator('#hand .ouroborosFire').click();await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().running),{timeout:15000}).toBe(false);
   expect(await page.evaluate(()=>window.__monoidGame.state().roundTurn)).toBe(before+1);expect(await page.evaluate(()=>window.__monoidGame.state().events.some(e=>e.type==='ouroboros-fire'))).toBe(true);
