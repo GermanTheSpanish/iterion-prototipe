@@ -135,6 +135,7 @@ saved.state.standardComplete=true;
 saved.state.endlessMode=true;
 saved.state.endlessStartedRound=16;
 saved.state.coreProgressMilestones=[];
+saved.state.cores[1]={...saved.state.cores[1],archetype:saved.state.cores[0].archetype};
 const progressed=G.createGame(E,{seed:1,GAME_MODE:'classic'});
 assert.equal(progressed.restoreState(saved),true);
 const progressedState=progressed.state();
@@ -145,6 +146,7 @@ assert.equal(new Set(progressedState.cores.map(core=>core.archetype)).size,4,'fi
 assert.deepEqual(progressedState.coreProgressMilestones,['discover:4','discover:7','upgrade:10']);
 assert.equal(progressedState.cores.reduce((sum,core)=>sum+core.level,0),5,'Stage 10 milestone must upgrade exactly one Core to II');
 assert.equal(progressed.coreShadowTelemetry().overlapTileIds.length,0);
+assert(progressedState.events.some(event=>event.type==='core-archetype-migrate'&&event.reason==='restore'),'legacy duplicate Core labels must normalize before abilities become gameplay');
 assert(progressedState.events.some(event=>event.type==='core-discover'&&event.reason==='restore'));
 assert(progressedState.events.some(event=>event.type==='core-upgrade'&&event.reason==='restore'));
 
