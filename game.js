@@ -488,9 +488,12 @@ function createGame(E,opts={}){
     const piece=s.pieces.find(p=>p.tile?.id===tileId);if(!piece)return{ok:false,reason:'tile'};
     const x=Number(placement?.x),y=Number(placement?.y),rr=((Number(placement?.rr)||0)%4+4)%4;
     if(!Number.isInteger(x)||!Number.isInteger(y))return{ok:false,reason:'grid'};
-    const others=s.pieces.filter(p=>p.id!==piece.id),validation=E.validatePlacement(piece.tile,x,y,0,rr,others);
-    if(!validation.ok&&validation.reason!=='no-contact'&&!(validation.reason==='root-zone'&&!others.length))return{ok:false,reason:validation.reason||'invalid'};
-    const moved=E.pieceFrom(piece.tile,x,y,0,rr,piece.id);moved.tile={...piece.tile};if(pieceOverlapsCore(moved))return{ok:false,reason:'core-overlap'};
+    const moved=E.pieceFrom(piece.tile,x,y,0,rr,piece.id),board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},cell=Math.max(1,Number(E.S)||2);
+    moved.tile={...piece.tile};
+    if(moved.rect.minx<0||moved.rect.miny<0||moved.rect.maxx>board.G||moved.rect.maxy>board.H)return{ok:false,reason:'bounds'};
+    const overlaps=(a,b)=>a.x<b.x+cell&&a.x+cell>b.x&&a.y<b.y+cell&&a.y+cell>b.y;
+    for(const other of s.pieces)if(other.id!==piece.id)for(const cube of moved.cubes)for(const occupied of other.cubes)if(overlaps(cube,occupied))return{ok:false,reason:'overlap'};
+    if(pieceOverlapsCore(moved))return{ok:false,reason:'core-overlap'};
     const nextPieces=s.pieces.map(p=>p.id===piece.id?moved:p),topologyLosses=topologyBreaksForPieces(nextPieces);
     return{ok:true,tileId,placement:{x,y,z:0,rr},topologyLosses:deepClone(topologyLosses)}
   }
