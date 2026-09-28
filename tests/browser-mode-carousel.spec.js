@@ -40,7 +40,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   expect(Math.min(...trace)).toBeLessThan(-3,'a far release must carry the incoming tile slightly through centre');
   expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
   await expect(page.locator('#modeName')).toHaveText('THE EYES',{timeout:900});
-  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Two Cores · Signal 24');
+  await expect(page.locator('#modeDescription')).toHaveText('1|1 · 2 Cores → 4 · Signal 24');
   await expect(page.locator('#startRun')).toBeEnabled();
 
   await page.evaluate(()=>window.__monoidModes.select(6));
@@ -110,6 +110,16 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.snapshot.signal.interaction).toBe('runtime');
   expect(state.snapshot.signal.base).toBe(24);
   expect(state.snapshot.signal.max).toBe(24);
+  expect(new Set(state.cores.map(core=>core.archetype)).size).toBe(2);
+  const coreAccessibility=await page.locator('#board .coreNode').evaluateAll(nodes=>nodes.map(node=>({hidden:node.getAttribute('aria-hidden'),role:node.getAttribute('role'),tabIndex:node.tabIndex})));
+  expect(coreAccessibility.every(core=>core.hidden===null&&core.role==='button'&&core.tabIndex===0)).toBe(true);
+  const firstCore=page.locator('#board .coreNode').first(),coreBox=await firstCore.boundingBox();expect(coreBox).toBeTruthy();
+  await page.mouse.move(coreBox.x+coreBox.width/2,coreBox.y+coreBox.height/2);await page.mouse.down();await page.waitForTimeout(600);await page.mouse.up();
+  await expect(page.locator('#overlayTitle')).toHaveText(/^(RELAY|RESERVOIR|DISTRIBUTOR|CONDUCTOR) · I$/);
+  await expect(page.locator('#overlayBody')).toContainText('LEAD Ability');
+  await expect(page.locator('#overlayBody')).toContainText('LEAD · first Core reached');
+  await expect(page.locator('#overlayBody')).toContainText('New Cores appear at Stages 4 and 7');
+  await page.locator('#overlayPrimary').click();
   const placementSafety=await page.evaluate(()=>{
     const game=window.__monoidGame,E=window.IterionEngine,s=game.state();let checked=0,overlaps=0;
     s.hand.forEach((tile,index)=>{if(!tile)return;for(const candidate of game.candidatesForIndex(index)){const piece=E.pieceFrom(tile,candidate.x,candidate.y,0,candidate.rr,-1);piece.tile={...tile};checked++;if(game.coreShadowTelemetry([piece]).overlapTileIds.length)overlaps++}});
