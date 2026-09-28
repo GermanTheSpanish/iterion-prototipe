@@ -196,13 +196,27 @@ function createGame(E,opts={}){
     const count=1+(coreHash(seed,index,7)%4);
     return CORE_SIDES.map((side,order)=>({side,rank:coreHash(seed,index,20+order)})).sort((a,b)=>a.rank-b.rank||CORE_SIDES.indexOf(a.side)-CORE_SIDES.indexOf(b.side)).slice(0,count).map(x=>x.side)
   }
+  function corePortsForArchetype(seed,index,archetype,existing=null){
+    const ports=[...new Set(Array.isArray(existing)?existing:corePortsFor(seed,index))].filter(side=>CORE_SIDES.includes(side));
+    if(archetype==='relay'&&ports.length<2){
+      const missing=CORE_SIDES.filter(side=>!ports.includes(side)).map((side,order)=>({side,rank:coreHash(seed,index,61+order)})).sort((a,b)=>a.rank-b.rank||CORE_SIDES.indexOf(a.side)-CORE_SIDES.indexOf(b.side));
+      while(ports.length<2&&missing.length)ports.push(missing.shift().side)
+    }
+    return ports
+  }
+  function normalizeLegacyCorePorts(reason='restore'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||!Array.isArray(s.cores))return[];
+    const changed=[];
+    s.cores=s.cores.map((core,index)=>{const ports=corePortsForArchetype(s.seed||0,index,core.archetype,core.ports);if(ports.join('')===(core.ports||[]).join(''))return core;changed.push({coreId:core.id,from:[...(core.ports||[])],to:[...ports]});return{...core,ports}});
+    if(changed.length)s.events.push({type:'core-port-migrate',reason,cores:deepClone(changed)});return changed
+  }
   function coreLayoutForMode(mode=s.gameMode,seed=s.seed){
     if(canonicalGameMode(mode)!=='eyes')return[];
     const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),x=Math.floor((bs.G-size)/2),topY=Math.max(2,Math.floor(bs.H*.25)-Math.floor(size/2)),bottomY=Math.min(bs.H-size-2,bs.H-topY-size);
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,99)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,99)%(southPool.length||archetypes.length)];
     return[
-      {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsFor(seed,0),archetype:northArchetype,level:1},
-      {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsFor(seed,1),archetype:southArchetype,level:1}
+      {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsForArchetype(seed,0,northArchetype),archetype:northArchetype,level:1},
+      {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsForArchetype(seed,1,southArchetype),archetype:southArchetype,level:1}
     ]
   }
 
@@ -268,7 +282,7 @@ function createGame(E,opts={}){
     if(canonicalGameMode(s.gameMode)!=='eyes'||(s.cores?.length||0)>=Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4))return null;
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],used=new Set((s.cores||[]).map(core=>core.archetype)),missing=archetypes.filter(id=>!used.has(id)),pool=missing.length?missing:archetypes,index=(s.cores?.length||0),archetype=pool[coreHash(s.seed||0,stage+index,151)%pool.length],slot=index%2===0?'east':'west',size=Math.max(1,Number(E.S)||2),position=coreCandidatePosition(slot,size);
     if(!position){s.events.push({type:'core-progress-blocked',stage,reason,action:'discover',slot});return null}
-    const core={id:`core-eyes-${slot}`,slot,x:position.x,y:position.y,size,ports:corePortsFor(s.seed||0,stage+index),archetype,level:1};
+    const core={id:`core-eyes-${slot}`,slot,x:position.x,y:position.y,size,ports:corePortsForArchetype(s.seed||0,stage+index,archetype),archetype,level:1};
     s.cores.push(core);s.events.push({type:'core-discover',stage,reason,core:deepClone(core),recharge:coreRechargeValue(core)});return core
   }
   function upgradeCore(stage,reason='stage'){
@@ -1404,7 +1418,7 @@ function createGame(E,opts={}){
     if(['sequence','complement','relay','coupler'].includes(s.pendingModPlacement?.mod)){s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none'}ensureShopTileOffers();
     const desiredHandSize=handSizeForRound();if(Array.isArray(s.hand)&&s.hand.length>desiredHandSize){const overflow=s.hand.slice(desiredHandSize).filter(Boolean);s.hand=s.hand.slice(0,desiredHandSize);if(!Array.isArray(s.reserve))s.reserve=[];s.reserve.push(...overflow)}
     const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
-    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});syncCoreProgressToStage(stageIndex()+1,'restore');pruneInactiveTopologyMods({record:false});
+    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);normalizeLegacyCorePorts('restore');const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});syncCoreProgressToStage(stageIndex()+1,'restore');pruneInactiveTopologyMods({record:false});
     if(!s.ouroborosMode&&(s.setGeneration||1)>=maxSetGeneration()&&availableTileCount()===0&&!s.hand.some(Boolean)&&!s.reserve.length)activateOuroboros('restore');
     return true
   }
