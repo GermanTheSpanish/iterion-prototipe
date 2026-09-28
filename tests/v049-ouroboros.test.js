@@ -27,7 +27,10 @@ function readyOuroboros(seed=4901){
   const{game,s}=readyOuroboros(4902),piece=s.pieces.find(p=>p.tile.id==='d2-3'),pieceId=piece.id;
   const isolated=game.ouroborosPlacementPreview('d2-3',{x:12,y:16,rr:0});assert.equal(isolated.ok,true,'Ouroboros may create a disconnected island');
   const moved=game.moveOuroborosTile('d2-3',isolated.placement);assert.equal(moved.ok,true);assert.equal(s.pieces.find(p=>p.tile.id==='d2-3').id,pieceId,'physical piece ID persists');
-  const mismatch=game.ouroborosPlacementPreview('d3-4',{x:10,y:8,rr:0});assert.equal(mismatch.ok,false);assert.equal(mismatch.reason,'value-mismatch','touching dominoes still require matching values');
+  const mismatch=game.ouroborosPlacementPreview('d3-4',{x:10,y:8,rr:0});assert.equal(mismatch.ok,true,'Ouroboros allows mismatched touching values during rebuild');
+  const rebuilt=game.moveOuroborosTile('d3-4',mismatch.placement);assert.equal(rebuilt.ok,true);
+  const overlap=game.ouroborosPlacementPreview('d3-4',{x:6,y:8,rr:0});assert.equal(overlap.ok,false);assert.equal(overlap.reason,'overlap','physical dominoes still cannot occupy the same space');
+  const bounds=game.ouroborosPlacementPreview('d3-4',{x:17,y:8,rr:0});assert.equal(bounds.ok,false);assert.equal(bounds.reason,'bounds','rebuild stays inside the board');
 }
 {
   const{game,s}=readyOuroboros(4903),tile=s.set.find(t=>t.id==='d2-3');tile.generation=3;tile.powerMultiplier=3;tile.upgrade=2;s.pieces.find(p=>p.tile.id===tile.id).tile={...tile};s.bankTileId=tile.id;s.circuitRanks[tile.id]=4;s.consumables.undo=1;
