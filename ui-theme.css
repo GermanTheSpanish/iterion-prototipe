@@ -131,13 +131,13 @@ body[data-stage-round="3"]:not(.endlessPalette){--bg:#cacac2;--paper:#eaeae3;--p
 body.endlessPalette{--bg:#171716;--paper:#20201e;--paper2:#292926;--ink:#f4f4ee;--muted:#aaa9a1;--line:#41413c;color-scheme:dark}
 body.endlessPalette[data-stage-round="2"]{--bg:#0f0f0e;--paper:#191918;--paper2:#222220}
 body.endlessPalette[data-stage-round="3"]{--bg:#080808;--paper:#121211;--paper2:#1b1b19}
-body.infinitePalette{--bg:#350b09;--paper:#43100d;--paper2:#551713;--ink:#f7eee8;--muted:#c8aaa3;--line:#6f2a24;color-scheme:dark}
-body.infinitePalette[data-stage-round="2"]{--bg:#2c0807;--paper:#3b0d0b;--paper2:#4a120f}
-body.infinitePalette[data-stage-round="3"]{--bg:#230605;--paper:#320a08;--paper2:#40100d}
+body.infinitePalette,body.ouroborosPalette{--bg:#350b09;--paper:#43100d;--paper2:#551713;--ink:#f7eee8;--muted:#c8aaa3;--line:#6f2a24;color-scheme:dark}
+body.infinitePalette[data-stage-round="2"],body.ouroborosPalette[data-stage-round="2"]{--bg:#2c0807;--paper:#3b0d0b;--paper2:#4a120f}
+body.infinitePalette[data-stage-round="3"],body.ouroborosPalette[data-stage-round="3"]{--bg:#230605;--paper:#320a08;--paper2:#40100d}
 html,body,.app{transition:background-color .35s ease,color .35s ease}
 body.endlessPalette .modal,body.endlessPalette .gameMenu,body.endlessPalette .runlog{background:var(--paper);color:var(--ink);border-color:var(--line)}
 body.endlessPalette .overlay,body.endlessPalette .gameMenu::backdrop{background:rgba(8,8,8,.9)}
-body.infinitePalette .overlay,body.infinitePalette .gameMenu::backdrop{background:rgba(35,6,5,.92)}
+body.infinitePalette .overlay,body.infinitePalette .gameMenu::backdrop,body.ouroborosPalette .overlay,body.ouroborosPalette .gameMenu::backdrop{background:rgba(35,6,5,.92)}
 body.endlessPalette .marketDesc,body.endlessPalette .marketOffer,body.endlessPalette .randomOffer,body.endlessPalette .shopTileOffer{background:var(--paper2);border-color:var(--line)}
 body.endlessPalette .commerceModal .shopBuy{background:#e5e3dc;color:#171715;border-color:#e5e3dc}
 body.endlessPalette .commerceModal .shopBuy:disabled{background:#8a8983;color:#2d2d2a;border-color:#8a8983;opacity:.62}
@@ -410,6 +410,8 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .corePortU{top:-2px}.corePortD{bottom:-2px}.corePortL{left:-2px}.corePortR{right:-2px}
 .coreNode.coreActivated{z-index:5;outline:2px solid #151515;outline-offset:2px;animation:coreActivationPulse 760ms ease-out both}
 .coreNode.coreActivated::after{transform:translate(-50%,-50%) scale(1.45)}
+.coreNode.coreDiscovered{z-index:7;outline:3px solid #151515;outline-offset:4px;animation:coreDiscoveryPulse 1.8s ease-out both}
+@keyframes coreDiscoveryPulse{0%{transform:scale(.78);box-shadow:0 0 0 0 rgba(21,21,21,.62)}35%{transform:scale(1.16);box-shadow:0 0 0 10px rgba(21,21,21,.18)}100%{transform:scale(1);box-shadow:0 0 0 18px rgba(21,21,21,0)}}
 .coreActivationFx{font-size:10px!important;font-weight:800;letter-spacing:.04em;background:#fff;padding:3px 5px;border:1px solid #151515}
 .signalDepletedFx{font-size:11px!important;font-weight:800;letter-spacing:.05em;background:#151515;color:#fff;padding:3px 5px}
 @keyframes coreActivationPulse{0%{transform:scale(.9)}38%{transform:scale(1.08)}100%{transform:scale(1)}}
