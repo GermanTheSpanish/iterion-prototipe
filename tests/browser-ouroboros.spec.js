@@ -45,7 +45,7 @@ test('Ouroboros turns the machine into the playable surface on mobile',async({pa
   expect(boardBox).toBeTruthy();expect(pieceBox).toBeTruthy();expect(await movingTile.evaluate(el=>getComputedStyle(el).touchAction)).toBe('none');
   const boardSize=await page.evaluate(()=>window.IterionEngine.getBoardSize()),startX=pieceBox.x+pieceBox.width/2,startY=pieceBox.y+pieceBox.height/2,targetX=startX+(dragPlan.to.x-dragPlan.from.x)/boardSize.G*boardBox.width,targetY=startY+(dragPlan.to.y-dragPlan.from.y)/boardSize.H*boardBox.height;
   await page.mouse.move(startX,startY);await page.mouse.down();await page.mouse.move(targetX,targetY);await page.mouse.up();
-  await expect.poll(()=>page.evaluate(tileId=>{const p=window.__monoidGame.state().pieces.find(piece=>piece.tile.id===tileId);return{x:p.cubes[0].x,y:p.cubes[0].y}},dragPlan.tileId)).toEqual(dragPlan.to);
+  await expect.poll(()=>page.evaluate(tileId=>{const p=window.__monoidGame.state().pieces.find(piece=>piece.tile.id===tileId),x=p.cubes[0].x,y=p.cubes[0].y;return{x:x===0?0:x,y:y===0?0:y}},dragPlan.tileId)).toEqual(dragPlan.to);
   expect(await page.evaluate(tileId=>window.__monoidGame.state().events.some(event=>event.type==='ouroboros-rebuild'&&event.tileId===tileId),dragPlan.tileId)).toBe(true);
   const first=page.locator('#board .piece').first();await first.click();await expect(first).toHaveClass(/ouroborosSelected/);
   const before=await page.evaluate(()=>window.__monoidGame.state().roundTurn);await page.locator('#hand .ouroborosFire').click();await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().running),{timeout:15000}).toBe(false);
