@@ -196,13 +196,37 @@ function createGame(E,opts={}){
     const count=1+(coreHash(seed,index,7)%4);
     return CORE_SIDES.map((side,order)=>({side,rank:coreHash(seed,index,20+order)})).sort((a,b)=>a.rank-b.rank||CORE_SIDES.indexOf(a.side)-CORE_SIDES.indexOf(b.side)).slice(0,count).map(x=>x.side)
   }
+  function corePortsForArchetype(seed,index,archetype,existing=null){
+    const ports=[...new Set(Array.isArray(existing)?existing:corePortsFor(seed,index))].filter(side=>CORE_SIDES.includes(side));
+    if(archetype==='relay'&&ports.length<2){
+      const missing=CORE_SIDES.filter(side=>!ports.includes(side)).map((side,order)=>({side,rank:coreHash(seed,index,61+order)})).sort((a,b)=>a.rank-b.rank||CORE_SIDES.indexOf(a.side)-CORE_SIDES.indexOf(b.side));
+      while(ports.length<2&&missing.length)ports.push(missing.shift().side)
+    }
+    return ports
+  }
+  function normalizeLegacyCoreArchetypes(reason='restore'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||!Array.isArray(s.cores)||s.cores.length<2||(s.coreProgressMilestones||[]).length)return[];
+    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],seen=new Set(),changed=[];
+    s.cores=s.cores.map((core,index)=>{
+      let archetype=core.archetype;if(!archetypes.includes(archetype))archetype=archetypes[coreHash(s.seed||0,index,197)%archetypes.length];
+      if(seen.has(archetype)){const missing=archetypes.filter(id=>!seen.has(id));if(missing.length)archetype=missing[coreHash(s.seed||0,index,199)%missing.length]}
+      seen.add(archetype);if(archetype===core.archetype)return core;changed.push({coreId:core.id,from:core.archetype||null,to:archetype});return{...core,archetype}
+    });
+    if(changed.length)s.events.push({type:'core-archetype-migrate',reason,cores:deepClone(changed)});return changed
+  }
+  function normalizeLegacyCorePorts(reason='restore'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||!Array.isArray(s.cores))return[];
+    const changed=[];
+    s.cores=s.cores.map((core,index)=>{const ports=corePortsForArchetype(s.seed||0,index,core.archetype,core.ports);if(ports.join('')===(core.ports||[]).join(''))return core;changed.push({coreId:core.id,from:[...(core.ports||[])],to:[...ports]});return{...core,ports}});
+    if(changed.length)s.events.push({type:'core-port-migrate',reason,cores:deepClone(changed)});return changed
+  }
   function coreLayoutForMode(mode=s.gameMode,seed=s.seed){
     if(canonicalGameMode(mode)!=='eyes')return[];
     const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),x=Math.floor((bs.G-size)/2),topY=Math.max(2,Math.floor(bs.H*.25)-Math.floor(size/2)),bottomY=Math.min(bs.H-size-2,bs.H-topY-size);
-    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'];
+    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,99)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,99)%(southPool.length||archetypes.length)];
     return[
-      {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsFor(seed,0),archetype:archetypes[coreHash(seed,0,99)%archetypes.length],level:1},
-      {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsFor(seed,1),archetype:archetypes[coreHash(seed,1,99)%archetypes.length],level:1}
+      {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsForArchetype(seed,0,northArchetype),archetype:northArchetype,level:1},
+      {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsForArchetype(seed,1,southArchetype),archetype:southArchetype,level:1}
     ]
   }
 
@@ -238,6 +262,53 @@ function createGame(E,opts={}){
     }
     if(moved.length)s.cores=next;
     return moved
+  }
+
+  const CORE_LEVEL_ROMAN=Object.freeze(['I','II','III','IV','V']);
+  function coreLevelRoman(level){return CORE_LEVEL_ROMAN[Math.max(0,Math.min(CORE_LEVEL_ROMAN.length-1,(Number(level)||1)-1))]||'I'}
+  function coreRechargeValue(core,{lead=false}={}){
+    const level=Math.max(1,Math.min(Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5),Number(core?.level)||1)),base=Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24)+(level-1)*Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4);
+    return base+(lead&&core?.archetype==='reservoir'?Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8):0)
+  }
+  function coreProgressKeys(){if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];return new Set(s.coreProgressMilestones)}
+  function coreCandidatePosition(slot,size){
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},cell=Math.max(1,Number(E.S)||2),margin=cell,centerY=Math.floor((board.H-size)/2),preferred=slot==='east'?{x:board.G-size-margin,y:centerY}:slot==='west'?{x:margin,y:centerY}:{x:Math.floor((board.G-size)/2),y:centerY},existing=s.cores||[];
+    const fits=candidate=>{
+      if(candidate.x<0||candidate.y<0||candidate.x+size>board.G||candidate.y+size>board.H)return false;
+      if(s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate))))return false;
+      if(existing.some(core=>coreRectsOverlap(candidate,core)))return false;
+      return true
+    };
+    const candidates=[];
+    for(let y=margin;y<=board.H-size-margin;y++)for(let x=margin;x<=board.G-size-margin;x++){
+      const candidate={x,y,size};if(!fits(candidate))continue;
+      const distance=Math.abs(x-preferred.x)+Math.abs(y-preferred.y),touches=coreShadowTelemetry(s.pieces,[{id:'candidate',slot,x,y,size,ports:CORE_SIDES,archetype:'relay',level:1}]).cores[0]?.connectedTileIds?.length||0;
+      candidates.push({candidate,distance,touches,hash:coreHash(s.seed||0,x+y*board.G,113)})
+    }
+    candidates.sort((a,b)=>a.touches-b.touches||a.distance-b.distance||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);
+    return candidates[0]?.candidate||null
+  }
+  function discoverCore(stage,reason='stage'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||(s.cores?.length||0)>=Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4))return null;
+    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],used=new Set((s.cores||[]).map(core=>core.archetype)),missing=archetypes.filter(id=>!used.has(id)),pool=missing.length?missing:archetypes,index=(s.cores?.length||0),archetype=pool[coreHash(s.seed||0,stage+index,151)%pool.length],slot=index%2===0?'east':'west',size=Math.max(1,Number(E.S)||2),position=coreCandidatePosition(slot,size);
+    if(!position){s.events.push({type:'core-progress-blocked',stage,reason,action:'discover',slot});return null}
+    const core={id:`core-eyes-${slot}`,slot,x:position.x,y:position.y,size,ports:corePortsForArchetype(s.seed||0,stage+index,archetype),archetype,level:1};
+    s.cores.push(core);s.events.push({type:'core-discover',stage,reason,core:deepClone(core),recharge:coreRechargeValue(core)});return core
+  }
+  function upgradeCore(stage,reason='stage'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||!s.cores?.length)return null;
+    const maxLevel=Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5),eligible=s.cores.filter(core=>(Number(core.level)||1)<maxLevel).sort((a,b)=>String(a.id).localeCompare(String(b.id)));if(!eligible.length)return null;
+    const minLevel=Math.min(...eligible.map(core=>Math.max(1,Number(core.level)||1))),lowest=eligible.filter(core=>(Number(core.level)||1)===minLevel),core=lowest[coreHash(s.seed||0,stage,173)%lowest.length],before=Math.max(1,Number(core.level)||1);core.level=Math.min(maxLevel,before+1);
+    s.events.push({type:'core-upgrade',stage,reason,coreId:core.id,archetype:core.archetype,before,after:core.level,recharge:coreRechargeValue(core)});return core
+  }
+  function syncCoreProgressToStage(stageNumber=stageIndex()+1,reason='stage'){
+    if(canonicalGameMode(s.gameMode)!=='eyes')return[];
+    if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];
+    const processed=coreProgressKeys(),changes=[],discoverStages=(cfg.CORE_DISCOVERY_STAGES||[4,7]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+    for(const stage of discoverStages){const key=`discover:${stage}`;if(stage>stageNumber||processed.has(key))continue;const change=discoverCore(stage,reason);if(change||(s.cores?.length||0)>=Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4)){processed.add(key);changes.push({type:'discover',stage,core:change})}}
+    const start=Math.max(1,Number(cfg.CORE_UPGRADE_START_STAGE)||10),interval=Math.max(1,Number(cfg.CORE_UPGRADE_STAGE_INTERVAL)||3);
+    for(let stage=start;stage<=stageNumber;stage+=interval){const key=`upgrade:${stage}`;if(processed.has(key))continue;const change=upgradeCore(stage,reason);processed.add(key);changes.push({type:'upgrade',stage,core:change})}
+    s.coreProgressMilestones=[...processed].sort((a,b)=>{const [ak,av]=a.split(':'),[bk,bv]=b.split(':');return Number(av)-Number(bv)||ak.localeCompare(bk)});return changes
   }
 
   function availableTileCount(){
@@ -359,15 +430,16 @@ function createGame(E,opts={}){
     p.tile=tile;return p
   }
   function ensureBoardForStage(){
-    const [newG,newH]=boardSizeForStage(),old=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H};
-    if(old.G===newG&&old.H===newH){s.boardStage=stageIndex();return}
+    const [newG,newH]=boardSizeForStage(),old=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},nextBoardStage=stageIndex(),stageNumber=nextBoardStage+1;
+    if(old.G===newG&&old.H===newH){s.boardStage=nextBoardStage;syncCoreProgressToStage(stageNumber,'stage');return}
     const base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24];
     const dx=Math.floor((newG-base[0])/2)-Math.floor((old.G-base[0])/2),dy=Math.floor((newH-base[1])/2)-Math.floor((old.H-base[1])/2);
     E.setBoardSize(newG,newH);
     if(Array.isArray(s.cores)&&s.cores.length&&(dx||dy))s.cores=s.cores.map(core=>({...core,x:core.x+dx,y:core.y+dy}));
     if(s.pieces.length)s.pieces=s.pieces.map(p=>rebuildPiece(p,dx,dy));
-    s.boardStage=stageIndex();
-    s.events.push({type:'board-expand',stage:s.boardStage+1,from:[old.G,old.H],to:[newG,newH],offset:[dx,dy]})
+    s.boardStage=nextBoardStage;
+    s.events.push({type:'board-expand',stage:s.boardStage+1,from:[old.G,old.H],to:[newG,newH],offset:[dx,dy]});
+    syncCoreProgressToStage(stageNumber,'stage')
   }
 
   function startRound(first=false){
@@ -394,7 +466,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[]};
+    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[],coreProgressMilestones:[]};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
     startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});return s
   }
@@ -603,12 +675,15 @@ function createGame(E,opts={}){
 
   function signalOptionsForPieces(pieces,trigger){
     const doubleDoublePieceId=pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,doubleEchoPieceId=pieces.find(x=>x.tile.id===s.doubleEchoTileId)?.id||null,tripleDoublePieceId=pieces.find(x=>x.tile.id===s.tripleDoubleTileId)?.id||null,diodePieceId=pieces.find(x=>x.tile.id===s.diodeTileId)?.id||null,returnPieceId=pieces.find(x=>x.tile.id===s.returnTileId)?.id||null,mergePieceId=pieces.find(x=>x.tile.id===s.mergeTileId)?.id||null,hinge=hingeOptionForPieces(pieces);
-    const signalEnabled=canonicalGameMode(s.gameMode)==='eyes'&&cfg.CORE_SIGNAL_ENABLED!==false,signalCoreIdsByPiece=new Map();
+    const signalEnabled=canonicalGameMode(s.gameMode)==='eyes'&&cfg.CORE_SIGNAL_ENABLED!==false,signalCoreIdsByPiece=new Map(),signalCoreById=new Map();
     if(signalEnabled){
-      const pieceIdByTileId=new Map(pieces.map(piece=>[piece.tile?.id,piece.id])),coreTelemetry=coreShadowTelemetry(pieces);
-      for(const core of coreTelemetry.cores||[])for(const tileId of core.connectedTileIds||[]){const pieceId=pieceIdByTileId.get(tileId);if(pieceId==null)continue;if(!signalCoreIdsByPiece.has(pieceId))signalCoreIdsByPiece.set(pieceId,[]);const ids=signalCoreIdsByPiece.get(pieceId);if(!ids.includes(core.id))ids.push(core.id)}
+      const coreTelemetry=coreShadowTelemetry(pieces);
+      for(const core of coreTelemetry.cores||[]){
+        signalCoreById.set(core.id,{id:core.id,archetype:core.archetype,level:core.level||1,links:(core.connectedLinks||[]).map(link=>({pieceId:link.pieceId,half:link.half,port:link.port}))});
+        for(const link of core.connectedLinks||[]){const pieceId=link.pieceId;if(pieceId==null)continue;if(!signalCoreIdsByPiece.has(pieceId))signalCoreIdsByPiece.set(pieceId,[]);const ids=signalCoreIdsByPiece.get(pieceId);if(!ids.includes(core.id))ids.push(core.id)}
+      }
     }
-    return{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED,signalEnabled,signalBase:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),signalMax:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),signalCoreIdsByPiece}
+    return{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED,signalEnabled,signalBase:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),signalMax:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),signalCoreIdsByPiece,signalCoreById,coreLevelStep:Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4),reservoirBonus:Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8)}
   }
 
   function topologyTelemetry(pieces=s.pieces){
@@ -628,18 +703,19 @@ function createGame(E,opts={}){
     for(const e of physicalOps)if(e.piece!=null)visits.set(e.piece,(visits.get(e.piece)||0)+1);
     const uniqueVisitedPieceCount=visits.size,reentryOperationCount=[...visits.values()].reduce((sum,n)=>sum+Math.max(0,n-1),0),revisitedPieceCount=[...visits.values()].filter(n=>n>1).length;
     const reboundCount=events.filter(e=>e.type==='rebound').length,zeroPortCount=events.filter(e=>e.type==='zero-port').length;
-    return{operationCount:ops.length,physicalOperationCount:physicalOps.length,tollRepeatCount:ops.filter(e=>e.tollRepeat).length,uniqueVisitedPieceCount,reentryOperationCount,revisitedPieceCount,revisitRatio:physicalOps.length?reentryOperationCount/physicalOps.length:0,visitedMachineFraction:pieces.length?uniqueVisitedPieceCount/pieces.length:0,retraceMoveCount:events.filter(e=>e.type==='move'&&e.retrace).length,reverseOperationCount:ops.filter(e=>e.reverse).length,reboundCount,zeroPortCount,zeroReturnCount:reboundCount+zeroPortCount,forkCount:events.filter(e=>e.type==='signal-fork').length,diodeBlockCount:events.filter(e=>e.type==='diode-block').length,returnCount:events.filter(e=>e.type==='return').length,mergeCount:events.filter(e=>e.type==='signal-merge').length,hingeMoveCount:events.filter(e=>e.type==='hinge-move').length,hingeBlockedCount:events.filter(e=>e.type==='hinge-blocked').length,powerActivationCount:ops.filter(e=>(e.powerMultiplier||1)>1).length,modActivationCount:ops.filter(e=>(e.modMultiplier||1)>1).length,coreActivationCount:events.filter(e=>e.type==='core-activate').length,signalDepleted:events.some(e=>e.type==='signal-depleted'),signalRemaining:sim?.signalRuntime?.remaining??null}
+    return{operationCount:ops.length,physicalOperationCount:physicalOps.length,tollRepeatCount:ops.filter(e=>e.tollRepeat).length,uniqueVisitedPieceCount,reentryOperationCount,revisitedPieceCount,revisitRatio:physicalOps.length?reentryOperationCount/physicalOps.length:0,visitedMachineFraction:pieces.length?uniqueVisitedPieceCount/pieces.length:0,retraceMoveCount:events.filter(e=>e.type==='move'&&e.retrace).length,reverseOperationCount:ops.filter(e=>e.reverse).length,reboundCount,zeroPortCount,zeroReturnCount:reboundCount+zeroPortCount,forkCount:events.filter(e=>e.type==='signal-fork').length,diodeBlockCount:events.filter(e=>e.type==='diode-block').length,returnCount:events.filter(e=>e.type==='return').length,mergeCount:events.filter(e=>e.type==='signal-merge').length,hingeMoveCount:events.filter(e=>e.type==='hinge-move').length,hingeBlockedCount:events.filter(e=>e.type==='hinge-blocked').length,powerActivationCount:ops.filter(e=>(e.powerMultiplier||1)>1).length,modActivationCount:ops.filter(e=>(e.modMultiplier||1)>1).length,coreActivationCount:events.filter(e=>e.type==='core-activate').length,leadCoreId:sim?.signalRuntime?.leadCoreId||null,leadCoreArchetype:sim?.signalRuntime?.leadCoreArchetype||null,coreRelayCount:events.filter(e=>e.type==='core-relay').length,coreDistributorSplitCount:events.filter(e=>e.type==='signal-fork'&&e.distributorCoreId).length,coreConductorFreeVisitCount:ops.filter(e=>e.conductorCoreId).length,coreReservoirLead:events.some(e=>e.type==='core-activate'&&e.order===1&&e.archetype==='reservoir'),signalDepleted:events.some(e=>e.type==='signal-depleted'),signalRemaining:sim?.signalRuntime?.remaining??null}
   }
 
   function signalShadowTelemetry(sim){
     const base=Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max=Math.max(base,Number(cfg.CORE_SIGNAL_MAX)||base),enabled=canonicalGameMode(s.gameMode)==='eyes'&&cfg.CORE_SIGNAL_ENABLED!==false,events=sim?.events||[];
-    const ops=events.filter(e=>e.type==='op'&&!e.tollRepeat),activations=events.filter(e=>e.type==='core-activate').map(e=>({coreId:e.coreId,pieceId:e.piece,order:e.order,role:e.role||null,lead:!!e.lead,last:!!e.last,beforeSignal:e.beforeSignal,afterSignal:e.afterSignal}));
+    const ops=events.filter(e=>e.type==='op'&&!e.tollRepeat),activations=events.filter(e=>e.type==='core-activate').map(e=>({coreId:e.coreId,pieceId:e.piece,order:e.order,role:e.role||null,lead:!!e.lead,last:!!e.last,archetype:e.archetype||null,level:Math.max(1,Number(e.level)||1),abilityApplied:e.abilityApplied||null,beforeSignal:e.beforeSignal,afterSignal:e.afterSignal}));
     const depleted=events.find(e=>e.type==='signal-depleted')||null,remaining=Number.isFinite(sim?.signalRuntime?.remaining)?sim.signalRuntime.remaining:(ops.length&&Number.isFinite(ops.at(-1)?.signalAfter)?ops.at(-1).signalAfter:base);
     const levels=[base,...ops.map(e=>e.signalAfter).filter(Number.isFinite),...activations.flatMap(e=>[e.beforeSignal,e.afterSignal]).filter(Number.isFinite),depleted?.remaining].filter(Number.isFinite);
     const splits=events.filter(e=>e.type==='signal-fork').map(e=>({pieceId:e.piece,splitKind:e.splitKind||'double',remaining:e.signalRemaining,budgets:Array.isArray(e.signalBudgets)?[...e.signalBudgets]:[]}));
     const branchEnds=events.filter(e=>e.type==='signal-end').map(e=>({fork:e.fork,arm:e.arm,remaining:e.signalRemaining}));
     const merges=events.filter(e=>e.type==='signal-merge').map(e=>({fork:e.fork,pieceId:e.piece,remaining:e.signalRemaining,policy:'max-remaining-runtime'}));
-    return{enabled,interaction:enabled?'runtime':'off',baseSignal:base,maxSignal:max,tileFirstVisitCost:1,retraceCost:0,chargedVisits:ops.filter(e=>e.signalCost===1).length,uniqueVisitedPieceCount:new Set(ops.map(e=>e.piece)).size,minRemaining:levels.length?Math.min(...levels):base,remaining,wouldStop:!!depleted,stopped:!!depleted,firstStop:depleted?{pieceId:depleted.piece,remaining:depleted.remaining}:null,activatedCoreIds:activations.map(e=>e.coreId),activations,splits,branchEnds,merges}
+    const relayEvents=events.filter(e=>e.type==='core-relay'),distributorSplits=events.filter(e=>e.type==='signal-fork'&&e.distributorCoreId),conductorFreeVisits=ops.filter(e=>e.conductorCoreId);
+    return{enabled,interaction:enabled?'runtime':'off',baseSignal:base,maxSignal:max,tileFirstVisitCost:1,retraceCost:0,chargedVisits:ops.filter(e=>e.signalCost===1).length,uniqueVisitedPieceCount:new Set(ops.map(e=>e.piece)).size,minRemaining:levels.length?Math.min(...levels):base,remaining,wouldStop:!!depleted,stopped:!!depleted,firstStop:depleted?{pieceId:depleted.piece,remaining:depleted.remaining}:null,activatedCoreIds:activations.map(e=>e.coreId),leadCoreId:sim?.signalRuntime?.leadCoreId||activations[0]?.coreId||null,leadCoreArchetype:sim?.signalRuntime?.leadCoreArchetype||activations[0]?.archetype||null,activations,effects:{relayCount:relayEvents.length,distributorSplitCount:distributorSplits.length,conductorFreeVisits:conductorFreeVisits.length,reservoirLead:activations.some(e=>e.lead&&e.archetype==='reservoir')},splits,branchEnds,merges}
   }
 
   function coreShadowTelemetry(pieces=s.pieces,cores=s.cores){
@@ -653,15 +729,16 @@ function createGame(E,opts={}){
       return false
     };
     const details=items.map(core=>{
-      const overlapping=[],connected=[],connectedPorts=new Set();
+      const overlapping=[],connected=[],connectedPorts=new Set(),connectedLinks=[],linkKeys=new Set();
       for(const piece of pieces||[]){
         const hit=(piece.cubes||[]).some(cube=>overlap({x:core.x,y:core.y,w:core.size,h:core.size},{x:cube.x,y:cube.y,w:cell,h:cell}));
         if(hit)overlapping.push(piece.tile?.id||piece.id);
         let touches=false;
-        for(const cube of piece.cubes||[])for(const side of core.ports||[])if(portTouch(core,cube,side)){connectedPorts.add(side);touches=true}
+        for(const cube of piece.cubes||[])for(const side of core.ports||[])if(portTouch(core,cube,side)){connectedPorts.add(side);touches=true;const key=`${piece.id}:${cube.half}:${side}`;if(!linkKeys.has(key)){linkKeys.add(key);connectedLinks.push({pieceId:piece.id,tileId:piece.tile?.id||null,half:cube.half,port:side})}}
         if(touches)connected.push(piece.tile?.id||piece.id)
       }
-      return{id:core.id,slot:core.slot,archetype:core.archetype,level:core.level||1,ports:[...(core.ports||[])],connectedPorts:[...connectedPorts],x:core.x,y:core.y,size:core.size,overlapTileIds:[...new Set(overlapping)],connectedTileIds:[...new Set(connected)]}
+      connectedLinks.sort((a,b)=>String(a.port).localeCompare(String(b.port))||a.pieceId-b.pieceId||a.half-b.half);
+      return{id:core.id,slot:core.slot,archetype:core.archetype,level:core.level||1,ports:[...(core.ports||[])],connectedPorts:[...connectedPorts],connectedLinks,x:core.x,y:core.y,size:core.size,overlapTileIds:[...new Set(overlapping)],connectedTileIds:[...new Set(connected)]}
     });
     return{enabled:canonicalGameMode(s.gameMode)==='eyes',interaction:'physical',coreCount:details.length,connectedCoreCount:details.filter(core=>core.connectedTileIds.length).length,overlapTileIds:[...new Set(details.flatMap(core=>core.overlapTileIds))],cores:details}
   }
@@ -1218,7 +1295,7 @@ function createGame(E,opts={}){
     const tileById=id=>id?cloneTile(s.set.find(t=>t.id===id)):null,lastSignalEvent=[...(s.events||[])].reverse().find(e=>e?.signal||e?.signalShadow)||null,lastSignal=lastSignalEvent?.signal||lastSignalEvent?.signalShadow||null;
     return{
       circuits:{ranks:{...s.circuitRanks},signatures:[...s.circuitSignatures],pending:deepClone(s.pendingCircuit),tileLimit:circuitTileLimit()},
-      cores:{mode:s.gameMode==='eyes'?'eyes':'none',interaction:s.gameMode==='eyes'?'physical':'none',items:deepClone(s.cores||[]),telemetry:deepClone(coreShadow)},
+      cores:{mode:s.gameMode==='eyes'?'eyes':'none',interaction:s.gameMode==='eyes'?'physical':'none',items:deepClone(s.cores||[]),telemetry:deepClone(coreShadow),progressMilestones:[...(s.coreProgressMilestones||[])],maxPhysical:Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4),maxLevel:Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5)},
       signal:{enabled:s.gameMode==='eyes'&&cfg.CORE_SIGNAL_ENABLED!==false,shadowEnabled:false,interaction:s.gameMode==='eyes'?'runtime':'off',base:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),last:deepClone(lastSignal)},
       powerSets:{generation:s.setGeneration||1,powerMultiplier:generationPower(s.setGeneration||1),maxGeneration:maxSetGeneration()},
       schema:'iterion.run.v9',gameVersion:cfg.VERSION,engineVersion:cfg.ENGINE_VERSION,gameMode:s.gameMode||'classic',runId:s.runId,seed:s.seed,startedAt:s.startedAt,savedAt:new Date().toISOString(),
@@ -1254,8 +1331,8 @@ function createGame(E,opts={}){
     lines.push(`Current hand: ${hand.map(h=>`#${h.index+1} ${tileText(h.tile)} legal=${h.legalPlacements}`).join(' | ')||'-'}`);
     lines.push(`Recovery: recoverable=${x.recovery.recoverable?'yes':'no'} · undo=${x.recovery.undo?'yes':'no'} · ownedReroll=${x.recovery.ownedReroll?'yes':'no'} · buyReroll=${x.recovery.toolReroll?`yes@${x.recovery.prices.reroll}c`:'no'} · ownedMove=${x.recovery.ownedMove?'yes':'no'} · buyMove=${x.recovery.toolMove?`yes@${x.recovery.prices.move}c`:'no'}`);
     lines.push(`Circuits: ${Object.entries(x.circuits.ranks).map(([id,rank])=>`${id}:C${rank}`).join(',')||'-'} · slots=${Object.keys(x.circuits.ranks).length}/${x.circuits.tileLimit} · discovered=${x.circuits.signatures.length} · pending=${x.circuits.pending?.signature||'-'}`);
-    if(x.cores.mode==='eyes')lines.push(`Cores: THE EYES · physical · ${x.cores.items.map(core=>`${core.id}:${String(core.archetype||'-').toUpperCase()} I ports=${(core.ports||[]).join('')||'-'} @${core.x},${core.y}`).join(' | ')} · connected=${x.cores.telemetry.connectedCoreCount}/${x.cores.telemetry.coreCount} · overlaps=${x.cores.telemetry.overlapTileIds.join(',')||'-'}`);
-    if(x.signal.enabled)lines.push(`Signal: ${x.signal.base}/${x.signal.max}${x.signal.last?` · charged=${x.signal.last.chargedVisits} · remaining=${x.signal.last.remaining} · min=${x.signal.last.minRemaining} · cores=${x.signal.last.activatedCoreIds?.join('>')||'-'} · stopped=${x.signal.last.stopped?'yes':'no'}${x.signal.last.firstStop?` at=${x.signal.last.firstStop.pieceId}`:''}`:' · no moves yet'}`);
+    if(x.cores.mode==='eyes')lines.push(`Cores: THE EYES · physical · ${x.cores.items.map(core=>`${core.id}:${String(core.archetype||'-').toUpperCase()} ${coreLevelRoman(core.level)} ports=${(core.ports||[]).join('')||'-'} @${core.x},${core.y}`).join(' | ')} · connected=${x.cores.telemetry.connectedCoreCount}/${x.cores.telemetry.coreCount} · progress=${x.cores.progressMilestones.join(',')||'-'} · overlaps=${x.cores.telemetry.overlapTileIds.join(',')||'-'}`);
+    if(x.signal.enabled)lines.push(`Signal: ${x.signal.base}/${x.signal.max}${x.signal.last?` · charged=${x.signal.last.chargedVisits} · remaining=${x.signal.last.remaining} · min=${x.signal.last.minRemaining} · lead=${x.signal.last.leadCoreId||'-'}:${String(x.signal.last.leadCoreArchetype||'-').toUpperCase()} · cores=${x.signal.last.activatedCoreIds?.join('>')||'-'} · fx=R${x.signal.last.effects?.relayCount||0}/D${x.signal.last.effects?.distributorSplitCount||0}/C${x.signal.last.effects?.conductorFreeVisits||0}${x.signal.last.effects?.reservoirLead?'/V1':''} · stopped=${x.signal.last.stopped?'yes':'no'}${x.signal.last.firstStop?` at=${x.signal.last.firstStop.pieceId}`:''}`:' · no moves yet'}`);
     for(const v of x.turns){
       if(v.type==='signal-resolution'){const trace=Array.isArray(v.events)?JSON.stringify(v.events):v.traceCompacted?'COMPACTED_AFTER_RESTORE':'-';lines.push(`T${v.move} SIGNAL TREE splits=${v.splitCount} base=${v.baseOutput} selection=${v.selectionOutput??v.baseOutput} trace=${trace}`);continue}
       if(v.type==='power-set'){lines.push(`R${v.round} POWER SET ${v.generation} UNLOCKED size=${v.size} power=x${v.powerMultiplier} source=${v.source}`);continue}
@@ -1288,6 +1365,11 @@ function createGame(E,opts={}){
       if(v.type==='endless-start'){lines.push(`ENDLESS START R${v.nextRound} target=${v.target}`);continue}
       if(v.type==='opening-double'){lines.push(`R1 OPENING DOUBLE [${v.tile.a}|${v.tile.b}]`);continue}
       if(v.type==='board-expand'){lines.push(`STAGE ${v.stage} BOARD ${v.from.join('x')} > ${v.to.join('x')} offset=${v.offset.join(',')}`);continue}
+      if(v.type==='core-discover'){lines.push(`STAGE ${v.stage} CORE DISCOVER ${String(v.core?.archetype||'core').toUpperCase()} I id=${v.core?.id||'-'} ports=${(v.core?.ports||[]).join('')||'-'} @${v.core?.x},${v.core?.y} recharge=${v.recharge} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-upgrade'){lines.push(`STAGE ${v.stage} CORE UPGRADE ${String(v.archetype||'core').toUpperCase()} id=${v.coreId} ${coreLevelRoman(v.before)}>${coreLevelRoman(v.after)} recharge=${v.recharge} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-progress-blocked'){lines.push(`STAGE ${v.stage} CORE PROGRESS BLOCKED action=${v.action||'-'} slot=${v.slot||'-'} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-archetype-migrate'){lines.push(`CORE LEGACY ARCHETYPE MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${String(core.from||'-').toUpperCase()}>${String(core.to||'-').toUpperCase()}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-port-migrate'){lines.push(`CORE LEGACY PORT MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${(core.from||[]).join('')}>${(core.to||[]).join('')}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='stage-start'){lines.push(`STAGE ${v.stage} START R${v.round} coins=${v.coins} inflation=${v.inflation} available=${v.available} board=${v.board.join('x')} freeReroll=${v.freeReroll||0} generation=${v.setGeneration||1}`);continue}
       if(v.type==='shop-scheduled'){lines.push(`R${v.round} NEXT ${v.shop.toUpperCase()}`);continue}
       if(v.type==='shop-open'){lines.push(`R${v.round} ${v.shop.toUpperCase()} OPEN coins=${v.coins} inflation=${v.inflation} available=${v.available}${v.offers?.length?` offers=${v.offers.join(',')}`:''}`);continue}
@@ -1331,7 +1413,7 @@ function createGame(E,opts={}){
   function exportState(){return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:persistedState()}}
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
-    s=deepClone(raw);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(s.gameMode!=='eyes')s.cores=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
+    s=deepClone(raw);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(s.gameMode!=='eyes'){s.cores=[];s.coreProgressMilestones=[]};if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
     const legacyEconomyMods={frame:'broker',frontier:'spend',resonator:'bank',forge:'toll'},legacyFields={frameTileId:'brokerTileId',frontierTileId:'spendTileId',resonatorTileId:'bankTileId',forgeTileId:'tollTileId'};
     for(const [oldField,newField] of Object.entries(legacyFields))if(!s[newField]&&s[oldField])s[newField]=s[oldField];
     if(s.pendingModPlacement?.mod&&legacyEconomyMods[s.pendingModPlacement.mod])s.pendingModPlacement.mod=legacyEconomyMods[s.pendingModPlacement.mod];
@@ -1348,7 +1430,7 @@ function createGame(E,opts={}){
     if(['sequence','complement','relay','coupler'].includes(s.pendingModPlacement?.mod)){s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none'}ensureShopTileOffers();
     const desiredHandSize=handSizeForRound();if(Array.isArray(s.hand)&&s.hand.length>desiredHandSize){const overflow=s.hand.slice(desiredHandSize).filter(Boolean);s.hand=s.hand.slice(0,desiredHandSize);if(!Array.isArray(s.reserve))s.reserve=[];s.reserve.push(...overflow)}
     const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
-    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});pruneInactiveTopologyMods({record:false});
+    s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);normalizeLegacyCoreArchetypes('restore');normalizeLegacyCorePorts('restore');const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});syncCoreProgressToStage(stageIndex()+1,'restore');pruneInactiveTopologyMods({record:false});
     if(!s.ouroborosMode&&(s.setGeneration||1)>=maxSetGeneration()&&availableTileCount()===0&&!s.hand.some(Boolean)&&!s.reserve.length)activateOuroboros('restore');
     return true
   }

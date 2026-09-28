@@ -4,8 +4,8 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.51.0',
-    ENGINE_VERSION:'0.19.0-core-signal-v1',
+    VERSION:'0.52.0',
+    ENGINE_VERSION:'0.20.0-core-abilities-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
       20,100,500,2500,10000,
@@ -27,6 +27,13 @@
     CORE_SIGNAL_MAX:24,
     CORE_SIGNAL_ENABLED:true,
     CORE_SIGNAL_SHADOW:false,
+    CORE_SIGNAL_LEVEL_STEP:4,
+    CORE_RESERVOIR_BONUS:8,
+    CORE_LEVEL_MAX:5,
+    CORE_MAX_PHYSICAL:4,
+    CORE_DISCOVERY_STAGES:Object.freeze([4,7]),
+    CORE_UPGRADE_START_STAGE:10,
+    CORE_UPGRADE_STAGE_INTERVAL:3,
     CORE_ARCHETYPES:Object.freeze(['relay','reservoir','distributor','conductor']),
     CIRCUIT_TILE_LIMIT:3,
     CIRCUIT_MAX_RANK:5,

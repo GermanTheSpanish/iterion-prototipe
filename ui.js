@@ -187,14 +187,17 @@
   }
   function renderBoard(){
     const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
-    const coreTelemetry=GAME.coreShadowTelemetry?GAME.coreShadowTelemetry():null,coreTelemetryById=new Map((coreTelemetry?.cores||[]).map(core=>[core.id,core]));
+    const coreTelemetry=GAME.coreShadowTelemetry?GAME.coreShadowTelemetry():null,coreTelemetryById=new Map((coreTelemetry?.cores||[]).map(core=>[core.id,core])),lastCoreSignal=[...(s.events||[])].reverse().find(event=>event?.signal?.activations?.length)?.signal||null,lastCoreRoles=new Map((lastCoreSignal?.activations||[]).map(activation=>[activation.coreId,activation.role]));
     for(const core of s.cores||[]){
-      const live=coreTelemetryById.get(core.id),el=document.createElement('div');el.className='coreNode corePhysical';el.dataset.coreId=core.id;el.dataset.coreType=core.archetype||'';el.setAttribute('aria-hidden','true');
-      if(live?.connectedTileIds?.length)el.classList.add('isConnected');if(live?.overlapTileIds?.length)el.classList.add('isObstructed');
+      const live=coreTelemetryById.get(core.id),role=lastCoreRoles.get(core.id)||null,el=document.createElement('div'),roman=['I','II','III','IV','V'][Math.max(0,Math.min(4,(Number(core.level)||1)-1))]||'I',connected=!!live?.connectedTileIds?.length;el.className='coreNode corePhysical inspectable';el.dataset.coreId=core.id;el.dataset.coreType=core.archetype||'';if(role)el.dataset.lastRole=role;
+      el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${String(core.archetype||'Core').toUpperCase()} Core ${roman}. ${connected?'Connected':'Disconnected'}. Tap or hold to inspect.`);
+      el.classList.toggle('isConnected',connected);el.classList.toggle('isDisconnected',!connected);if(live?.overlapTileIds?.length)el.classList.add('isObstructed');if(role)el.classList.add(`lastRole${role[0].toUpperCase()+role.slice(1)}`);
       Object.assign(el.style,{left:px(core.x),top:py(core.y),width:px(core.size||2),height:py(core.size||2)});
       const connectedPorts=new Set(live?.connectedPorts||[]);
       for(const side of core.ports||[]){const port=document.createElement('i');port.className=`corePort corePort${side}`;if(connectedPorts.has(side))port.classList.add('isConnected');el.appendChild(port)}
-      const level=document.createElement('b');level.textContent=String(core.level||1);el.appendChild(level);board.appendChild(el)
+      const level=document.createElement('b');level.textContent=roman;el.appendChild(level);
+      el.onpointerdown=e=>{e.stopPropagation();beginTilePress(e,{kind:'core',coreId:core.id,allowDrag:false})};el.onpointerup=e=>{e.stopPropagation();if(!auxOverlay&&!uiBusy)openCoreInspector(core.id)};el.onkeydown=e=>{if(!auxOverlay&&!uiBusy&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openCoreInspector(core.id)}};
+      board.appendChild(el)
     }
     const topologyBreakByTile=new Map((drag.topologyBreaks||[]).map(loss=>[loss.tileId,loss]));
     s.pieces.forEach(p=>{
@@ -294,6 +297,7 @@
   function openRulebookSection(id){H.recordSectionOpen(id);auxOverlay={type:'rulebook',sectionId:id};renderAuxOverlay()}
   function operationLabel(op){if(op.type==='add')return`+${op.add}`;if(op.type==='multiply')return`×${op.factor}`;if(op.type==='zero')return'0 · rebound';return'—'}
   function openTileInspector(tileId){const model=H.inspectTile(GAME.state(),tileId);if(!model)return;auxOverlay={type:'inspector',tileId,model};renderAuxOverlay()}
+  function openCoreInspector(coreId){const model=H.inspectCore?.(GAME.state(),coreId,GAME.coreShadowTelemetry?.());if(!model)return;auxOverlay={type:'core-inspector',coreId,model};renderAuxOverlay()}
   function modifierGuideHtml(mod){
     const guide=mod.guidance||MG?.get(mod.id),status=mod.status||MG?.status(mod.id,GAME.state(),auxOverlay?.tileId);
     if(!guide)return`<div class="inspectModifier"><strong>${escapeHtml(mod.displayName)}</strong><span>${escapeHtml(mod.shortDescription)}</span><p>${escapeHtml(mod.rulesDescription)}</p></div>`;
@@ -347,6 +351,16 @@
     }
     return`<section class="inspectSection"><div class="inspectLabel">Mutation · ${escapeHtml(mod?.displayName||info.mod)}</div><div class="mutationActions">${info.options.map(option=>{const warnings=mutationWarning(option),warning=warnings.length?`<small>${escapeHtml(warnings.join(' · '))}</small>`:'';return`<button class="shopBuy mutationAction" data-mutation-action="${escapeHtml(option.key)}"><strong>${escapeHtml(mutationOptionLabel(option,state))}</strong>${warning}</button>`}).join('')}</div><p class="inspectEmpty">1 use per ${cadence.toLowerCase()}. Using a Mutation commits the machine and clears the current Undo frame.</p></section>`
   }
+  function renderCoreInspector(){
+    const state=GAME.state(),model=H.inspectCore?.(state,auxOverlay.coreId,GAME.coreShadowTelemetry?.())||auxOverlay.model;if(!model){closeAuxOverlay();return}
+    auxOverlay.model=model;overlayTitle.textContent=`${model.displayName.toUpperCase()} · ${model.roman}`;
+    const status=model.ready?'READY':model.connected?'CONNECTED':'DISCONNECTED',ports=model.ports.join(' · ')||'—',connectedPorts=model.connectedPorts.join(' · ')||'—',role=model.lastRole?String(model.lastRole).toUpperCase():'NOT ACTIVATED',debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(model.id)}</div>`:'';
+    const recharge=model.archetype==='reservoir'?`Recharge ${model.recharge} · LEAD ${model.leadRecharge}`:`Recharge ${model.recharge}`,next=model.level<model.maxLevel?`Next level: +${D.CORE_SIGNAL_LEVEL_STEP||4} Signal`:'MAX LEVEL';
+    const relayNeed=model.archetype==='relay'&&model.connectedPorts.length<2?'Relay needs two connected ports to bridge.':null,lastSignal=model.lastAfterSignal==null?'No activation recorded last Move.':`Last Move: ${role} · Signal ${model.lastBeforeSignal} → ${model.lastAfterSignal}.`;
+    overlayBody.innerHTML=`<div class="inspector coreInspector"><section class="inspectSection"><div class="inspectLabel">Core</div><div class="inspectHero"><strong>${escapeHtml(model.displayName)} ${model.roman}</strong><span>${escapeHtml(status)} · ${escapeHtml(recharge)}</span></div>${debugId}<div class="stateRows"><span>Ports: ${escapeHtml(ports)}</span><span>Connected: ${escapeHtml(connectedPorts)}</span><span>${escapeHtml(next)}</span></div></section><section class="inspectSection"><div class="inspectLabel">LEAD Ability</div><strong>${escapeHtml(model.ability.short)}</strong><p>${escapeHtml(model.ability.rule)}</p>${relayNeed?`<p class="inspectEmpty">${escapeHtml(relayNeed)}</p>`:''}</section><section class="inspectSection"><div class="inspectLabel">Last Move</div><div class="stateRows"><span>${escapeHtml(lastSignal)}</span></div></section><section class="inspectSection"><div class="inspectLabel">Activation States</div><div class="stateRows"><span>LEAD · first Core reached; its ability controls the Move.</span><span>FOLLOW · later Core; recharges Signal only.</span><span>LAST · final Core reached; recharges Signal only.</span></div></section><section class="inspectSection"><div class="inspectLabel">Evolution</div><p>New Cores appear at Stages ${(D.CORE_DISCOVERY_STAGES||[4,7]).join(' and ')}. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.</p></section></div>`;
+    overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
+  }
+
   function renderInspector(){
     const state=GAME.state(),model=H.inspectTile(state,auxOverlay.tileId)||auxOverlay.model,b=model.baseTile,m=model.currentMachineState;
     auxOverlay.model=model;overlayTitle.textContent=`[${b.a}|${b.b}]`;
@@ -369,7 +383,7 @@
   }
   function renderAuxOverlay(){
     if(!auxOverlay)return;resetOverlay();overlay.classList.add('aux');modalEl.classList.add('auxModal');overlay.onclick=e=>{if(e.target===overlay)closeAuxOverlay()};
-    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else renderInspector();
+    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else if(auxOverlay.type==='core-inspector')renderCoreInspector();else renderInspector();
     if(!overlay.contains(document.activeElement)){if(!returnFocus)returnFocus=document.activeElement;overlayPrimary.focus()}
   }
 
@@ -381,9 +395,9 @@
   function summaryHtml(){const r=runSummary(),m=r.mvpTile;return`<div class="summary"><div class="sumCard wide"><div class="sumLabel">MVP TILE</div><div class="sumValue">${m?`[${m.a}|${m.b}] → ${fmt(m.output)}`:'—'}</div><div class="sumSmall">${m?`Best activation · Round ${m.round}, move ${m.placement}`:'No placement yet'}</div></div><div class="sumCard"><div class="sumLabel">PROGRESS</div><div class="sumValue">${r.endless?.active?`${D.TOTAL_ROUNDS}/${D.TOTAL_ROUNDS} + ${r.endless.roundsCleared}`:`${r.roundsCleared}/${r.totalRounds}`}</div><div class="sumSmall">${r.endless?.active?'Base complete · Endless clears':'Rounds cleared'}</div></div><div class="sumCard"><div class="sumLabel">MACHINE</div><div class="sumValue">${r.machine}</div><div class="sumSmall">${r.setSize} tiles · Set ${r.setGeneration}</div></div><div class="sumCard wide"><div class="sumLabel">SCORE SOURCES</div><div class="sumValue">${r.multOps} multipliers · ${r.addOps} additions</div><div class="sumSmall">${r.rebounds} rebounds · Best ${fmt(r.bestOutput)}</div></div><div class="sumCard wide"><div class="sumLabel">ECONOMY</div><div class="sumValue">${r.coins} coins · Inflation ${r.inflation}${r.endless?.active?` · Strain ${r.systemStrain}`:''}</div><div class="sumSmall">Move ${r.consumables.move} · Reroll ${r.consumables.reroll} · Undo ${r.consumables.undo} · ${r.purchases} purchases${r.endless?.active?` · Long Chain ${r.longRunActivations}/${D.ENDLESS_LONG_RUN_ACTIVATIONS||7}`:''}</div></div></div>`}
 
   function advanceRound(){
-    const beforeSnapshot=GAME.snapshot(),before=beforeSnapshot.stage.index,beforeInfinite=!!beforeSnapshot.endless?.infinitePhase;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
-    syncPlaytestContext();persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();const afterSnapshot=GAME.snapshot(),after=afterSnapshot.stage.index;
-    toast(!beforeInfinite&&afterSnapshot.endless?.infinitePhase?`INFINITE · 3 TILE HAND · BOARD ${E.G}×${E.H}`:after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
+    const beforeSnapshot=GAME.snapshot(),before=beforeSnapshot.stage.index,beforeInfinite=!!beforeSnapshot.endless?.infinitePhase,eventCursor=GAME.state().events.length;clearOutcomeDelay();const ok=GAME.advance();if(!ok){toast('Resolve Market first');return}
+    syncPlaytestContext();persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();const afterSnapshot=GAME.snapshot(),after=afterSnapshot.stage.index,newEvents=GAME.state().events.slice(eventCursor),coreEvent=[...newEvents].reverse().find(event=>event.type==='core-discover'||event.type==='core-upgrade');
+    if(coreEvent?.type==='core-discover')toast(`CORE DISCOVERED · ${String(coreEvent.core?.archetype||'CORE').toUpperCase()} I`);else if(coreEvent?.type==='core-upgrade')toast(`CORE ${String(coreEvent.archetype||'CORE').toUpperCase()} · ${['I','II','III','IV','V'][Math.max(0,(coreEvent.after||1)-1)]}`);else toast(!beforeInfinite&&afterSnapshot.endless?.infinitePhase?`INFINITE · 3 TILE HAND · BOARD ${E.G}×${E.H}`:after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
   }
   function startEndless(){clearOutcomeDelay();const eventCursor=GAME.state().events.length;if(!GAME.startEndless()){toast('Endless unavailable');return}const state=GAME.state(),marketClosed=state.events.slice(eventCursor).some(e=>e.type==='shop-close'&&e.shop==='market'&&e.reason==='insufficient-coins');syncPlaytestContext();if(state.shopOpen&&state.shopType==='market')PT?.openMarket({offers:[...state.shopOffers]});persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(marketClosed?`MARKET CLOSED · INSUFFICIENT COINS · ENDLESS ROUND ${state.round+1}`:state.shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${state.round+1}`)}
   function showClear(){
@@ -496,7 +510,7 @@
   function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();armDecisionTiming();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
   function chooseMarketModTile(tileId){const pending=GAME.state().pendingModPlacement,mod=M.get(pending?.mod),r=GAME.chooseMarketModTile(tileId);if(!r.ok){toast(r.reason==='no-target'?'No compatible Mod target':'Invalid Mod target');return}if(!r.pending)PT?.closeMarket({outcome:`buy:${pending?.mod||r.mod}`});press.cancel();persistGame();clearOutcomeDelay();render();if(r.pending)toast(r.stage==='direction'?'DIODE · CHOOSE IN HALF':`${mod?.displayName||r.mod} · CHOOSE NEW ZERO`);else toast(`${mod?.displayName||r.mod} → [${r.tile?.a}|${r.tile?.b}]`)}
   function chooseMarketModHalf(tileId,half){const r=GAME.chooseMarketModHalf(tileId,half);if(!r.ok){toast('Invalid DIODE direction');return}PT?.closeMarket({outcome:'buy:diode'});press.cancel();persistGame();clearOutcomeDelay();render();toast(`DIODE IN → ${half+1}`)}
-  const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId);else if(meta.kind==='mod-target')chooseMarketModTile(meta.tileId);else if(meta.kind==='mod-half')chooseMarketModHalf(meta.tileId,meta.half);else if(meta.kind==='ouroboros-board')selectOuroborosTile(meta.tileId);else if(meta.kind==='board')revealModFace(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit'||meta.kind==='mod-target')return;if(navigator.vibrate)navigator.vibrate(8);openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index);else if(meta.kind==='ouroboros-board')startOuroborosDrag(e,meta.tileId)}});
+  const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId);else if(meta.kind==='mod-target')chooseMarketModTile(meta.tileId);else if(meta.kind==='mod-half')chooseMarketModHalf(meta.tileId,meta.half);else if(meta.kind==='ouroboros-board')selectOuroborosTile(meta.tileId);else if(meta.kind==='board')revealModFace(meta.tileId)},onLongPress:meta=>{if(meta.kind==='circuit'||meta.kind==='mod-target')return;if(navigator.vibrate)navigator.vibrate(8);if(meta.kind==='core')openCoreInspector(meta.coreId);else openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index);else if(meta.kind==='ouroboros-board')startOuroborosDrag(e,meta.tileId)}});
   function handlePointerMove(e){press.move(e);if(drag.active)moveDrag(e)}
   async function handlePointerUp(e){press.end(e);if(drag.active)await endDrag(e)}
   function handlePointerCancel(e){press.cancel();if(drag.active)endDrag(e)}
@@ -598,7 +612,7 @@
     while(i<events.length){const e=events[i];
       if(e.type==='signal-fork'){
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
-        if(pp){const splitLabel=e.splitKind==='triple-double'?'TRIPLE DOUBLE':e.splitKind==='zero-port'?'ZERO PORT':'SPLIT';fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?`ECHO ${splitLabel}`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}
+        if(pp){const splitLabel=e.distributorCoreId?'DISTRIBUTE':e.splitKind==='triple-double'?'TRIPLE DOUBLE':e.splitKind==='zero-port'?'ZERO PORT':'SPLIT';fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?`ECHO ${splitLabel}`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
         const joinPiece=block.merged?pc(block.join.piece):pp;if(joinPiece){const d=fx((joinPiece.rect.minx+joinPiece.rect.maxx)/2,(joinPiece.rect.miny+joinPiece.rect.maxy)/2,block.merged?'MERGE':'JOIN',0,'signal cascadeStructural joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);d.dataset.family=lane.family;d.dataset.output=block.join.output;await cascadeWait(Math.max(220,V.cascadeDelay(index+1)),'cascade')}
         i=block.next;index+=2;continue
@@ -617,8 +631,11 @@
         if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,label,0,'signal cascadeStructural',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}i++;continue
       }
       if(e.type==='core-activate'){
-        const core=GAME.state().cores?.find(core=>core.id===e.coreId),el=core&&board.querySelector(`[data-core-id="${e.coreId}"]`),role=String(e.role||'follow').toUpperCase(),label=`${role} · SIGNAL ${e.afterSignal??D.CORE_SIGNAL_MAX??24}`;
+        const core=GAME.state().cores?.find(core=>core.id===e.coreId),el=core&&board.querySelector(`[data-core-id="${e.coreId}"]`),role=String(e.role||'follow').toUpperCase(),ability=e.abilityApplied?String(e.abilityApplied).toUpperCase():null,label=ability?`${role} · ${ability} · ${e.afterSignal??D.CORE_SIGNAL_MAX??24}`:`${role} · SIGNAL ${e.afterSignal??D.CORE_SIGNAL_MAX??24}`;
         if(core){el?.classList.add('coreActivated',`coreRole${role}`);fx(core.x+(core.size||2)/2,core.y+(core.size||2)/2,label,0,'signal cascadeStructural coreActivationFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);setTimeout(()=>el?.classList.remove('coreActivated',`coreRole${role}`),V.CASCADE.structuralFxMs);await cascadeWait(Math.max(220,V.cascadeDelay(index)),'cascade')}i++;continue
+      }
+      if(e.type==='core-relay'){
+        const core=GAME.state().cores?.find(core=>core.id===e.coreId);if(core){fx(core.x+(core.size||2)/2,core.y+(core.size||2)/2,'RELAY',0,'signal cascadeStructural coreActivationFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(220,V.cascadeDelay(index)),'cascade')}i++;continue
       }
       if(e.type==='signal-depleted'){
         const pp=pc(e.piece),c=pp?.cubes?.[0];if(c){fx(c.x+1,c.y+1,'SIGNAL 0',0,'signal cascadeStructural signalDepletedFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(260,V.cascadeDelay(index)),'cascade')}i++;continue
