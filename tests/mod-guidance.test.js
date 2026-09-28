@@ -1,9 +1,12 @@
 const assert=require('node:assert/strict');
-const E=require('../engine.js'),G=require('../mod-guidance.js');
+const E=require('../engine.js'),G=require('../mod-guidance.js'),M=require('../mods.js');
 
 assert.equal(G.all().length,28,'all 28 market Mods need player-facing guidance');
 for(const guide of G.all()){
   assert.ok(guide.market&&guide.build&&guide.reward&&guide.note,guide.id+' guidance must be complete');
+  const mod=M.get(guide.id);assert.ok(mod,guide.id+' must exist in the Mod registry');
+  assert.equal(guide.market,mod.shortDescription,guide.id+' Market copy must use the canonical short description');
+  assert.ok(guide.market.length<=36,guide.id+' Market copy must fit the compact mobile description budget');
   assert.match(G.diagramHtml(guide.id,false),/modDiagram/,guide.id+' needs a schematic');
 }
 assert.equal(G.get('corner').reward,'Its operation becomes ×3.');
