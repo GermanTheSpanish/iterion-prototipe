@@ -114,6 +114,21 @@
     const bankMultiplier=state.bankTileId===tileId?((Number(state.coins)||0)>=(D.BANK_HIGH_COINS||20)?D.BANK_HIGH_MOD_MULTIPLIER||3:(Number(state.coins)||0)>=(D.BANK_LOW_COINS||10)?D.BANK_LOW_MOD_MULTIPLIER||2:1):null,spendActive=state.spendTileId===tileId?(Number(state.coins)||0)<(D.SPEND_COIN_THRESHOLD||5):null;
     return Object.freeze({upgradeTier:tier,starCoins:tier,bestOutput,activations:turns.length,modifierIds:Object.freeze(tileModifierIds(state,tileId)),doubleDoubleActive:state.doubleDoubleTileId===tileId,doubleEchoActive:state.doubleEchoTileId===tileId,zeroPortActive:(state.zeroPortTileIds||[]).includes(tileId),longRunOwned:(state.mods||[]).includes('long-run'),foundationProgress,foundationInterval,bankMultiplier,spendActive,tollArmed:state.tollTileId===tileId?!!state.tollArmed:null,brokerDiscountReady:state.brokerTileId===tileId?!!state.brokerDiscountReady:null,mintAvailable:state.mintTileId===tileId?state.mintPaidRound!==state.round:null})
   }
+  const CORE_NAMES=Object.freeze({relay:'Relay',reservoir:'Reservoir',distributor:'Distributor',conductor:'Conductor'});
+  function coreAbility(archetype){
+    if(archetype==='relay')return{short:'Dead ends can bridge through this Core.',rule:'When this Core is LEAD, once per Move a Signal that would stop at one connected port jumps to another unvisited connected port.'};
+    if(archetype==='reservoir')return{short:'LEAD recharge gets extra Signal.',rule:`When this Core is LEAD, its recharge gains +${D.CORE_RESERVOIR_BONUS||8} Signal.`};
+    if(archetype==='distributor')return{short:'The first split keeps full Signal on every branch.',rule:'When this Core is LEAD, the first split after activation copies the full remaining Signal into every branch instead of dividing it.'};
+    if(archetype==='conductor')return{short:'Doubles stop costing Signal.',rule:'When this Core is LEAD, the first visit to every double after activation costs 0 Signal for that Move.'};
+    return{short:'Refills Signal when activated.',rule:'A connected Core refills Signal when the cascade reaches it.'}
+  }
+  function inspectCore(state,coreId,telemetry=null){
+    const core=(state.cores||[]).find(item=>item.id===coreId);if(!core)return null;
+    const live=(telemetry?.cores||[]).find(item=>item.id===coreId)||null,level=Math.max(1,Number(core.level)||1),base=Math.max(1,Number(D.CORE_SIGNAL_MAX)||24)+(level-1)*Math.max(0,Number(D.CORE_SIGNAL_LEVEL_STEP)||4),leadRecharge=base+(core.archetype==='reservoir'?Math.max(0,Number(D.CORE_RESERVOIR_BONUS)||8):0),lastMove=[...(state.events||[])].reverse().find(event=>event?.signal?.activations?.length)||null,activation=lastMove?.signal?.activations?.find(item=>item.coreId===coreId)||null,ability=coreAbility(core.archetype),connectedPorts=live?.connectedPorts||[],connectedTileIds=live?.connectedTileIds||[],connected=connectedTileIds.length>0;
+    const ready=core.archetype==='relay'?connectedPorts.length>=2:connected;
+    return Object.freeze({id:core.id,displayName:CORE_NAMES[core.archetype]||String(core.archetype||'Core'),archetype:core.archetype||null,level,roman:['I','II','III','IV','V'][Math.min(4,level-1)]||'I',ports:Object.freeze([...(core.ports||[])]),connectedPorts:Object.freeze([...connectedPorts]),connectedTileIds:Object.freeze([...connectedTileIds]),connected,ready,recharge:base,leadRecharge,ability:Object.freeze(ability),lastRole:activation?.role||null,lastOrder:activation?.order||null,lastBeforeSignal:activation?.beforeSignal??null,lastAfterSignal:activation?.afterSignal??null,leadLastMove:lastMove?.signal?.leadCoreId===coreId,lastMoveEffects:Object.freeze({...lastMove?.signal?.effects}),maxLevel:Math.max(1,Number(D.CORE_LEVEL_MAX)||5)})
+  }
+
   function inspectTile(state,tileId){
     const tile=resolveTile(state,tileId);if(!tile)return null;
     const modifiers=tileModifiers(state,tile),tier=tile.upgrade||0,powerMultiplier=tile.powerMultiplier||1,generation=tile.generation||1;
@@ -138,5 +153,5 @@
     })
   }
 
-  return{rulebookSections,bindRun,recordRulebookOpen,recordSectionOpen,telemetrySnapshot,resetTelemetry,debugTelemetryText,inspectTile,operationFor};
+  return{rulebookSections,bindRun,recordRulebookOpen,recordSectionOpen,telemetrySnapshot,resetTelemetry,debugTelemetryText,inspectTile,inspectCore,operationFor};
 });
