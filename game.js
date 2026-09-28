@@ -199,10 +199,10 @@ function createGame(E,opts={}){
   function coreLayoutForMode(mode=s.gameMode,seed=s.seed){
     if(canonicalGameMode(mode)!=='eyes')return[];
     const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),x=Math.floor((bs.G-size)/2),topY=Math.max(2,Math.floor(bs.H*.25)-Math.floor(size/2)),bottomY=Math.min(bs.H-size-2,bs.H-topY-size);
-    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'];
+    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,99)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,99)%(southPool.length||archetypes.length)];
     return[
-      {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsFor(seed,0),archetype:archetypes[coreHash(seed,0,99)%archetypes.length],level:1},
-      {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsFor(seed,1),archetype:archetypes[coreHash(seed,1,99)%archetypes.length],level:1}
+      {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsFor(seed,0),archetype:northArchetype,level:1},
+      {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsFor(seed,1),archetype:southArchetype,level:1}
     ]
   }
 
@@ -238,6 +238,53 @@ function createGame(E,opts={}){
     }
     if(moved.length)s.cores=next;
     return moved
+  }
+
+  const CORE_LEVEL_ROMAN=Object.freeze(['I','II','III','IV','V']);
+  function coreLevelRoman(level){return CORE_LEVEL_ROMAN[Math.max(0,Math.min(CORE_LEVEL_ROMAN.length-1,(Number(level)||1)-1))]||'I'}
+  function coreRechargeValue(core,{lead=false}={}){
+    const level=Math.max(1,Math.min(Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5),Number(core?.level)||1)),base=Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24)+(level-1)*Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4);
+    return base+(lead&&core?.archetype==='reservoir'?Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8):0)
+  }
+  function coreProgressKeys(){if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];return new Set(s.coreProgressMilestones)}
+  function coreCandidatePosition(slot,size){
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},cell=Math.max(1,Number(E.S)||2),margin=cell,centerY=Math.floor((board.H-size)/2),preferred=slot==='east'?{x:board.G-size-margin,y:centerY}:slot==='west'?{x:margin,y:centerY}:{x:Math.floor((board.G-size)/2),y:centerY},existing=s.cores||[];
+    const fits=candidate=>{
+      if(candidate.x<0||candidate.y<0||candidate.x+size>board.G||candidate.y+size>board.H)return false;
+      if(s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate))))return false;
+      if(existing.some(core=>coreRectsOverlap(candidate,core)))return false;
+      return true
+    };
+    const candidates=[];
+    for(let y=margin;y<=board.H-size-margin;y++)for(let x=margin;x<=board.G-size-margin;x++){
+      const candidate={x,y,size};if(!fits(candidate))continue;
+      const distance=Math.abs(x-preferred.x)+Math.abs(y-preferred.y),touches=coreShadowTelemetry(s.pieces,[{id:'candidate',slot,x,y,size,ports:CORE_SIDES,archetype:'relay',level:1}]).cores[0]?.connectedTileIds?.length||0;
+      candidates.push({candidate,distance,touches,hash:coreHash(s.seed||0,x+y*board.G,113)})
+    }
+    candidates.sort((a,b)=>a.touches-b.touches||a.distance-b.distance||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);
+    return candidates[0]?.candidate||null
+  }
+  function discoverCore(stage,reason='stage'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||(s.cores?.length||0)>=Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4))return null;
+    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],used=new Set((s.cores||[]).map(core=>core.archetype)),missing=archetypes.filter(id=>!used.has(id)),pool=missing.length?missing:archetypes,index=(s.cores?.length||0),archetype=pool[coreHash(s.seed||0,stage+index,151)%pool.length],slot=index%2===0?'east':'west',size=Math.max(1,Number(E.S)||2),position=coreCandidatePosition(slot,size);
+    if(!position){s.events.push({type:'core-progress-blocked',stage,reason,action:'discover',slot});return null}
+    const core={id:`core-eyes-${slot}`,slot,x:position.x,y:position.y,size,ports:corePortsFor(s.seed||0,stage+index),archetype,level:1};
+    s.cores.push(core);s.events.push({type:'core-discover',stage,reason,core:deepClone(core),recharge:coreRechargeValue(core)});return core
+  }
+  function upgradeCore(stage,reason='stage'){
+    if(canonicalGameMode(s.gameMode)!=='eyes'||!s.cores?.length)return null;
+    const maxLevel=Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5),eligible=s.cores.filter(core=>(Number(core.level)||1)<maxLevel).sort((a,b)=>String(a.id).localeCompare(String(b.id)));if(!eligible.length)return null;
+    const minLevel=Math.min(...eligible.map(core=>Math.max(1,Number(core.level)||1))),lowest=eligible.filter(core=>(Number(core.level)||1)===minLevel),core=lowest[coreHash(s.seed||0,stage,173)%lowest.length],before=Math.max(1,Number(core.level)||1);core.level=Math.min(maxLevel,before+1);
+    s.events.push({type:'core-upgrade',stage,reason,coreId:core.id,archetype:core.archetype,before,after:core.level,recharge:coreRechargeValue(core)});return core
+  }
+  function syncCoreProgressToStage(stageNumber=stageIndex()+1,reason='stage'){
+    if(canonicalGameMode(s.gameMode)!=='eyes')return[];
+    if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];
+    const processed=coreProgressKeys(),changes=[],discoverStages=(cfg.CORE_DISCOVERY_STAGES||[4,7]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+    for(const stage of discoverStages){const key=`discover:${stage}`;if(stage>stageNumber||processed.has(key))continue;const change=discoverCore(stage,reason);if(change||(s.cores?.length||0)>=Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4)){processed.add(key);changes.push({type:'discover',stage,core:change})}}
+    const start=Math.max(1,Number(cfg.CORE_UPGRADE_START_STAGE)||10),interval=Math.max(1,Number(cfg.CORE_UPGRADE_STAGE_INTERVAL)||3);
+    for(let stage=start;stage<=stageNumber;stage+=interval){const key=`upgrade:${stage}`;if(processed.has(key))continue;const change=upgradeCore(stage,reason);processed.add(key);changes.push({type:'upgrade',stage,core:change})}
+    s.coreProgressMilestones=[...processed].sort((a,b)=>{const [ak,av]=a.split(':'),[bk,bv]=b.split(':');return Number(av)-Number(bv)||ak.localeCompare(bk)});return changes
   }
 
   function availableTileCount(){
