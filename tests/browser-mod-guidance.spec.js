@@ -40,7 +40,7 @@ test('Market uses current physical-rule copy and compact Mod schematics',async({
     }}}});
   });
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();await expect(page.locator('.marketStructuredOffer')).toHaveCount(3);
-  const corner=page.locator('[data-market-offer="corner"]');await expect(corner.locator('.marketOfferDescription')).toContainText('Build a right angle around one tile. Its operation becomes ×3.');await expect(corner.locator('.marketModDiagram .modDiagram')).toBeVisible();await expect(corner).not.toContainText('routed turn');
-  const line=page.locator('[data-market-offer="long-line"]');await expect(line.locator('.marketOfferDescription')).toContainText('Build a straight physical line through one tile.');await expect(line).not.toContainText('traversals');
+  const corner=page.locator('[data-market-offer="corner"]');await expect(corner.locator('.marketOfferDescription')).toContainText('Corner: ×3.');await expect(corner.locator('.marketModDiagram .modDiagram')).toBeVisible();await expect(corner).not.toContainText('routed turn');
+  const line=page.locator('[data-market-offer="long-line"]');await expect(line.locator('.marketOfferDescription')).toContainText('3+ straight: ×2. 5+: ×3.');await expect(line).not.toContainText('traversals');
   await expect(page.locator('.shopFoot')).toContainText('BUILD, REWARD and live status');
 });

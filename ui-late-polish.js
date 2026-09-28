@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20260928.2',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20260928.3',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -153,7 +153,7 @@
       if(!head||!button||!info||!mod)return;
 
       const description=desc||doc.createElement('p');description.className='marketOfferDescription';
-      description.textContent=guide?`${guide.market} ${guide.reward}`:(OFFER_COPY[id]||mod.shortDescription||mod.description||'');
+      description.textContent=guide?guide.market:(OFFER_COPY[id]||mod.shortDescription||mod.description||'');
       if(id==='long-run'&&endless)description.textContent+=' Up to 7 qualifying Moves in Endless.';
       const visual=doc.createElement('div');visual.className='marketModDiagram';visual.innerHTML=MG?.diagramHtml?.(id,true)||'';
 
