@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 
 function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y}
-async function dismissModeIntro(page){const play=page.locator('[data-ux-action="start-mode"]');if(await play.isVisible())await play.click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle')}
+async function dismissModeIntro(page){await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle')}
 
 test('mode carousel keeps a continuous strip and weights its physical settle by release distance',async({page})=>{
   await page.setViewportSize({width:375,height:667});
