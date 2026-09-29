@@ -1,7 +1,7 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1',ACTIVE_RUN_KEY='iterion.activeRun.v1',LEGACY_RUN_KEY='iterion.latestRun.v9';
-  const normalizeMode=mode=>mode==='eyes'?'eyes':'classic';
+  const normalizeMode=mode=>mode==='eyes'||mode==='frames'?mode:'classic';
   const gameOptions=mode=>({GAME_MODE:normalizeMode(mode)});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
@@ -11,7 +11,7 @@
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
   const board=$('board'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version'),machineModStatusEl=$('machineModStatus');
-  let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null,persistenceFault=false;
+  let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null,persistenceFault=false,framesRevealRunId=null,framesRevealEventCursor=0,framesRevealFx=[];
   const performanceSamples=[];
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal'),ouroborosSelection=null;
@@ -190,14 +190,34 @@
     for(const spec of specs){const tick=document.createElement('i');tick.className='boardCenterTick';tick.setAttribute('aria-hidden','true');Object.assign(tick.style,{position:'absolute',display:'block',background:'rgba(17,17,17,.34)',zIndex:'2',pointerEvents:'none',...spec});board.appendChild(tick)}
   }
 
+  function modeGeometryVisible(item){const size=Math.max(1,Number(item?.size)||Number(E.S)||2);return!!item&&item.x>=0&&item.y>=0&&item.x+size<=E.G&&item.y+size<=E.H}
+  function syncFramesRevealFx(s){
+    if(s.gameMode!=='frames'){framesRevealRunId=null;framesRevealEventCursor=0;framesRevealFx=[];return}
+    const events=s.events||[];
+    if(framesRevealRunId!==s.runId){framesRevealRunId=s.runId;framesRevealEventCursor=events.length;framesRevealFx=[];return}
+    for(const event of events.slice(framesRevealEventCursor))if(event?.type==='mode-geometry-reveal'&&event.mode==='frames')for(const half of new Set((event.items||[]).map(item=>item.half).filter(Boolean)))framesRevealFx.push({half,until:performance.now()+560});
+    framesRevealEventCursor=events.length;framesRevealFx=framesRevealFx.filter(fx=>fx.until>performance.now())
+  }
+  function renderFramesTrace(s){
+    if(s.gameMode!=='frames'||!framesRevealFx.length)return;
+    const all=[...(s.cores||[]).map(item=>({...item,kind:'core'})),...(s.voids||[]).map(item=>({...item,kind:'void'}))].filter(modeGeometryVisible);
+    for(const fx of framesRevealFx){
+      const items=all.filter(item=>(item.half||item.slot)===fx.half);if(items.length<2)continue;
+      const pad=Math.max(1,Number(E.S)||2),minX=Math.max(0,Math.min(...items.map(item=>item.x))-pad),minY=Math.max(0,Math.min(...items.map(item=>item.y))-pad),maxX=Math.min(E.G,Math.max(...items.map(item=>item.x+(item.size||E.S)))+pad),maxY=Math.min(E.H,Math.max(...items.map(item=>item.y+(item.size||E.S)))+pad),trace=document.createElement('i');
+      trace.className='frameRevealTrace';trace.dataset.half=fx.half;trace.setAttribute('aria-hidden','true');Object.assign(trace.style,{left:px(minX),top:py(minY),width:px(maxX-minX),height:py(maxY-minY)});board.appendChild(trace)
+    }
+  }
+
   function beginTilePress(e,meta){
     if(uiBusy||GAME.state().pendingCircuit||GAME.state().pendingModPlacement||auxOverlay||e.button!=null&&e.button!==0)return;
     e.preventDefault();press.begin(e,meta)
   }
   function renderBoard(){
-    const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();
+    const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();syncFramesRevealFx(s);
+    for(const voidItem of s.voids||[]){if(!modeGeometryVisible(voidItem))continue;const hole=document.createElement('div');hole.className='boardVoid';hole.dataset.voidId=voidItem.id;hole.dataset.half=voidItem.half||'';hole.setAttribute('aria-hidden','true');Object.assign(hole.style,{left:px(voidItem.x),top:py(voidItem.y),width:px(voidItem.size||E.S),height:py(voidItem.size||E.S)});board.appendChild(hole)}
     const coreTelemetry=GAME.coreShadowTelemetry?GAME.coreShadowTelemetry():null,coreTelemetryById=new Map((coreTelemetry?.cores||[]).map(core=>[core.id,core])),lastCoreSignal=[...(s.events||[])].reverse().find(event=>event?.signal?.activations?.length)?.signal||null,lastCoreRoles=new Map((lastCoreSignal?.activations||[]).map(activation=>[activation.coreId,activation.role])),coreIntroduced=(s.events||[]).some(event=>(event?.coreActivations||event?.signal?.activations||[]).length);
     for(const core of s.cores||[]){
+      if(!modeGeometryVisible(core))continue;
       const live=coreTelemetryById.get(core.id),role=lastCoreRoles.get(core.id)||null,el=document.createElement('div'),roman=['I','II','III','IV','V'][Math.max(0,Math.min(4,(Number(core.level)||1)-1))]||'I',connected=!!live?.connectedTileIds?.length;el.className='coreNode corePhysical inspectable';el.dataset.coreId=core.id;el.dataset.coreType=core.archetype||'';if(role)el.dataset.lastRole=role;
       el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${String(core.archetype||'Core').toUpperCase()} Core ${roman}. ${connected?'Connected':'Disconnected'}. Tap or hold to inspect.`);
       el.classList.toggle('isConnected',connected);el.classList.toggle('isDisconnected',!connected);el.classList.toggle('coreNeedsConnection',!coreIntroduced);if(live?.overlapTileIds?.length)el.classList.add('isObstructed');if(role)el.classList.add(`lastRole${role[0].toUpperCase()+role.slice(1)}`);
@@ -208,6 +228,7 @@
       el.onpointerdown=e=>{e.stopPropagation();beginTilePress(e,{kind:'core',coreId:core.id,allowDrag:false})};el.onpointerup=e=>{e.stopPropagation();if(!auxOverlay&&!uiBusy)openCoreInspector(core.id)};el.onkeydown=e=>{if(!auxOverlay&&!uiBusy&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openCoreInspector(core.id)}};
       board.appendChild(el)
     }
+    renderFramesTrace(s);
     const topologyBreakByTile=new Map((drag.topologyBreaks||[]).map(loss=>[loss.tileId,loss]));
     s.pieces.forEach(p=>{
       const el=pieceEl(p),circuitPending=s.pendingCircuit,modPending=s.pendingModPlacement,pending=circuitPending||modPending,eligible=!!pending?.eligibleTileIds?.includes(p.tile.id),power=powerMultiplier(p.tile),modded=tileView(p.tile).modifiers.length>0,topologyBreak=topologyBreakByTile.get(p.tile.id);
@@ -364,9 +385,9 @@
     const state=GAME.state(),model=H.inspectCore?.(state,auxOverlay.coreId,GAME.coreShadowTelemetry?.())||auxOverlay.model;if(!model){closeAuxOverlay();return}
     auxOverlay.model=model;overlayTitle.textContent=`${model.displayName.toUpperCase()} · ${model.roman}`;
     const status=model.ready?'READY':model.connected?'CONNECTED':'DISCONNECTED',ports=model.ports.join(' · ')||'—',connectedPorts=model.connectedPorts.join(' · ')||'—',role=model.lastRole?String(model.lastRole).toUpperCase():'NOT ACTIVATED',debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(model.id)}</div>`:'';
-    const recharge=model.archetype==='reservoir'?`Recharge ${model.recharge} · LEAD ${model.leadRecharge}`:`Recharge ${model.recharge}`,next=model.level<model.maxLevel?`Next level: +${D.CORE_SIGNAL_LEVEL_STEP||4} Signal`:'MAX LEVEL';
+    const recharge=model.archetype==='reservoir'?`Recharge ${model.recharge} · LEAD ${model.leadRecharge}`:`Recharge ${model.recharge}`,next=model.level<model.maxLevel?`Next level: +${D.CORE_SIGNAL_LEVEL_STEP||4} Signal`:'MAX LEVEL',evolution=state.gameMode==='frames'?`The two 2|2 Cores stay fixed. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`:`New Cores appear at Stages ${(D.CORE_DISCOVERY_STAGES||[4,7]).join(' and ')}. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`;
     const relayNeed=model.archetype==='relay'&&model.connectedPorts.length<2?'Relay needs two connected ports to bridge.':null,lastSignal=model.lastAfterSignal==null?'No activation recorded last Move.':`Last Move: ${role} · Signal ${model.lastBeforeSignal} → ${model.lastAfterSignal}.`;
-    overlayBody.innerHTML=`<div class="inspector coreInspector"><section class="inspectSection"><div class="inspectLabel">Core</div><div class="inspectHero"><strong>${escapeHtml(model.displayName)} ${model.roman}</strong><span>${escapeHtml(status)} · ${escapeHtml(recharge)}</span></div>${debugId}<div class="stateRows"><span>Ports: ${escapeHtml(ports)}</span><span>Connected: ${escapeHtml(connectedPorts)}</span><span>${escapeHtml(next)}</span></div></section><section class="inspectSection"><div class="inspectLabel">LEAD Ability</div><strong>${escapeHtml(model.ability.short)}</strong><p>${escapeHtml(model.ability.rule)}</p>${relayNeed?`<p class="inspectEmpty">${escapeHtml(relayNeed)}</p>`:''}</section><section class="inspectSection"><div class="inspectLabel">Last Move</div><div class="stateRows"><span>${escapeHtml(lastSignal)}</span></div></section><section class="inspectSection"><div class="inspectLabel">Activation States</div><div class="stateRows"><span>LEAD · first Core reached; its ability controls the Move.</span><span>FOLLOW · later Core; recharges Signal only.</span><span>LAST · final Core reached; recharges Signal only.</span></div></section><section class="inspectSection"><div class="inspectLabel">Evolution</div><p>New Cores appear at Stages ${(D.CORE_DISCOVERY_STAGES||[4,7]).join(' and ')}. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.</p></section></div>`;
+    overlayBody.innerHTML=`<div class="inspector coreInspector"><section class="inspectSection"><div class="inspectLabel">Core</div><div class="inspectHero"><strong>${escapeHtml(model.displayName)} ${model.roman}</strong><span>${escapeHtml(status)} · ${escapeHtml(recharge)}</span></div>${debugId}<div class="stateRows"><span>Ports: ${escapeHtml(ports)}</span><span>Connected: ${escapeHtml(connectedPorts)}</span><span>${escapeHtml(next)}</span></div></section><section class="inspectSection"><div class="inspectLabel">LEAD Ability</div><strong>${escapeHtml(model.ability.short)}</strong><p>${escapeHtml(model.ability.rule)}</p>${relayNeed?`<p class="inspectEmpty">${escapeHtml(relayNeed)}</p>`:''}</section><section class="inspectSection"><div class="inspectLabel">Last Move</div><div class="stateRows"><span>${escapeHtml(lastSignal)}</span></div></section><section class="inspectSection"><div class="inspectLabel">Activation States</div><div class="stateRows"><span>LEAD · first Core reached; its ability controls the Move.</span><span>FOLLOW · later Core; recharges Signal only.</span><span>LAST · final Core reached; recharges Signal only.</span></div></section><section class="inspectSection"><div class="inspectLabel">Evolution</div><p>${escapeHtml(evolution)}</p></section></div>`;
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
   }
 

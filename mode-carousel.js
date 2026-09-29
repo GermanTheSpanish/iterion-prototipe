@@ -23,8 +23,9 @@
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite → Ouroboros',available:true,kind:'classic'}),
-    Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · 2 Cores → 4 · Signal 24',available:true,kind:'eyes'}),
-    ...Array.from({length:6},(_,i)=>Object.freeze({id:`locked-${i+2}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
+    Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · Cores · Signal 24',available:true,kind:'eyes'}),
+    Object.freeze({id:'frames',name:'THE FRAMES',description:'2|2 · 2 Cores · 2 Voids',available:true,kind:'frames'}),
+    ...Array.from({length:5},(_,i)=>Object.freeze({id:`locked-${i+3}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
   const wrapIndex=index=>{const n=Number.isFinite(index)?Math.trunc(index):0;return((n%MODES.length)+MODES.length)%MODES.length};
@@ -59,7 +60,7 @@
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
-.modeTileZero i:after{display:none}.modeTileEyes i:after{display:block!important}
+.modeTileZero i:after{display:none}.modeTileEyes i:after{display:block!important}.modeTileFrames i:after{display:none!important}.modeTileFrames i b{position:absolute;width:7px;height:7px;border-radius:50%;background:#151515;transform:translate(-50%,-50%)}.modeTileFrames i b:first-child{left:28%;top:28%}.modeTileFrames i b:last-child{left:72%;top:72%}
 .modeCarouselViewport.isDragging .modeTile,.modeCarouselViewport.isRebasing .modeTile{transition:none!important}
 .modeCarouselViewport.isPulling .modeTile{transition:transform var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1)}
 .modeCarouselViewport.isLanding .modeTile{transition:transform var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1)}
@@ -78,6 +79,7 @@
   function tileMarkup(mode){
     if(mode.kind==='classic')return '<span class="selectionDouble modeTile modeTileClassic modeTileZero" aria-hidden="true"><i></i><i></i></span>';
     if(mode.kind==='eyes')return '<span class="selectionDouble modeTile modeTileEyes" aria-hidden="true"><i></i><i></i></span>';
+    if(mode.kind==='frames')return '<span class="selectionDouble modeTile modeTileFrames" aria-hidden="true"><i><b></b><b></b></i><i><b></b><b></b></i></span>';
     if(mode.kind==='infinite')return '<span class="selectionDouble modeTile modeTileInfinite" aria-hidden="true"><b>∞</b></span>';
     return '<span class="selectionDouble modeTile modeTileLocked" aria-hidden="true"></span>'
   }
