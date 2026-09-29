@@ -271,15 +271,35 @@ function createGame(E,opts={}){
     return base+(lead&&core?.archetype==='reservoir'?Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8):0)
   }
   function coreProgressKeys(){if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];return new Set(s.coreProgressMilestones)}
+  function eyesCoreCrossGeometry(size){
+    const north=(s.cores||[]).find(core=>core.slot==='north'),south=(s.cores||[]).find(core=>core.slot==='south');if(!north||!south)return null;
+    const northSize=coreSize(north),southSize=coreSize(south),northCenter={x:north.x+northSize/2,y:north.y+northSize/2},southCenter={x:south.x+southSize/2,y:south.y+southSize/2};
+    const centerX=(northCenter.x+southCenter.x)/2,centerY=(northCenter.y+southCenter.y)/2,radius=Math.max(size,Math.abs(southCenter.y-northCenter.y)/2);
+    return{centerX,centerY,radius}
+  }
   function coreCandidatePosition(slot,size){
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},cell=Math.max(1,Number(E.S)||2),margin=cell,centerY=Math.floor((board.H-size)/2),preferred=slot==='east'?{x:board.G-size-margin,y:centerY}:slot==='west'?{x:margin,y:centerY}:{x:Math.floor((board.G-size)/2),y:centerY},existing=s.cores||[];
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},cell=Math.max(1,Number(E.S)||2),margin=cell,existing=s.cores||[];
     const fits=candidate=>{
       if(candidate.x<0||candidate.y<0||candidate.x+size>board.G||candidate.y+size>board.H)return false;
       if(s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate))))return false;
       if(existing.some(core=>coreRectsOverlap(candidate,core)))return false;
       return true
     };
-    const candidates=[];
+    const geometry=eyesCoreCrossGeometry(size);
+    if(geometry&&(slot==='east'||slot==='west')){
+      const y=Math.round(geometry.centerY-size/2),minRadius=Math.max(size,geometry.radius-size),maxRadius=geometry.radius+size,candidates=[];
+      for(let x=margin;x<=board.G-size-margin;x++){
+        const centerX=x+size/2,radius=Math.abs(centerX-geometry.centerX);
+        if(slot==='east'?centerX<=geometry.centerX:centerX>=geometry.centerX)continue;
+        if(radius<minRadius||radius>maxRadius)continue;
+        const candidate={x,y,size};if(!fits(candidate))continue;
+        const touches=coreShadowTelemetry(s.pieces,[{id:'candidate',slot,x,y,size,ports:CORE_SIDES,archetype:'relay',level:1}]).cores[0]?.connectedTileIds?.length||0;
+        candidates.push({candidate,radiusError:Math.abs(radius-geometry.radius),touches,hash:coreHash(s.seed||0,x+y*board.G,113)})
+      }
+      candidates.sort((a,b)=>a.radiusError-b.radiusError||a.touches-b.touches||a.hash-b.hash||a.candidate.x-b.candidate.x);
+      return candidates[0]?.candidate||null
+    }
+    const centerY=Math.floor((board.H-size)/2),preferred=slot==='east'?{x:board.G-size-margin,y:centerY}:slot==='west'?{x:margin,y:centerY}:{x:Math.floor((board.G-size)/2),y:centerY},candidates=[];
     for(let y=margin;y<=board.H-size-margin;y++)for(let x=margin;x<=board.G-size-margin;x++){
       const candidate={x,y,size};if(!fits(candidate))continue;
       const distance=Math.abs(x-preferred.x)+Math.abs(y-preferred.y),touches=coreShadowTelemetry(s.pieces,[{id:'candidate',slot,x,y,size,ports:CORE_SIDES,archetype:'relay',level:1}]).cores[0]?.connectedTileIds?.length||0;
@@ -317,9 +337,10 @@ function createGame(E,opts={}){
   }
   function activateOuroboros(source='deck-exhausted'){
     if(s.ouroborosMode)return false;
-    s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.reserve=[];s.hand=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H};
+    s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.ouroborosBoardSize=[board.G,board.H];s.reserve=[];s.hand=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
     s.blocked=false;s.needsReroll=false;s.failureReason=null;s.undoFrame=null;
-    s.events.push({type:'ouroboros-start',round:s.round+1,roundTurn:s.roundTurn+1,generation:s.setGeneration||1,machineSize:s.pieces.length,source});
+    s.events.push({type:'ouroboros-start',round:s.round+1,roundTurn:s.roundTurn+1,generation:s.setGeneration||1,machineSize:s.pieces.length,board:[board.G,board.H],source});
     return true
   }
   function replenishPowerSet(source='draw'){
@@ -363,13 +384,18 @@ function createGame(E,opts={}){
     if(!s.endlessMode||s.round<cfg.TOTAL_ROUNDS)return base;
     return base+Math.floor((s.round-cfg.TOTAL_ROUNDS)/stageSize())+1
   }
-  function boardSizeForStage(stage=stageIndex()){
+  function progressionBoardSizeForStage(stage=stageIndex()){
     const sizes=cfg.BOARD_SIZES||[[18,24]],index=Math.max(0,Math.trunc(Number(stage)||0)),lastIndex=sizes.length-1,last=sizes[lastIndex]||[18,24];
     if(index<=lastIndex||!s.endlessMode)return sizes[Math.min(index,lastIndex)]||last;
     const configured=cfg.INFINITE_BOARD_GROWTH,previous=sizes[Math.max(0,lastIndex-1)]||last;
     const growth=Array.isArray(configured)&&configured.length>=2?configured:[last[0]-previous[0],last[1]-previous[1]],interval=Math.max(1,Number(cfg.INFINITE_BOARD_STAGE_INTERVAL)||2);
     const endlessStageOffset=Math.max(0,index-baseStageCount()),steps=Math.floor(endlessStageOffset/interval);
     return[last[0]+Math.max(1,Number(growth[0])||0)*steps,last[1]+Math.max(1,Number(growth[1])||0)*steps]
+  }
+  function boardSizeForStage(stage=stageIndex()){
+    const frozen=s.ouroborosMode&&Array.isArray(s.ouroborosBoardSize)&&s.ouroborosBoardSize.length>=2?s.ouroborosBoardSize:null;
+    if(frozen&&Number(frozen[0])>0&&Number(frozen[1])>0)return[Math.trunc(Number(frozen[0])),Math.trunc(Number(frozen[1]))];
+    return progressionBoardSizeForStage(stage)
   }
   function maxPlacements(){return cfg.MAX_PLACEMENTS+s.extraPlacements}
   function clearRewardBreakdown(){
@@ -466,7 +492,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[],coreProgressMilestones:[]};
+    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[],coreProgressMilestones:[]};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
     startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});return s
   }
@@ -1303,7 +1329,7 @@ function createGame(E,opts={}){
       powerSets:{generation:s.setGeneration||1,powerMultiplier:generationPower(s.setGeneration||1),maxGeneration:maxSetGeneration()},
       schema:'iterion.run.v9',gameVersion:cfg.VERSION,engineVersion:cfg.ENGINE_VERSION,gameMode:s.gameMode||'classic',runId:s.runId,seed:s.seed,startedAt:s.startedAt,savedAt:new Date().toISOString(),
       status:status(),failureReason:s.failureReason,recovery:recoveryOptions(),
-      endless:{systemStrain:s.systemStrain||0,longRunActivations:s.endlessLongRunActivations||0,longRunActivationCap:cfg.ENDLESS_LONG_RUN_ACTIVATIONS??7,available:canStartEndless(),active:!!s.endlessMode,baseComplete:!!s.standardComplete,startedRound:s.endlessStartedRound,roundsCleared:Math.max(0,s.wins.length-cfg.TOTAL_ROUNDS),targetMultiplier:cfg.ENDLESS_TARGET_MULTIPLIER||5,phase:s.ouroborosMode?'ouroboros':infinitePhase()?'infinite':s.endlessMode?'endless':'classic',infinitePhase:infinitePhase(),infinitePhaseStartRound:infinitePhaseStartRound()+1,ouroboros:!!s.ouroborosMode,ouroborosStartedRound:s.ouroborosStartedRound,endlessStagesCompleted:endlessStagesCompleted(),boardGrowthStageInterval:Math.max(1,Number(cfg.INFINITE_BOARD_STAGE_INTERVAL)||2),handSize:handSizeForRound()},
+      endless:{systemStrain:s.systemStrain||0,longRunActivations:s.endlessLongRunActivations||0,longRunActivationCap:cfg.ENDLESS_LONG_RUN_ACTIVATIONS??7,available:canStartEndless(),active:!!s.endlessMode,baseComplete:!!s.standardComplete,startedRound:s.endlessStartedRound,roundsCleared:Math.max(0,s.wins.length-cfg.TOTAL_ROUNDS),targetMultiplier:cfg.ENDLESS_TARGET_MULTIPLIER||5,phase:s.ouroborosMode?'ouroboros':infinitePhase()?'infinite':s.endlessMode?'endless':'classic',infinitePhase:infinitePhase(),infinitePhaseStartRound:infinitePhaseStartRound()+1,ouroboros:!!s.ouroborosMode,ouroborosStartedRound:s.ouroborosStartedRound,ouroborosBoardSize:Array.isArray(s.ouroborosBoardSize)?[...s.ouroborosBoardSize]:null,endlessStagesCompleted:endlessStagesCompleted(),boardGrowthStageInterval:Math.max(1,Number(cfg.INFINITE_BOARD_STAGE_INTERVAL)||2),handSize:handSizeForRound()},
       round:{index:s.round+1,total:cfg.TOTAL_ROUNDS,target:target(),placements:s.roundTurn,maxPlacements:maxPlacements(),clears:s.wins,upgradeCoins:s.roundUpgradeCoins},
       stage:{index:stage+1,total:Math.ceil(cfg.TOTAL_ROUNDS/size),round:(s.round%size)+1,size},boardSize:{width:bs.G,height:bs.H},
       score:{last:s.score,best:s.best},turnCount:s.turn,coins:s.coins,inflation:s.inflation,consumables:{...s.consumables},freeReroll:s.freeReroll||0,
@@ -1416,7 +1442,7 @@ function createGame(E,opts={}){
   function exportState(){return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:persistedState()}}
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
-    s=deepClone(raw);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(s.gameMode!=='eyes'){s.cores=[];s.coreProgressMilestones=[]};if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
+    s=deepClone(raw);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(s.gameMode!=='eyes'){s.cores=[];s.coreProgressMilestones=[]};if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
     const legacyEconomyMods={frame:'broker',frontier:'spend',resonator:'bank',forge:'toll'},legacyFields={frameTileId:'brokerTileId',frontierTileId:'spendTileId',resonatorTileId:'bankTileId',forgeTileId:'tollTileId'};
     for(const [oldField,newField] of Object.entries(legacyFields))if(!s[newField]&&s[oldField])s[newField]=s[oldField];
     if(s.pendingModPlacement?.mod&&legacyEconomyMods[s.pendingModPlacement.mod])s.pendingModPlacement.mod=legacyEconomyMods[s.pendingModPlacement.mod];
@@ -1432,6 +1458,7 @@ function createGame(E,opts={}){
     for(const field of ['zeroMemoryTileId','sequenceTileId','complementTileId','relayTileId','couplerTileId','frameTileId','frontierTileId','resonatorTileId','forgeTileId','twinTileId','gateTileId','fanTileId','crownTileId'])delete s[field];
     if(['sequence','complement','relay','coupler'].includes(s.pendingModPlacement?.mod)){s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none'}ensureShopTileOffers();
     const desiredHandSize=handSizeForRound();if(Array.isArray(s.hand)&&s.hand.length>desiredHandSize){const overflow=s.hand.slice(desiredHandSize).filter(Boolean);s.hand=s.hand.slice(0,desiredHandSize);if(!Array.isArray(s.reserve))s.reserve=[];s.reserve.push(...overflow)}
+    if(s.ouroborosMode&&!s.ouroborosBoardSize){const legacyBoard=progressionBoardSizeForStage(Math.floor((s.round||0)/stageSize()));s.ouroborosBoardSize=[legacyBoard[0],legacyBoard[1]]}
     const size=boardSizeForStage(Math.floor((s.round||0)/stageSize()));E.setBoardSize(size[0],size[1]);
     s.pieces=raw.pieces.map(x=>{const p=E.pieceFrom(x.tile,x.x,x.y,0,x.rr,x.id);p.tile=cloneTile(x.tile);return p});if(s.gameMode==='eyes'&&!s.cores.length)s.cores=coreLayoutForMode(s.gameMode,s.seed);normalizeLegacyCoreArchetypes('restore');normalizeLegacyCorePorts('restore');const coreRelocations=relocateLegacyCoreOverlaps();if(coreRelocations.length)s.events.push({type:'core-relocate',reason:'legacy-overlap',cores:deepClone(coreRelocations)});syncCoreProgressToStage(stageIndex()+1,'restore');pruneInactiveTopologyMods({record:false});
     if(!s.ouroborosMode&&(s.setGeneration||1)>=maxSetGeneration()&&availableTileCount()===0&&!s.hand.some(Boolean)&&!s.reserve.length)activateOuroboros('restore');
