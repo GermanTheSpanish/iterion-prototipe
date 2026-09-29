@@ -437,3 +437,14 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .signalDepletedFx{font-size:11px!important;font-weight:800;letter-spacing:.05em;background:#151515;color:#fff;padding:3px 5px}
 @keyframes coreActivationPulse{0%{transform:scale(.9)}38%{transform:scale(1.08)}100%{transform:scale(1)}}
 body.ouroborosPalette .coreNode{opacity:.7}
+
+/* Terminal/stalled run outcomes keep diagnostics and actions readable in every late-game palette. */
+.outcomeModal{display:flex;flex-direction:column;max-height:calc(100dvh - 24px);overflow:hidden}
+.outcomeModal h2,.outcomeModal .modalActions{flex:0 0 auto}
+.outcomeModal #overlayBody{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 2px 4px;color:var(--ink)}
+.outcomeModal #overlayBody>p{color:var(--muted)!important}
+.outcomeModal .sumValue{color:var(--ink)}
+.outcomeModal .sumSmall{color:var(--muted)!important}
+.outcomeModal .failureDownloadButton{appearance:none;width:100%;min-height:46px;padding:11px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--ink);-webkit-text-fill-color:var(--ink);font:inherit;font-size:13px;font-weight:700}
+body.endlessPalette .outcomeModal button.primary{background:#f4f4ee!important;color:#151515!important;-webkit-text-fill-color:#151515!important;border-color:#f4f4ee!important}
+body.endlessPalette .outcomeModal button.secondary,body.endlessPalette .outcomeModal .failureDownloadButton{background:transparent!important;color:var(--ink)!important;-webkit-text-fill-color:var(--ink)!important;border-color:var(--line)!important}
