@@ -10,7 +10,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
 html{background:#f7f7f4}
-body{position:fixed;inset:0;background:var(--bg)}\n#systemChromeTint{position:fixed;top:0;left:0;right:0;height:8px;background:#f7f7f4;pointer-events:none;z-index:2147483647}
+body{position:fixed;inset:0;background:var(--bg)}
+#systemChromeTint{position:fixed;top:0;left:0;right:0;height:8px;background:#f7f7f4;pointer-events:none;z-index:2147483647}
 .app{width:min(100%,560px);height:100dvh;max-height:100dvh;margin:auto;padding:calc(6px + env(safe-area-inset-top)) 8px calc(6px + env(safe-area-inset-bottom));display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;overflow:hidden}
 .label{font-size:8px;line-height:1.1;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
 .scoreStrip{display:grid;grid-template-columns:1.15fr 1fr;gap:5px}.scoreCard{background:rgba(248,245,237,.72);border:1px solid var(--line);border-radius:12px;padding:7px 10px 6px;min-width:0}.scoreValue{font-size:clamp(20px,7vw,30px);font-weight:820;line-height:1;margin-top:2px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.targetCard{background:rgba(255,255,255,.28)}
@@ -52,6 +53,7 @@ body{position:fixed;inset:0;background:var(--bg)}\n#systemChromeTint{position:fi
 <link rel="stylesheet" href="ui-gameplay-v2.css?v=20260929.4">
 </head>
 <body>
+<div id="systemChromeTint" aria-hidden="true"></div>
 <div id="entryFlow" class="entryFlow" aria-live="polite">
   <section id="titleCard" class="entryScreen titleCard" role="button" tabindex="0" aria-label="Enter MONOID"><h1>MONOID</h1></section>
   <section id="gameSelection" class="entryScreen gameSelection" hidden aria-labelledby="selectionTitle"><p class="entryKicker">GAME SELECTION</p><h1 id="selectionTitle">MONOID</h1><button id="modeClassic" class="modeCard"><span class="selectionDouble" aria-hidden="true"><i></i><i></i></span><strong>CLASSIC</strong><small>The original machine</small></button><div id="firstRunChoice" class="firstRunChoice"><button id="learnMonoid" class="entryPrimary">LEARN BASICS · 2 MIN</button></div><button id="startRun" class="entrySecondary">SKIP · START RUN</button><button id="continueRun" class="entryPrimary" hidden>CONTINUE RUN</button><button id="replayTutorial" class="entrySecondary">BASICS TUTORIAL</button><button id="systemsTutorial" class="entrySecondary">SYSTEMS TUTORIAL · 3 MIN</button></section>
