@@ -40,7 +40,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   expect(Math.min(...trace)).toBeLessThan(-3,'a far release must carry the incoming tile slightly through centre');
   expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
   await expect(page.locator('#modeName')).toHaveText('THE EYES',{timeout:900});
-  await expect(page.locator('#modeDescription')).toHaveText('1|1 · 2 Cores → 4 · Signal 24');
+  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Signal 24');
   await expect(page.locator('#startRun')).toBeEnabled();
 
   await page.evaluate(()=>window.__monoidModes.select(6));
@@ -91,7 +91,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await page.locator('#titleCard').click();
   await page.evaluate(()=>window.__monoidModes.select(1));
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
-  await page.evaluate(()=>localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}})));
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await page.locator('#startRun').click();
   await expect(page.locator('#board .coreNode')).toHaveCount(2);
   await expect(page.locator('#modeIndicator')).toBeVisible();
@@ -149,7 +149,7 @@ test('The Eyes makes the Stage 4 Core discovery a visible board event',async({pa
   await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
   await page.evaluate(()=>window.__monoidModes.select(1));
-  await page.evaluate(()=>localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}})));
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await page.locator('#startRun').click();
   if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
   await page.evaluate(()=>{const g=window.__monoidGame,s=g.state();s.round=8;s.cleared=true;s.blocked=false;s.running=false;s.nextShopType='none';s.intermissionResolved=true;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false});
@@ -172,7 +172,7 @@ test('The Eyes keeps its 1|1 selector and replaces a saved Classic run without r
   await page.evaluate(()=>document.getElementById('gameSelectionButton').click());
   await expect(page.locator('#gameSelection')).toBeVisible();
   await page.evaluate(()=>window.__monoidModes.select(1));
-  await page.evaluate(()=>localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}})));
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
   const eyesPips=await page.evaluate(()=>[...document.querySelectorAll('.modeSlide[data-mode="eyes"] .modeTileEyes i')].map(half=>getComputedStyle(half,'::after').display));
   expect(eyesPips).toEqual(['block','block']);
