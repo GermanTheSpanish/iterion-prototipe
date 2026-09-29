@@ -223,7 +223,7 @@ function createGame(E,opts={}){
   }
   function framesModeGeometry(seed=s.seed){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24);
-    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfSpan=Math.max(size*8,16),pipOffset=halfSpan/4,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfSpan/2,bottomCenterY=centerY+halfSpan/2;
+    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfSpan=Math.max(size*8,16),minDiagonalCells=Math.max(4,Number(cfg.FRAMES_MIN_PIP_DIAGONAL_CELLS)||4),pipOffset=Math.max(halfSpan/4,size*(minDiagonalCells/2+.5)),centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfSpan/2,bottomCenterY=centerY+halfSpan/2;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size});
     const sites=[
       site('frames-north-a','north',0,centerX-pipOffset,topCenterY-pipOffset),
@@ -258,7 +258,7 @@ function createGame(E,opts={}){
     const cell=Math.max(1,Number(E.S)||2),size=coreSize(core);
     return cube.x<core.x+size&&cube.x+cell>core.x&&cube.y<core.y+size&&cube.y+cell>core.y
   }
-  function pieceOverlapsCore(piece,cores=s.cores){return physicalCoreMode()&&(cores||[]).some(core=>(piece?.cubes||[]).some(cube=>cubeOverlapsCore(cube,core)))}
+  function pieceOverlapsCore(piece,cores=s.cores){return physicalCoreMode()&&(cores||[]).some(core=>(canonicalGameMode(s.gameMode)!=='frames'||geometryItemVisible(core))&&(piece?.cubes||[]).some(cube=>cubeOverlapsCore(cube,core)))}
   function placementOverlapsCore(tile,x,y,rr){return physicalCoreMode()&&pieceOverlapsCore(E.pieceFrom(tile,x,y,0,rr,-1))}
   function physicalVoidMode(){return canonicalGameMode(s.gameMode)==='frames'&&Array.isArray(s.voids)&&s.voids.length>0}
   function voidSize(voidItem){return Math.max(1,Number(voidItem?.size)||Number(E.S)||2)}
@@ -266,7 +266,7 @@ function createGame(E,opts={}){
     const cell=Math.max(1,Number(E.S)||2),size=voidSize(voidItem);
     return cube.x<voidItem.x+size&&cube.x+cell>voidItem.x&&cube.y<voidItem.y+size&&cube.y+cell>voidItem.y
   }
-  function pieceOverlapsVoid(piece,voids=s.voids){return physicalVoidMode()&&(voids||[]).some(voidItem=>(piece?.cubes||[]).some(cube=>cubeOverlapsVoid(cube,voidItem)))}
+  function pieceOverlapsVoid(piece,voids=s.voids){return physicalVoidMode()&&(voids||[]).some(voidItem=>geometryItemVisible(voidItem)&&(piece?.cubes||[]).some(cube=>cubeOverlapsVoid(cube,voidItem)))}
   function placementOverlapsVoid(tile,x,y,rr){return physicalVoidMode()&&pieceOverlapsVoid(E.pieceFrom(tile,x,y,0,rr,-1))}
   function pieceOverlapsBlockedGeometry(piece){return pieceOverlapsCore(piece)||pieceOverlapsVoid(piece)}
   function placementOverlapsBlockedGeometry(tile,x,y,rr){return pieceOverlapsBlockedGeometry(E.pieceFrom(tile,x,y,0,rr,-1))}
@@ -785,7 +785,7 @@ function createGame(E,opts={}){
   }
 
   function coreShadowTelemetry(pieces=s.pieces,cores=s.cores){
-    const items=Array.isArray(cores)?cores:[],cell=Math.max(1,Number(E.S)||2),overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+    const items=Array.isArray(cores)?cores.filter(core=>canonicalGameMode(s.gameMode)!=='frames'||geometryItemVisible(core)):[],cell=Math.max(1,Number(E.S)||2),overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
     const portTouch=(core,cube,side)=>{
       const xOverlap=Math.max(0,Math.min(core.x+core.size,cube.x+cell)-Math.max(core.x,cube.x)),yOverlap=Math.max(0,Math.min(core.y+core.size,cube.y+cell)-Math.max(core.y,cube.y));
       if(side==='U')return cube.y+cell===core.y&&xOverlap>0;
@@ -1399,7 +1399,7 @@ function createGame(E,opts={}){
     lines.push(`Current hand: ${hand.map(h=>`#${h.index+1} ${tileText(h.tile)} legal=${h.legalPlacements}`).join(' | ')||'-'}`);
     lines.push(`Recovery: recoverable=${x.recovery.recoverable?'yes':'no'} · undo=${x.recovery.undo?'yes':'no'} · ownedReroll=${x.recovery.ownedReroll?'yes':'no'} · buyReroll=${x.recovery.toolReroll?`yes@${x.recovery.prices.reroll}c`:'no'} · ownedMove=${x.recovery.ownedMove?'yes':'no'} · buyMove=${x.recovery.toolMove?`yes@${x.recovery.prices.move}c`:'no'}`);
     lines.push(`Circuits: ${Object.entries(x.circuits.ranks).map(([id,rank])=>`${id}:C${rank}`).join(',')||'-'} · slots=${Object.keys(x.circuits.ranks).length}/${x.circuits.tileLimit} · discovered=${x.circuits.signatures.length} · pending=${x.circuits.pending?.signature||'-'}`);
-    if(x.cores.mode==='eyes')lines.push(`Cores: THE EYES · physical · ${x.cores.items.map(core=>`${core.id}:${String(core.archetype||'-').toUpperCase()} ${coreLevelRoman(core.level)} ports=${(core.ports||[]).join('')||'-'} @${core.x},${core.y}`).join(' | ')} · connected=${x.cores.telemetry.connectedCoreCount}/${x.cores.telemetry.coreCount} · progress=${x.cores.progressMilestones.join(',')||'-'} · overlaps=${x.cores.telemetry.overlapTileIds.join(',')||'-'}`);
+    if(coreGameMode(x.cores.mode)){const label=x.cores.mode==='frames'?'THE FRAMES':'THE EYES';lines.push(`Cores: ${label} · physical · ${x.cores.items.map(core=>`${core.id}:${String(core.archetype||'-').toUpperCase()} ${coreLevelRoman(core.level)} ports=${(core.ports||[]).join('')||'-'} @${core.x},${core.y}`).join(' | ')} · connected=${x.cores.telemetry.connectedCoreCount}/${x.cores.telemetry.coreCount} · progress=${x.cores.progressMilestones.join(',')||'-'} · overlaps=${x.cores.telemetry.overlapTileIds.join(',')||'-'}`)}
     if(x.signal.enabled)lines.push(`Signal: ${x.signal.base}/${x.signal.max}${x.signal.last?` · charged=${x.signal.last.chargedVisits} · remaining=${x.signal.last.remaining} · min=${x.signal.last.minRemaining} · lead=${x.signal.last.leadCoreId||'-'}:${String(x.signal.last.leadCoreArchetype||'-').toUpperCase()} · cores=${x.signal.last.activatedCoreIds?.join('>')||'-'} · fx=R${x.signal.last.effects?.relayCount||0}/D${x.signal.last.effects?.distributorSplitCount||0}/C${x.signal.last.effects?.conductorFreeVisits||0}${x.signal.last.effects?.reservoirLead?'/V1':''} · stopped=${x.signal.last.stopped?'yes':'no'}${x.signal.last.firstStop?` at=${x.signal.last.firstStop.pieceId}`:''}`:' · no moves yet'}`);
     for(const v of x.turns){
       if(v.type==='signal-resolution'){const trace=Array.isArray(v.events)?JSON.stringify(v.events):v.traceCompacted?'COMPACTED_AFTER_RESTORE':'-';lines.push(`T${v.move} SIGNAL TREE splits=${v.splitCount} base=${v.baseOutput} selection=${v.selectionOutput??v.baseOutput} trace=${trace}`);continue}

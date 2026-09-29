@@ -31,8 +31,8 @@ for(const half of ['north','south']){
   assert(core&&voidItem);
   assert.notEqual(core.pip,voidItem.pip,'each 2 pip half must contain exactly one Core and one Void');
   const a=centres(core),b=centres(voidItem),dx=Math.abs(a.x-b.x)/E.S,dy=Math.abs(a.y-b.y)/E.S;
-  assert.equal(dx,D.FRAMES_MIN_PIP_DIAGONAL_CELLS,'2|2 pips keep four cell horizontal diagonal spacing');
-  assert.equal(dy,D.FRAMES_MIN_PIP_DIAGONAL_CELLS,'2|2 pips keep four cell vertical diagonal spacing');
+  assert(dx>=D.FRAMES_MIN_PIP_DIAGONAL_CELLS,'2|2 pips keep at least four cell horizontal diagonal spacing');
+  assert(dy>=D.FRAMES_MIN_PIP_DIAGONAL_CELLS,'2|2 pips keep at least four cell vertical diagonal spacing');
 }
 const initialItems=[...s.cores,...s.voids],initialVisible=initialItems.filter(item=>visible(item));
 assert.equal(initialVisible.length,2,'opening board reveals one 2|2 pip per half');
@@ -46,11 +46,13 @@ assert.equal(snap.cores.mode,'frames');
 assert.equal(snap.cores.maxPhysical,2);
 assert.equal(snap.modeGeometry.voids.length,2);
 assert.equal(snap.modeGeometry.visibleIds.length,2);
+assert.equal(snap.cores.telemetry.coreCount,s.cores.filter(item=>visible(item)).length,'hidden Cores do not participate in physical telemetry before reveal');
 assert.deepEqual(P.modeIndicatorViewModel(s,snap).pips,[2,2]);
 
 const double=s.set.find(tile=>tile.id==='d2-2');assert(double);
 s.hand[0]=double;
-const visibleVoid=s.voids.find(item=>visible(item));assert(visibleVoid);
+const visibleVoid=s.voids.find(item=>visible(item)),hiddenVoid=s.voids.find(item=>!visible(item));assert(visibleVoid&&hiddenVoid);
+assert.deepEqual(first.previewPlacement(0,{x:hiddenVoid.x,y:hiddenVoid.y,z:0,rr:0}),{ok:false,reason:'bounds'},'unrevealed Voids are not active blockers before they enter the board');
 assert.deepEqual(first.previewPlacement(0,{x:visibleVoid.x,y:visibleVoid.y,z:0,rr:0}),{ok:false,reason:'void-overlap'});
 assert.deepEqual(first.beginPlacement(0,{x:visibleVoid.x,y:visibleVoid.y,z:0,rr:0}),{ok:false,reason:'void-overlap'});
 
@@ -80,6 +82,7 @@ for(let n=0;n<3;n++){
 }
 assert.deepEqual(E.getBoardSize(),{G:21,H:28});
 assert.equal(growth.snapshot().modeGeometry.visibleIds.length,4,'first board expansion reveals the second pip in both halves');
+assert.equal(growth.snapshot().cores.telemetry.coreCount,2,'both Frames Cores become physically active once all four pips are revealed');
 const reveal=[...gs.events].reverse().find(event=>event.type==='mode-geometry-reveal');
 assert(reveal);
 assert.equal(reveal.items.length,2);
