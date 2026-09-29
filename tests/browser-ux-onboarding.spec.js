@@ -63,6 +63,41 @@ test('first real run briefing is board-led, state-neutral and shown once',async(
   await page.setViewportSize({width:375,height:667});await enterSelection(page);await page.locator('#startRun').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('firstBrief');await expect(page.locator('#monoidBoardCoach')).toContainText('BUILD. ROUTE. SCORE.');const before=await page.evaluate(()=>window.__monoidGame.exportState());await page.locator('[data-ux-action="start-first"]').click();await expect(page.locator('#monoidBoardCoach')).toBeHidden();expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(before);expect(await page.evaluate(()=>localStorage.getItem('monoid.firstRunBriefing.v1'))).toBe('seen')
 });
 
+
+test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff once',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');localStorage.removeItem('monoid.modeOnboarding.v1')});
+  await enterSelection(page);await page.evaluate(()=>window.__monoidModes.select(1));await page.locator('#startRun').click();
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('THE EYES');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Signal now fades.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Cores keep it alive.');
+  const before=await page.evaluate(()=>window.__monoidGame.exportState());
+  await page.locator('[data-ux-action="start-mode"]').click();
+  expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(before);
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeOrient');
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('REACH A CORE');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Reach a Core before the Signal dies.');
+  await expect(page.locator('body')).toHaveClass(/monoidModeOrientActive/);
+  await expect(page.locator('#board .coreNode.modeOnboardingCore')).toHaveCount(2);
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3500}).toBe('idle');
+  await expect(page.locator('body')).not.toHaveClass(/monoidModeOrientActive/);
+
+  const activation=await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),core=s.cores[0];s.events.push({turn:1,mode:'placement',signal:{activations:[{coreId:core.id,role:'lead',order:1,beforeSignal:7,afterSignal:24}]},coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:7,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now());return core.id});
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeDiscovery');
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('LEAD');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('First Core sets the rule.');
+  await expect(page.locator(`#board .coreNode[data-core-id="${activation}"].modeOnboardingCore`)).toHaveCount(1);
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('modePayoff');
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('CORE LINKED');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Signal restored.');
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('idle');
+  const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.modeOnboarding.v1')));
+  expect(progress.eyes).toEqual({reveal:true,orient:true,discovery:true,payoff:true});
+  await page.evaluate(()=>{const s=window.__monoidGame.state(),core=s.cores[1];s.events.push({turn:2,mode:'placement',coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:5,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now())});
+  await page.waitForTimeout(180);await expect(page.locator('#monoidBoardCoach')).toBeHidden();await assertNoPageScroll(page)
+});
+
 test('CLASSIC selection uses a blank double-zero and player-facing branding is MONOID',async({page})=>{
   await page.setViewportSize({width:390,height:844});await enterSelection(page);await expect(page).toHaveTitle(/^MONOID/);const pips=await page.locator('#modeClassic .selectionDouble i').evaluateAll(nodes=>nodes.map(n=>getComputedStyle(n,'::after').display));expect(pips).toEqual(['none','none']);await page.locator('#startRun').click();await expect(page.locator('.wordmark')).toHaveText('MONOID')
 });
