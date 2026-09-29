@@ -66,7 +66,7 @@ test('first real run briefing is board-led, state-neutral and shown once',async(
 
 test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff once',async({page})=>{
   await page.setViewportSize({width:375,height:667});
-  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');localStorage.removeItem('monoid.modeOnboarding.v1')});
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');localStorage.removeItem('monoid.modeOnboarding.v1');localStorage.removeItem('monoid.modeIntro.v2')});
   await enterSelection(page);await page.evaluate(()=>window.__monoidModes.select(1));await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE EYES');
@@ -96,6 +96,23 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   expect(progress.eyes).toEqual({reveal:true,orient:true,discovery:true,payoff:true});
   await page.evaluate(()=>{const s=window.__monoidGame.state(),core=s.cores[1];s.events.push({turn:2,mode:'placement',coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:5,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now())});
   await page.waitForTimeout(180);await expect(page.locator('#monoidBoardCoach')).toBeHidden();await assertNoPageScroll(page)
+});
+
+test('The Frames refreshed intro reappears once without spoiling Core or Void counts',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({frames:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.removeItem('monoid.modeIntro.v2')});
+  await enterSelection(page);await page.evaluate(()=>window.__monoidModes.select(2));await page.locator('#startRun').click();
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('THE FRAMES');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('The board has gaps.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Build around them.');
+  await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Core');
+  await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Void');
+  await expect(page.locator('#board .coreNode, #board .boardVoid')).toHaveCount(4);
+  await page.locator('[data-ux-action="start-mode"]').click();
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.modeIntro.v2')))).toEqual({frames:true});
+  await assertNoPageScroll(page)
 });
 
 test('CLASSIC selection uses a blank double-zero and player-facing branding is MONOID',async({page})=>{

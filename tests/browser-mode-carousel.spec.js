@@ -192,13 +192,13 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   await page.locator('#titleCard').click();
   await page.evaluate(()=>window.__monoidModes.select(2));
   await expect(page.locator('#modeName')).toHaveText('THE FRAMES');
-  await expect(page.locator('#modeDescription')).toHaveText('2|2 · 2 Cores · 2 Voids');
-  await page.evaluate(()=>localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({frames:{reveal:true,orient:true,discovery:true,payoff:true}})));
+  await expect(page.locator('#modeDescription')).toHaveText('2|2 · Signal 24');
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({frames:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({frames:true}))});
   await page.locator('#startRun').click();
   await expect(page.locator('#modeIndicator')).toBeVisible();
   await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(2);
   await expect(page.locator('#modeIndicator .modePip')).toHaveCount(4);
-  await expect(page.locator('#board .coreNode, #board .boardVoid')).toHaveCount(2);
+  await expect(page.locator('#board .coreNode, #board .boardVoid')).toHaveCount(4);
   const state=await page.evaluate(()=>({
     mode:window.__monoidGame.state().gameMode,
     cores:window.__monoidGame.state().cores,
@@ -212,7 +212,7 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   expect(state.savedMode).toBe('frames');
   expect(state.cores).toHaveLength(2);
   expect(state.voids).toHaveLength(2);
-  expect(state.snapshot.modeGeometry.visibleIds).toHaveLength(2);
+  expect(state.snapshot.modeGeometry.visibleIds).toHaveLength(4);
   expect(state.snapshot.signal.enabled).toBe(true);
   expect(state.snapshot.signal.base).toBe(24);
   const safety=await page.evaluate(()=>{

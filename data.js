@@ -35,7 +35,6 @@
     CORE_UPGRADE_START_STAGE:10,
     CORE_UPGRADE_STAGE_INTERVAL:3,
     CORE_ARCHETYPES:Object.freeze(['relay','reservoir','distributor','conductor']),
-    FRAMES_MIN_PIP_DIAGONAL_CELLS:4,
     CIRCUIT_TILE_LIMIT:3,
     CIRCUIT_MAX_RANK:5,
     CIRCUIT_REWARDS:[{minSize:4,ranks:1},{minSize:7,ranks:2},{minSize:10,ranks:3}],
