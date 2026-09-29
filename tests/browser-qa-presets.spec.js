@@ -63,6 +63,7 @@ test('Endless R16 QA link keeps the base board and POWER x3 inside Classic progr
   await expect(page.locator('#target')).toHaveText('250B');await expect(page.locator('#score')).toHaveText('125B');
   await expect(page.locator('body')).toHaveClass(/endlessPalette/);
   await expect.poll(()=>page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(41, 41, 39)');
+  await expect.poll(()=>page.evaluate(()=>{const body=getComputedStyle(document.body).backgroundColor,root=getComputedStyle(document.documentElement).backgroundColor,theme=document.querySelector('meta[name="theme-color"]')?.content;return root===body&&theme===body})).toBe(true);
   expect(await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,model:window.__monoidGame.state().scoringModel??null,active:window.__monoidActiveMode,generation:window.__monoidGame.state().setGeneration,board:window.__monoidGame.snapshot().boardSize}))).toEqual({mode:'classic',model:null,active:'classic',generation:3,board:{width:30,height:40}});
   expect(await page.locator('#board .power3').count()).toBeGreaterThanOrEqual(5);
   const normalPower=page.locator('#board .power3:not(.circuitTile)').first();
