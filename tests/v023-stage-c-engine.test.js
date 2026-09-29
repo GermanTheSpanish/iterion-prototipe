@@ -18,5 +18,6 @@ assert(ported.events.some(e=>e.type==='zero-port'&&e.piece===2&&e.toPieceId===3)
 assert(ported.events.some(e=>e.type==='zero-port'&&e.piece===3&&e.toPieceId===2));
 assert(!ported.events.some(e=>e.type==='zero-memory'),'Zero Memory no longer exists in scoring');
 const source=fs.readFileSync(require.resolve('../engine.js'),'utf8');
-assert(source.includes('const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length]'),'route comparator must remain traversals → output → rebounds → path length');
+const traversalsIndex=source.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=source.indexOf('const scoreCmp=SCORE.compare('),tailIndex=source.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator must remain traversals → exact output → rebounds → path length');
 console.log('v0.23 Stage C Zero Port isolated engine tests passed');
