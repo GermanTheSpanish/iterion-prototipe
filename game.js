@@ -1,7 +1,6 @@
 (function(root,factory){
-  const api=factory(root.IterionData,root.IterionMods,root.IterionCircuits,root.MonoidScore);
-  if(typeof module==='object'&&module.exports) module.exports=factory(require('./data.js'),require('./mods.js'),require('./circuits.js'),require('./score.js'));
-  root.IterionGame=api;
+  const cjs=typeof module==='object'&&module.exports,api=cjs?factory(require('./data.js'),require('./mods.js'),require('./circuits.js'),require('./score.js')):factory(root.IterionData,root.IterionMods,root.IterionCircuits,root.MonoidScore);
+  if(cjs)module.exports=api;else root.IterionGame=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(D,M,C,SCORE){
 function createGame(E,opts={}){
   if(!E)throw new Error('IterionEngine required');if(!SCORE)throw new Error('MonoidScore required');

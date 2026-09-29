@@ -1,7 +1,6 @@
 (function(root,factory){
-  const api=factory(root.MonoidScore);
-  if(typeof module==='object'&&module.exports) module.exports=factory(require('./score.js'));
-  root.IterionEngine=api;
+  const cjs=typeof module==='object'&&module.exports,api=cjs?factory(require('./score.js')):factory(root.MonoidScore);
+  if(cjs)module.exports=api;else root.IterionEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(SCORE){
   if(!SCORE)throw new Error('MonoidScore required');
   let G=18,H=24;
