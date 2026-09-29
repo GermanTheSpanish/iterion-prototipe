@@ -20,8 +20,11 @@ function readyOuroboros(seed=4901){
   const consume=()=>{s.placedTileIds=s.set.map(t=>t.id);s.hand=[];s.reserve=[];s.cleared=false;s.blocked=false;s.failureReason=null;s.roundTurn=0;game.assessContinuation()};
   consume();assert.equal(s.setGeneration,2);assert.equal(s.ouroborosMode,false);
   consume();assert.equal(s.setGeneration,3);assert.equal(s.ouroborosMode,false);assert(s.set.filter(t=>t.generation===3).every(t=>t.powerMultiplier===3));
+  E.setBoardSize(39,52);
   consume();assert.equal(s.setGeneration,3);assert.equal(s.ouroborosMode,true);assert.equal(s.set.some(t=>t.generation===4),false);assert.equal(s.hand.length,0);assert.equal(s.failureReason,null);
-  assert.equal(game.snapshot().powerSets.maxGeneration,3);assert.equal(game.snapshot().endless.phase,'ouroboros');assert.equal(game.status?.(),undefined);
+  assert.deepEqual(s.ouroborosBoardSize,[39,52],'Ouroboros must capture the physical board size at activation');
+  s.round=90;assert.deepEqual(game.boardSizeForStage(),[39,52],'Ouroboros must stop later Stage growth');
+  assert.equal(game.snapshot().powerSets.maxGeneration,3);assert.equal(game.snapshot().endless.phase,'ouroboros');assert.deepEqual(game.snapshot().endless.ouroborosBoardSize,[39,52]);assert.equal(game.status?.(),undefined);
 }
 {
   const{game,s}=readyOuroboros(4902),piece=s.pieces.find(p=>p.tile.id==='d2-3'),pieceId=piece.id;
@@ -42,7 +45,7 @@ function readyOuroboros(seed=4901){
 }
 {
   const{game,s}=readyOuroboros(4904);assert.equal(game.canUseReroll(),false);assert.equal(game.canBuyTool('reroll'),false);s.coins=100;assert.equal(game.shopPurchaseAvailability().hasAny,false);assert.equal(game.openShop(),false);
-  const moved=game.moveOuroborosTile('d2-3',{x:12,y:16,rr:1});assert.equal(moved.ok,true);const saved=game.exportState(),restored=G.createGame(E,{seed:1});assert.equal(restored.restoreState(saved),true);
-  assert.equal(restored.state().ouroborosMode,true);assert.equal(restored.handSizeForRound(),0);const p=restored.state().pieces.find(p=>p.tile.id==='d2-3');assert.deepEqual({x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr},{x:12,y:16,rr:1})
+  const moved=game.moveOuroborosTile('d2-3',{x:12,y:16,rr:1});assert.equal(moved.ok,true);s.ouroborosBoardSize=[18,24];const saved=game.exportState(),restored=G.createGame(E,{seed:1});assert.equal(restored.restoreState(saved),true);
+  assert.equal(restored.state().ouroborosMode,true);assert.deepEqual(restored.state().ouroborosBoardSize,[18,24]);assert.deepEqual(E.getBoardSize(),{G:18,H:24});assert.equal(restored.handSizeForRound(),0);const p=restored.state().pieces.find(p=>p.tile.id==='d2-3');assert.deepEqual({x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr},{x:12,y:16,rr:1})
 }
 console.log('Ouroboros progression and rebuild regressions passed');

@@ -346,6 +346,14 @@ body.monoidCommerceActive .commerceModal .marketTile{transform:scale(.82);transf
 .headerActions{width:100%;height:36px;display:flex;align-items:center;justify-content:space-between;gap:0}
 .gameHeader .helpButton{width:32px;height:32px;font-size:17px;font-weight:650;color:var(--muted)}
 #menuButton{width:auto;height:32px;padding:0 1px;font-size:12px;font-weight:780;line-height:1;letter-spacing:.07em}
+.modeIndicator{position:absolute;z-index:2;left:50%;top:26px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;height:8px;color:var(--muted);pointer-events:none;white-space:nowrap}
+.modeIndicator[hidden]{display:none}
+.modeIndicatorPips{display:flex;align-items:center;justify-content:center;gap:10px}
+.modeIndicatorHalf{width:8px;height:8px;display:grid;grid-template-columns:repeat(3,2px);grid-template-rows:repeat(3,2px);gap:1px}
+.modePip{width:2px;height:2px;border-radius:50%;background:currentColor}
+.modePip.p0{grid-area:1/1}.modePip.p1{grid-area:1/2}.modePip.p2{grid-area:1/3}.modePip.p3{grid-area:2/1}.modePip.p4{grid-area:2/2}.modePip.p5{grid-area:2/3}.modePip.p6{grid-area:3/1}.modePip.p7{grid-area:3/2}.modePip.p8{grid-area:3/3}
+.modeIndicatorPhase{font-size:10px;font-weight:650;line-height:1;color:currentColor}
+.modeIndicator.hasPips .modeIndicatorPhase{position:absolute;left:calc(100% + 7px);top:50%;transform:translateY(-50%)}
 .scoreStrip{gap:8px;align-items:stretch}
 .scoreCard{min-height:80px;padding:0}
 .scoreValue{font-size:clamp(36px,11.7vw,54px);line-height:.98;margin:5px 0 3px}

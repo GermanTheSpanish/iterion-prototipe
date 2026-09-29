@@ -80,6 +80,7 @@ test('Classic and The Eyes are the playable modes while Classic keeps its full p
   expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel??null)).toBeNull();
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('classic');
   expect(await page.evaluate(()=>window.__monoidGame.debugText())).toContain('Mode: CLASSIC');
+  await expect(page.locator('#modeIndicator')).toBeHidden();
 });
 
 
@@ -92,6 +93,13 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
   await page.locator('#startRun').click();
   await expect(page.locator('#board .coreNode')).toHaveCount(2);
+  await expect(page.locator('#modeIndicator')).toBeVisible();
+  await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(2);
+  await expect(page.locator('#modeIndicator .modePip')).toHaveCount(2);
+  await expect(page.locator('#modeIndicator .modeIndicatorPhase')).toHaveCount(0);
+  await expect(page.locator('#modeIndicator .modeIndicatorDivider')).toHaveCount(0);
+  const indicatorAlignment=await page.evaluate(()=>{const wordmark=document.getElementById('menuButton').getBoundingClientRect(),indicator=document.getElementById('modeIndicator').getBoundingClientRect();return{dx:(indicator.left+indicator.width/2)-(wordmark.left+wordmark.width/2),below:indicator.top>wordmark.top+wordmark.height/2}});
+  expect(Math.abs(indicatorAlignment.dx)).toBeLessThan(1);expect(indicatorAlignment.below).toBe(true);
   const state=await page.evaluate(()=>({
     gameMode:window.__monoidGame.state().gameMode,
     cores:window.__monoidGame.state().cores,
