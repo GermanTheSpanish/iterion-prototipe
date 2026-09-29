@@ -98,8 +98,8 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await expect(page.locator('#modeIndicator .modePip')).toHaveCount(2);
   await expect(page.locator('#modeIndicator .modeIndicatorPhase')).toHaveCount(0);
   await expect(page.locator('#modeIndicator .modeIndicatorDivider')).toHaveCount(0);
-  const indicatorAlignment=await page.evaluate(()=>{const wordmark=document.getElementById('menuButton').getBoundingClientRect(),indicator=document.getElementById('modeIndicator').getBoundingClientRect();return{dx:(indicator.left+indicator.width/2)-(wordmark.left+wordmark.width/2),below:indicator.top>wordmark.top+wordmark.height/2}});
-  expect(Math.abs(indicatorAlignment.dx)).toBeLessThan(1);expect(indicatorAlignment.below).toBe(true);
+  const indicatorAlignment=await page.evaluate(()=>{const header=document.querySelector('.gameHeader').getBoundingClientRect(),wordmark=document.getElementById('menuButton').getBoundingClientRect(),indicator=document.getElementById('modeIndicator').getBoundingClientRect(),half=document.querySelector('#modeIndicator .modeIndicatorHalf').getBoundingClientRect(),pip=document.querySelector('#modeIndicator .modePip').getBoundingClientRect();return{dx:(indicator.left+indicator.width/2)-(wordmark.left+wordmark.width/2),top:indicator.top-header.top,half:half.width,pip:pip.width}});
+  expect(Math.abs(indicatorAlignment.dx)).toBeLessThan(1);expect(indicatorAlignment.top).toBeGreaterThanOrEqual(31);expect(indicatorAlignment.half).toBeGreaterThanOrEqual(11);expect(indicatorAlignment.pip).toBeGreaterThanOrEqual(2.5);
   const state=await page.evaluate(()=>({
     gameMode:window.__monoidGame.state().gameMode,
     cores:window.__monoidGame.state().cores,

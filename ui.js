@@ -172,9 +172,9 @@
     if(!modeIndicatorEl)return;
     const visible=!!model?.visible;modeIndicatorEl.hidden=!visible;
     if(!visible){modeIndicatorEl.innerHTML='';modeIndicatorEl.removeAttribute('aria-label');return}
-    const halves=(model.pips||[]).map(value=>{const pips=(MODE_PIP_POSITIONS[value]||[]).map(position=>`<i class="modePip p${position}"></i>`).join('');return `<span class="modeIndicatorHalf" data-value="${value}">${pips}</span>`}).join('');
-    const pipGroup=halves?`<span class="modeIndicatorPips" aria-hidden="true">${halves}</span>`:'',phase=model.phaseSymbol?`<span class="modeIndicatorPhase" aria-hidden="true">${model.phaseSymbol}</span>`:'';
-    modeIndicatorEl.classList.toggle('hasPips',!!halves);modeIndicatorEl.innerHTML=pipGroup+phase;modeIndicatorEl.setAttribute('aria-label',model.ariaLabel||'Game mode')
+    const halves=(model.pips||[]).map(value=>{const pips=(MODE_PIP_POSITIONS[value]||[]).map(position=>`<i class="modePip p${position}"></i>`).join('');return `<span class="modeIndicatorHalf" data-value="${value}">${pips}</span>`}),between=model.phasePosition==='between'&&halves.length===2,phase=model.phaseSymbol?`<span class="modeIndicatorPhase${between?' modeIndicatorInfinityBridge':''}" aria-hidden="true">${model.phaseSymbol}</span>`:'';
+    const pipGroup=halves.length?`<span class="modeIndicatorPips" aria-hidden="true">${between?`${halves[0]}${phase}${halves[1]}`:halves.join('')}</span>`:'',trailingPhase=between?'':phase;
+    modeIndicatorEl.classList.toggle('hasPips',halves.length>0);modeIndicatorEl.classList.toggle('hasInfinityBridge',between);modeIndicatorEl.innerHTML=pipGroup+trailingPhase;modeIndicatorEl.setAttribute('aria-label',model.ariaLabel||'Game mode')
   }
   function ordered(p){return[...p.cubes].sort((a,b)=>p.axis==='H'?a.x-b.x:a.y-b.y)}
   function pieceEl(p,cls='piece'){const d=document.createElement('div'),revealed=tileView(p.tile).modifiers.length>0&&modFaceRevealed(p.tile.id);d.className=cls+' '+(p.axis==='H'?'h':'v')+powerClass(p.tile)+circuitClass(p.tile)+(revealed?' modFaceRevealed':modClass(p.tile));d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube${c.v===0?' zeroEndpoint':''}" data-half="${c.half}"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+(revealed?'':tileModMarks(p.tile))+circuitMark(p.tile)+powerMark(p.tile);return d}

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20260929\.1'/);
+assert.match(source,/BUILD_ID='20260929\.2'/);
 assert.match(source,/marketAssignments \.marketTile/,'Assigned physical modifiers must come from canonical Market state');
 assert.match(source,/marketAssignedGroup/);assert.match(source,/marketPoolGroup/,'Installed and compatible groups must remain distinct');assert.match(source,/COMPATIBLE · \$\{count\}/);
 assert.match(source,/offer\.replaceChildren\(head,description,visual,context\)/,'Each offer must be rebuilt into one authoritative head / guidance / schematic / context structure');assert.match(source,/marketModDiagram/,'Every structured Market offer must reserve a compact Mod schematic band');
@@ -23,6 +23,13 @@ assert.match(ui,/MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map\(\),modFaceR
 assert.match(ui,/else if\(meta\.kind==='board'\)revealModFace\(meta\.tileId\)/,'Short board taps should reveal Mod faces without replacing long-press Inspector');
 assert.match(ui,/revealed\?' modFaceRevealed':modClass\(p\.tile\)/,'Revealed Mods must render through the canonical front-face classes');
 assert.match(ui,/\(revealed\?'':tileModMarks\(p\.tile\)\)/,'Revealed Mods must hide reverse lettering while their printed values are visible');
+assert.match(ui,/model\.phasePosition==='between'&&halves\.length===2/,'Endless must place infinity between the two domino halves when a mode has pips');
+assert.match(ui,/modeIndicatorInfinityBridge/,'Infinity bridge needs a dedicated composition hook instead of a trailing phase glyph');
+const theme=fs.readFileSync(path.join(__dirname,'..','ui-theme.css'),'utf8');
+assert.match(theme,/\.modeIndicator\{[^}]*top:32px[^}]*height:12px[^}]*color:var\(--ink\)[^}]*opacity:\.76/,'Mode identity must sit lower, larger and stronger beneath MONOID');
+assert.match(theme,/\.modeIndicatorHalf\{width:12px;height:12px[\s\S]*repeat\(3,3px\)/,'Mode pip halves must be materially larger than the first HUD pass');
+assert.match(theme,/\.modePip\{width:3px;height:3px/,'Mode pips must remain legible on phone screens');
+assert.match(theme,/\.modeIndicatorInfinityBridge\{position:static;font-size:14px/,'Infinity must occupy the centre between mode halves');
 assert.match(source,/EXTREME_THRESHOLD=1e27/);assert.match(source,/toExponential\(2\)/,'Extreme Endless numbers must use scientific notation');
 assert.match(source,/width:clamp\(108px,29\.3vw,126px\)/,'MONOID header width should tune to the 14 Pro Max Dynamic Island reference');
 assert.doesNotMatch(source,/IterionEngine|finishPlacement|buyMarketMod\s*=/,'Late polish must not redefine engine, placement or commerce behaviour');

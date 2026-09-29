@@ -76,8 +76,8 @@
     return Object.freeze({owned,used,remaining,cap,endless,visible,ratio,ariaLabel:endless?`Long Chain · ${remaining} of ${cap} Endless activations remaining`:'Long Chain ready'})
   }
   function modeIndicatorViewModel(state={},snapshot={}){
-    const mode=state.gameMode==='eyes'?'eyes':'classic',endless=!!snapshot.endless?.active,infinitePhase=!!snapshot.endless?.infinitePhase,ouroboros=!!snapshot.endless?.ouroboros,pips=mode==='eyes'?[1,1]:[],phaseSymbol=ouroboros?'⟳':endless?'∞':'',phaseName=ouroboros?'Ouroboros':infinitePhase?'Infinite':endless?'Endless':null,modeName=mode==='eyes'?'The Eyes':'Classic',visible=pips.length>0||!!phaseSymbol;
-    return Object.freeze({visible,mode,pips:Object.freeze(pips),phaseSymbol,ariaLabel:visible?[mode!=='classic'?modeName:null,phaseName].filter(Boolean).join(' · '):''})
+    const mode=state.gameMode==='eyes'?'eyes':'classic',endless=!!snapshot.endless?.active,infinitePhase=!!snapshot.endless?.infinitePhase,ouroboros=!!snapshot.endless?.ouroboros,pips=mode==='eyes'?[1,1]:[],phaseSymbol=ouroboros?'⟳':endless?'∞':'',phaseName=ouroboros?'Ouroboros':infinitePhase?'Infinite':endless?'Endless':null,modeName=mode==='eyes'?'The Eyes':'Classic',visible=pips.length>0||!!phaseSymbol,phasePosition=!phaseSymbol?'none':phaseSymbol==='∞'&&pips.length===2?'between':pips.length?'after':'solo';
+    return Object.freeze({visible,mode,pips:Object.freeze(pips),phaseSymbol,phasePosition,ariaLabel:visible?[mode!=='classic'?modeName:null,phaseName].filter(Boolean).join(' · '):''})
   }
   function hudViewModel(state={},snapshot={},options={}){
     const target=Number(options.target)||0,maxPlacements=Math.max(0,Number(options.maxPlacements)||0),totalRounds=Math.max(0,Number(options.totalRounds)||0),boardWidth=Number(options.boardWidth)||0,boardHeight=Number(options.boardHeight)||0,endless=!!snapshot.endless?.active,infinitePhase=!!snapshot.endless?.infinitePhase,ouroboros=!!snapshot.endless?.ouroboros,display=scoreDisplay(Number(state.score)||0,target),power=snapshot.powerSets||{};
