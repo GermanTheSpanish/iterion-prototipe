@@ -1,10 +1,10 @@
 (function(root,factory){
-  const api=factory(root.IterionData,root.IterionMods,root.IterionCircuits);
-  if(typeof module==='object'&&module.exports) module.exports=factory(require('./data.js'),require('./mods.js'),require('./circuits.js'));
+  const api=factory(root.IterionData,root.IterionMods,root.IterionCircuits,root.MonoidScore);
+  if(typeof module==='object'&&module.exports) module.exports=factory(require('./data.js'),require('./mods.js'),require('./circuits.js'),require('./score.js'));
   root.IterionGame=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(D,M,C){
+})(typeof globalThis!=='undefined'?globalThis:this,function(D,M,C,SCORE){
 function createGame(E,opts={}){
-  if(!E)throw new Error('IterionEngine required');
+  if(!E)throw new Error('IterionEngine required');if(!SCORE)throw new Error('MonoidScore required');
   const cfg=Object.assign({},D,opts);let s={};
 
   function rnd(){s.rngState=(s.rngState+0x6D2B79F5)|0;let t=s.rngState;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}
@@ -405,13 +405,15 @@ function createGame(E,opts={}){
     for(let i=0;i<handSize;i++)if(!s.hand[i])s.hand[i]=drawOne();
   }
 
-  function targetForRound(roundIndex=s.round){
+  function targetExactForRound(roundIndex=s.round){
     const targets=cfg.TARGETS||[],fixed=targets[roundIndex];
-    if(Number.isFinite(fixed))return fixed;
-    const lastIndex=Math.max(0,targets.length-1),last=Number(targets[lastIndex])||0;
-    return last*Math.pow(cfg.ENDLESS_TARGET_MULTIPLIER||5,Math.max(0,roundIndex-lastIndex))
+    if(Number.isFinite(fixed)&&Number.isInteger(fixed))return SCORE.exact(fixed);
+    const lastIndex=Math.max(0,targets.length-1),last=targets[lastIndex]??0,multiplier=Math.max(1,Math.trunc(Number(cfg.ENDLESS_TARGET_MULTIPLIER)||5));
+    return SCORE.powMultiply(SCORE.exact(last),multiplier,Math.max(0,roundIndex-lastIndex))
   }
+  function targetForRound(roundIndex=s.round){return SCORE.approx(targetExactForRound(roundIndex))}
   function target(){return targetForRound(s.round)}
+  function targetExact(){return targetExactForRound(s.round)}
   function stageIndex(){return Math.floor(s.round/stageSize())}
   function circuitTileLimit(){
     const base=cfg.CIRCUIT_TILE_LIMIT||3;
@@ -435,7 +437,7 @@ function createGame(E,opts={}){
   function clearRewardBreakdown(){
     const base=cfg.BASE_CLEAR_REWARD??3;
     const quick=s.roundTurn<=(cfg.QUICK_CLEAR_MAX_MOVES??3)?(cfg.QUICK_CLEAR_BONUS??1):0;
-    const exact=s.score===target()?(cfg.EXACT_TARGET_BONUS??5):0;
+    const exact=SCORE.equals(s.scoreExact??SCORE.exact(s.score||0),targetExact())?(cfg.EXACT_TARGET_BONUS??5):0;
     return{base,quick,exact,total:base+quick+exact}
   }
   function clearReward(){return clearRewardBreakdown().total}
@@ -514,7 +516,7 @@ function createGame(E,opts={}){
       s.reserve=sh(s.set.filter(t=>!used.has(t.id)).slice());
       if(!s.reserve.length&&availableTileCount()===0)replenishPowerSet('round-start')
     }
-    s.score=0;s.roundTurn=0;s.rootRR=0;s.roundZero={drawn:0,placed:0,endHand:0};
+    s.score=0;s.scoreExact='0';s.roundTurn=0;s.rootRR=0;s.roundZero={drawn:0,placed:0,endHand:0};
     s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;
     s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;
     s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
@@ -529,7 +531,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,best:0,round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[],voids:[],coreProgressMilestones:[]};
+    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[],voids:[],coreProgressMilestones:[]};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
     startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);s.voids=voidLayoutForMode(s.gameMode,seed);if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});if(s.gameMode==='frames')s.events.push({type:'mode-geometry-layout',mode:'frames',items:deepClone(modeGeometryItems()),visibleIds:modeGeometryItems().filter(item=>geometryItemVisible(item)).map(item=>item.id)});return s
   }
@@ -575,7 +577,7 @@ function createGame(E,opts={}){
     if(!s.ouroborosMode||!canInteract())return{ok:false,reason:'state'};
     const p=s.pieces.find(piece=>piece.tile?.id===tileId),tile=p&&(s.set.find(t=>t.id===tileId)||p.tile);if(!p||!tile)return{ok:false,reason:'tile'};
     const undoFrame=captureUndoFrame(),trigger=tile.a+tile.b;s.running=true;
-    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
+    const sim=s.pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
     s.turn++;s.roundTurn++;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
     s.events.push({type:'ouroboros-fire',round:s.round+1,roundTurn:s.roundTurn,turn:s.turn,tileId,trigger});
     return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalRuntime,signalShadow:signalRuntime,handIndex:-1,topologyLosses:[],ouroboros:true}
@@ -749,7 +751,7 @@ function createGame(E,opts={}){
         for(const link of core.connectedLinks||[]){const pieceId=link.pieceId;if(pieceId==null)continue;if(!signalCoreIdsByPiece.has(pieceId))signalCoreIdsByPiece.set(pieceId,[]);const ids=signalCoreIdsByPiece.get(pieceId);if(!ids.includes(core.id))ids.push(core.id)}
       }
     }
-    return{initialOutput:trigger,doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED,signalEnabled,signalBase:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),signalMax:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),signalCoreIdsByPiece,signalCoreById,coreLevelStep:Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4),reservoirBonus:Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8)}
+    return{initialOutput:trigger,initialOutputExact:SCORE.exact(trigger),doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED,signalEnabled,signalBase:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),signalMax:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),signalCoreIdsByPiece,signalCoreById,coreLevelStep:Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4),reservoirBonus:Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8)}
   }
 
   function topologyTelemetry(pieces=s.pieces){
@@ -838,29 +840,29 @@ function createGame(E,opts={}){
     if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
     else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
     const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...cloneTile(tile)};const pieces=[...s.pieces,p],topologyBreaks=topologyBreaksForPieces(pieces),trigger=tile.a+tile.b;
-    const sim=pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,pieces,signalOptionsForPieces(pieces,trigger));
-    const resonance=C.resonance(sim.output??trigger,sim.events,pieces,s.circuitRanks,cfg);
-    return{ok:true,handIndex:i,tile:cloneTile(tile),placement:{x:c.x,y:c.y,z:0,rr:c.rr},trigger,selectionOutput:sim.output??trigger,output:resonance.output,sim,resonance,topologyBreaks}
+    const sim=pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,pieces,signalOptionsForPieces(pieces,trigger));
+    const resonance=C.resonance(sim.output??trigger,sim.events,pieces,s.circuitRanks,cfg,sim.outputExact??SCORE.exact(sim.output??trigger));
+    return{ok:true,handIndex:i,tile:cloneTile(tile),placement:{x:c.x,y:c.y,z:0,rr:c.rr},trigger,selectionOutput:sim.output??trigger,selectionOutputExact:sim.outputExact??SCORE.exact(sim.output??trigger),output:resonance.output,outputExact:resonance.outputExact,sim,resonance,topologyBreaks}
   }
 
   function decisionTelemetry(chosenIndex,chosenCandidate,options={}){
-    const maxEvaluations=Math.max(1,Number(options.maxEvaluations)||48),timeBudgetMs=Math.max(0,options.timeBudgetMs==null?32:Number(options.timeBudgetMs)),clock=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now(),started=clock(),topologyBefore=topologyTelemetry(),deckBefore=deckTelemetry(),coverageTarget=target(),legal=[];
+    const maxEvaluations=Math.max(1,Number(options.maxEvaluations)||48),timeBudgetMs=Math.max(0,options.timeBudgetMs==null?32:Number(options.timeBudgetMs)),clock=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now(),started=clock(),topologyBefore=topologyTelemetry(),deckBefore=deckTelemetry(),coverageTarget=target(),coverageTargetExact=targetExact(),legal=[];
     for(let i=0;i<s.hand.length;i++)for(const c of candidatesForIndex(i))legal.push({handIndex:i,candidate:c});
     const chosenTile=s.hand[chosenIndex],chosenPlacement=chosenTile&&chosenCandidate?{tileId:chosenTile.id,handIndex:chosenIndex,x:chosenCandidate.x,y:chosenCandidate.y,z:0,rr:chosenCandidate.rr}:null;
-    if(!chosenPlacement)return{evaluationComplete:false,skippedReason:'chosen-placement',legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationMs:clock()-started,topologyBefore,deckBefore,coverageTarget,clearCoverageSampleCount:0,clearCoverageClearCount:0,clearCoverage:null,clearCoverageComplete:false,coverageIncludesChosen:false,outputDistribution:null};
+    if(!chosenPlacement)return{evaluationComplete:false,skippedReason:'chosen-placement',legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationMs:clock()-started,topologyBefore,deckBefore,coverageTarget,coverageTargetExact,clearCoverageSampleCount:0,clearCoverageClearCount:0,clearCoverage:null,clearCoverageComplete:false,coverageIncludesChosen:false,outputDistribution:null};
     const same=entry=>entry.handIndex===chosenIndex&&entry.candidate.x===chosenCandidate.x&&entry.candidate.y===chosenCandidate.y&&entry.candidate.rr===chosenCandidate.rr;
     if(!s.pieces.length){
       let best=null;const outputs=[];
-      for(const entry of legal){const tile=s.hand[entry.handIndex],output=tile.a+tile.b;outputs.push(output);if(!best||output>best.output)best={output,placement:{tileId:tile.id,handIndex:entry.handIndex,x:entry.candidate.x,y:entry.candidate.y,z:0,rr:entry.candidate.rr}}}
-      const clearCount=outputs.filter(output=>output>=coverageTarget).length;
-      return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:best?.output??null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationComplete:true,evaluationStrategy:'root-equivalent',skippedReason:null,evaluationMs:clock()-started,bestPlacement:best?.placement||chosenPlacement,bestEvaluatedPlacement:best?.placement||chosenPlacement,chosenPlacement,topologyBefore,deckBefore,coverageTarget,clearCoverageSampleCount:outputs.length,clearCoverageClearCount:clearCount,clearCoverage:outputs.length?clearCount/outputs.length:null,clearCoverageComplete:true,coverageIncludesChosen:true,outputDistribution:outputDistribution(outputs)}
+      for(const entry of legal){const tile=s.hand[entry.handIndex],output=tile.a+tile.b,outputExact=SCORE.exact(output);outputs.push(output);if(!best||SCORE.compare(outputExact,best.outputExact)>0)best={output,outputExact,placement:{tileId:tile.id,handIndex:entry.handIndex,x:entry.candidate.x,y:entry.candidate.y,z:0,rr:entry.candidate.rr}}}
+      const clearCount=outputs.filter(output=>SCORE.compare(SCORE.exact(output),coverageTargetExact)>=0).length;
+      return{chosenOutput:null,chosenOutputExact:null,chosenSelectionOutput:null,chosenSelectionOutputExact:null,bestLegalOutput:best?.output??null,bestLegalOutputExact:best?.outputExact??null,bestEvaluatedOutput:best?.output??null,bestEvaluatedOutputExact:best?.outputExact??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:0,evaluationComplete:true,evaluationStrategy:'root-equivalent',skippedReason:null,evaluationMs:clock()-started,bestPlacement:best?.placement||chosenPlacement,bestEvaluatedPlacement:best?.placement||chosenPlacement,chosenPlacement,topologyBefore,deckBefore,coverageTarget,coverageTargetExact,clearCoverageSampleCount:outputs.length,clearCoverageClearCount:clearCount,clearCoverage:outputs.length?clearCount/outputs.length:null,clearCoverageComplete:true,coverageIncludesChosen:true,outputDistribution:outputDistribution(outputs)}
     }
-    let evaluated=0,best=null,stopReason=null;const coverageSampleOutputs=[],ordered=stratifiedLegalEntries(legal,same,chosenIndex);
-    const consider=preview=>{if(!preview?.ok)return;evaluated++;coverageSampleOutputs.push(preview.output);if(!best||preview.output>best.output)best=preview};
+    let evaluated=0,best=null,stopReason=null;const coverageSampleOutputs=[],coverageSampleOutputExacts=[],ordered=stratifiedLegalEntries(legal,same,chosenIndex);
+    const consider=preview=>{if(!preview?.ok)return;evaluated++;coverageSampleOutputs.push(preview.output);coverageSampleOutputExacts.push(preview.outputExact);if(!best||SCORE.compare(preview.outputExact,best.outputExact)>0)best=preview};
     for(const entry of ordered){if(evaluated>=maxEvaluations){stopReason='placement-cap';break}if(clock()-started>=timeBudgetMs){stopReason='time-budget';break}consider(previewPlacement(entry.handIndex,entry.candidate))}
     const complete=evaluated>=Math.max(0,legal.length-1);if(!complete&&!stopReason)stopReason='evaluation-incomplete';
-    const clearCount=coverageSampleOutputs.filter(output=>output>=coverageTarget).length;
-    return{chosenOutput:null,chosenSelectionOutput:null,bestLegalOutput:null,bestEvaluatedOutput:best?.output??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:evaluated,evaluationComplete:complete,evaluationStrategy:complete?'exhaustive':'stratified-sample',skippedReason:complete?null:stopReason,evaluationMs:clock()-started,bestPlacement:null,bestEvaluatedPlacement:best?{tileId:best.tile.id,handIndex:best.handIndex,...best.placement}:null,chosenPlacement,topologyBefore,deckBefore,coverageTarget,clearCoverageSampleCount:evaluated,clearCoverageClearCount:clearCount,clearCoverage:evaluated?clearCount/evaluated:null,clearCoverageComplete:false,coverageIncludesChosen:false,outputDistribution:outputDistribution(coverageSampleOutputs),coverageSampleOutputs}
+    const clearCount=coverageSampleOutputExacts.filter(outputExact=>SCORE.compare(outputExact,coverageTargetExact)>=0).length;
+    return{chosenOutput:null,chosenOutputExact:null,chosenSelectionOutput:null,chosenSelectionOutputExact:null,bestLegalOutput:null,bestLegalOutputExact:null,bestEvaluatedOutput:best?.output??null,bestEvaluatedOutputExact:best?.outputExact??null,chosenVsBestRatio:null,legalPlacementCount:legal.length,evaluatedPlacementCount:evaluated,evaluationComplete:complete,evaluationStrategy:complete?'exhaustive':'stratified-sample',skippedReason:complete?null:stopReason,evaluationMs:clock()-started,bestPlacement:null,bestEvaluatedPlacement:best?{tileId:best.tile.id,handIndex:best.handIndex,...best.placement}:null,chosenPlacement,topologyBefore,deckBefore,coverageTarget,coverageTargetExact,clearCoverageSampleCount:evaluated,clearCoverageClearCount:clearCount,clearCoverage:evaluated?clearCount/evaluated:null,clearCoverageComplete:false,coverageIncludesChosen:false,outputDistribution:outputDistribution(coverageSampleOutputs),coverageSampleOutputs,coverageSampleOutputExacts}
   }
   function captureUndoFrame(){
     const old=s.undoFrame;s.undoFrame=null;const frame=deepClone(s);s.undoFrame=old;return frame
@@ -880,7 +882,7 @@ function createGame(E,opts={}){
     s.pieces.push(p);s.placedTileIds.push(tile.id);
     const topologyLosses=removeTopologyMods(topologyBreaks,tile.id);
     const trigger=tile.a+tile.b;
-    const sim=s.pieces.length===1?{output:trigger,events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
+    const sim=s.pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
     if(isZero(tile))s.roundZero.placed++;
     const generationBefore=s.setGeneration||1;s.hand[i]=drawOne();
     if((s.setGeneration||1)>generationBefore){
@@ -938,7 +940,7 @@ function createGame(E,opts={}){
     s.events.push({type:'broker-ready',round:s.round+1,roundTurn:s.roundTurn,tileId:s.brokerTileId,discount:Math.max(0,Number(cfg.BROKER_DISCOUNT)||1)});return true
   }
 
-  function overkillTier(output,tgt){const ratio=output/tgt;return ratio>=10?3:ratio>=5?2:ratio>=3?1:0}
+  function overkillTier(outputExact,tgtExact){return SCORE.compare(outputExact,SCORE.multiply(tgtExact,10))>=0?3:SCORE.compare(outputExact,SCORE.multiply(tgtExact,5))>=0?2:SCORE.compare(outputExact,SCORE.multiply(tgtExact,3))>=0?1:0}
   function scheduleIntermission(){
     if(!s.endlessMode&&s.round>=cfg.TOTAL_ROUNDS-1){s.nextShopType='none';s.intermissionResolved=true;return}
     const endOfStage=(s.round+1)%stageSize()===0;
@@ -949,23 +951,23 @@ function createGame(E,opts={}){
 
   function finishPlacement(ctx){
     if(!ctx?.ok)return ctx;
-    const{tile,p,trigger,sim}=ctx,resonance=moveResonance(sim,trigger);s.score=resonance.output;s.best=Math.max(s.best,s.score);s.cleared=s.score>=target();
+    const{tile,p,trigger,sim}=ctx,resonance=moveResonance(sim,trigger);s.scoreExact=resonance.outputExact;s.score=resonance.output;if(SCORE.compare(s.scoreExact,s.bestExact??SCORE.exact(s.best||0))>0){s.bestExact=s.scoreExact;s.best=s.score}s.cleared=SCORE.compare(s.scoreExact,targetExact())>=0;
     const st=(sim.events||[]).find(e=>e.type==='start'),rs=(sim.events||[]).filter(e=>e.type==='route'),income=upgradeIncomeFor(sim),mintIncome=mintIncomeFor(sim,resonance.output),tollSpend=tollSpendFor(sim),brokerPrepared=brokerActivatedFor(sim)&&!s.brokerDiscountReady;
     const activatedPieceIds=[...new Set((sim.events||[]).filter(e=>e.type==='op').map(e=>e.piece))],activatedTileIds=[...new Set([tile.id,...activatedPieceIds.map(id=>s.pieces.find(p=>p.id===id)?.tile?.id).filter(Boolean)])];
     const zeroPortEvents=(sim.events||[]).filter(e=>e.type==='zero-port'),echoEvent=(sim.events||[]).find(e=>e.type==='double-echo-result')||null,signalRuntime=deepClone(ctx.signalRuntime||ctx.signalShadow||signalShadowTelemetry(sim)),coreActivations=(signalRuntime.activations||[]).map(a=>({...a}));
     const zeroPorts=zeroPortEvents.map(e=>({fromTileId:s.pieces.find(q=>q.id===e.piece)?.tile?.id||null,toTileId:s.pieces.find(q=>q.id===e.toPieceId)?.tile?.id||null}));
-    s.events.push({turn:s.turn,round:s.round+1,roundTurn:s.roundTurn,mode:ctx.ouroboros?'ouroboros':'placement',signal:signalRuntime,signalShadow:deepClone(signalRuntime),coreActivations,coreShadow:deepClone(coreShadowTelemetry()),tile:cloneTile(tile),activatedTileIds,topologyLosses:deepClone(ctx.topologyLosses||[]),placement:{x:p.cubes[0].x,y:p.cubes[0].y,z:0,rr:p.rr},dir:E.ARROW[p.rr],target:target(),trigger,baseTrigger:trigger,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,output:s.score,upgradeCoins:income.total,mintCoins:mintIncome.total,tollCoins:tollSpend.total,brokerPrepared,starCoins:income.total,longRunActivated:income.longRunActive,longRunCapped:income.longRunCapped,systemStrain:s.systemStrain||0,uniquePieces:income.uniquePieces,zeroPorts,echo:echoEvent?{tileId:s.doubleEchoTileId,mainOutput:echoEvent.mainOutput,echoOutput:echoEvent.echoOutput,finalOutput:echoEvent.finalOutput,rebounds:echoEvent.echoRebounds||0}:null,rebounds:sim.rebounds||0,start:st?.key||'-',flipped:!!st?.flipped,reason:sim.reason,ops:(sim.events||[]).filter(e=>e.type==='op').map(e=>{const mod=e.modMultiplier>1?` MOD×${e.modMultiplier}`:'';return e.op==='multiply'?`${e.piece}:×${e.factor}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`:`${e.piece}:+${e.add}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`}).join(','),routes:rs.map(e=>`${e.piece}:${e.entryHalf}>${e.toPieceId}:${e.toHalf}`).join(';'),search:sim.search?`${sim.search.starts}/${sim.search.leaves}/${sim.search.expanded}${sim.search.truncated?'!':''}`:'-',clear:s.cleared});
+    s.events.push({turn:s.turn,round:s.round+1,roundTurn:s.roundTurn,mode:ctx.ouroboros?'ouroboros':'placement',signal:signalRuntime,signalShadow:deepClone(signalRuntime),coreActivations,coreShadow:deepClone(coreShadowTelemetry()),tile:cloneTile(tile),activatedTileIds,topologyLosses:deepClone(ctx.topologyLosses||[]),placement:{x:p.cubes[0].x,y:p.cubes[0].y,z:0,rr:p.rr},dir:E.ARROW[p.rr],target:target(),targetExact:targetExact(),trigger,baseTrigger:trigger,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,selectionOutputExact:sim.selectionOutputExact??sim.mainOutputExact??sim.outputExact??SCORE.exact(sim.selectionOutput??sim.mainOutput??sim.output??trigger),output:s.score,outputExact:s.scoreExact,upgradeCoins:income.total,mintCoins:mintIncome.total,tollCoins:tollSpend.total,brokerPrepared,starCoins:income.total,longRunActivated:income.longRunActive,longRunCapped:income.longRunCapped,systemStrain:s.systemStrain||0,uniquePieces:income.uniquePieces,zeroPorts,echo:echoEvent?{tileId:s.doubleEchoTileId,mainOutput:echoEvent.mainOutput,mainOutputExact:echoEvent.mainOutputExact,echoOutput:echoEvent.echoOutput,echoOutputExact:echoEvent.echoOutputExact,finalOutput:echoEvent.finalOutput,finalOutputExact:echoEvent.finalOutputExact,rebounds:echoEvent.echoRebounds||0}:null,rebounds:sim.rebounds||0,start:st?.key||'-',flipped:!!st?.flipped,reason:sim.reason,ops:(sim.events||[]).filter(e=>e.type==='op').map(e=>{const mod=e.modMultiplier>1?` MOD×${e.modMultiplier}`:'';return e.op==='multiply'?`${e.piece}:×${e.factor}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`:`${e.piece}:+${e.add}${e.doubleDouble?'DD':''}${e.powerMultiplier>1?' PWR':''}${mod} ${e.before}>${e.after}${e.reverse?'R':''}`}).join(','),routes:rs.map(e=>`${e.piece}:${e.entryHalf}>${e.toPieceId}:${e.toHalf}`).join(';'),search:sim.search?`${sim.search.starts}/${sim.search.leaves}/${sim.search.expanded}${sim.search.truncated?'!':''}`:'-',clear:s.cleared});
     const tollCoins=applyTollSpend(tollSpend),brokerReady=prepareBrokerDiscount(sim),upgradeCoins=awardUpgradeIncome(income),mintCoins=awardMintIncome(mintIncome);
     const forks=(sim.events||[]).filter(e=>e.type==='signal-fork');
-    if(forks.length)s.events.push({type:'signal-resolution',round:s.round+1,move:s.turn,baseOutput:sim.output,splitCount:forks.length,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,events:sim.events.map(e=>({...e,tileId:s.pieces.find(q=>q.id===e.piece)?.tile.id||null}))});
+    if(forks.length)s.events.push({type:'signal-resolution',round:s.round+1,move:s.turn,baseOutput:sim.output,baseOutputExact:sim.outputExact,splitCount:forks.length,selectionOutput:sim.selectionOutput??sim.mainOutput??sim.output,selectionOutputExact:sim.selectionOutputExact??sim.mainOutputExact??sim.outputExact,events:sim.events.map(e=>({...e,tileId:s.pieces.find(q=>q.id===e.piece)?.tile.id||null}))});
     let continuation={autoRerolls:0};
     if(s.cleared){
       const rewardBreakdown=clearRewardBreakdown(),reward=rewardBreakdown.total;s.coins+=reward;s.roundZero.endHand=countZero(s.hand.filter(Boolean));
-      const tier=overkillTier(s.score,target()),old=tile.upgrade||0;
+      const tier=overkillTier(s.scoreExact,targetExact()),old=tile.upgrade||0;
       if(tier>old){tile.upgrade=tier;p.tile.upgrade=tier;s.events.push({type:'tile-upgrade',round:s.round+1,tile:cloneTile(tile),from:old,to:tier,ratio:+(s.score/target()).toFixed(2)})}
       s.anchorId=tile.id;s.events.push({type:'anchor-set',round:s.round+1,tile:cloneTile(tile)});
-      s.wins.push({round:s.round+1,target:target(),output:s.score,turn:s.turn,placements:s.roundTurn,reward,rewardBreakdown,upgradeCoins:s.roundUpgradeCoins,anchor:cloneTile(tile),upgradeTier:tile.upgrade||0,machineSize:s.pieces.length,setSize:s.set.length,setGeneration:s.setGeneration||1,zeros:{...s.roundZero}});
-      if(!s.standardComplete&&s.round===cfg.TOTAL_ROUNDS-1){s.standardComplete=true;s.events.push({type:'run-complete',round:s.round+1,target:target(),output:s.score,coins:s.coins,inflation:s.inflation})}
+      s.wins.push({round:s.round+1,target:target(),targetExact:targetExact(),output:s.score,outputExact:s.scoreExact,turn:s.turn,placements:s.roundTurn,reward,rewardBreakdown,upgradeCoins:s.roundUpgradeCoins,anchor:cloneTile(tile),upgradeTier:tile.upgrade||0,machineSize:s.pieces.length,setSize:s.set.length,setGeneration:s.setGeneration||1,zeros:{...s.roundZero}});
+      if(!s.standardComplete&&s.round===cfg.TOTAL_ROUNDS-1){s.standardComplete=true;s.events.push({type:'run-complete',round:s.round+1,target:target(),targetExact:targetExact(),output:s.score,outputExact:s.scoreExact,coins:s.coins,inflation:s.inflation})}
       s.events.push({type:'coins',round:s.round+1,amount:reward,breakdown:rewardBreakdown,coins:s.coins});scheduleIntermission()
     }else{const protection=ensureOpeningContinuation('draw');if(protection)s.events.push(protection)}
     s.events.push({type:'circuit-resonance',round:s.round+1,move:s.turn,...resonance});
@@ -980,7 +982,7 @@ function createGame(E,opts={}){
     return{ok:true,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,nextShopType:s.nextShopType,upgradeCoins,autoRerolls:continuation.autoRerolls||0,pendingCircuit:!!s.pendingCircuit,resonance,mintCoins,tollCoins,brokerReady,hingeMoved}
   }
 
-  function moveResonance(sim,trigger=0){return C.resonance(sim.output??trigger,sim.events,s.pieces,s.circuitRanks,cfg)}
+  function moveResonance(sim,trigger=0){return C.resonance(sim.output??trigger,sim.events,s.pieces,s.circuitRanks,cfg,sim.outputExact??SCORE.exact(sim.output??trigger))}
   function discoverCircuit(newTileId){
     const primary=C.primaryCircuit(C.adjacency(s.pieces,E.contactBetweenPieces),newTileId,cfg);
     if(!primary){s.events.push({type:'circuit-check',round:s.round+1,move:s.turn,closed:false});return}
@@ -1340,7 +1342,7 @@ function createGame(E,opts={}){
   function startEndless(){
     if(!canStartEndless())return false;
     s.endlessMode=true;s.endlessStartedRound=s.round+2;s.systemStrain=0;s.endlessLongRunActivations=0;s.undoFrame=null;
-    s.events.push({type:'endless-start',afterRound:s.round+1,nextRound:s.round+2,target:targetForRound(s.round+1)});
+    s.events.push({type:'endless-start',afterRound:s.round+1,nextRound:s.round+2,target:targetForRound(s.round+1),targetExact:targetExactForRound(s.round+1)});
     scheduleIntermission();
     return s.nextShopType==='market'?openIntermission():advance()
   }
@@ -1368,9 +1370,9 @@ function createGame(E,opts={}){
       schema:'iterion.run.v9',gameVersion:cfg.VERSION,engineVersion:cfg.ENGINE_VERSION,gameMode:s.gameMode||'classic',runId:s.runId,seed:s.seed,startedAt:s.startedAt,savedAt:new Date().toISOString(),
       status:status(),failureReason:s.failureReason,recovery:recoveryOptions(),
       endless:{systemStrain:s.systemStrain||0,longRunActivations:s.endlessLongRunActivations||0,longRunActivationCap:cfg.ENDLESS_LONG_RUN_ACTIVATIONS??7,available:canStartEndless(),active:!!s.endlessMode,baseComplete:!!s.standardComplete,startedRound:s.endlessStartedRound,roundsCleared:Math.max(0,s.wins.length-cfg.TOTAL_ROUNDS),targetMultiplier:cfg.ENDLESS_TARGET_MULTIPLIER||5,phase:s.ouroborosMode?'ouroboros':infinitePhase()?'infinite':s.endlessMode?'endless':'classic',infinitePhase:infinitePhase(),infinitePhaseStartRound:infinitePhaseStartRound()+1,ouroboros:!!s.ouroborosMode,ouroborosStartedRound:s.ouroborosStartedRound,ouroborosBoardSize:Array.isArray(s.ouroborosBoardSize)?[...s.ouroborosBoardSize]:null,endlessStagesCompleted:endlessStagesCompleted(),boardGrowthStageInterval:Math.max(1,Number(cfg.INFINITE_BOARD_STAGE_INTERVAL)||2),handSize:handSizeForRound()},
-      round:{index:s.round+1,total:cfg.TOTAL_ROUNDS,target:target(),placements:s.roundTurn,maxPlacements:maxPlacements(),clears:s.wins,upgradeCoins:s.roundUpgradeCoins},
+      round:{index:s.round+1,total:cfg.TOTAL_ROUNDS,target:target(),targetExact:targetExact(),placements:s.roundTurn,maxPlacements:maxPlacements(),clears:s.wins,upgradeCoins:s.roundUpgradeCoins},
       stage:{index:stage+1,total:Math.ceil(cfg.TOTAL_ROUNDS/size),round:(s.round%size)+1,size},boardSize:{width:bs.G,height:bs.H},
-      score:{last:s.score,best:s.best},turnCount:s.turn,coins:s.coins,inflation:s.inflation,consumables:{...s.consumables},freeReroll:s.freeReroll||0,
+      score:{last:s.score,lastExact:s.scoreExact??SCORE.exact(s.score||0),best:s.best,bestExact:s.bestExact??SCORE.exact(s.best||0)},turnCount:s.turn,coins:s.coins,inflation:s.inflation,consumables:{...s.consumables},freeReroll:s.freeReroll||0,
       mods:[...s.mods],tileMods:deepClone(tileMods),pendingModPlacement:deepClone(s.pendingModPlacement),anchorId:s.anchorId,
       doubleDoubleTileId:s.doubleDoubleTileId,doubleDouble:tileById(s.doubleDoubleTileId),
       doubleEchoTileId:s.doubleEchoTileId,doubleEcho:tileById(s.doubleEchoTileId),
@@ -1481,7 +1483,7 @@ function createGame(E,opts={}){
   function exportState(){return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:persistedState()}}
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
-    s=deepClone(raw);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.voids))s.voids=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(s.gameMode==='classic'){s.cores=[];s.voids=[];s.coreProgressMilestones=[]}else if(s.gameMode==='eyes')s.voids=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
+    s=deepClone(raw);s.scoreExact=SCORE.exact(s.score||0,s.scoreExact);s.score=SCORE.approx(s.scoreExact);s.bestExact=SCORE.exact(s.best||0,s.bestExact);s.best=SCORE.approx(s.bestExact);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.voids))s.voids=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(s.gameMode==='classic'){s.cores=[];s.voids=[];s.coreProgressMilestones=[]}else if(s.gameMode==='eyes')s.voids=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
     const legacyEconomyMods={frame:'broker',frontier:'spend',resonator:'bank',forge:'toll'},legacyFields={frameTileId:'brokerTileId',frontierTileId:'spendTileId',resonatorTileId:'bankTileId',forgeTileId:'tollTileId'};
     for(const [oldField,newField] of Object.entries(legacyFields))if(!s[newField]&&s[oldField])s[newField]=s[oldField];
     if(s.pendingModPlacement?.mod&&legacyEconomyMods[s.pendingModPlacement.mod])s.pendingModPlacement.mod=legacyEconomyMods[s.pendingModPlacement.mod];
@@ -1504,7 +1506,7 @@ function createGame(E,opts={}){
     return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopPurchaseAvailability,marketDoubleDoublePrice,marketModPrice,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopPurchaseAvailability,marketDoubleDoublePrice,marketModPrice,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
