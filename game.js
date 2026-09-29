@@ -981,7 +981,10 @@ function createGame(E,opts={}){
     return{ok:true,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,nextShopType:s.nextShopType,upgradeCoins,autoRerolls:continuation.autoRerolls||0,pendingCircuit:!!s.pendingCircuit,resonance,mintCoins,tollCoins,brokerReady,hingeMoved}
   }
 
-  function moveResonance(sim,trigger=0){return C.resonance(sim.output??trigger,sim.events,s.pieces,s.circuitRanks,cfg,sim.outputExact??SCORE.exact(sim.output??trigger))}
+  function moveResonance(sim,trigger=0){
+    const baseOutput=sim.output??trigger,alignedExact=sim.outputExact!=null&&Number(sim.outputExact)===Number(baseOutput)?sim.outputExact:null;
+    return C.resonance(baseOutput,sim.events,s.pieces,s.circuitRanks,cfg,SCORE.exact(baseOutput,alignedExact))
+  }
   function discoverCircuit(newTileId){
     const primary=C.primaryCircuit(C.adjacency(s.pieces,E.contactBetweenPieces),newTileId,cfg);
     if(!primary){s.events.push({type:'circuit-check',round:s.round+1,move:s.turn,closed:false});return}
