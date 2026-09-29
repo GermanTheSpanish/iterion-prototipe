@@ -7,6 +7,11 @@ assert.equal(V.scoreDisplay(1e9,1e9).score,'1,000M');
 assert.equal(V.scoreDisplay(1e9,1e9).note,'Target reached');
 assert.equal(V.scoreDisplay(0,20).note,'Last move');
 assert.equal(V.BRAND,'MONOID');
+assert.deepEqual(V.modeIndicatorViewModel({gameMode:'classic'},{endless:{active:false}}),{visible:false,mode:'classic',pips:[],phaseSymbol:'',ariaLabel:''});
+assert.deepEqual(V.modeIndicatorViewModel({gameMode:'eyes'},{endless:{active:false}}),{visible:true,mode:'eyes',pips:[1,1],phaseSymbol:'',ariaLabel:'The Eyes'});
+assert.deepEqual(V.modeIndicatorViewModel({gameMode:'eyes'},{endless:{active:true}}),{visible:true,mode:'eyes',pips:[1,1],phaseSymbol:'∞',ariaLabel:'The Eyes · Endless'});
+assert.deepEqual(V.modeIndicatorViewModel({gameMode:'classic'},{endless:{active:true,infinitePhase:true}}),{visible:true,mode:'classic',pips:[],phaseSymbol:'∞',ariaLabel:'Infinite'});
+assert.deepEqual(V.modeIndicatorViewModel({gameMode:'eyes'},{endless:{active:true,infinitePhase:true,ouroboros:true}}),{visible:true,mode:'eyes',pips:[1,1],phaseSymbol:'⟳',ariaLabel:'The Eyes · Ouroboros'});
 assert.deepEqual(Array.from({length:6},(_,i)=>V.cascadeDelay(i)),[600,600,560,520,480,440]);
 assert.equal(V.cascadeDelay(6),320);assert.equal(V.cascadeDelay(1000),60);assert.equal(V.CASCADE.scoreTweenMs,520);assert.equal(V.CASCADE.operationFlashMs,520);assert.equal(V.CASCADE.targetSettleMs,780);assert.equal(V.CASCADE.finalHoldMs,320);assert.equal(V.CASCADE.skipDebounceMs,120);
 for(let i=1;i<100;i++){assert(V.cascadeDelay(i)<=V.cascadeDelay(i-1));assert(V.cascadeDelay(i)>=60);assert(V.effectLifetime(i)<=V.effectLifetime(i-1))}
@@ -33,3 +38,4 @@ const hud=V.hudViewModel({score:1250,round:2,roundTurn:4,coins:12,systemStrain:3
 assert.equal(hud.score,'1,250');assert.equal(hud.target,'2,500');assert.equal(hud.stage,'2/∞');assert.equal(hud.round,'3/∞');assert.equal(hud.moves,'4/7');assert.equal(hud.movesRemaining,3);assert.equal(hud.stageRound,'ENDLESS · STAGE 2 · ROUND 2/3 · STRAIN 3 · POWER ×2');assert.equal(hud.boardSize,'30 × 40');assert.equal(hud.hint,'Build the machine · 3 moves remaining.');assert.equal(hud.longChain.remaining,4);
 const infiniteHud=V.hudViewModel({score:1,round:60,roundTurn:2,coins:0,systemStrain:19,endlessMode:true,pieces:[{}]},{stage:{index:21,round:1,size:3,total:5},endless:{active:true,infinitePhase:true},powerSets:{generation:4,powerMultiplier:4},availableTileCount:9},{target:2,maxPlacements:7,totalRounds:15,boardWidth:51,boardHeight:68,longChainCap:7});
 assert.equal(infiniteHud.stage,'∞');assert.equal(infiniteHud.round,'61/∞');assert.equal(infiniteHud.stageRound,'INFINITE · ROUND 1/3 · STRAIN 19 · POWER ×4');assert.equal(infiniteHud.infinitePhase,true);assert.equal(infiniteHud.boardSize,'51 × 68');
+assert.equal(infiniteHud.modeIndicator.phaseSymbol,'∞');assert.equal(infiniteHud.modeIndicator.visible,true);
