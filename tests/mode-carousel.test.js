@@ -4,12 +4,14 @@ const path=require('path');
 const C=require('../mode-carousel.js');
 
 assert.strictEqual(C.MODES.length,8);
-assert.deepStrictEqual(C.MODES.filter(m=>m.available).map(m=>m.id),['classic','eyes']);
+assert.deepStrictEqual(C.MODES.filter(m=>m.available).map(m=>m.id),['classic','eyes','frames']);
 assert.strictEqual(C.MODES[0].description,'Classic → Endless → Infinite → Ouroboros');
 assert.strictEqual(C.MODES[1].name,'THE EYES');
 assert.strictEqual(C.MODES[1].description,'1|1 · 2 Cores → 4 · Signal 24');
-assert.strictEqual(C.MODES.slice(2).length,6);
-assert(C.MODES.slice(2).every(m=>m.available===false&&m.description==='Not available'));
+assert.strictEqual(C.MODES[2].name,'THE FRAMES');
+assert.strictEqual(C.MODES[2].description,'2|2 · 2 Cores · 2 Voids');
+assert.strictEqual(C.MODES.slice(3).length,5);
+assert(C.MODES.slice(3).every(m=>m.available===false&&m.description==='Not available'));
 assert.strictEqual(C.clampIndex(-3),0);
 assert.strictEqual(C.clampIndex(99),7);
 assert.strictEqual(C.stepIndex(0,1),1);

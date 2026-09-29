@@ -267,6 +267,7 @@ function createGame(E,opts={}){
     return cube.x<voidItem.x+size&&cube.x+cell>voidItem.x&&cube.y<voidItem.y+size&&cube.y+cell>voidItem.y
   }
   function pieceOverlapsVoid(piece,voids=s.voids){return physicalVoidMode()&&(voids||[]).some(voidItem=>(piece?.cubes||[]).some(cube=>cubeOverlapsVoid(cube,voidItem)))}
+  function placementOverlapsVoid(tile,x,y,rr){return physicalVoidMode()&&pieceOverlapsVoid(E.pieceFrom(tile,x,y,0,rr,-1))}
   function pieceOverlapsBlockedGeometry(piece){return pieceOverlapsCore(piece)||pieceOverlapsVoid(piece)}
   function placementOverlapsBlockedGeometry(tile,x,y,rr){return pieceOverlapsBlockedGeometry(E.pieceFrom(tile,x,y,0,rr,-1))}
   function geometryItemVisible(item,board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H}){const size=Math.max(1,Number(item?.size)||Number(E.S)||2);return item&&item.x>=0&&item.y>=0&&item.x+size<=board.G&&item.y+size<=board.H}
@@ -833,7 +834,7 @@ function createGame(E,opts={}){
     if(i<0||i>=s.hand.length||!s.hand[i]||!c)return{ok:false,reason:'state'};const tile=s.hand[i];
     if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
-    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};
+    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};if(placementOverlapsVoid(tile,c.x,c.y,c.rr))return{ok:false,reason:'void-overlap'};
     if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
     else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
     const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...cloneTile(tile)};const pieces=[...s.pieces,p],topologyBreaks=topologyBreaksForPieces(pieces),trigger=tile.a+tile.b;
@@ -869,7 +870,7 @@ function createGame(E,opts={}){
     const tile=s.hand[i];
     if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
-    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};
+    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};if(placementOverlapsVoid(tile,c.x,c.y,c.rr))return{ok:false,reason:'void-overlap'};
     if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
     else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
     const undoFrame=captureUndoFrame();
