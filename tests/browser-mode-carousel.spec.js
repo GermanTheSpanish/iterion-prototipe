@@ -91,6 +91,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await page.locator('#titleCard').click();
   await page.evaluate(()=>window.__monoidModes.select(1));
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
+  await page.evaluate(()=>localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}})));
   await page.locator('#startRun').click();
   await expect(page.locator('#board .coreNode')).toHaveCount(2);
   await expect(page.locator('#modeIndicator')).toBeVisible();
@@ -121,7 +122,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.snapshot.signal.base).toBe(24);
   expect(state.snapshot.signal.max).toBe(24);
   if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
-  await expect(page.locator('#hint')).toContainText('CONNECT A CORE · FIRST CORE REACHED LEADS THE MOVE');
+  await expect(page.locator('#hint')).not.toContainText('CONNECT A CORE');
   await expect(page.locator('#board .coreNode.coreNeedsConnection')).toHaveCount(2);
   expect(new Set(state.cores.map(core=>core.archetype)).size).toBe(2);
   const coreAccessibility=await page.locator('#board .coreNode').evaluateAll(nodes=>nodes.map(node=>({hidden:node.getAttribute('aria-hidden'),role:node.getAttribute('role'),tabIndex:node.tabIndex})));
@@ -148,6 +149,7 @@ test('The Eyes makes the Stage 4 Core discovery a visible board event',async({pa
   await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
   await page.evaluate(()=>window.__monoidModes.select(1));
+  await page.evaluate(()=>localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}})));
   await page.locator('#startRun').click();
   if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
   await page.evaluate(()=>{const g=window.__monoidGame,s=g.state();s.round=8;s.cleared=true;s.blocked=false;s.running=false;s.nextShopType='none';s.intermissionResolved=true;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false});
@@ -170,6 +172,7 @@ test('The Eyes keeps its 1|1 selector and replaces a saved Classic run without r
   await page.evaluate(()=>document.getElementById('gameSelectionButton').click());
   await expect(page.locator('#gameSelection')).toBeVisible();
   await page.evaluate(()=>window.__monoidModes.select(1));
+  await page.evaluate(()=>localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}})));
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
   const eyesPips=await page.evaluate(()=>[...document.querySelectorAll('.modeSlide[data-mode="eyes"] .modeTileEyes i')].map(half=>getComputedStyle(half,'::after').display));
   expect(eyesPips).toEqual(['block','block']);
