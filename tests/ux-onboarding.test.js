@@ -27,7 +27,7 @@ assert.match(css,/\.tile\.tutorialLocked/);
 assert.match(ux,/THE MACHINE/);
 assert.match(ux,/BUILD\. ROUTE\. SCORE\./);
 assert.match(ux,/THE MACHINE CONTINUES\./);
-assert.match(ux,/monoid\.modeOnboarding\.v1/);assert.match(ux,/monoid\.modeIntro\.v2/);
+assert.match(ux,/monoid\.modeOnboarding\.v1/);assert.match(ux,/monoid\.modeIntro\.v2/);assert.match(ux,/showModeReveal\(modeId,\{force=false\}=\{\}\)/);assert.match(ux,/wrapNewRunTrigger\(startRun,\{forceModeIntro:true\}\)/);
 assert.match(ux,/Signal now fades\./);assert.match(ux,/Cores keep it alive\./);assert.match(ux,/The board has gaps\./);assert.match(ux,/Voids block placement\. Cores restore Signal\./);assert.doesNotMatch(ux,/Each half holds one Core and one Void/);
 assert.match(ux,/REACH A CORE/);assert.match(ux,/Reach a Core before the Signal dies\./);
 assert.match(ux,/discoveryTitle:'LEAD'/);assert.match(ux,/First Core sets the rule\./);
