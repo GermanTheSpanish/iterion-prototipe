@@ -30,6 +30,7 @@ for(const retired of ['sequence','complement'])assert.equal(M.get(retired),null,
   assert.notEqual(a.id,b.id,'duplicate values never imply duplicate physical identity');
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
-assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
+const traversalsIndex=engineSource.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=engineSource.indexOf('const scoreCmp=SCORE.compare('),tailIndex=engineSource.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
 assert.doesNotMatch(engineSource,/mods\.has\('twin'\)/,'TWIN scoring behavior is retired');
 console.log('Mutation v2 retained PAIR and physical-identity regressions passed');
