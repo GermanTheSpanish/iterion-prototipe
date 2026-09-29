@@ -66,7 +66,10 @@
     return color&&color!=='rgba(0, 0, 0, 0)'&&color!=='transparent'?color:'#f7f7f4'
   }
   function syncSurfaceTheme(){
-    const color=activeSurfaceColor();themeColorMeta.content=color;doc.documentElement.style.backgroundColor=color;doc.documentElement.style.setProperty('--monoid-system-bg',color);return color
+    const color=activeSurfaceColor(),tint=doc.getElementById('systemChromeTint');
+    themeColorMeta.content=color;doc.documentElement.style.backgroundColor=color;doc.documentElement.style.setProperty('--monoid-system-bg',color);
+    if(tint)tint.style.backgroundColor=color;
+    return color
   }
   function guardState(){return{...(root.history.state||{}),[GUARD_KEY]:true}}
   function armBackGuard(){if(!inDisplayMode()||!gameplayVisible()||root.history.state?.[GUARD_KEY])return;root.history.pushState(guardState(),'')}
