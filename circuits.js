@@ -1,8 +1,9 @@
 (function(root,factory){
-  const api=factory();
-  if(typeof module==='object'&&module.exports)module.exports=api;
+  const api=factory(root.MonoidScore);
+  if(typeof module==='object'&&module.exports)module.exports=factory(require('./score.js'));
   root.IterionCircuits=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(SCORE){
+  if(!SCORE)throw new Error('MonoidScore required');
   const compare=(a,b)=>a<b?-1:a>b?1:0;
   function adjacency(pieces,contact){
     const graph=new Map(pieces.map(p=>[p.tile.id,new Set()]));
@@ -67,15 +68,14 @@
   }
   function upgradedRank(before,reward,cfg){return Math.min(cfg.CIRCUIT_MAX_RANK,before+reward)}
   function rankInfo(rank,cfg){return rank>0?cfg.CIRCUIT_RANKS[rank-1]||null:null}
-  function resonance(baseOutput,events,pieces,ranks,cfg){
+  function resonance(baseOutput,events,pieces,ranks,cfg,baseOutputExact=null){
     const byPiece=new Map(pieces.map(p=>[p.id,p.tile.id])),ids=new Set();
     for(const event of events||[])if(event.type==='op'||event.type==='echo-op'){
       const id=byPiece.get(event.piece);if(id!==undefined)ids.add(id);
     }
     const active=[...ids].sort(compare).filter(id=>rankInfo(ranks[id]||0,cfg)).map(tileId=>({tileId,rank:ranks[tileId],bonus:rankInfo(ranks[tileId],cfg).bonus}));
-    const bonus=active.reduce((sum,t)=>sum+t.bonus,0),multiplier=1+bonus;
-    const output=Math.floor(baseOutput*multiplier);
-    return{active,bonus,multiplier,baseOutput,output,safeInteger:Number.isSafeInteger(baseOutput)&&Number.isSafeInteger(output)}
+    const bonus=active.reduce((sum,t)=>sum+t.bonus,0),multiplier=1+bonus,baseExact=SCORE.exact(baseOutput,baseOutputExact),outputExact=SCORE.floorMultiply(baseExact,multiplier),output=SCORE.approx(outputExact);
+    return{active,bonus,multiplier,baseOutput:SCORE.approx(baseExact),baseOutputExact:baseExact,output,outputExact,safeInteger:SCORE.isSafe(baseExact)&&SCORE.isSafe(outputExact)}
   }
   return{adjacency,signature,reward,shortestPath,primaryCircuit,cycleSignaturesThrough,eligibleTiles,upgradedRank,rankInfo,resonance};
 });
