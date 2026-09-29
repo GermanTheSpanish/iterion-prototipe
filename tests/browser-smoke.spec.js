@@ -232,3 +232,22 @@ test('Run-out flows expose one-tap Move and Reroll rescue purchases',async({page
   await page.evaluate(()=>sessionStorage.setItem('ux-rescue-mode','reroll'));await page.reload();await expect(page.locator('#overlayTitle')).toHaveText('MACHINE STALLED');await expect(page.locator('#overlayPrimary')).toContainText('BUY & REROLL');await page.locator('#overlayPrimary').click();await page.waitForFunction(()=>!window.__rescueGame.state().blocked,{timeout:3000});
   const reroll=await page.evaluate(()=>{const s=window.__rescueGame.state();return{rerolls:s.consumables.reroll,buy:s.events.filter(e=>e.type==='shop-buy'&&e.item==='reroll'),uses:s.events.filter(e=>e.type==='reroll'&&!e.automatic)}});expect(reroll.rerolls).toBe(0);expect(reroll.buy).toHaveLength(1);expect(reroll.buy[0].intent).toBe('buy-use');expect(reroll.uses).toHaveLength(1)
 });
+
+
+test('Terminal Infinite failure keeps the run debug download visible and functional',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:52901,STARTING_COINS:0,INFINITE_PHASE_AFTER_STAGES:15,INFINITE_HAND_SIZE:3}),s=g.state();s.round=59;s.endlessMode=true;s.standardComplete=true;s.cleared=true;s.intermissionResolved=true;s.shopOpen=false;s.nextShopType='none';if(!g.advance())throw new Error('Infinite outcome fixture could not advance');s.cleared=false;s.blocked=true;s.failureReason='placement-limit';s.roundTurn=g.maxPlacements();s.extraPlacements=0;s.consumables.move=0;s.consumables.undo=0;s.coins=0;s.undoFrame=null;window.__terminalInfiniteGame=g;return g}}}})});
+  await page.goto('http://127.0.0.1:4173/');
+  await expect(page.locator('body')).toHaveClass(/infinitePalette/);
+  await expect(page.locator('#overlayTitle')).toHaveText('ENDLESS OVER');
+  await expect(page.locator('#overlay .modal')).toHaveClass(/outcomeModal/);
+  await expect(page.locator('#overlayBody')).toContainText('Classic complete');
+  await expect(page.locator('#overlayPrimary')).toHaveText('DOWNLOAD RUN .TXT');
+  await expect(page.locator('#overlaySecondary')).toHaveText('NEW RUN');
+  await expect(page.locator('#overlayPrimary')).toBeVisible();
+  const contrast=await page.locator('#overlayPrimary').evaluate(el=>{const s=getComputedStyle(el);return{color:s.color,background:s.backgroundColor,textFill:s.webkitTextFillColor}});
+  expect(contrast.color).not.toBe(contrast.background);expect(contrast.textFill).not.toBe('transparent');
+  const bounds=await page.locator('#overlayPrimary').boundingBox();expect(bounds).not.toBeNull();expect(bounds.y+bounds.height).toBeLessThanOrEqual(844);
+  const downloadPromise=page.waitForEvent('download');await page.locator('#overlayPrimary').click();const download=await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.52\.0_B-[0-9A-Z]{7}\.txt$/);
+});

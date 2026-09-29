@@ -254,8 +254,8 @@
     }
   }
 
-  function hideOverlay(){overlay.className='overlay';modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null}
-  function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
+  function hideOverlay(){overlay.className='overlay';modalEl.classList.remove('auxModal','commerceModal','outcomeModal');overlay.onclick=null}
+  function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal','outcomeModal');overlay.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
   async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame();handFx.fill('normal');hideOverlay();render();resumePlaytest()}
@@ -448,13 +448,14 @@
   }
 
   function showFailed(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',noLegal=s.failureReason==='no-legal-moves',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
+    resetOverlay();modalEl.classList.add('outcomeModal');const s=GAME.state(),x=GAME.snapshot(),endless=!!x.endless?.active,noTiles=s.failureReason==='no-tiles',limit=s.failureReason==='placement-limit',noLegal=s.failureReason==='no-legal-moves',recovery=GAME.recoveryOptions(),stalled=!!recovery.recoverable;
     overlayTitle.textContent=stalled?(limit?'ROUND STALLED':'MACHINE STALLED'):endless?'ENDLESS OVER':noTiles?'SUPPLY ERROR':'ROUND FAILED';
     if(!stalled)PT?.finalizeCurrent(s.standardComplete?'completed':'failed',{reason:s.failureReason||'run-ended'});
-    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or purchased Move can continue this round.':'You used every move for this round.'):noLegal?(stalled?'No legal continuation remains. Buy & use a Reroll to redraw the Hand.':'No legal continuation remains and a Reroll cannot be purchased.'):'No legal continuation remains.';
-    overlayBody.innerHTML=`<p>${endless?`Classic complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}<button id="downloadFailedRun" class="shopBuy secondary">DOWNLOAD RUN .TXT</button>`;
-    overlayBody.querySelector('#downloadFailedRun').onclick=downloadRunBatch;
+    const reason=noTiles?'The automatic POWER set could not be generated. Download the run file so this can be diagnosed.':limit?(stalled?'You used every move, but a stored or purchased Move can continue this round.':'You used every move for this round.'):noLegal?(stalled?'No legal continuation remains. Buy & use a Reroll to redraw the Hand.':'No legal continuation remains and a Reroll cannot be purchased.'):'No legal continuation remains.',inlineDownload=stalled?'<button id="downloadFailedRun" class="failureDownloadButton" type="button">DOWNLOAD RUN .TXT</button>':'';
+    overlayBody.innerHTML=`<p>${endless?`Classic complete · Endless reached Round ${s.round+1}.<br>`:''}${reason}</p>${summaryHtml()}${inlineDownload}`;
+    overlayBody.querySelector('#downloadFailedRun')?.addEventListener('click',downloadRunBatch);
     let slot=0,buttons=[overlayPrimary,overlaySecondary,overlayTertiary];
+    if(!stalled){const b=buttons[slot++];b.style.display='inline-block';b.textContent='DOWNLOAD RUN .TXT';b.onclick=downloadRunBatch}
     if(noTiles&&GAME.canOpenShop()&&recovery.shopRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent='TILE SHOP';b.onclick=openPermanentShop}
     if(limit&&GAME.canUseMove()){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`+1 MOVE · ${s.consumables.move}`;b.onclick=useMove}
     else if(limit&&recovery.toolRescue){const b=buttons[slot++];b.style.display='inline-block';b.textContent=`BUY & USE MOVE · ${recovery.prices.move}c`;b.onclick=()=>buyToolAndUse('move')}
