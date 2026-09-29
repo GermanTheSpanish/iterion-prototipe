@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#e8e4dc">
+<meta name="theme-color" content="#f7f7f4">
 <title>MONOID</title>
 <style>
 :root{--bg:#e8e4dc;--paper:#f8f5ed;--paper2:#f1ede4;--ink:#111;--muted:#767168;--line:rgba(17,17,17,.13);--shadow:0 18px 55px rgba(35,30,23,.13);--cell-x:5.555%;--cell-y:4.166%}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
-body{position:fixed;inset:0}
+html,body{margin:0;width:100%;height:100%;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+html{background:#f7f7f4}
+body{position:fixed;inset:0;background:var(--bg)}
 .app{width:min(100%,560px);height:100dvh;max-height:100dvh;margin:auto;padding:calc(6px + env(safe-area-inset-top)) 8px calc(6px + env(safe-area-inset-bottom));display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;overflow:hidden}
 .label{font-size:8px;line-height:1.1;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
 .scoreStrip{display:grid;grid-template-columns:1.15fr 1fr;gap:5px}.scoreCard{background:rgba(248,245,237,.72);border:1px solid var(--line);border-radius:12px;padding:7px 10px 6px;min-width:0}.scoreValue{font-size:clamp(20px,7vw,30px);font-weight:820;line-height:1;margin-top:2px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.targetCard{background:rgba(255,255,255,.28)}
