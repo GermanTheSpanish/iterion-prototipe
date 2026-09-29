@@ -46,6 +46,7 @@ assert.equal(M.get('mirror').category,'mutation');assert.equal(D.MIRROR_MOD_MULT
   assert.deepEqual(P.tileViewModel(rs.set.find(t=>t.id==='d2-6'),rs).modifiers.map(m=>m.label),['MR']);assert.equal(H.inspectTile(rs,'d0-2').currentMachineState.foundationProgress,1);
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
-assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
+const traversalsIndex=engineSource.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=engineSource.indexOf('const scoreCmp=SCORE.compare('),tailIndex=engineSource.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
 assert.doesNotMatch(engineSource,/mods\.has\('mirror'\).*modMultiplier/,'MIRROR must not alter scoring magnitude');
 console.log('Mutation v2 retained Batch D and Foundation regressions passed');

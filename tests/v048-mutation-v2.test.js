@@ -93,7 +93,8 @@ check('Mutation usage and assignments survive save/restore while legacy fields m
 
 check('protected route comparator and scoring arithmetic remain unchanged by physical Mutation mods',()=>{
   const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
-  assert.match(source,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/);
+  const traversalsIndex=source.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=source.indexOf('const scoreCmp=SCORE.compare('),tailIndex=source.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+  assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
   for(const id of ['mirror','pivot','recall','scrap','swap'])assert.doesNotMatch(source,new RegExp(`mods\\.has\\('${id}'\\).*modMultiplier`));
 });
 

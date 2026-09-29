@@ -40,5 +40,6 @@ assert.deepEqual(['bank','toll'].map(id=>M.get(id).collectionCode),['BK','TL']);
   assert.equal(H.inspectTile(rs,'d5-5').modifiers[0].id,'toll');assert.equal(H.inspectTile(rs,'d5-5').currentMachineState.upgradeTier,3,'Stars remain physical tile state even though FORGE is retired');
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
-assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
+const traversalsIndex=engineSource.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=engineSource.indexOf('const scoreCmp=SCORE.compare('),tailIndex=engineSource.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
 console.log('v0.53.2 Economy replacement regressions passed');

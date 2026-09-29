@@ -93,7 +93,8 @@ check('legacy Economy assignments migrate onto the same physical tile IDs with T
 check('MINT and LONG CHAIN semantics remain present while protected route comparator is unchanged',()=>{
   assert.equal(M.get('mint').collectionCode,'MT');assert.equal(M.get('long-run').collectionCode,'LC');
   const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
-  assert.match(source,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/);
+  const traversalsIndex=source.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=source.indexOf('const scoreCmp=SCORE.compare('),tailIndex=source.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+  assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
 });
 
 console.log(`${checks} MONOID Economy v2 regressions passed`);

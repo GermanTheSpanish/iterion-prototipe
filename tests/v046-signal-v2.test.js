@@ -73,7 +73,8 @@ check('HINGE Market stores pivot and both physical states deterministically',()=
 
 check('old Signal-v1 replacement fields are migration-only and protected comparator is unchanged',()=>{
   const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8'),game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
-  assert.match(source,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/);
+  const traversalsIndex=source.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=source.indexOf('const scoreCmp=SCORE.compare('),tailIndex=source.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+  assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
   assert.doesNotMatch(source,/mods\.has\('sequence'\)|mods\.has\('complement'\)|mods\.has\('relay'\)|mods\.has\('coupler'\)/);
   assert.match(game,/\['zeroMemoryTileId','sequenceTileId','complementTileId','relayTileId','couplerTileId','frameTileId','frontierTileId','resonatorTileId','forgeTileId','twinTileId','gateTileId','fanTileId','crownTileId'\]/);
 });
