@@ -33,5 +33,6 @@ for(const retired of ['twin','gate','fan','crown'])assert.equal(M.get(retired),n
 }
 const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
 assert.match(source,/let topologyGraph=null;const graph=/,'expensive topology graph must remain lazy per replay');
-assert.match(source,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
+const traversalsIndex=source.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=source.indexOf('const scoreCmp=SCORE.compare('),tailIndex=source.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+  assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
 console.log('Mutation v2 legacy replacement and Bridge regressions passed');

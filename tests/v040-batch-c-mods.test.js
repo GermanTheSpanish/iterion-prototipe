@@ -12,7 +12,7 @@ function replay(modId,{coins=0,circuitRank=0,upgrade=0,tollArmed=false}={}){
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s}
 
-assert.equal(D.VERSION,'0.53.2');assert.equal(D.ENGINE_VERSION,'0.20.0-core-abilities-v1');
+assert.equal(D.VERSION,'0.53.3');assert.equal(D.ENGINE_VERSION,'0.20.0-core-abilities-v1');
 assert.equal(M.get('resonator'),null);assert.equal(M.get('forge'),null);
 assert.deepEqual(['bank','toll'].map(id=>M.get(id).collectionCode),['BK','TL']);
 
@@ -40,5 +40,6 @@ assert.deepEqual(['bank','toll'].map(id=>M.get(id).collectionCode),['BK','TL']);
   assert.equal(H.inspectTile(rs,'d5-5').modifiers[0].id,'toll');assert.equal(H.inspectTile(rs,'d5-5').currentMachineState.upgradeTier,3,'Stars remain physical tile state even though FORGE is retired');
 }
 const engineSource=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
-assert.match(engineSource,/const av=\[a\.traversals\|\|0,a\.output\|\|0,a\.rebounds\|\|0,\(a\.path\|\|\[\]\)\.length\]/,'route comparator remains protected');
-console.log('v0.53.2 Economy replacement regressions passed');
+const traversalsIndex=engineSource.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=engineSource.indexOf('const scoreCmp=SCORE.compare('),tailIndex=engineSource.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected: traversals → exact output → rebounds → path length');
+console.log('v0.53.3 Economy replacement regressions passed');

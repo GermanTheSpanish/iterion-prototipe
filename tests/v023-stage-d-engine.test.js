@@ -6,5 +6,6 @@ assert.strictEqual(echo.events.filter(e=>e.type==='double-echo-start').length,1,
 assert.strictEqual(echo.events.filter(e=>e.type==='double-echo-start'&&e.piece===dbl.id).length,1,'Echo cannot recursively create another Echo');
 assert.strictEqual(echo.echoRebounds,1,'Echo follows the same downstream rebound path');assert.deepStrictEqual(echo.path,base.path,'Echo must not alter selected main path');assert.deepStrictEqual(echo.segments,base.segments);
 const retired=E.bestSignal(entry.id,pieces,{initialOutput:6,doubleEchoPieceId:dbl.id,zeroMemoryPieceId:zero.id});assert.strictEqual(retired.output,echo.output,'retired Zero Memory option must have no runtime effect');assert.strictEqual(retired.events.filter(e=>e.type==='zero-memory').length,0);
-const source=fs.readFileSync(require.resolve('../engine.js'),'utf8');assert(source.includes('const av=[a.traversals||0,a.output||0,a.rebounds||0,(a.path||[]).length]'));
+const source=fs.readFileSync(require.resolve('../engine.js'),'utf8'),traversalsIndex=source.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=source.indexOf('const scoreCmp=SCORE.compare('),tailIndex=source.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
+assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator must remain traversals → exact output → rebounds → path length');
 console.log('v0.23 Stage D Double Echo isolated engine tests passed');
