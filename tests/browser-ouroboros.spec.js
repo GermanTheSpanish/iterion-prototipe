@@ -12,7 +12,10 @@ test('Ouroboros turns the machine into the playable surface on mobile',async({pa
   });
   await page.goto(BASE);await page.evaluate(saved=>{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(saved));localStorage.setItem('iterion.activeRunMode.v1','classic');localStorage.setItem('iterion.tutorialChoice.v1','made')},saved);await page.locator('#titleCard').click();await expect(page.locator('#continueRun')).toBeVisible();await page.locator('#continueRun').click();
   await expect(page.locator('body')).toHaveClass(/ouroborosPalette/);await expect(page.locator('#stageRound')).toContainText('OUROBOROS');
+  await expect(page.locator('#modeIndicator')).toBeVisible();await expect(page.locator('#modeIndicator .modeIndicatorPhase')).toHaveText('⟳');await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(0);
   expect(await page.evaluate(()=>{const style=getComputedStyle(document.body);return{bg:style.getPropertyValue('--bg').trim(),paper:style.getPropertyValue('--paper').trim(),paper2:style.getPropertyValue('--paper2').trim()}})).toEqual({bg:'#350b09',paper:'#43100d',paper2:'#551713'});
+  expect(await page.evaluate(()=>{const frozen=window.__monoidGame.state().ouroborosBoardSize,board=window.IterionEngine.getBoardSize();return{frozen,board}})).toEqual(expect.objectContaining({frozen:expect.any(Array),board:expect.any(Object)}));
+  expect(await page.evaluate(()=>{const frozen=window.__monoidGame.state().ouroborosBoardSize,board=window.IterionEngine.getBoardSize();return frozen[0]===board.G&&frozen[1]===board.H})).toBe(true);
   const mismatchFreedom=await page.evaluate(()=>{
     const game=window.__monoidGame,E=window.IterionEngine,s=game.state(),dirs=E.DIR,step=E.S;
     for(const moving of s.pieces){
