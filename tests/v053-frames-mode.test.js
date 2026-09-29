@@ -48,6 +48,7 @@ assert.equal(snap.modeGeometry.voids.length,2);
 assert.equal(snap.modeGeometry.visibleIds.length,2);
 assert.equal(snap.cores.telemetry.coreCount,s.cores.filter(item=>visible(item)).length,'hidden Cores do not participate in physical telemetry before reveal');
 assert.deepEqual(P.modeIndicatorViewModel(s,snap).pips,[2,2]);
+assert.match(first.debugText(),/Cores: THE FRAMES/,'Frames Core state must remain reconstructable from debug export');
 
 const double=s.set.find(tile=>tile.id==='d2-2');assert(double);
 s.hand[0]=double;
