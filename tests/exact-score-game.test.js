@@ -38,5 +38,7 @@ forceExact(exact,expected);
 assert.equal(exact.state().cleared,true,'exact target must clear');
 assert.equal(exact.clearRewardBreakdown().exact,exact.config.EXACT_TARGET_BONUS);
 assert.equal(exact.snapshot().round.targetExact,expected);
+assert.match(exact.debugText(),new RegExp('target='+expected));
+assert.match(exact.debugText(),new RegExp('Last output: '+expected));
 
 console.log('exact score game authority and persistence regressions passed');
