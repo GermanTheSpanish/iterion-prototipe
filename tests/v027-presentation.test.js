@@ -3,7 +3,7 @@ const V=require('../presentation.js'),D=require('../data.js'),H=require('../help
 const ui=fs.readFileSync(require.resolve('../ui.js'),'utf8');let checks=0;
 const check=(name,fn)=>{fn();checks++;console.log(`Presentation: ${name}`)};
 check('historical opening shake timing restored, with a deterministic regression counterexample',()=>{
-  const source=ui.match(/  function maybeShakeRotate\(e\).*\n/)[0];
+  const start=ui.indexOf('  function maybeShakeRotate(e){'),end=ui.indexOf('  function updateFloatRotation()',start);assert(start>=0&&end>start,'maybeShakeRotate source must remain present');const source=ui.slice(start,end);
   function simulate(code,placed=0){let rotations=0,now=1000;const env={GAME:{state:()=>({pieces:Array(placed),rootRR:0}),rotateRoot:()=>rotations++,candidatesForIndex:()=>[]},performance:{now:()=>now},D,drag:{lastX:100,lastSign:0,switches:0,shakeStarted:1000,lastRotate:0,index:0},navigator:{},updateFloatRotation:()=>{},toast:()=>{},ARROW:['']};vm.createContext(env);vm.runInContext(code,env);for(const [t,x]of [[1010,120],[1060,100],[1110,120]]){now=t;env.maybeShakeRotate({clientX:x})}return rotations}
   // 9afb380 changed only this timing reference in the retained function.
   // These two variants reproduce the historical condition without requiring
