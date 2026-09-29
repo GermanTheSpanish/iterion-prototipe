@@ -1,5 +1,5 @@
 const {test,expect}=require('@playwright/test');
-const BUILD='20260929.3',NEXT_BUILD='20260929.4';
+const BUILD='20260929.4',NEXT_BUILD='20260929.5';
 
 async function openTutorialHub(page){const persistent=page.locator('#tutorialHubButton');if(await persistent.isVisible())await persistent.click();else await page.locator('#learnMonoid').click();await expect(page.locator('#tutorialHub')).toBeVisible()}
 async function startTutorialFromHub(page,kind){await openTutorialHub(page);await page.locator(`#tutorialHub [data-tutorial="${kind}"]`).click()}
@@ -8,7 +8,7 @@ test('PWA shell exposes the manifest and registers a network-fresh service worke
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href',/manifest\.webmanifest$/);
   await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute('content','yes');
-  await expect.poll(()=>page.evaluate(()=>{const entry=getComputedStyle(document.getElementById('entryFlow')).backgroundColor,root=getComputedStyle(document.documentElement).backgroundColor,theme=document.querySelector('meta[name="theme-color"]')?.content;return root===entry&&theme===entry})).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>{const entry=getComputedStyle(document.getElementById('entryFlow')).backgroundColor,root=getComputedStyle(document.documentElement).backgroundColor,theme=document.querySelector('meta[name="theme-color"]')?.content,tint=getComputedStyle(document.getElementById('systemChromeTint')).backgroundColor;return root===entry&&theme===entry&&tint===entry})).toBe(true);
   expect(await page.evaluate(()=>window.__monoidPwa?.installed)).toBe(false);
   await expect.poll(()=>page.evaluate(async()=>!!(await navigator.serviceWorker.getRegistration())),{timeout:10000}).toBe(true);
   const manifest=await page.evaluate(async()=>await (await fetch('manifest.webmanifest',{cache:'no-store'})).json());
@@ -70,7 +70,7 @@ test('modifier mini tutorial stays readable on compact phones and respects reduc
 test('board-led mobile layout uses MONOID as menu and gives the board the full gameplay width',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
-  await expect.poll(()=>page.evaluate(()=>{const body=getComputedStyle(document.body).backgroundColor,root=getComputedStyle(document.documentElement).backgroundColor,theme=document.querySelector('meta[name="theme-color"]')?.content;return root===body&&theme===body})).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>{const body=getComputedStyle(document.body).backgroundColor,root=getComputedStyle(document.documentElement).backgroundColor,theme=document.querySelector('meta[name="theme-color"]')?.content,tint=getComputedStyle(document.getElementById('systemChromeTint')).backgroundColor;return root===body&&theme===body&&tint===body})).toBe(true);
   const menu=page.locator('#menuButton');await expect(menu).toHaveText('MONOID');await expect(menu).toHaveAttribute('aria-label','Open game menu');
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-195)).toBeLessThan(2);
   const board=await page.locator('#board').boundingBox();expect(board.width).toBeGreaterThan(340);

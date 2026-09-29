@@ -11,6 +11,7 @@
 html,body{margin:0;width:100%;height:100%;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
 html{background:#f7f7f4}
 body{position:fixed;inset:0;background:var(--bg)}
+#systemChromeTint{position:fixed;top:0;left:0;right:0;height:8px;background:#f7f7f4;pointer-events:none;z-index:2147483647}
 .app{width:min(100%,560px);height:100dvh;max-height:100dvh;margin:auto;padding:calc(6px + env(safe-area-inset-top)) 8px calc(6px + env(safe-area-inset-bottom));display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;overflow:hidden}
 .label{font-size:8px;line-height:1.1;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
 .scoreStrip{display:grid;grid-template-columns:1.15fr 1fr;gap:5px}.scoreCard{background:rgba(248,245,237,.72);border:1px solid var(--line);border-radius:12px;padding:7px 10px 6px;min-width:0}.scoreValue{font-size:clamp(20px,7vw,30px);font-weight:820;line-height:1;margin-top:2px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.targetCard{background:rgba(255,255,255,.28)}
@@ -48,10 +49,11 @@ body{position:fixed;inset:0;background:var(--bg)}
 .titleCard{display:grid;place-items:center;place-content:center;width:100%;height:100%;min-height:0;text-align:center;cursor:pointer;touch-action:manipulation}
 .titleCard h1{margin:0;color:#151515;font-size:clamp(38px,14vw,68px);font-weight:650;letter-spacing:.24em;text-indent:.24em}
 </style>
-<link rel="stylesheet" href="ui-theme.css?v=20260929.3">
-<link rel="stylesheet" href="ui-gameplay-v2.css?v=20260929.3">
+<link rel="stylesheet" href="ui-theme.css?v=20260929.4">
+<link rel="stylesheet" href="ui-gameplay-v2.css?v=20260929.4">
 </head>
 <body>
+<div id="systemChromeTint" aria-hidden="true"></div>
 <div id="entryFlow" class="entryFlow" aria-live="polite">
   <section id="titleCard" class="entryScreen titleCard" role="button" tabindex="0" aria-label="Enter MONOID"><h1>MONOID</h1></section>
   <section id="gameSelection" class="entryScreen gameSelection" hidden aria-labelledby="selectionTitle"><p class="entryKicker">GAME SELECTION</p><h1 id="selectionTitle">MONOID</h1><button id="modeClassic" class="modeCard"><span class="selectionDouble" aria-hidden="true"><i></i><i></i></span><strong>CLASSIC</strong><small>The original machine</small></button><div id="firstRunChoice" class="firstRunChoice"><button id="learnMonoid" class="entryPrimary">LEARN BASICS · 2 MIN</button></div><button id="startRun" class="entrySecondary">SKIP · START RUN</button><button id="continueRun" class="entryPrimary" hidden>CONTINUE RUN</button><button id="replayTutorial" class="entrySecondary">BASICS TUTORIAL</button><button id="systemsTutorial" class="entrySecondary">SYSTEMS TUTORIAL · 3 MIN</button></section>
@@ -82,6 +84,6 @@ body{position:fixed;inset:0;background:var(--bg)}
 <dialog id="gameMenu" class="gameMenu" aria-labelledby="menuTitle"><div class="menuHead"><h2 id="menuTitle">Run menu</h2><button id="closeMenu" class="iconButton" aria-label="Close game menu">×</button></div><div class="menuStats"><span>Coins <strong id="coins">0</strong></span><span>Available tiles <strong id="tilesleft">28</strong></span></div><button id="helpButton" class="menuAction" aria-label="Open Rulebook">Rulebook</button><button id="gameSelectionButton" class="menuAction">Game selection</button><button id="viewrun" class="menuAction">Run data</button><button id="copyrun" class="menuAction">Copy run data</button><button id="reset" class="menuAction">New run</button><p>Hold a domino to inspect it.</p></dialog>
 <div id="overlay" class="overlay"><div class="modal"><h2 id="overlayTitle"></h2><div id="overlayBody"></div><div class="modalActions"><button id="overlayPrimary" class="primary"></button><button id="overlaySecondary" class="secondary"></button><button id="overlayTertiary" class="secondary"></button></div></div></div>
 <div id="toast" class="toast"></div>
-<script src="engine.js?v=20260929.3"></script><script src="data.js?v=20260929.3"></script><script src="mods.js?v=20260929.3"></script><script src="circuits.js?v=entry-0311"></script><script src="mod-guidance.js?v=20260929.3"></script><script src="game.js?v=20260929.3"></script><script src="help.js?v=20260929.3"></script><script src="gesture.js?v=20260929.3"></script><script src="presentation.js?v=20260929.3"></script><script src="playtest-batch-store.js?v=20260929.3"></script><script src="playtest-telemetry.js?v=20260929.3"></script><script src="ui.js?v=20260929.3"></script><script src="tutorial-controller.js?v=entry-0311"></script><script src="ux-pass.js?v=20260929.3"></script>
+<script src="engine.js?v=20260929.4"></script><script src="data.js?v=20260929.4"></script><script src="mods.js?v=20260929.4"></script><script src="circuits.js?v=entry-0311"></script><script src="mod-guidance.js?v=20260929.4"></script><script src="game.js?v=20260929.4"></script><script src="help.js?v=20260929.4"></script><script src="gesture.js?v=20260929.4"></script><script src="presentation.js?v=20260929.4"></script><script src="playtest-batch-store.js?v=20260929.4"></script><script src="playtest-telemetry.js?v=20260929.4"></script><script src="ui.js?v=20260929.4"></script><script src="tutorial-controller.js?v=entry-0311"></script><script src="ux-pass.js?v=20260929.4"></script>
 </body>
 </html>
