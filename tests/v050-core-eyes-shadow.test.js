@@ -16,7 +16,7 @@ assert.equal(D.CORE_SIGNAL_MAX,24);
 assert.equal(D.CORE_SIGNAL_ENABLED,true);
 assert.equal(D.CORE_SIGNAL_SHADOW,false);
 assert.deepEqual([...D.CORE_ARCHETYPES],['relay','reservoir','distributor','conductor']);
-assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes']);
+assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes','frames']);
 
 E.setBoardSize(18,24);
 const classic=G.createGame(E,{seed:5001,GAME_MODE:'classic'});
