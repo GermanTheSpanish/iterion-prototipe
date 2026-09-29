@@ -17,6 +17,7 @@
   ensureLink('manifest','manifest.webmanifest','application/manifest+json');
   ensureLink('icon','monoid-icon.svg','image/svg+xml');
   ensureLink('apple-touch-icon','monoid-icon.svg');
+  const themeColorMeta=ensureMeta('theme-color','#f7f7f4');
   ensureMeta('mobile-web-app-capable','yes');
   ensureMeta('apple-mobile-web-app-capable','yes');
   ensureMeta('apple-mobile-web-app-title','MONOID');
@@ -59,6 +60,14 @@
   root.addEventListener('appinstalled',()=>{state.installOutcome='installed';state.deferredPrompt=null;removeInstallAction()});
 
   function gameplayVisible(){const app=doc.querySelector('.app');return!!(app&&!app.hidden&&app.getAttribute('aria-hidden')!=='true')}
+  function activeSurfaceColor(){
+    const entry=doc.getElementById('entryFlow'),entryVisible=entry&&!entry.hidden;
+    const target=entryVisible?entry:doc.body,color=root.getComputedStyle?.(target)?.backgroundColor;
+    return color&&color!=='rgba(0, 0, 0, 0)'&&color!=='transparent'?color:'#f7f7f4'
+  }
+  function syncSurfaceTheme(){
+    const color=activeSurfaceColor();themeColorMeta.content=color;doc.documentElement.style.backgroundColor=color;doc.documentElement.style.setProperty('--monoid-system-bg',color);return color
+  }
   function guardState(){return{...(root.history.state||{}),[GUARD_KEY]:true}}
   function armBackGuard(){if(!inDisplayMode()||!gameplayVisible()||root.history.state?.[GUARD_KEY])return;root.history.pushState(guardState(),'')}
   root.addEventListener('popstate',()=>{
@@ -70,8 +79,9 @@
     doc.getElementById('menuButton')?.click()
   });
 
-  function syncShell(){doc.documentElement.classList.toggle('monoid-installed',inDisplayMode());ensureInstallAction();armBackGuard()}
+  function syncShell(){doc.documentElement.classList.toggle('monoid-installed',inDisplayMode());ensureInstallAction();armBackGuard();syncSurfaceTheme()}
   new MutationObserver(syncShell).observe(doc.body,{subtree:true,attributes:true,attributeFilter:['hidden','aria-hidden','open']});
+  new MutationObserver(syncSurfaceTheme).observe(doc.body,{attributes:true,attributeFilter:['class']});
   root.addEventListener('pageshow',syncShell);root.addEventListener('focus',syncShell);syncShell();
 
   async function registerServiceWorker(){
