@@ -52,6 +52,33 @@ test('Signal Route Preview turns the machine into the route and keeps Full / Pre
   await beginCandidateDrag(page);await expect(page.locator('.routePreviewSvg')).toHaveCount(0);expect(await page.evaluate(()=>window.__routePreviewCalls)).toBe(callsBefore);await cancelDrag(page)
 });
 
+
+test('route event vocabulary separates return lanes and labels route mechanics',async({page})=>{
+  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
+  await page.evaluate(()=>{
+    const game=window.__routePreviewGame,real=game.previewPlacement.bind(game);
+    game.previewPlacement=(...args)=>{
+      const preview=real(...args);if(!preview?.ok)return preview;
+      const sim=preview.sim,segment=sim.segments?.[0],op=sim.events?.find(event=>event.type==='op'),route=sim.events?.find(event=>event.type==='route');
+      if(segment)sim.segments.push({...segment,from:{...segment.to},to:{...segment.from},reverse:true});
+      if(op){
+        const toPieceId=route?.toPieceId||op.piece,toHalf=route?.toHalf??op.entryHalf??0;
+        sim.events.splice(Math.max(0,sim.events.length-1),0,
+          {type:'rebound',piece:op.piece,charge:1},
+          {type:'zero-port',piece:op.piece,fromHalf:op.exitHalf,toPieceId},
+          {type:'core-activate',coreId:'qa-core',piece:op.piece,beforeSignal:3,afterSignal:24},
+          {type:'core-relay',coreId:'qa-core',fromPieceId:op.piece,fromHalf:op.exitHalf,toPieceId,toHalf},
+          {type:'signal-depleted',piece:toPieceId,remaining:0}
+        )
+      }
+      return preview
+    }
+  });
+  await beginCandidateDrag(page);
+  await expect(page.locator('.routePreviewRebound')).toHaveText('REBOUND');await expect(page.locator('.routePreviewTeleport')).toHaveText('TELEPORT');await expect(page.locator('.routePreviewRecharge')).toHaveText('RECHARGE');await expect(page.locator('.routePreviewRelay')).toHaveText('RELAY');await expect(page.locator('.routePreviewDepleted')).toHaveText('SIGNAL OUT');
+  const lanes=await page.evaluate(()=>{const forward=document.querySelector('.routePreviewLine.physical'),back=document.querySelector('.routePreviewLine.retrace'),attrs=el=>({x1:el?.getAttribute('x1'),y1:el?.getAttribute('y1'),x2:el?.getAttribute('x2'),y2:el?.getAttribute('y2'),stroke:el?getComputedStyle(el).stroke:null});return{forward:attrs(forward),back:attrs(back)}});expect(lanes.back.stroke).not.toBe(lanes.forward.stroke);expect([lanes.back.x1,lanes.back.y1,lanes.back.x2,lanes.back.y2]).not.toEqual([lanes.forward.x2,lanes.forward.y2,lanes.forward.x1,lanes.forward.y1]);await cancelDrag(page)
+});
+
 test('Full route guidance stays contained on the compact mobile fixture',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await beginCandidateDrag(page);
   await expect(page.locator('.routePreviewStart')).toBeVisible();await expect(page.locator('.routePreviewEnd').first()).toBeVisible();await expect(page.locator('.routePreviewRule')).toBeVisible();
