@@ -12,7 +12,7 @@ function replay(modId,{coins=0,circuitRank=0,upgrade=0,tollArmed=false}={}){
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*6,8,0,0,i+1);p.tile={...t};return p});s.placedTileIds=[...ids];return s}
 
-assert.equal(D.VERSION,'0.54.0');assert.equal(D.ENGINE_VERSION,'0.20.0-core-abilities-v1');
+assert.equal(D.VERSION,'0.54.0');assert.equal(D.ENGINE_VERSION,'0.20.1-core-abilities-v1');
 assert.equal(M.get('resonator'),null);assert.equal(M.get('forge'),null);
 assert.deepEqual(['bank','toll'].map(id=>M.get(id).collectionCode),['BK','TL']);
 
