@@ -198,7 +198,7 @@ assert.equal(fire.ok,true);
 const gameActivation=events(fire.sim,'core-activate')[0];
 assert.equal(gameActivation.archetype,'reservoir');
 assert.equal(gameActivation.abilityApplied,'reservoir');
-assert.equal(gameActivation.afterSignal,32,'game.js must pass Core archetype/level into the engine runtime');
+assert.equal(gameActivation.afterSignal,D.CORE_SIGNAL_BY_MODE.eyes+D.CORE_RESERVOIR_BONUS,'game.js must pass the Eyes budget plus Core archetype/level into the engine runtime');
 assert.equal(fire.signalRuntime.leadCoreArchetype,'reservoir');
 assert.equal(fire.signalRuntime.effects.reservoirLead,true);
 
