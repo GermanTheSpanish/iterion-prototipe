@@ -40,7 +40,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   expect(Math.min(...trace)).toBeLessThan(-3,'a far release must carry the incoming tile slightly through centre');
   expect(Math.abs(trace.at(-1))).toBeLessThan(1.5);
   await expect(page.locator('#modeName')).toHaveText('THE EYES',{timeout:900});
-  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Signal 24');
+  await expect(page.locator('#modeDescription')).toHaveText('1|1 · Signal 10');
   await expect(page.locator('#startRun')).toBeEnabled();
 
   await page.evaluate(()=>window.__monoidModes.select(6));
@@ -84,7 +84,7 @@ test('Classic, The Eyes and The Frames are playable while Classic keeps its full
 });
 
 
-test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Signal 24 telemetry',async({page})=>{
+test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Signal 10 telemetry',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
   await page.waitForFunction(()=>!!window.__monoidModes);
@@ -119,8 +119,8 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.snapshot.signal.enabled).toBe(true);
   expect(state.snapshot.signal.shadowEnabled).toBe(false);
   expect(state.snapshot.signal.interaction).toBe('runtime');
-  expect(state.snapshot.signal.base).toBe(24);
-  expect(state.snapshot.signal.max).toBe(24);
+  expect(state.snapshot.signal.base).toBe(10);
+  expect(state.snapshot.signal.max).toBe(10);
   if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
   await expect(page.locator('#hint')).not.toContainText('CONNECT A CORE');
   await expect(page.locator('#board .coreNode.coreNeedsConnection')).toHaveCount(2);
@@ -192,7 +192,7 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   await page.locator('#titleCard').click();
   await page.evaluate(()=>window.__monoidModes.select(2));
   await expect(page.locator('#modeName')).toHaveText('THE FRAMES');
-  await expect(page.locator('#modeDescription')).toHaveText('2|2 · Signal 24');
+  await expect(page.locator('#modeDescription')).toHaveText('2|2 · Signal 8');
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({frames:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({frames:true}))});
   await page.locator('#startRun').click();
   await expect(page.locator('#modeIndicator')).toBeVisible();
@@ -212,7 +212,7 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   expect(state.savedMode).toBe('frames');
   expect(state.cores).toHaveLength(2);
   expect(state.voids).toHaveLength(2);
-  expect(state.snapshot.modeGeometry.visibleIds).toHaveLength(4);
+  expect(state.snapshot.modeGeometry.visibleIds).toHaveLength(4);\n  expect(state.snapshot.signal.base).toBe(8);\n  expect(state.snapshot.signal.max).toBe(8);
   expect(state.snapshot.signal.enabled).toBe(true);
   expect(state.snapshot.signal.base).toBe(24);
   const safety=await page.evaluate(()=>{
