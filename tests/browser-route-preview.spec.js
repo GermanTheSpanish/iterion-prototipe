@@ -7,15 +7,11 @@ test.beforeEach(async({page})=>{
     let api;
     Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{
       api={...value,createGame(E,options){
-        const g=value.createGame(E,{...options,seed:54001,TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),s=g.state(),root=s.set.find(tile=>tile.id==='d2-2'),next=s.set.find(tile=>tile.id==='d2-3'),rootPiece=E.pieceFrom(root,7,10,0,0,1);
-        rootPiece.tile={...root};const pieces=[rootPiece];
-        for(const id of ['d2-4','d2-5']){
-          const tile=s.set.find(item=>item.id===id),placements=E.allPlacements(tile,0,pieces).filter(placement=>(placement.contacts||[]).some(group=>group.piece.id===rootPiece.id)&&(placement.contacts||[]).every(group=>group.piece.id===rootPiece.id)),placement=placements[0];
-          if(!placement)continue;const piece=E.pieceFrom(tile,placement.x,placement.y,0,placement.rr,pieces.length+1);piece.tile={...tile};pieces.push(piece)
-        }
-        s.pieces=pieces;s.placedTileIds=pieces.map(piece=>piece.tile.id);s.idc=pieces.length;s.turn=pieces.length;s.roundTurn=pieces.length;s.anchorId=root.id;s.hand=[next,null,null,null,null];s.reserve=s.set.filter(tile=>!s.placedTileIds.includes(tile.id)&&tile.id!==next.id);s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.shopOpen=false;s.pendingCircuit=null;s.pendingModPlacement=null;
+        const g=value.createGame(E,{...options,seed:54001,TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),s=g.state(),tile=id=>s.set.find(item=>item.id===id),make=(id,x,y,rr,pieceId)=>{const t=tile(id),p=E.pieceFrom(t,x,y,0,rr,pieceId);p.tile={...t};return p};
+        const pieces=[make('d2-3',4,8,0,1),make('d3-4',6,6,3,2),make('d4-5',6,2,3,3),make('d3-6',8,8,0,4)],next=tile('d1-2');
+        s.pieces=pieces;s.placedTileIds=pieces.map(piece=>piece.tile.id);s.idc=pieces.length;s.turn=pieces.length;s.roundTurn=pieces.length;s.anchorId=pieces[0].tile.id;s.hand=[next,null,null,null,null];s.reserve=s.set.filter(item=>!s.placedTileIds.includes(item.id)&&item.id!==next.id);s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.shopOpen=false;s.pendingCircuit=null;s.pendingModPlacement=null;
         const preview=g.previewPlacement.bind(g);window.__routePreviewCalls=0;g.previewPlacement=(...args)=>{window.__routePreviewCalls++;return preview(...args)};
-        const candidates=g.candidatesForIndex(0);window.__routePreviewCandidate=candidates.find(candidate=>{const valid=E.validatePlacement(next,candidate.x,candidate.y,0,candidate.rr,s.pieces);return valid.ok&&(valid.contacts||[]).some(group=>group.piece.id===rootPiece.id)})||candidates[0];window.__routePreviewGame=g;return g
+        const candidates=g.candidatesForIndex(0);window.__routePreviewCandidate=candidates.find(candidate=>candidate.x===0&&candidate.y===8&&candidate.rr===0)||candidates[0];window.__routePreviewGame=g;return g
       }};
     }});
   })
@@ -42,7 +38,7 @@ test('Signal Route Preview turns the machine into the route and keeps Full / Pre
   expect(await page.locator('.routePreviewPulse').first().evaluate(el=>getComputedStyle(el).stroke)).not.toBe('none');
   expect(await page.locator('.routePreviewPulse').first().evaluate(el=>getComputedStyle(el).animationName)).toContain('routePreviewFlow');
   await expect(page.locator('.routePreviewStart')).toHaveText('START');expect(await page.locator('.routePreviewEnd').count()).toBeGreaterThan(0);const startClear=await page.evaluate(()=>{const start=document.querySelector('.routePreviewStart').getBoundingClientRect(),candidate=document.querySelector('.dragCandidate').getBoundingClientRect();return start.bottom<=candidate.top||start.top>=candidate.bottom||start.right<=candidate.left||start.left>=candidate.right});expect(startClear).toBe(true);
-  expect(await page.locator('.routePreviewJunctionRing').count()).toBeGreaterThan(0);expect(await page.locator('.piece.routePreviewDim').count()).toBeGreaterThan(0);expect(await page.locator('.piece.routePreviewActiveTile').count()).toBeGreaterThan(0);await expect(page.locator('.routePreviewRule')).toContainText('MORE TILE PASSES');await expect(page.locator('.routePreviewRule')).toContainText('HIGHER OUTPUT');
+  expect(await page.locator('.routePreviewJunctionRing').count()).toBeGreaterThan(0);expect(await page.locator('.piece.routePreviewDim').count()).toBeGreaterThan(0);expect(await page.locator('.piece.routePreviewActiveTile').count()).toBeGreaterThan(0);await expect(page.locator('.routePreviewRule')).toHaveText('↑ MORE PASSES');
   await expect(page.locator('.routePreviewCoach')).toHaveCount(0);await expect(page.locator('.routePreviewArrowHead')).toHaveCount(0);
   const ruleBox=await page.locator('.routePreviewRule').boundingBox(),boardBox=await page.locator('#board').boundingBox();expect(ruleBox.x).toBeGreaterThanOrEqual(boardBox.x);expect(ruleBox.x+ruleBox.width).toBeLessThanOrEqual(boardBox.x+boardBox.width);
   expect(await page.evaluate(()=>window.__routePreviewCalls)).toBeGreaterThan(0);
