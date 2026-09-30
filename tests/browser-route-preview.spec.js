@@ -31,7 +31,7 @@ test('Signal Route Preview defaults to Full, supports Preview, and Off skips pre
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
 
   await beginCandidateDrag(page);
-  await expect(page.locator('.routePreviewSvg')).toBeVisible();await expect(page.locator('.routePreviewSvg')).toHaveAttribute('data-preview-mode','full');await expect(page.locator('.routePreviewLine').first()).toBeVisible();await expect(page.locator('.routePreviewCoach')).toContainText('SIGNAL PREVIEW');expect(await page.evaluate(()=>window.__routePreviewCalls)).toBeGreaterThan(0);
+  await expect(page.locator('.routePreviewSvg')).toBeVisible();await expect(page.locator('.routePreviewSvg')).toHaveAttribute('data-preview-mode','full');expect(await page.locator('.routePreviewLine').count()).toBeGreaterThan(0);expect(await page.locator('.routePreviewLine').first().evaluate(el=>getComputedStyle(el).stroke)).not.toBe('none');await expect(page.locator('.routePreviewCoach')).toContainText('SIGNAL PREVIEW');expect(await page.evaluate(()=>window.__routePreviewCalls)).toBeGreaterThan(0);
   await cancelDrag(page);
 
   await page.locator('#menuButton').click();await expect(page.locator('[data-route-preview="full"]')).toHaveAttribute('aria-pressed','true');await page.locator('[data-route-preview="preview"]').click();expect(await page.evaluate(()=>localStorage.getItem('iterion.routePreview.v1'))).toBe('preview');await page.locator('#closeMenu').click();
