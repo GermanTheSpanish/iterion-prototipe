@@ -7,8 +7,8 @@
 
   const TOUR_KEY='monoid.uiTour.v1',FIRST_BRIEF_KEY='monoid.firstRunBriefing.v1',MODE_ONBOARDING_KEY='monoid.modeOnboarding.v1',MODE_INTRO_KEY='monoid.modeIntro.v2',SYSTEMS_POWER_ID='g2-d1-2';
   const MODE_ONBOARDING=Object.freeze({
-    eyes:Object.freeze({id:'eyes',kicker:'THE EYES · 1|1',name:'THE EYES',reveal:'Signal starts at 6.\\nCores refill it. Each Market strengthens the refill.',orientTitle:'REACH A CORE',orient:'Reach a Core before the Signal dies.',discoveryTitle:'LEAD',discovery:'First Core sets the rule.',payoffTitle:'CORE LINKED',payoff:'Signal restored.'}),
-    frames:Object.freeze({id:'frames',kicker:'THE FRAMES · 2|2',name:'THE FRAMES',reveal:'Signal starts at 4.\\nCores refill it. Each Market strengthens the refill.',orientTitle:'READ THE FRAME',orient:'Voids block placement. Reach a Core before Signal dies.',discoveryTitle:'LEAD',discovery:'First Core still sets the rule.',payoffTitle:'FRAME LINKED',payoff:'Signal restored. Voids stay permanent.'})
+    eyes:Object.freeze({id:'eyes',kicker:'THE EYES · 1|1',name:'THE EYES',reveal:'Signal starts at 6.\\nCores refill it.\nEach Market: +1 refill.',orientTitle:'REACH A CORE',orient:'Reach a Core before the Signal dies.',discoveryTitle:'LEAD',discovery:'First Core sets the rule.',payoffTitle:'CORE LINKED',payoff:'Signal restored.'}),
+    frames:Object.freeze({id:'frames',kicker:'THE FRAMES · 2|2',name:'THE FRAMES',reveal:'Signal starts at 4.\\nCores refill it.\nEach Market: +1 refill.',orientTitle:'READ THE FRAME',orient:'Voids block placement. Reach a Core before Signal dies.',discoveryTitle:'LEAD',discovery:'First Core still sets the rule.',payoffTitle:'FRAME LINKED',payoff:'Signal restored. Voids stay permanent.'})
   });
   const ux={mode:'idle',tourStep:null,commerce:null,tutorialKind:null,systemsPhase:null,rotationSeen:false,modeOnboarding:null};
   Object.defineProperty(root,'__monoidUx',{configurable:true,get:()=>({...ux})});
