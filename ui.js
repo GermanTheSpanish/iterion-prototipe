@@ -244,7 +244,7 @@
   function renderRoutePreview(candidatePiece){
     const mode=routePreviewMode(),preview=drag.preview;if(mode==='off'||drag.kind!=='hand'||!preview?.ok||!candidatePiece)return;
     const sim=preview.sim,segments=sim?.segments||[],events=sim?.events||[];if(!segments.length)return;
-    const live=new Map([...GAME.state().pieces,candidatePiece].map(piece=>[piece.id,piece])),pieces=()=>[...live.values()],point=(pieceId,half)=>routePreviewPoint(live.get(pieceId),half);
+    const live=new Map([...GAME.state().pieces,candidatePiece].map(piece=>[piece.id,piece])),point=(pieceId,half)=>routePreviewPoint(live.get(pieceId),half);
     const svg=document.createElementNS(ROUTE_SVG_NS,'svg');svg.classList.add('routePreviewSvg');svg.dataset.previewMode=mode;svg.setAttribute('viewBox',`0 0 ${E.G} ${E.H}`);svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
     for(const segment of segments)appendRoutePreviewLine(svg,segment.from,segment.to,segment.reverse?'retrace':'physical');
     for(const event of events){
@@ -261,9 +261,9 @@
     board.querySelectorAll('.piece[data-tile-id]').forEach(el=>{const active=routeTileIds.has(String(el.dataset.tileId));el.classList.toggle('routePreviewActiveTile',active);el.classList.toggle('routePreviewDim',!active)});
     const activeCoreIds=new Set(events.filter(event=>event.type==='core-activate'&&event.coreId!=null).map(event=>String(event.coreId)));
     board.querySelectorAll('.coreNode[data-core-id]').forEach(el=>el.classList.toggle('routePreviewDim',activeCoreIds.size>0&&!activeCoreIds.has(String(el.dataset.coreId))));
-    const junctions=[],seenJunctions=new Set(),routeEvents=events.filter(event=>event.type==='route');
+    const livePieces=[...live.values()],junctions=[],seenJunctions=new Set(),routeEvents=events.filter(event=>event.type==='route');
     for(const segment of segments){
-      if(seenJunctions.has(segment.piece))continue;const piece=live.get(segment.piece),facts=E.modGeometryFacts?.(piece,pieces());if(!piece||!facts||facts.connectionCount<=2)continue;
+      if(seenJunctions.has(segment.piece))continue;const piece=live.get(segment.piece),connectionCount=piece?new Set(E.connectionsForPiece(piece,livePieces).map(connection=>connection.toPieceId)).size:0;if(!piece||connectionCount<=2)continue;
       seenJunctions.add(segment.piece);const route=routeEvents.find(event=>event.piece===segment.piece),junctionPoint=route?point(segment.piece,route.exitHalf):routePreviewPieceCenter(piece);if(junctionPoint)junctions.push({pieceId:segment.piece,point:junctionPoint})
     }
     for(const junction of junctions){const ring=document.createElementNS(ROUTE_SVG_NS,'circle');ring.setAttribute('cx',junction.point.x);ring.setAttribute('cy',junction.point.y);ring.setAttribute('r','.34');ring.setAttribute('class','routePreviewJunctionRing');svg.appendChild(ring)}
