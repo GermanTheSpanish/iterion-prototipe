@@ -184,6 +184,14 @@
   const cloneState=s=>({current:{...s.current},mode:s.mode,output:s.output,outputExact:SCORE.exact(s.output||0,s.outputExact),initialOutput:s.initialOutput,initialOutputExact:SCORE.exact(s.initialOutput||0,s.initialOutputExact),suppressZeroPiece:s.suppressZeroPiece,doubleDoubleUsed:!!s.doubleDoubleUsed,splitUsed:new Set(s.splitUsed||[]),usedEdges:new Set(s.usedEdges),zeroCharges:cloneMap(s.zeroCharges),zeroPortUsed:new Set(s.zeroPortUsed||[]),returnUsed:!!s.returnUsed,mergeCapture:!!s.mergeCapture,mergeConsumed:!!s.mergeConsumed,mergeFromPieceIds:new Set(s.mergeFromPieceIds||[]),hingeMoved:!!s.hingeMoved,hingeOverride:clonePiece(s.hingeOverride),signalRemaining:Number.isFinite(s.signalRemaining)?s.signalRemaining:null,signalVisited:new Set(s.signalVisited||[]),activatedCoreIds:new Set(s.activatedCoreIds||[]),coreActivationOrder:[...(s.coreActivationOrder||[])],leadCoreId:s.leadCoreId||null,leadCoreArchetype:s.leadCoreArchetype||null,leadCoreLevel:Math.max(0,Number(s.leadCoreLevel)||0),distributorUsed:!!s.distributorUsed,relayUsed:!!s.relayUsed,back:s.back.map(x=>({...x})),forward:s.forward.map(x=>({...x})),path:s.path.map(x=>({...x})),segments:s.segments.map(x=>({...x,from:{...x.from},to:{...x.to}})),events:s.events.map(x=>({...x})),traversals:s.traversals,rebounds:s.rebounds});
   function terminal(s,reason,meta={}){const events=[...s.events,{type:'die',reason}],outputExact=SCORE.exact(s.output||0,s.outputExact),initialOutputExact=SCORE.exact(s.initialOutput||0,s.initialOutputExact),output=SCORE.approx(outputExact),gainExact=SCORE.subtract(outputExact,initialOutputExact);return{output,outputExact,gain:SCORE.approx(gainExact),gainExact,path:s.path,segments:s.segments,events,zeroCharges:s.zeroCharges,zeroPortUsed:new Set(s.zeroPortUsed||[]),splitUsed:new Set(s.splitUsed||[]),usedEdges:new Set(s.usedEdges||[]),doubleDoubleUsed:!!s.doubleDoubleUsed,returnUsed:!!s.returnUsed,mergeConsumed:!!s.mergeConsumed,hingeMoved:!!s.hingeMoved,hingeOverride:clonePiece(s.hingeOverride),signalRemaining:Number.isFinite(s.signalRemaining)?s.signalRemaining:null,signalVisited:new Set(s.signalVisited||[]),activatedCoreIds:new Set(s.activatedCoreIds||[]),coreActivationOrder:[...(s.coreActivationOrder||[])],leadCoreId:s.leadCoreId||null,leadCoreArchetype:s.leadCoreArchetype||null,leadCoreLevel:Math.max(0,Number(s.leadCoreLevel)||0),distributorUsed:!!s.distributorUsed,relayUsed:!!s.relayUsed,reason,traversals:s.traversals,rebounds:s.rebounds,...meta}}
   function better(a,b){if(!b)return true;const at=a.traversals||0,bt=b.traversals||0;if(at!==bt)return at>bt;const scoreCmp=SCORE.compare(SCORE.exact(a.output||0,a.outputExact),SCORE.exact(b.output||0,b.outputExact));if(scoreCmp)return scoreCmp>0;const av=[a.rebounds||0,(a.path||[]).length],bv=[b.rebounds||0,(b.path||[]).length];for(let i=0;i<av.length;i++){if(av[i]!==bv[i])return av[i]>bv[i]}return false}
+  function routeChoiceReason(winner,runnerUp){
+    if(!winner||!runnerUp)return null;
+    const wt=winner.traversals||0,rt=runnerUp.traversals||0;if(wt!==rt)return wt>rt?'traversals':null;
+    const scoreCmp=SCORE.compare(SCORE.exact(winner.output||0,winner.outputExact),SCORE.exact(runnerUp.output||0,runnerUp.outputExact));if(scoreCmp)return scoreCmp>0?'output':null;
+    const wr=winner.rebounds||0,rr=runnerUp.rebounds||0;if(wr!==rr)return wr>rr?'rebounds':null;
+    const wp=(winner.path||[]).length,rp=(runnerUp.path||[]).length;if(wp!==rp)return wp>rp?'path':null;
+    return 'stable'
+  }
   function replaySelectedScoring(result,initialOutput,opts={}){
     const powers=opts.powerByPiece||new Map(),pieces=opts.pieces||[],modsByPiece=opts.modIdsByPiece||new Map(),circuitRanks=opts.circuitRankByPiece||new Map(),knotCycles=opts.knotCycleCountByPiece||new Map(),powered=[...powers.values()].some(p=>p>1),modified=[...modsByPiece.values()].some(v=>v&&v.size),economyCoins=Math.max(0,Number(opts.economyCoins)||0);
     if(!powered&&!modified)return result;
@@ -314,14 +322,21 @@
     const maxMaps=(...maps)=>{const out=new Map();for(const map of maps)for(const [k,v] of map||[])out.set(k,Math.max(Number(out.get(k))||0,Number(v)||0));return out};
     function finish(s,reason){leaves++;return{...terminal(s,reason),splitUsed:new Set(s.splitUsed||[]),doubleDoubleUsed:!!s.doubleDoubleUsed}}
     function follow(s,conns,exitHalf){
-      let selected=null;
+      let selected=null,selectedConnection=null;const explored=[];
       for(const c of conns){
         if(expanded>=searchLimit){truncated=true;break}
         const n=cloneState(s);n.current.entryHalf=1-exitHalf;n.usedEdges.add(c.key);n.back.push({...n.current});
         for(let i=n.events.length-1;i>=0;i--){const e=n.events[i];if(e.type==='op'&&e.piece===s.current.pieceId){e.exitSide=c.fromSide;e.toPieceId=c.toPieceId;break}if(e.type==='op')break}
         n.current={pieceId:c.toPieceId,entryHalf:c.toHalf,fromPieceId:s.current.pieceId,fromHalf:c.fromHalf};
         n.events.push({type:'route',piece:s.current.pieceId,entryHalf:1-exitHalf,exitHalf,toPieceId:c.toPieceId,toHalf:c.toHalf,fromSide:c.fromSide,toSide:c.toSide,key:c.choiceKey});
-        const r=walk(n);if(better(r,selected))selected=r
+        const r=walk(n);explored.push({connection:c,result:r});if(better(r,selected)){selected=r;selectedConnection=c}
+      }
+      if(selected&&selectedConnection&&explored.length>1){
+        let runnerUp=null;
+        for(const item of explored)if(item.connection!==selectedConnection&&(!runnerUp||better(item.result,runnerUp.result)))runnerUp=item;
+        const reason=routeChoiceReason(selected,runnerUp?.result);
+        const routeEvent=selected.events?.find(event=>event.type==='route'&&event.piece===s.current.pieceId&&event.key===selectedConnection.choiceKey);
+        if(routeEvent){routeEvent.choiceReason=reason;routeEvent.choiceCount=explored.length;routeEvent.choiceDirection=selectedConnection.fromSide}
       }
       return selected||finish(s,'search-limit')
     }
