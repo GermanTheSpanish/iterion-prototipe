@@ -62,8 +62,8 @@ for(const half of ['north','south'])assert.equal(initialVisible.filter(item=>ite
 
 const snap=first.snapshot();
 assert.equal(snap.signal.enabled,true);
-assert.equal(snap.signal.base,24);
-assert.equal(snap.signal.max,24);
+assert.equal(snap.signal.base,D.CORE_SIGNAL_BY_MODE.frames);
+assert.equal(snap.signal.max,D.CORE_SIGNAL_BY_MODE.frames);
 assert.equal(snap.cores.mode,'frames');
 assert.equal(snap.cores.maxPhysical,2);
 assert.equal(snap.modeGeometry.voids.length,2);
