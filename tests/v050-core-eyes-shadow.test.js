@@ -41,8 +41,8 @@ assert.equal(southCenter-northCenter,8,'The Eyes pips should remain reachable wi
 assert.equal(first.snapshot().cores.interaction,'physical');
 assert.equal(first.snapshot().signal.enabled,true);
 assert.equal(first.snapshot().signal.interaction,'runtime');
-assert.equal(first.snapshot().signal.base,10);
-assert.equal(first.snapshot().signal.max,10);
+assert.equal(first.snapshot().signal.base,6);
+assert.equal(first.snapshot().signal.max,6);
 assert.equal(first.snapshot().signal.shadowEnabled,false);
 
 E.setBoardSize(30,40);
@@ -128,11 +128,11 @@ const fire=runtime.beginOuroborosFire(a.id);
 assert.equal(fire.ok,true);
 assert(events(fire.sim,'core-activate').some(event=>event.coreId==='core-test'),'game orchestration must map a physical Core connection into engine Signal activation');
 assert.deepEqual(fire.signalRuntime.activatedCoreIds,['core-test']);
-assert.equal(fire.signalRuntime.remaining,10);
+assert.equal(fire.signalRuntime.remaining,6);
 const fireResult=runtime.finishPlacement(fire);assert.equal(fireResult.ok,true);
 assert.equal(runtime.snapshot().signal.last.interaction,'runtime');
 assert.deepEqual(runtime.snapshot().signal.last.activatedCoreIds,['core-test']);
-assert.match(runtime.debugText(),/Signal: 10\/10/);
+assert.match(runtime.debugText(),/Signal: 6\/6/);
 assert.match(runtime.debugText(),/cores=core-test/);
 
 const saved=first.exportState(),restored=G.createGame(E,{seed:1,GAME_MODE:'classic'});

@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.53.5',
+    VERSION:'0.53.6',
     ENGINE_VERSION:'0.20.0-core-abilities-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -25,7 +25,7 @@
     MAX_SET_GENERATION:3,
     CORE_SIGNAL_BASE:24,
     CORE_SIGNAL_MAX:24,
-    CORE_SIGNAL_BY_MODE:Object.freeze({eyes:10,frames:8}),
+    CORE_SIGNAL_BY_MODE:Object.freeze({eyes:6,frames:4}),
     CORE_SIGNAL_ENABLED:true,
     CORE_SIGNAL_SHADOW:false,
     CORE_SIGNAL_LEVEL_STEP:4,
