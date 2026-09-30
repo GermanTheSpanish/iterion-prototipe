@@ -743,9 +743,15 @@ function createGame(E,opts={}){
     return{ok:true,mod,tileId,targetTileId,delivery,topologyLosses:deepClone(option.topologyLosses||[]),destroyed:deepClone(destroyed),autoRerolls:continuation.autoRerolls||0}
   }
 
+  function coreSignalBudgetForMode(mode=s.gameMode){
+    const id=canonicalGameMode(mode),mapped=Number(cfg.CORE_SIGNAL_BY_MODE?.[id]),hasMapped=Number.isFinite(mapped)&&mapped>0;
+    const base=Math.max(1,hasMapped?mapped:Number(cfg.CORE_SIGNAL_BASE)||24),max=Math.max(base,hasMapped?mapped:Number(cfg.CORE_SIGNAL_MAX)||base);
+    return{base,max}
+  }
+
   function signalOptionsForPieces(pieces,trigger){
     const doubleDoublePieceId=pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,doubleEchoPieceId=pieces.find(x=>x.tile.id===s.doubleEchoTileId)?.id||null,tripleDoublePieceId=pieces.find(x=>x.tile.id===s.tripleDoubleTileId)?.id||null,diodePieceId=pieces.find(x=>x.tile.id===s.diodeTileId)?.id||null,returnPieceId=pieces.find(x=>x.tile.id===s.returnTileId)?.id||null,mergePieceId=pieces.find(x=>x.tile.id===s.mergeTileId)?.id||null,hinge=hingeOptionForPieces(pieces);
-    const signalEnabled=coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,signalCoreIdsByPiece=new Map(),signalCoreById=new Map();
+    const signalEnabled=coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,signalBudget=coreSignalBudgetForMode(),signalCoreIdsByPiece=new Map(),signalCoreById=new Map();
     if(signalEnabled){
       const coreTelemetry=coreShadowTelemetry(pieces);
       for(const core of coreTelemetry.cores||[]){
@@ -753,7 +759,7 @@ function createGame(E,opts={}){
         for(const link of core.connectedLinks||[]){const pieceId=link.pieceId;if(pieceId==null)continue;if(!signalCoreIdsByPiece.has(pieceId))signalCoreIdsByPiece.set(pieceId,[]);const ids=signalCoreIdsByPiece.get(pieceId);if(!ids.includes(core.id))ids.push(core.id)}
       }
     }
-    return{initialOutput:trigger,initialOutputExact:SCORE.exact(trigger),doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED,signalEnabled,signalBase:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),signalMax:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),signalCoreIdsByPiece,signalCoreById,coreLevelStep:Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4),reservoirBonus:Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8)}
+    return{initialOutput:trigger,initialOutputExact:SCORE.exact(trigger),doubleDoublePieceId,doubleEchoPieceId,tripleDoublePieceId,diodePieceId,diodeInHalf:Number.isInteger(s.diodeInHalf)?s.diodeInHalf:null,returnPieceId,mergePieceId,hingePieceId:hinge?.pieceId||null,hingePivotPieceId:hinge?.pivotPieceId||null,hingeTargetPlacement:hinge?.targetPlacement||null,hingeBlockedReason:hinge?.blockedReason||null,zeroPortPieceIds:zeroPortPieceIds(pieces),modIdsByPiece:pieceModifierMap(pieces),cornerMultiplier:cfg.CORNER_MOD_MULTIPLIER||3,longLineThreshold:cfg.LONG_LINE_THRESHOLD||3,longLineHighThreshold:cfg.LONG_LINE_HIGH_THRESHOLD||5,longLineMultiplier:cfg.LONG_LINE_MULTIPLIER||2,longLineHighMultiplier:cfg.LONG_LINE_HIGH_MULTIPLIER||3,overloadMaxMultiplier:cfg.OVERLOAD_MAX_MULTIPLIER||4,terminalMultiplier:cfg.TERMINAL_MOD_MULTIPLIER||3,pairMultiplier:cfg.PAIR_MOD_MULTIPLIER||3,bridgeMultiplier:cfg.BRIDGE_MOD_MULTIPLIER||3,frameMultiplier:cfg.FRAME_MOD_MULTIPLIER||2,frontierMultiplier:cfg.FRONTIER_MOD_MULTIPLIER||2,circuitRankByPiece:new Map(pieces.map(q=>[q.id,Math.max(0,Number(s.circuitRanks?.[q.tile.id])||0)])),economyCoins:s.coins,bankLowCoins:cfg.BANK_LOW_COINS||10,bankHighCoins:cfg.BANK_HIGH_COINS||20,bankLowMultiplier:cfg.BANK_LOW_MOD_MULTIPLIER||2,bankHighMultiplier:cfg.BANK_HIGH_MOD_MULTIPLIER||3,spendCoinThreshold:cfg.SPEND_COIN_THRESHOLD||5,spendMultiplier:cfg.SPEND_MOD_MULTIPLIER||3,tollArmed:!!s.tollArmed,tollCoins:cfg.TOLL_COINS||1,knotCycleCountByPiece:knotCycleCountByPiece(E,pieces),knotMultiplier:cfg.KNOT_MOD_MULTIPLIER||4,bifurcate:cfg.BIFURCATION_ENABLED,signalEnabled,signalBase:signalBudget.base,signalMax:signalBudget.max,signalCoreIdsByPiece,signalCoreById,coreLevelStep:Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4),reservoirBonus:Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8)}
   }
 
   function topologyTelemetry(pieces=s.pieces){
@@ -777,7 +783,7 @@ function createGame(E,opts={}){
   }
 
   function signalShadowTelemetry(sim){
-    const base=Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max=Math.max(base,Number(cfg.CORE_SIGNAL_MAX)||base),enabled=coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,events=sim?.events||[];
+    const budget=coreSignalBudgetForMode(),base=budget.base,max=budget.max,enabled=coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,events=sim?.events||[];
     const ops=events.filter(e=>e.type==='op'&&!e.tollRepeat),activations=events.filter(e=>e.type==='core-activate').map(e=>({coreId:e.coreId,pieceId:e.piece,order:e.order,role:e.role||null,lead:!!e.lead,last:!!e.last,archetype:e.archetype||null,level:Math.max(1,Number(e.level)||1),abilityApplied:e.abilityApplied||null,beforeSignal:e.beforeSignal,afterSignal:e.afterSignal}));
     const depleted=events.find(e=>e.type==='signal-depleted')||null,remaining=Number.isFinite(sim?.signalRuntime?.remaining)?sim.signalRuntime.remaining:(ops.length&&Number.isFinite(ops.at(-1)?.signalAfter)?ops.at(-1).signalAfter:base);
     const levels=[base,...ops.map(e=>e.signalAfter).filter(Number.isFinite),...activations.flatMap(e=>[e.beforeSignal,e.afterSignal]).filter(Number.isFinite),depleted?.remaining].filter(Number.isFinite);
@@ -1370,7 +1376,7 @@ function createGame(E,opts={}){
       circuits:{ranks:{...s.circuitRanks},signatures:[...s.circuitSignatures],pending:deepClone(s.pendingCircuit),tileLimit:circuitTileLimit()},
       cores:{mode:coreGameMode(s.gameMode)?s.gameMode:'none',interaction:coreGameMode(s.gameMode)?'physical':'none',items:deepClone(s.cores||[]),telemetry:deepClone(coreShadow),progressMilestones:[...(s.coreProgressMilestones||[])],maxPhysical:s.gameMode==='frames'?2:Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4),maxLevel:Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5)},
       modeGeometry:{mode:s.gameMode,voids:deepClone(s.voids||[]),items:deepClone(modeGeometryItems()),visibleIds:modeGeometryItems().filter(item=>geometryItemVisible(item,bs)).map(item=>item.id)},
-      signal:{enabled:coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,shadowEnabled:false,interaction:coreGameMode(s.gameMode)?'runtime':'off',base:Math.max(1,Number(cfg.CORE_SIGNAL_BASE)||24),max:Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24),last:deepClone(lastSignal)},
+      signal:{enabled:coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,shadowEnabled:false,interaction:coreGameMode(s.gameMode)?'runtime':'off',base:coreSignalBudgetForMode().base,max:coreSignalBudgetForMode().max,last:deepClone(lastSignal)},
       powerSets:{generation:s.setGeneration||1,powerMultiplier:generationPower(s.setGeneration||1),maxGeneration:maxSetGeneration()},
       schema:'iterion.run.v9',gameVersion:cfg.VERSION,engineVersion:cfg.ENGINE_VERSION,gameMode:s.gameMode||'classic',runId:s.runId,seed:s.seed,startedAt:s.startedAt,savedAt:new Date().toISOString(),
       status:status(),failureReason:s.failureReason,recovery:recoveryOptions(),
