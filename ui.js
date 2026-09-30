@@ -268,7 +268,7 @@
     }
     for(const junction of junctions){const ring=document.createElementNS(ROUTE_SVG_NS,'circle');ring.setAttribute('cx',junction.point.x);ring.setAttribute('cy',junction.point.y);ring.setAttribute('r','.34');ring.setAttribute('class','routePreviewJunctionRing');svg.appendChild(ring)}
     if(mode!=='full')return;
-    const startEvent=events.find(event=>event.type==='start'),startPoint=startEvent?point(candidatePiece.id,startEvent.fromHalf):routePreviewPieceCenter(candidatePiece);appendRoutePreviewMarker(startPoint,'START','routePreviewEndpoint routePreviewStart');
+    const candidateCenter=routePreviewPieceCenter(candidatePiece),startBelow=candidatePiece.rect.miny<1.5,startPoint=candidateCenter?{x:candidateCenter.x,y:startBelow?candidatePiece.rect.maxy:candidatePiece.rect.miny}:null;appendRoutePreviewMarker(startPoint,'START',`routePreviewEndpoint routePreviewStart${startBelow?' routePreviewStartBelow':''}`);
     const ends=[];let lastOpPoint=null;
     for(const event of events){if(event.type==='signal-start'){lastOpPoint=null;continue}if(event.type==='op'){lastOpPoint=point(event.piece,event.exitHalf);continue}if(event.type==='signal-end'&&lastOpPoint){ends.push(lastOpPoint);lastOpPoint=null}}
     if(!ends.length&&lastOpPoint)ends.push(lastOpPoint);const endKeys=new Set();for(const end of ends){const key=`${end.x}:${end.y}`;if(endKeys.has(key))continue;endKeys.add(key);appendRoutePreviewMarker(end,'END','routePreviewEndpoint routePreviewEnd')}
