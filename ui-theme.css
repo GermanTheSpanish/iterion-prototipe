@@ -64,7 +64,7 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 .board.routePreviewActive .piece.routePreviewDim,.board.routePreviewActive .coreNode.routePreviewDim{opacity:.24!important;filter:saturate(.25);transition:opacity .12s ease,filter .12s ease}
 .board.routePreviewActive .piece.routePreviewActiveTile{opacity:1;filter:none}
 .routePreviewEndpoint{position:absolute;z-index:22;display:grid;place-items:center;min-width:30px;height:16px;padding:0 5px;border:1px solid rgba(255,255,252,.95);border-radius:9px;background:var(--signal-route);color:#071416;box-shadow:0 0 0 1px rgba(7,20,22,.28);font-style:normal;font-size:7px;font-weight:850;line-height:1;letter-spacing:.08em;pointer-events:none;transform:translate(-50%,-50%)}
-.routePreviewStart{transform:translate(-50%,-135%)}.routePreviewEnd{transform:translate(-50%,35%)}
+.routePreviewStart{transform:translate(-50%,-135%)}.routePreviewStart.routePreviewStartBelow{transform:translate(-50%,35%)}.routePreviewEnd{transform:translate(-50%,35%)}
 .routePreviewRule{position:absolute;z-index:21;width:120px;padding:4px 5px;border:0;border-left:2px solid var(--signal-route);background:rgba(255,255,252,.9);color:#151515;pointer-events:none;text-align:left}
 .routePreviewRuleRight{transform:translate(12px,-50%)}.routePreviewRuleLeft{transform:translate(calc(-100% - 12px),-50%)}
 .routePreviewRule strong{display:block;color:#00677c;font-size:7px;line-height:1;letter-spacing:.13em}.routePreviewRule span{display:block;margin-top:2px;font-size:7.5px;font-weight:750;line-height:1.22;letter-spacing:.01em}
