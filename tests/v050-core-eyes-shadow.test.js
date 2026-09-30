@@ -41,8 +41,8 @@ assert.equal(southCenter-northCenter,8,'The Eyes pips should remain reachable wi
 assert.equal(first.snapshot().cores.interaction,'physical');
 assert.equal(first.snapshot().signal.enabled,true);
 assert.equal(first.snapshot().signal.interaction,'runtime');
-assert.equal(first.snapshot().signal.base,10);
-assert.equal(first.snapshot().signal.max,10);
+assert.equal(first.snapshot().signal.base,6);
+assert.equal(first.snapshot().signal.max,6);
 assert.equal(first.snapshot().signal.shadowEnabled,false);
 
 E.setBoardSize(30,40);
