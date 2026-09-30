@@ -32,11 +32,31 @@ for(const half of ['north','south']){
   assert(core&&voidItem);
   assert.notEqual(core.pip,voidItem.pip,'each 2 pip half must contain exactly one Core and one Void');
   const a=centres(core),b=centres(voidItem),dx=Math.abs(a.x-b.x)/E.S,dy=Math.abs(a.y-b.y)/E.S,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2},eye=centres(eyesState.cores.find(item=>item.slot===half));
-  assert.equal(dx,2,'2|2 pip spacing inherits the opening 1|1 imaginary-domino scale');
-  assert.equal(dy,2,'2|2 pip spacing inherits the opening 1|1 imaginary-domino scale');
+  assert.equal(dx,3,'2|2 pip span leaves one full domino length between 2x2 pip footprints');
+  assert.equal(dy,3,'2|2 pip span leaves one full domino length between 2x2 pip footprints');
   assert.deepEqual(mid,eye,`the ${half} 2|2 half stays centred on the matching 1|1 pip`);
 }
 const initialItems=[...s.cores,...s.voids],initialVisible=initialItems.filter(item=>visible(item));
+assert.deepEqual(eyesState.cores.map(({slot,x,y,size})=>({slot,x,y,size})),[
+  {slot:'north',x:8,y:7,size:2},
+  {slot:'south',x:8,y:15,size:2}
+],'The Eyes opening geometry is frozen while Frames changes around it');
+assert.deepEqual(initialItems.map(({half,pip,x,y,size})=>({half,pip,x,y,size})).sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip),[
+  {half:'north',pip:0,x:5,y:4,size:2},
+  {half:'north',pip:1,x:11,y:10,size:2},
+  {half:'south',pip:0,x:5,y:12,size:2},
+  {half:'south',pip:1,x:11,y:18,size:2}
+],'Frames uses the canonical 6-unit corner-to-corner pip span');
+const approachDominoes=item=>[
+  E.pieceFrom({a:1,b:1},item.x,item.y-E.S,0,3,-1),
+  E.pieceFrom({a:1,b:1},item.x+item.size,item.y,0,0,-1),
+  E.pieceFrom({a:1,b:1},item.x,item.y+item.size,0,1,-1),
+  E.pieceFrom({a:1,b:1},item.x-E.S,item.y,0,2,-1)
+];
+for(const item of initialItems)for(const piece of approachDominoes(item)){
+  assert(piece.rect.minx>=0&&piece.rect.miny>=0&&piece.rect.maxx<=18&&piece.rect.maxy<=24,'every Frames pip site keeps a full-domino approach inside the opening board');
+  assert.equal(initialItems.some(other=>overlap(piece,other)),false,'every Frames pip site keeps its four cardinal approach corridors free');
+}
 assert.equal(initialVisible.length,4,'opening board exposes the full 2|2 macrogeometry');
 for(const half of ['north','south'])assert.equal(initialVisible.filter(item=>item.half===half).length,2,'each opening half shows both pips');
 
