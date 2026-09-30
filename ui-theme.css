@@ -1,5 +1,5 @@
 /* Presentation layer: layout, type and feedback. Physical board geometry stays in engine.js. */
-:root{--bg:#f7f7f4;--paper:#fff;--ink:#151515;--muted:#61615b;--line:#d6d6cf;--shadow:none}
+:root{--bg:#f7f7f4;--paper:#fff;--ink:#151515;--muted:#61615b;--line:#d6d6cf;--shadow:none;--signal-route:#00a6c7}
 button{font-family:inherit;cursor:pointer;touch-action:manipulation}
 button:disabled{cursor:default}
 button:focus-visible{outline:2px solid #151515;outline-offset:3px}
@@ -53,15 +53,23 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 .dragFloat{filter:none}
 .dragCandidate{box-shadow:none;transform:none}
 .routePreviewSvg{position:absolute;inset:0;width:100%;height:100%;z-index:16;overflow:visible;pointer-events:none}
-.routePreviewHalo,.routePreviewLine{fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
-.routePreviewHalo{stroke:rgba(255,255,252,.94);stroke-width:5px}
-.routePreviewLine{stroke:#151515;stroke-width:1.8px}
+.routePreviewHalo,.routePreviewLine,.routePreviewPulse{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.routePreviewHalo{stroke:rgba(255,255,252,.9);stroke-width:6px}
+.routePreviewLine{stroke:var(--signal-route);stroke-width:2.35px;opacity:.55}
+.routePreviewPulse{stroke:var(--signal-route);stroke-width:3.4px;stroke-dasharray:1.2 9.8;stroke-dashoffset:12;animation:routePreviewFlow .78s linear infinite}
 .routePreviewHalo.teleport,.routePreviewLine.teleport{stroke-dasharray:5 4}
-.routePreviewLine.retrace{opacity:.72}
-.routePreviewArrowHead{fill:#151515;stroke:rgba(255,255,252,.94);stroke-width:.8px}
-.routePreviewCoach{position:absolute;left:50%;bottom:8px;z-index:18;width:min(88%,310px);transform:translateX(-50%);padding:7px 9px;border:1px solid rgba(21,21,21,.2);background:rgba(255,255,252,.94);color:#151515;pointer-events:none;text-align:left;box-shadow:0 1px 4px rgba(21,21,21,.08)}
-.routePreviewCoach strong{display:block;font-size:8px;line-height:1.1;letter-spacing:.14em}
-.routePreviewCoach span{display:block;margin-top:3px;font-size:10px;line-height:1.25;color:#4d4d48}
+.routePreviewPulse.teleport{stroke-dasharray:1.2 7.8}
+.routePreviewLine.retrace{opacity:.38}.routePreviewPulse.retrace{opacity:.78}
+.routePreviewJunctionRing{fill:rgba(255,255,252,.88);stroke:var(--signal-route);stroke-width:2.5px;vector-effect:non-scaling-stroke}
+.board.routePreviewActive .piece.routePreviewDim,.board.routePreviewActive .coreNode.routePreviewDim{opacity:.24!important;filter:saturate(.25);transition:opacity .12s ease,filter .12s ease}
+.board.routePreviewActive .piece.routePreviewActiveTile{opacity:1;filter:none}
+.routePreviewEndpoint{position:absolute;z-index:22;display:grid;place-items:center;min-width:30px;height:16px;padding:0 5px;border:1px solid rgba(255,255,252,.95);border-radius:9px;background:var(--signal-route);color:#071416;box-shadow:0 0 0 1px rgba(7,20,22,.28);font-style:normal;font-size:7px;font-weight:850;line-height:1;letter-spacing:.08em;pointer-events:none;transform:translate(-50%,-50%)}
+.routePreviewStart{transform:translate(-50%,-135%)}.routePreviewStart.routePreviewStartBelow{transform:translate(-50%,35%)}.routePreviewEnd{transform:translate(-50%,35%)}
+.routePreviewRule{position:absolute;z-index:21;width:120px;padding:4px 5px;border:0;border-left:2px solid var(--signal-route);background:rgba(255,255,252,.9);color:#151515;pointer-events:none;text-align:left}
+.routePreviewRuleRight{transform:translate(12px,-50%)}.routePreviewRuleLeft{transform:translate(calc(-100% - 12px),-50%)}
+.routePreviewRule strong{display:block;color:#00677c;font-size:7px;line-height:1;letter-spacing:.13em}.routePreviewRule span{display:block;margin-top:2px;font-size:7.5px;font-weight:750;line-height:1.22;letter-spacing:.01em}
+@keyframes routePreviewFlow{from{stroke-dashoffset:12}to{stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){.routePreviewPulse{animation:none;stroke-dasharray:none;opacity:.92}.board.routePreviewActive .piece.routePreviewDim,.board.routePreviewActive .coreNode.routePreviewDim{transition:none}}
 .bottomBar{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-height:0}
 .hint{font-size:12px;line-height:1.4;min-height:34px;margin:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted)}
 .railActions{grid-template-columns:1fr 1.2fr 1fr 1.15fr;gap:6px}
