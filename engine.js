@@ -331,7 +331,7 @@
         n.events.push({type:'route',piece:s.current.pieceId,entryHalf:1-exitHalf,exitHalf,toPieceId:c.toPieceId,toHalf:c.toHalf,fromSide:c.fromSide,toSide:c.toSide,key:c.choiceKey});
         const r=walk(n);explored.push({connection:c,result:r});if(better(r,selected)){selected=r;selectedConnection=c}
       }
-      if(selected&&selectedConnection&&explored.length>1){
+      if(selected&&selectedConnection&&explored.length>1&&explored.length===conns.length){
         let runnerUp=null;
         for(const item of explored)if(item.connection!==selectedConnection&&(!runnerUp||better(item.result,runnerUp.result)))runnerUp=item;
         const reason=routeChoiceReason(selected,runnerUp?.result);
