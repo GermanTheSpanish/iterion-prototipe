@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
     VERSION:'0.54.0',
-    ENGINE_VERSION:'0.20.0-core-abilities-v1',
+    ENGINE_VERSION:'0.20.1-core-abilities-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
       20,100,500,2500,10000,
