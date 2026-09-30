@@ -23,8 +23,8 @@
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite → Ouroboros',available:true,kind:'classic'}),
-    Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · Signal 10',available:true,kind:'eyes'}),
-    Object.freeze({id:'frames',name:'THE FRAMES',description:'2|2 · Signal 8',available:true,kind:'frames'}),
+    Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · Signal 6',available:true,kind:'eyes'}),
+    Object.freeze({id:'frames',name:'THE FRAMES',description:'2|2 · Signal 4',available:true,kind:'frames'}),
     ...Array.from({length:5},(_,i)=>Object.freeze({id:`locked-${i+3}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
