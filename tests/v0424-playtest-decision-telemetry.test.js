@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const D=require('../data.js'),E=require('../engine.js'),G=require('../game.js');
 const routeSignature=sim=>({
   segments:(sim?.segments||[]).map(segment=>({piece:segment.piece,from:segment.from,to:segment.to,reverse:!!segment.reverse,entryHalf:segment.entryHalf,exitHalf:segment.exitHalf})),
-  transitions:(sim?.events||[]).filter(event=>['start','route','move','zero-port','core-relay','hinge-move'].includes(event.type)).map(event=>({type:event.type,piece:event.piece,fromHalf:event.fromHalf,exitHalf:event.exitHalf,toPieceId:event.toPieceId,toHalf:event.toHalf,fromPiece:event.fromPiece,toPiece:event.toPiece,reverse:!!event.reverse,retrace:!!event.retrace,to:event.to}))
+  transitions:(sim?.events||[]).filter(event=>['start','route','move','zero-port','core-relay','hinge-move'].includes(event.type)).map(event=>({type:event.type,piece:event.piece,fromHalf:event.fromHalf,exitHalf:event.exitHalf,toPieceId:event.toPieceId,toHalf:event.toHalf,fromPiece:event.fromPiece,toPiece:event.toPiece,reverse:!!event.reverse,retrace:!!event.retrace,to:event.to,choiceReason:event.choiceReason||null,choiceCount:event.choiceCount||null,choiceDirection:event.choiceDirection||null}))
 });
 
 E.setBoardSize(30,40);
