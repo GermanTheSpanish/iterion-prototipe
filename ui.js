@@ -31,7 +31,7 @@
   function syncRoutePreviewSetting(){
     if(!routePreviewSetting)return;const explicit=explicitRoutePreviewMode(),mode=routePreviewMode();
     routePreviewSetting.querySelectorAll('[data-route-preview]').forEach(button=>button.setAttribute('aria-pressed',button.dataset.routePreview===mode?'true':'false'));
-    if(routePreviewHelp)routePreviewHelp.textContent=!explicit?'Automatic · Full for Classic Rounds 1–3, then Preview.':mode==='full'?'Shows the route plus a short routing hint before placement.':mode==='preview'?'Shows the route before placement without coaching.':'No route assistance.'
+    if(routePreviewHelp)routePreviewHelp.textContent=!explicit?'Automatic · Full for Classic Rounds 1–3, then Preview.':mode==='full'?'Highlights route, endpoints and junction rules before placement.':mode==='preview'?'Highlights the route before placement without coaching.':'No route assistance.'
   }
   function setRoutePreviewMode(mode){
     if(!ROUTE_PREVIEW_MODES.has(mode))return false;try{localStorage.setItem(ROUTE_PREVIEW_KEY,mode)}catch(_){}
@@ -231,20 +231,23 @@
   function routePreviewPoint(piece,half){
     const cube=piece?.cubes?.find(item=>item.half===half);return cube?E.cubeCenter(cube):null
   }
+  function routePreviewPieceCenter(piece){return piece?{x:(piece.rect.minx+piece.rect.maxx)/2,y:(piece.rect.miny+piece.rect.maxy)/2}:null}
   function appendRoutePreviewLine(svg,from,to,kind='physical'){
     if(!from||!to||![from.x,from.y,to.x,to.y].every(Number.isFinite))return;
-    const attrs={x1:from.x,y1:from.y,x2:to.x,y2:to.y},halo=document.createElementNS(ROUTE_SVG_NS,'line'),line=document.createElementNS(ROUTE_SVG_NS,'line');
-    for(const [name,value] of Object.entries(attrs)){halo.setAttribute(name,value);line.setAttribute(name,value)}
-    halo.setAttribute('class',`routePreviewHalo ${kind}`);line.setAttribute('class',`routePreviewLine ${kind}`);line.setAttribute('marker-end','url(#routePreviewArrow)');svg.append(halo,line)
+    const attrs={x1:from.x,y1:from.y,x2:to.x,y2:to.y},halo=document.createElementNS(ROUTE_SVG_NS,'line'),line=document.createElementNS(ROUTE_SVG_NS,'line'),pulse=document.createElementNS(ROUTE_SVG_NS,'line');
+    for(const [name,value] of Object.entries(attrs)){halo.setAttribute(name,value);line.setAttribute(name,value);pulse.setAttribute(name,value)}
+    halo.setAttribute('class',`routePreviewHalo ${kind}`);line.setAttribute('class',`routePreviewLine ${kind}`);pulse.setAttribute('class',`routePreviewPulse ${kind}`);svg.append(halo,line,pulse)
+  }
+  function appendRoutePreviewMarker(point,label,className){
+    if(!point)return null;const marker=document.createElement('i');marker.className=className;marker.textContent=label;marker.setAttribute('aria-hidden','true');marker.style.left=px(point.x);marker.style.top=py(point.y);board.appendChild(marker);return marker
   }
   function renderRoutePreview(candidatePiece){
     const mode=routePreviewMode(),preview=drag.preview;if(mode==='off'||drag.kind!=='hand'||!preview?.ok||!candidatePiece)return;
-    const sim=preview.sim,segments=sim?.segments||[];if(!segments.length)return;
+    const sim=preview.sim,segments=sim?.segments||[],events=sim?.events||[];if(!segments.length)return;
+    const live=new Map([...GAME.state().pieces,candidatePiece].map(piece=>[piece.id,piece])),pieces=()=>[...live.values()],point=(pieceId,half)=>routePreviewPoint(live.get(pieceId),half);
     const svg=document.createElementNS(ROUTE_SVG_NS,'svg');svg.classList.add('routePreviewSvg');svg.dataset.previewMode=mode;svg.setAttribute('viewBox',`0 0 ${E.G} ${E.H}`);svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
-    const defs=document.createElementNS(ROUTE_SVG_NS,'defs'),marker=document.createElementNS(ROUTE_SVG_NS,'marker'),arrow=document.createElementNS(ROUTE_SVG_NS,'path');marker.id='routePreviewArrow';marker.setAttribute('viewBox','0 0 6 6');marker.setAttribute('refX','5.1');marker.setAttribute('refY','3');marker.setAttribute('markerWidth','4.5');marker.setAttribute('markerHeight','4.5');marker.setAttribute('orient','auto');arrow.setAttribute('d','M0 0 L6 3 L0 6 Z');arrow.setAttribute('class','routePreviewArrowHead');marker.appendChild(arrow);defs.appendChild(marker);svg.appendChild(defs);
-    const live=new Map([...GAME.state().pieces,candidatePiece].map(piece=>[piece.id,piece])),point=(pieceId,half)=>routePreviewPoint(live.get(pieceId),half);
     for(const segment of segments)appendRoutePreviewLine(svg,segment.from,segment.to,segment.reverse?'retrace':'physical');
-    for(const event of sim.events||[]){
+    for(const event of events){
       if(event.type==='hinge-move'&&event.to){const current=live.get(event.piece);if(current){const moved=E.pieceFrom(current.tile,event.to.x,event.to.y,event.to.z||0,event.to.rr,current.id);moved.tile={...current.tile};live.set(current.id,moved)}continue}
       if(event.type==='start'){appendRoutePreviewLine(svg,point(candidatePiece.id,event.fromHalf),point(event.toPieceId,event.toHalf),'connector');continue}
       if(event.type==='route'){appendRoutePreviewLine(svg,point(event.piece,event.exitHalf),point(event.toPieceId,event.toHalf),'connector');continue}
@@ -252,8 +255,24 @@
       if(event.type==='core-relay'){appendRoutePreviewLine(svg,point(event.fromPieceId,event.fromHalf),point(event.toPieceId,event.toHalf),'teleport');continue}
       if(event.type==='zero-port'){const destination=live.get(event.toPieceId),zero=destination?.cubes?.find(cube=>cube.v===0);appendRoutePreviewLine(svg,point(event.piece,event.fromHalf),zero?E.cubeCenter(zero):null,'teleport')}
     }
-    if(!svg.querySelector('.routePreviewLine'))return;board.appendChild(svg);
-    if(mode==='full'){const coach=document.createElement('div');coach.className='routePreviewCoach';coach.setAttribute('role','status');coach.innerHTML='<strong>SIGNAL PREVIEW</strong><span>MONOID follows the route that travels furthest through the machine; ties prefer the stronger result.</span>';board.appendChild(coach)}
+    if(!svg.querySelector('.routePreviewLine'))return;board.appendChild(svg);board.classList.add('routePreviewActive');
+    const routeTileIds=new Set([String(candidatePiece.tile.id)]);
+    for(const segment of segments){const piece=live.get(segment.piece);if(piece?.tile?.id!=null)routeTileIds.add(String(piece.tile.id))}
+    board.querySelectorAll('.piece[data-tile-id]').forEach(el=>{const active=routeTileIds.has(String(el.dataset.tileId));el.classList.toggle('routePreviewActiveTile',active);el.classList.toggle('routePreviewDim',!active)});
+    const activeCoreIds=new Set(events.filter(event=>event.type==='core-activate'&&event.coreId!=null).map(event=>String(event.coreId)));
+    board.querySelectorAll('.coreNode[data-core-id]').forEach(el=>el.classList.toggle('routePreviewDim',activeCoreIds.size>0&&!activeCoreIds.has(String(el.dataset.coreId))));
+    const junctions=[],seenJunctions=new Set(),routeEvents=events.filter(event=>event.type==='route');
+    for(const segment of segments){
+      if(seenJunctions.has(segment.piece))continue;const piece=live.get(segment.piece),facts=E.modGeometryFacts?.(piece,pieces());if(!piece||!facts||facts.connectionCount<=2)continue;
+      seenJunctions.add(segment.piece);const route=routeEvents.find(event=>event.piece===segment.piece),junctionPoint=route?point(segment.piece,route.exitHalf):routePreviewPieceCenter(piece);if(junctionPoint)junctions.push({pieceId:segment.piece,point:junctionPoint})
+    }
+    for(const junction of junctions){const ring=document.createElementNS(ROUTE_SVG_NS,'circle');ring.setAttribute('cx',junction.point.x);ring.setAttribute('cy',junction.point.y);ring.setAttribute('r','.34');ring.setAttribute('class','routePreviewJunctionRing');svg.appendChild(ring)}
+    if(mode!=='full')return;
+    const startEvent=events.find(event=>event.type==='start'),startPoint=startEvent?point(candidatePiece.id,startEvent.fromHalf):routePreviewPieceCenter(candidatePiece);appendRoutePreviewMarker(startPoint,'START','routePreviewEndpoint routePreviewStart');
+    const ends=[];let lastOpPoint=null;
+    for(const event of events){if(event.type==='signal-start'){lastOpPoint=null;continue}if(event.type==='op'){lastOpPoint=point(event.piece,event.exitHalf);continue}if(event.type==='signal-end'&&lastOpPoint){ends.push(lastOpPoint);lastOpPoint=null}}
+    if(!ends.length&&lastOpPoint)ends.push(lastOpPoint);const endKeys=new Set();for(const end of ends){const key=`${end.x}:${end.y}`;if(endKeys.has(key))continue;endKeys.add(key);appendRoutePreviewMarker(end,'END','routePreviewEndpoint routePreviewEnd')}
+    if(junctions.length){const junction=junctions[0],rule=document.createElement('div');rule.className='routePreviewRule';rule.setAttribute('role','status');rule.style.setProperty('--route-x',px(junction.point.x));rule.style.setProperty('--route-y',py(junction.point.y));rule.innerHTML='<strong>JUNCTION</strong><span>MORE TILE PASSES · TIE → HIGHER OUTPUT</span>';board.appendChild(rule)}
   }
 
   function beginTilePress(e,meta){
@@ -261,7 +280,7 @@
     e.preventDefault();press.begin(e,meta)
   }
   function renderBoard(){
-    const s=GAME.state();board.innerHTML='';board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();syncFramesRevealFx(s);
+    const s=GAME.state();board.innerHTML='';board.classList.remove('routePreviewActive');board.style.setProperty('--cell-x',`${100/E.G}%`);board.style.setProperty('--cell-y',`${100/E.H}%`);board.style.backgroundImage='none';board.style.backgroundColor='';addBoardCenterTicks();syncFramesRevealFx(s);
     for(const voidItem of s.voids||[]){if(!modeGeometryVisible(voidItem))continue;const hole=document.createElement('div');hole.className='boardVoid';hole.dataset.voidId=voidItem.id;hole.dataset.half=voidItem.half||'';hole.setAttribute('aria-hidden','true');Object.assign(hole.style,{left:px(voidItem.x),top:py(voidItem.y),width:px(voidItem.size||E.S),height:py(voidItem.size||E.S)});board.appendChild(hole)}
     const coreTelemetry=GAME.coreShadowTelemetry?GAME.coreShadowTelemetry():null,coreTelemetryById=new Map((coreTelemetry?.cores||[]).map(core=>[core.id,core])),lastCoreSignal=[...(s.events||[])].reverse().find(event=>event?.signal?.activations?.length)?.signal||null,lastCoreRoles=new Map((lastCoreSignal?.activations||[]).map(activation=>[activation.coreId,activation.role])),coreIntroduced=(s.events||[]).some(event=>(event?.coreActivations||event?.signal?.activations||[]).length);
     for(const core of s.cores||[]){
