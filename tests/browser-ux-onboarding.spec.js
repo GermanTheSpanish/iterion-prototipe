@@ -70,7 +70,7 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await enterSelection(page);await page.evaluate(()=>window.__monoidModes.select(1));await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE EYES');
-  await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 10.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 6.');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Cores refill it.');
   const before=await page.evaluate(()=>window.__monoidGame.exportState());
   await page.locator('[data-ux-action="start-mode"]').click();
@@ -104,7 +104,7 @@ test('The Frames refreshed intro reappears once without spoiling Core or Void co
   await enterSelection(page);await page.evaluate(()=>window.__monoidModes.select(2));await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE FRAMES');
-  await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 8.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 4.');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Cores refill it.');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Core');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Void');
