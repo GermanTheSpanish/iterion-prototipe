@@ -212,9 +212,10 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   expect(state.savedMode).toBe('frames');
   expect(state.cores).toHaveLength(2);
   expect(state.voids).toHaveLength(2);
-  expect(state.snapshot.modeGeometry.visibleIds).toHaveLength(4);\n  expect(state.snapshot.signal.base).toBe(8);\n  expect(state.snapshot.signal.max).toBe(8);
+  expect(state.snapshot.modeGeometry.visibleIds).toHaveLength(4);
   expect(state.snapshot.signal.enabled).toBe(true);
-  expect(state.snapshot.signal.base).toBe(24);
+  expect(state.snapshot.signal.base).toBe(8);
+  expect(state.snapshot.signal.max).toBe(8);
   const safety=await page.evaluate(()=>{
     const game=window.__monoidGame,E=window.IterionEngine,s=game.state(),items=[...s.cores,...s.voids];let checked=0,overlaps=0;
     const hit=(piece,item)=>piece.cubes.some(cube=>cube.x<item.x+item.size&&cube.x+E.S>item.x&&cube.y<item.y+item.size&&cube.y+E.S>item.y);
