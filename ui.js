@@ -31,7 +31,7 @@
   function syncRoutePreviewSetting(){
     if(!routePreviewSetting)return;const explicit=explicitRoutePreviewMode(),mode=routePreviewMode();
     routePreviewSetting.querySelectorAll('[data-route-preview]').forEach(button=>button.setAttribute('aria-pressed',button.dataset.routePreview===mode?'true':'false'));
-    if(routePreviewHelp)routePreviewHelp.textContent=!explicit?'Automatic · Full for Classic Rounds 1–3, then Preview.':mode==='full'?'Highlights route, endpoints and junction rules before placement.':mode==='preview'?'Highlights the route before placement without coaching.':'No route assistance.'
+    if(routePreviewHelp)routePreviewHelp.textContent=!explicit?'Automatic · Full for Classic Rounds 1–3, then Preview.':mode==='full'?'Shows route events and why a chosen exit wins.':mode==='preview'?'Shows the route and route events without choice coaching.':'No route assistance.'
   }
   function setRoutePreviewMode(mode){
     if(!ROUTE_PREVIEW_MODES.has(mode))return false;try{localStorage.setItem(ROUTE_PREVIEW_KEY,mode)}catch(_){}
@@ -227,52 +227,71 @@
     }
   }
 
-  const ROUTE_SVG_NS='http://www.w3.org/2000/svg';
+  const ROUTE_SVG_NS='http://www.w3.org/2000/svg',ROUTE_RETURN_OFFSET=.18;
+  const ROUTE_SIDE_ARROW={U:'↑',R:'→',D:'↓',L:'←'},ROUTE_REASON_LABEL={traversals:'MORE PASSES',output:'HIGHER OUTPUT',rebounds:'MORE REBOUNDS',path:'LONGER PATH',stable:'TIE · FIXED ROUTE'};
   function routePreviewPoint(piece,half){
     const cube=piece?.cubes?.find(item=>item.half===half);return cube?E.cubeCenter(cube):null
   }
   function routePreviewPieceCenter(piece){return piece?{x:(piece.rect.minx+piece.rect.maxx)/2,y:(piece.rect.miny+piece.rect.maxy)/2}:null}
+  function routePreviewOffset(from,to,amount){
+    const dx=to.x-from.x,dy=to.y-from.y,len=Math.hypot(dx,dy);if(!len||!amount)return{from,to};
+    const ox=-dy/len*amount,oy=dx/len*amount;return{from:{...from,x:from.x+ox,y:from.y+oy},to:{...to,x:to.x+ox,y:to.y+oy}}
+  }
   function appendRoutePreviewLine(svg,from,to,kind='physical'){
     if(!from||!to||![from.x,from.y,to.x,to.y].every(Number.isFinite))return;
-    const attrs={x1:from.x,y1:from.y,x2:to.x,y2:to.y},halo=document.createElementNS(ROUTE_SVG_NS,'line'),line=document.createElementNS(ROUTE_SVG_NS,'line'),pulse=document.createElementNS(ROUTE_SVG_NS,'line');
+    const shifted=kind==='retrace'?routePreviewOffset(from,to,ROUTE_RETURN_OFFSET):{from,to},attrs={x1:shifted.from.x,y1:shifted.from.y,x2:shifted.to.x,y2:shifted.to.y},halo=document.createElementNS(ROUTE_SVG_NS,'line'),line=document.createElementNS(ROUTE_SVG_NS,'line'),pulse=document.createElementNS(ROUTE_SVG_NS,'line');
     for(const [name,value] of Object.entries(attrs)){halo.setAttribute(name,value);line.setAttribute(name,value);pulse.setAttribute(name,value)}
     halo.setAttribute('class',`routePreviewHalo ${kind}`);line.setAttribute('class',`routePreviewLine ${kind}`);pulse.setAttribute('class',`routePreviewPulse ${kind}`);svg.append(halo,line,pulse)
   }
   function appendRoutePreviewMarker(point,label,className){
     if(!point)return null;const marker=document.createElement('i');marker.className=className;marker.textContent=label;marker.setAttribute('aria-hidden','true');marker.style.left=px(point.x);marker.style.top=py(point.y);board.appendChild(marker);return marker
   }
-  function renderRoutePreview(candidatePiece){
-    const mode=routePreviewMode(),preview=drag.preview;if(mode==='off'||drag.kind!=='hand'||!preview?.ok||!candidatePiece)return;
+  function appendRouteEventMarker(point,label,className,seen){
+    if(!point)return null;const key=`${label}:${point.x.toFixed(2)}:${point.y.toFixed(2)}`;if(seen.has(key))return null;seen.add(key);return appendRoutePreviewMarker(point,label,`routePreviewEvent ${className}`)
+  }
+  function routePreviewChoice(event,point){
+    const reason=ROUTE_REASON_LABEL[event.choiceReason];if(!point||!reason)return;
+    const side=point.x/E.G>.72?'Left':'Right',safeY=Math.max(1.5,Math.min(E.H-1.5,point.y)),rule=document.createElement('div'),arrow=ROUTE_SIDE_ARROW[event.choiceDirection||event.fromSide]||'';
+    rule.className=`routePreviewRule routePreviewRule${side}`;rule.setAttribute('role','status');rule.style.left=px(point.x);rule.style.top=py(safeY);rule.textContent=`${arrow} ${reason}`.trim();board.appendChild(rule)
+  }
+  function renderRoutePreview(sourcePiece,previewOverride=null,source='placement'){
+    const mode=routePreviewMode(),preview=previewOverride||drag.preview;if(mode==='off'||!preview?.ok||!sourcePiece||source==='placement'&&drag.kind!=='hand')return;
     const sim=preview.sim,segments=sim?.segments||[],events=sim?.events||[];if(!segments.length)return;
-    const live=new Map([...GAME.state().pieces,candidatePiece].map(piece=>[piece.id,piece])),point=(pieceId,half)=>routePreviewPoint(live.get(pieceId),half);
-    const svg=document.createElementNS(ROUTE_SVG_NS,'svg');svg.classList.add('routePreviewSvg');svg.dataset.previewMode=mode;svg.setAttribute('viewBox',`0 0 ${E.G} ${E.H}`);svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
+    const live=new Map([...GAME.state().pieces,sourcePiece].map(piece=>[piece.id,piece])),point=(pieceId,half)=>routePreviewPoint(live.get(pieceId),half);
+    const svg=document.createElementNS(ROUTE_SVG_NS,'svg');svg.classList.add('routePreviewSvg');svg.dataset.previewMode=mode;svg.dataset.previewSource=source;svg.setAttribute('viewBox',`0 0 ${E.G} ${E.H}`);svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
     for(const segment of segments)appendRoutePreviewLine(svg,segment.from,segment.to,segment.reverse?'retrace':'physical');
     for(const event of events){
       if(event.type==='hinge-move'&&event.to){const current=live.get(event.piece);if(current){const moved=E.pieceFrom(current.tile,event.to.x,event.to.y,event.to.z||0,event.to.rr,current.id);moved.tile={...current.tile};live.set(current.id,moved)}continue}
-      if(event.type==='start'){appendRoutePreviewLine(svg,point(candidatePiece.id,event.fromHalf),point(event.toPieceId,event.toHalf),'connector');continue}
+      if(event.type==='start'){appendRoutePreviewLine(svg,point(sourcePiece.id,event.fromHalf),point(event.toPieceId,event.toHalf),'connector');continue}
       if(event.type==='route'){appendRoutePreviewLine(svg,point(event.piece,event.exitHalf),point(event.toPieceId,event.toHalf),'connector');continue}
       if(event.type==='move'){appendRoutePreviewLine(svg,point(event.fromPiece,event.fromHalf),point(event.toPiece,event.toHalf),event.retrace?'retrace':'connector');continue}
-      if(event.type==='core-relay'){appendRoutePreviewLine(svg,point(event.fromPieceId,event.fromHalf),point(event.toPieceId,event.toHalf),'teleport');continue}
+      if(event.type==='core-relay'){appendRoutePreviewLine(svg,point(event.fromPieceId,event.fromHalf),point(event.toPieceId,event.toHalf),'relay');continue}
       if(event.type==='zero-port'){const destination=live.get(event.toPieceId),zero=destination?.cubes?.find(cube=>cube.v===0);appendRoutePreviewLine(svg,point(event.piece,event.fromHalf),zero?E.cubeCenter(zero):null,'teleport')}
     }
     if(!svg.querySelector('.routePreviewLine'))return;board.appendChild(svg);board.classList.add('routePreviewActive');
-    const routeTileIds=new Set([String(candidatePiece.tile.id)]);
+    const routeTileIds=new Set([String(sourcePiece.tile.id)]);
     for(const segment of segments){const piece=live.get(segment.piece);if(piece?.tile?.id!=null)routeTileIds.add(String(piece.tile.id))}
     board.querySelectorAll('.piece[data-tile-id]').forEach(el=>{const active=routeTileIds.has(String(el.dataset.tileId));el.classList.toggle('routePreviewActiveTile',active);el.classList.toggle('routePreviewDim',!active)});
     const activeCoreIds=new Set(events.filter(event=>event.type==='core-activate'&&event.coreId!=null).map(event=>String(event.coreId)));
-    board.querySelectorAll('.coreNode[data-core-id]').forEach(el=>el.classList.toggle('routePreviewDim',activeCoreIds.size>0&&!activeCoreIds.has(String(el.dataset.coreId))));
-    const livePieces=[...live.values()],junctions=[],seenJunctions=new Set(),routeEvents=events.filter(event=>event.type==='route');
-    for(const segment of segments){
-      if(seenJunctions.has(segment.piece))continue;const piece=live.get(segment.piece),connectionCount=piece?new Set(E.connectionsForPiece(piece,livePieces).map(connection=>connection.toPieceId)).size:0;if(!piece||connectionCount<=2)continue;
-      seenJunctions.add(segment.piece);const route=routeEvents.find(event=>event.piece===segment.piece),junctionPoint=route?point(segment.piece,route.exitHalf):routePreviewPieceCenter(piece);if(junctionPoint)junctions.push({pieceId:segment.piece,point:junctionPoint})
+    board.querySelectorAll('.coreNode[data-core-id]').forEach(el=>el.classList.toggle('routePreviewDim',!activeCoreIds.has(String(el.dataset.coreId))));
+
+    const markerSeen=new Set(),lastOpByPiece=new Map(),coreById=new Map((GAME.state().cores||[]).map(core=>[String(core.id),core]));
+    for(const event of events){
+      if(event.type==='op'&&!event.tollRepeat){lastOpByPiece.set(event.piece,event);continue}
+      if(event.type==='rebound'){const op=lastOpByPiece.get(event.piece);appendRouteEventMarker(op?point(event.piece,op.exitHalf):routePreviewPieceCenter(live.get(event.piece)),'REBOUND','routePreviewRebound',markerSeen);continue}
+      if(event.type==='zero-port'){appendRouteEventMarker(point(event.piece,event.fromHalf),'TELEPORT','routePreviewTeleport',markerSeen);continue}
+      if(event.type==='core-relay'){appendRouteEventMarker(point(event.fromPieceId,event.fromHalf),'RELAY','routePreviewRelay',markerSeen);continue}
+      if(event.type==='core-activate'&&Number(event.afterSignal)>Number(event.beforeSignal)){const core=coreById.get(String(event.coreId)),center=core?{x:core.x+(core.size||E.S)/2,y:core.y+(core.size||E.S)/2}:routePreviewPieceCenter(live.get(event.piece));appendRouteEventMarker(center,'RECHARGE','routePreviewRecharge',markerSeen);continue}
+      if(event.type==='signal-depleted'){appendRouteEventMarker(routePreviewPieceCenter(live.get(event.piece)),'SIGNAL OUT','routePreviewDepleted',markerSeen)}
     }
-    for(const junction of junctions){const ring=document.createElementNS(ROUTE_SVG_NS,'circle');ring.setAttribute('cx',junction.point.x);ring.setAttribute('cy',junction.point.y);ring.setAttribute('r','.34');ring.setAttribute('class','routePreviewJunctionRing');svg.appendChild(ring)}
+
+    const choices=events.filter(event=>event.type==='route'&&event.choiceReason&&event.choiceCount>1);
+    for(const choice of choices){const choicePoint=point(choice.piece,choice.exitHalf);if(!choicePoint)continue;const ring=document.createElementNS(ROUTE_SVG_NS,'circle');ring.setAttribute('cx',choicePoint.x);ring.setAttribute('cy',choicePoint.y);ring.setAttribute('r','.34');ring.setAttribute('class','routePreviewJunctionRing');svg.appendChild(ring);if(mode==='full')routePreviewChoice(choice,choicePoint)}
     if(mode!=='full')return;
-    const candidateCenter=routePreviewPieceCenter(candidatePiece),startBelow=candidatePiece.rect.miny<1.5,startPoint=candidateCenter?{x:candidateCenter.x,y:startBelow?candidatePiece.rect.maxy:candidatePiece.rect.miny}:null;appendRoutePreviewMarker(startPoint,'START',`routePreviewEndpoint routePreviewStart${startBelow?' routePreviewStartBelow':''}`);
+    const sourceCenter=routePreviewPieceCenter(sourcePiece),startBelow=sourcePiece.rect.miny<1.5,startPoint=sourceCenter?{x:sourceCenter.x,y:startBelow?sourcePiece.rect.maxy:sourcePiece.rect.miny}:null;appendRoutePreviewMarker(startPoint,'START',`routePreviewEndpoint routePreviewStart${startBelow?' routePreviewStartBelow':''}`);
     const ends=[];let lastOpPoint=null;
-    for(const event of events){if(event.type==='signal-start'){lastOpPoint=null;continue}if(event.type==='op'){lastOpPoint=point(event.piece,event.exitHalf);continue}if(event.type==='signal-end'&&lastOpPoint){ends.push(lastOpPoint);lastOpPoint=null}}
+    for(const event of events){if(event.type==='signal-start'){lastOpPoint=null;continue}if(event.type==='op'&&!event.tollRepeat){lastOpPoint=point(event.piece,event.exitHalf);continue}if(event.type==='signal-end'&&lastOpPoint){ends.push(lastOpPoint);lastOpPoint=null}}
     if(!ends.length&&lastOpPoint)ends.push(lastOpPoint);const endKeys=new Set();for(const end of ends){const key=`${end.x}:${end.y}`;if(endKeys.has(key))continue;endKeys.add(key);appendRoutePreviewMarker(end,'END','routePreviewEndpoint routePreviewEnd')}
-    if(junctions.length){const junction=junctions[0],rule=document.createElement('div'),side=junction.point.x/E.G>.72?'Left':'Right',safeY=Math.max(1.5,Math.min(E.H-1.5,junction.point.y));rule.className=`routePreviewRule routePreviewRule${side}`;rule.setAttribute('role','status');rule.style.left=px(junction.point.x);rule.style.top=py(safeY);rule.innerHTML='<strong>JUNCTION</strong><span>MORE TILE PASSES<br>TIE → HIGHER OUTPUT</span>';board.appendChild(rule)}
   }
 
   function beginTilePress(e,meta){
@@ -320,6 +339,7 @@
       board.appendChild(el)
     });
     if(drag.active&&drag.candidate){const c=drag.candidate,p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,(s.idc||0)+1);p.tile={...drag.tile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');board.appendChild(candidate);renderRoutePreview(p)}
+    else if(s.ouroborosMode&&!uiBusy&&!auxOverlay){if(!ouroborosSelection){const selected=s.pieces.find(p=>p.tile.id===s.anchorId)||s.pieces.at(-1)||null;ouroborosSelection=selected?.tile.id||null}const preview=ouroborosSelection?GAME.previewOuroborosFire?.(ouroborosSelection):null;if(preview?.ok)renderRoutePreview(preview.p,preview,'ouroboros')}
     board.classList.toggle('dragging',drag.active)
   }
   function renderOuroborosHand(){
