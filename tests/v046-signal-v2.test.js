@@ -9,7 +9,7 @@ function piece(a,b,x,y,rr,id){const p=E.pieceFrom({a,b},x,y,0,rr,id);p.tile={id:
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 
 check('roster replaces four generic multipliers without expanding the 28-Mod collection',()=>{
-  assert.equal(D.VERSION,'0.53.5');assert.equal(D.ENGINE_VERSION,'0.20.0-core-abilities-v1');
+  assert.equal(D.VERSION,'0.53.6');assert.equal(D.ENGINE_VERSION,'0.20.0-core-abilities-v1');
   assert.deepEqual(['diode','return','merge','hinge'].map(id=>M.get(id).collectionCode),['DI','RT','MG','HG']);
   assert.deepEqual(['diode','return','merge','hinge'].map(id=>M.get(id).category),['signal','signal','signal','signal']);
   for(const id of ['sequence','complement','relay','coupler'])assert.equal(M.get(id),null);
