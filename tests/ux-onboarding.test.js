@@ -28,7 +28,7 @@ assert.match(ux,/THE MACHINE/);
 assert.match(ux,/BUILD\. ROUTE\. SCORE\./);
 assert.match(ux,/THE MACHINE CONTINUES\./);
 assert.match(ux,/monoid\.modeOnboarding\.v1/);assert.match(ux,/monoid\.modeIntro\.v2/);
-assert.match(ux,/Signal now fades\./);assert.match(ux,/Cores keep it alive\./);assert.match(ux,/The board has gaps\./);assert.match(ux,/Voids block placement\. Cores restore Signal\./);assert.doesNotMatch(ux,/Each half holds one Core and one Void/);
+assert.match(ux,/Signal starts at 10\./);assert.match(ux,/Cores refill it\./);assert.match(ux,/Signal starts at 8\./);assert.match(ux,/Voids block placement\. Reach a Core before Signal dies\./);assert.doesNotMatch(ux,/Each half holds one Core and one Void/);
 assert.match(ux,/REACH A CORE/);assert.match(ux,/Reach a Core before the Signal dies\./);
 assert.match(ux,/discoveryTitle:'LEAD'/);assert.match(ux,/First Core sets the rule\./);
 assert.match(ux,/payoffTitle:'CORE LINKED'/);assert.match(ux,/Signal restored\./);
