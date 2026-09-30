@@ -61,6 +61,20 @@ const follow=E.bestSignal(1,line,{
 assert.deepEqual(events(follow,'core-activate').map(event=>event.archetype),['relay','reservoir']);
 assert.equal(events(follow,'core-activate')[1].afterSignal,2,'Reservoir bonus is LEAD-only');
 
+const leadReservoir={id:'lead-reservoir',archetype:'reservoir',level:1};
+const followRelay={id:'follow-relay',archetype:'relay',level:1};
+const nonDrainingFollow=E.bestSignal(1,line,{
+  initialOutput:2,signalEnabled:true,signalBase:2,signalMax:2,
+  signalCoreIdsByPiece:new Map([[2,[leadReservoir.id]],[3,[followRelay.id]]]),
+  signalCoreById:new Map([[leadReservoir.id,{...leadReservoir,links:[]}],[followRelay.id,{...followRelay,links:[]}]]),
+  coreLevelStep:D.CORE_SIGNAL_LEVEL_STEP,reservoirBonus:D.CORE_RESERVOIR_BONUS
+});
+const nonDrainingActivations=events(nonDrainingFollow,'core-activate');
+assert.equal(nonDrainingActivations[0].afterSignal,10,'LEAD Reservoir must still refill to base + 8');
+assert.equal(nonDrainingActivations[1].beforeSignal,9,'fixture must reach the FOLLOW Core with more Signal than its normal refill');
+assert.equal(nonDrainingActivations[1].afterSignal,9,'FOLLOW Core recharge must never drain existing Signal');
+assert.equal(nonDrainingFollow.signalRuntime.remaining,8,'route must retain preserved Signal after the next paid visit');
+
 const splitFixture=[
   piece(3,3,6,8,0,11),
   piece(5,3,2,8,0,12),
