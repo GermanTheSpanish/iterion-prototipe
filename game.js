@@ -572,14 +572,17 @@ function createGame(E,opts={}){
     const piece=s.pieces.find(p=>p.tile?.id===tileId);if(!piece)return{ok:false,reason:'tile'};
     return moveOuroborosTile(tileId,{x:piece.cubes[0].x,y:piece.cubes[0].y,z:0,rr:(piece.rr+1)%4})
   }
-  function beginOuroborosFire(tileId){
+  function previewOuroborosFire(tileId){
     if(!s.ouroborosMode||!canInteract())return{ok:false,reason:'state'};
     const p=s.pieces.find(piece=>piece.tile?.id===tileId),tile=p&&(s.set.find(t=>t.id===tileId)||p.tile);if(!p||!tile)return{ok:false,reason:'tile'};
-    const undoFrame=captureUndoFrame(),trigger=tile.a+tile.b;s.running=true;
-    const sim=s.pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
-    s.turn++;s.roundTurn++;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
-    s.events.push({type:'ouroboros-fire',round:s.round+1,roundTurn:s.roundTurn,turn:s.turn,tileId,trigger});
+    const trigger=tile.a+tile.b,sim=s.pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
     return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalRuntime,signalShadow:signalRuntime,handIndex:-1,topologyLosses:[],ouroboros:true}
+  }
+  function beginOuroborosFire(tileId){
+    const preview=previewOuroborosFire(tileId);if(!preview.ok)return preview;
+    const undoFrame=captureUndoFrame();s.running=true;s.turn++;s.roundTurn++;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
+    s.events.push({type:'ouroboros-fire',round:s.round+1,roundTurn:s.roundTurn,turn:s.turn,tileId,trigger:preview.trigger});
+    return preview
   }
   function setTollArmed(value){
     if(!s.tollTileId||s.running||s.shopOpen||s.pendingCircuit||s.pendingModPlacement)return{ok:false,reason:'state'};
@@ -1508,7 +1511,7 @@ function createGame(E,opts={}){
     return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopPurchaseAvailability,marketDoubleDoublePrice,marketModPrice,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,previewOuroborosFire,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopPurchaseAvailability,marketDoubleDoublePrice,marketModPrice,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketMod,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
