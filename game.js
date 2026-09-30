@@ -222,7 +222,7 @@ function createGame(E,opts={}){
   }
   function framesModeGeometry(seed=s.seed){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24);
-    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=Math.max(size*2,Math.round(baseH/6)),halfSpan=halfCenterOffset*2,pipOffset=halfSpan/4,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=Math.max(size*2,Math.round(baseH/6)),pipSpan=size*3,pipOffset=pipSpan/2,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size});
     const sites=[
       site('frames-north-a','north',0,centerX-pipOffset,topCenterY-pipOffset),
