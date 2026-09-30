@@ -1,5 +1,9 @@
 const assert=require('node:assert/strict');
 const D=require('../data.js'),E=require('../engine.js'),G=require('../game.js');
+const routeSignature=sim=>({
+  segments:(sim?.segments||[]).map(segment=>({piece:segment.piece,from:segment.from,to:segment.to,reverse:!!segment.reverse,entryHalf:segment.entryHalf,exitHalf:segment.exitHalf})),
+  transitions:(sim?.events||[]).filter(event=>['start','route','move','zero-port','core-relay','hinge-move'].includes(event.type)).map(event=>({type:event.type,piece:event.piece,fromHalf:event.fromHalf,exitHalf:event.exitHalf,toPieceId:event.toPieceId,toHalf:event.toHalf,fromPiece:event.fromPiece,toPiece:event.toPiece,reverse:!!event.reverse,retrace:!!event.retrace,to:event.to}))
+});
 
 E.setBoardSize(30,40);
 const g=G.createGame(E,{seed:42401});
@@ -18,8 +22,8 @@ assert.equal(decision.clearCoverageSampleCount,decision.legalPlacementCount);
 assert(decision.outputDistribution);
 assert.equal(decision.deckBefore.generation,1);
 
-const chosenPreview=g.previewPlacement(rootIndex,candidates[0]);assert(chosenPreview.ok);
-let ctx=g.beginPlacement(rootIndex,candidates[0]);assert(ctx.ok);
+const chosenPreview=g.previewPlacement(rootIndex,candidates[0]);assert(chosenPreview.ok);assert.equal(JSON.stringify(g.exportState()),before,'route preview must not mutate authoritative state');
+let ctx=g.beginPlacement(rootIndex,candidates[0]);assert(ctx.ok);assert.deepEqual(routeSignature(ctx.sim),routeSignature(chosenPreview.sim),'opening route preview must equal the committed signal geometry');
 let result=g.finishPlacement(ctx);
 assert.equal(result.resonance.output,chosenPreview.output,'root preview must match authoritative placement output');
 assert(decision.bestLegalOutput>=result.resonance.output,'root best output covers every playable opening tile');
@@ -44,8 +48,8 @@ if(!g.state().cleared&&!g.state().blocked&&!g.state().pendingCircuit&&!g.state()
   assert.equal(JSON.stringify(g.exportState()),before,'multi-placement evaluation must remain read-only');
   assert.equal(decision.clearCoverageSampleCount,decision.evaluatedPlacementCount);
   assert.equal(decision.coverageIncludesChosen,false);
-  const preview=g.previewPlacement(index,candidates[0]);assert(preview.ok);
-  ctx=g.beginPlacement(index,candidates[0]);assert(ctx.ok);result=g.finishPlacement(ctx);
+  const previewState=JSON.stringify(g.exportState()),preview=g.previewPlacement(index,candidates[0]);assert(preview.ok);assert.equal(JSON.stringify(g.exportState()),previewState,'route preview must remain read-only');
+  ctx=g.beginPlacement(index,candidates[0]);assert(ctx.ok);assert.deepEqual(routeSignature(ctx.sim),routeSignature(preview.sim),'route preview segments and transitions must match committed routing exactly');result=g.finishPlacement(ctx);
   assert.equal(result.resonance.output,preview.output,'preview must match authoritative placement output');
   const signal=g.signalTelemetry(ctx.sim);
   assert(signal.operationCount>=signal.uniqueVisitedPieceCount);
