@@ -4,7 +4,7 @@ const E=require('../engine.js');
 const Game=require('../game.js');
 
 assert.strictEqual(D.VERSION,'0.54.0');
-assert.strictEqual(D.ENGINE_VERSION,'0.20.0-core-abilities-v1');
+assert.strictEqual(D.ENGINE_VERSION,'0.20.1-core-abilities-v1');
 assert.strictEqual(D.LONG_RUN_UNIQUE_THRESHOLD,10);
 assert.strictEqual(D.MARKET_LONG_RUN_COST,8);
 
