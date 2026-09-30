@@ -272,7 +272,7 @@
     const ends=[];let lastOpPoint=null;
     for(const event of events){if(event.type==='signal-start'){lastOpPoint=null;continue}if(event.type==='op'){lastOpPoint=point(event.piece,event.exitHalf);continue}if(event.type==='signal-end'&&lastOpPoint){ends.push(lastOpPoint);lastOpPoint=null}}
     if(!ends.length&&lastOpPoint)ends.push(lastOpPoint);const endKeys=new Set();for(const end of ends){const key=`${end.x}:${end.y}`;if(endKeys.has(key))continue;endKeys.add(key);appendRoutePreviewMarker(end,'END','routePreviewEndpoint routePreviewEnd')}
-    if(junctions.length){const junction=junctions[0],rule=document.createElement('div');rule.className='routePreviewRule';rule.setAttribute('role','status');rule.style.setProperty('--route-x',px(junction.point.x));rule.style.setProperty('--route-y',py(junction.point.y));rule.innerHTML='<strong>JUNCTION</strong><span>MORE TILE PASSES · TIE → HIGHER OUTPUT</span>';board.appendChild(rule)}
+    if(junctions.length){const junction=junctions[0],rule=document.createElement('div'),side=junction.point.x/E.G>.72?'Left':'Right',safeY=Math.max(1.5,Math.min(E.H-1.5,junction.point.y));rule.className=`routePreviewRule routePreviewRule${side}`;rule.setAttribute('role','status');rule.style.left=px(junction.point.x);rule.style.top=py(safeY);rule.innerHTML='<strong>JUNCTION</strong><span>MORE TILE PASSES<br>TIE → HIGHER OUTPUT</span>';board.appendChild(rule)}
   }
 
   function beginTilePress(e,meta){
