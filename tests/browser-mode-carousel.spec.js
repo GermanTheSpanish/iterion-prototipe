@@ -81,6 +81,7 @@ test('Classic, The Eyes and The Frames are playable while Classic keeps its full
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRunMode.v1'))).toBe('classic');
   expect(await page.evaluate(()=>window.__monoidGame.debugText())).toContain('Mode: CLASSIC');
   await expect(page.locator('#modeIndicator')).toBeHidden();
+  await expect(page.locator('#signalHud')).toBeHidden();
 });
 
 
@@ -121,6 +122,9 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.snapshot.signal.interaction).toBe('runtime');
   expect(state.snapshot.signal.base).toBe(6);
   expect(state.snapshot.signal.max).toBe(6);
+  await expect(page.locator('#signalHud')).toBeVisible();
+  await expect(page.locator('#signalHud .signalHudLane b')).toHaveText('6');
+  await expect(page.locator('#signalHud .signalHudLane')).not.toHaveClass(/low|critical/);
   if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
   await expect(page.locator('#hint')).not.toContainText('CONNECT A CORE');
   await expect(page.locator('#board .coreNode.coreNeedsConnection')).toHaveCount(2);
@@ -216,6 +220,11 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   expect(state.snapshot.signal.enabled).toBe(true);
   expect(state.snapshot.signal.base).toBe(4);
   expect(state.snapshot.signal.max).toBe(4);
+  await expect(page.locator('#signalHud')).toBeVisible();
+  await expect(page.locator('#signalHud .signalHudLane b')).toHaveText('4');
+  await expect(page.locator('#signalHud .signalHudLane')).not.toHaveClass(/low|critical/);
+  const progressed=await page.evaluate(()=>{window.__monoidGame.state().marketCount=2;return window.__monoidGame.snapshot().signal});
+  expect(progressed.base).toBe(4);expect(progressed.max).toBe(6);expect(progressed.marketBonus).toBe(2);
   const safety=await page.evaluate(()=>{
     const game=window.__monoidGame,E=window.IterionEngine,s=game.state(),items=[...s.cores,...s.voids];let checked=0,overlaps=0;
     const hit=(piece,item)=>piece.cubes.some(cube=>cube.x<item.x+item.size&&cube.x+E.S>item.x&&cube.y<item.y+item.size&&cube.y+E.S>item.y);
