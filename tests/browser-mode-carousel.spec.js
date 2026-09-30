@@ -1,6 +1,7 @@
 const {test,expect}=require('@playwright/test');
 
 function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y}
+async function dismissModeIntro(page){if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle')}
 
 test('mode carousel keeps a continuous strip and weights its physical settle by release distance',async({page})=>{
   await page.setViewportSize({width:375,height:667});
@@ -93,6 +94,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await page.locator('#startRun').click();
+  await dismissModeIntro(page);
   await expect(page.locator('#board .coreNode')).toHaveCount(2);
   await expect(page.locator('#modeIndicator')).toBeVisible();
   await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(2);
@@ -151,7 +153,7 @@ test('The Eyes makes the Stage 4 Core discovery a visible board event',async({pa
   await page.evaluate(()=>window.__monoidModes.select(1));
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await page.locator('#startRun').click();
-  if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
+  await dismissModeIntro(page);
   await page.evaluate(()=>{const g=window.__monoidGame,s=g.state();s.round=8;s.cleared=true;s.blocked=false;s.running=false;s.nextShopType='none';s.intermissionResolved=true;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false});
   await page.locator('#menuButton').click();await page.locator('#menuHelpButton').click();await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('ROUND CLEAR');

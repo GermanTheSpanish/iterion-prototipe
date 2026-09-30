@@ -98,20 +98,29 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await page.waitForTimeout(180);await expect(page.locator('#monoidBoardCoach')).toBeHidden();await assertNoPageScroll(page)
 });
 
-test('The Frames refreshed intro reappears once without spoiling Core or Void counts',async({page})=>{
+test('The Frames intro appears on every NEW RUN but not CONTINUE RUN',async({page})=>{
   await page.setViewportSize({width:375,height:667});
-  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({frames:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.removeItem('monoid.modeIntro.v2')});
+  await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({frames:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({frames:true}))});
   await enterSelection(page);await page.evaluate(()=>window.__monoidModes.select(2));await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE FRAMES');
   await expect(page.locator('#monoidBoardCoach')).toContainText('The board has gaps.');
-  await expect(page.locator('#monoidBoardCoach')).toContainText('Build around them.');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Core');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Void');
   await expect(page.locator('#board .coreNode, #board .boardVoid')).toHaveCount(4);
-  await page.locator('[data-ux-action="start-mode"]').click();
-  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
-  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.modeIntro.v2')))).toEqual({frames:true});
+  await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
+  const firstRunId=await page.evaluate(()=>window.__monoidGame.state().runId);
+
+  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.evaluate(()=>window.__monoidModes.select(2));page.once('dialog',dialog=>dialog.accept());await page.locator('#startRun').click();
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
+  const secondRunId=await page.evaluate(()=>window.__monoidGame.state().runId);expect(secondRunId).not.toBe(firstRunId);
+  await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
+
+  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.locator('#continueRun').click();await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.screen)).toBe('game');
+  expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(secondRunId);
+  await page.waitForTimeout(180);await expect(page.locator('#monoidBoardCoach')).toBeHidden();expect(await page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
   await assertNoPageScroll(page)
 });
 
