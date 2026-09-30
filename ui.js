@@ -46,7 +46,7 @@
     cascadeSkipHintTimer=setTimeout(()=>{cascadeSkipHintTimer=0;if(!cascadeControl.active||cascadeControl.phase==='final')return;const d=document.createElement('div');d.className='cascadeSkipHint';d.setAttribute('role','status');d.setAttribute('aria-live','polite');d.textContent='TAP SCREEN TO SKIP';board.appendChild(d)},V.CASCADE.skipHintAfterMs||6000)
   }
   function beginCascadeControl(){cascadeControl.active=true;cascadeControl.phase='cascade';cascadeControl.skipCascade=false;cascadeControl.skipSummary=false;cascadeControl.lastTap=0;cascadeControl.waiters.clear();board.dataset.cascadePhase='cascade';armCascadeSkipHint()}
-  function endCascadeControl(){for(const waiter of [...cascadeControl.waiters])waiter.done();cascadeControl.waiters.clear();clearCascadeSkipHint();cascadeControl.active=false;cascadeControl.phase='idle';cascadeControl.lastTap=0;delete board.dataset.cascadePhase}
+  function endCascadeControl(){for(const waiter of [...cascadeControl.waiters])waiter.done();cascadeControl.waiters.clear();clearCascadeSkipHint();cascadeControl.active=false;cascadeControl.phase='idle';cascadeControl.lastTap=0;signalHudState.active=false;delete board.dataset.cascadePhase}
   function cascadePhaseSkipped(phase){return phase==='cascade'?cascadeControl.skipCascade:phase==='summary'?cascadeControl.skipSummary:false}
   function releaseCascadeWaiters(phase){for(const waiter of [...cascadeControl.waiters])if(waiter.phase===phase)waiter.done()}
   function cascadeWait(ms,phase=cascadeControl.phase){
@@ -472,7 +472,7 @@
     const state=GAME.state(),model=H.inspectCore?.(state,auxOverlay.coreId,GAME.coreShadowTelemetry?.())||auxOverlay.model;if(!model){closeAuxOverlay();return}
     auxOverlay.model=model;overlayTitle.textContent=`${model.displayName.toUpperCase()} · ${model.roman}`;
     const status=model.ready?'READY':model.connected?'CONNECTED':'DISCONNECTED',ports=model.ports.join(' · ')||'—',connectedPorts=model.connectedPorts.join(' · ')||'—',role=model.lastRole?String(model.lastRole).toUpperCase():'NOT ACTIVATED',debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(model.id)}</div>`:'';
-    const marketBonus=Math.max(0,Number(state.marketCount)||0)*Math.max(0,Number(D.CORE_SIGNAL_MARKET_STEP)||1),recharge=model.archetype==='reservoir'?`Recharge ${model.recharge} · LEAD ${model.leadRecharge} · Markets +${marketBonus}`:`Recharge ${model.recharge} · Markets +${marketBonus}`,next=model.level<model.maxLevel?`Next level: +${D.CORE_SIGNAL_LEVEL_STEP||4} Signal`:'MAX LEVEL',evolution=state.gameMode==='frames'?`The two 2|2 Cores stay fixed. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`:`New Cores appear at Stages ${(D.CORE_DISCOVERY_STAGES||[4,7]).join(' and ')}. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`;
+    const configuredMarketStep=Number(D.CORE_SIGNAL_MARKET_STEP),marketStep=Math.max(0,Number.isFinite(configuredMarketStep)?configuredMarketStep:1),marketBonus=Math.max(0,Number(state.marketCount)||0)*marketStep,recharge=model.archetype==='reservoir'?`Recharge ${model.recharge} · LEAD ${model.leadRecharge} · Markets +${marketBonus}`:`Recharge ${model.recharge} · Markets +${marketBonus}`,next=model.level<model.maxLevel?`Next level: +${D.CORE_SIGNAL_LEVEL_STEP||4} Signal`:'MAX LEVEL',evolution=state.gameMode==='frames'?`The two 2|2 Cores stay fixed. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`:`New Cores appear at Stages ${(D.CORE_DISCOVERY_STAGES||[4,7]).join(' and ')}. From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`;
     const relayNeed=model.archetype==='relay'&&model.connectedPorts.length<2?'Relay needs two connected ports to bridge.':null,lastSignal=model.lastAfterSignal==null?'No activation recorded last Move.':`Last Move: ${role} · Signal ${model.lastBeforeSignal} → ${model.lastAfterSignal}.`;
     overlayBody.innerHTML=`<div class="inspector coreInspector"><section class="inspectSection"><div class="inspectLabel">Core</div><div class="inspectHero"><strong>${escapeHtml(model.displayName)} ${model.roman}</strong><span>${escapeHtml(status)} · ${escapeHtml(recharge)}</span></div>${debugId}<div class="stateRows"><span>Ports: ${escapeHtml(ports)}</span><span>Connected: ${escapeHtml(connectedPorts)}</span><span>${escapeHtml(next)}</span></div></section><section class="inspectSection"><div class="inspectLabel">LEAD Ability</div><strong>${escapeHtml(model.ability.short)}</strong><p>${escapeHtml(model.ability.rule)}</p>${relayNeed?`<p class="inspectEmpty">${escapeHtml(relayNeed)}</p>`:''}</section><section class="inspectSection"><div class="inspectLabel">Last Move</div><div class="stateRows"><span>${escapeHtml(lastSignal)}</span></div></section><section class="inspectSection"><div class="inspectLabel">Activation States</div><div class="stateRows"><span>LEAD · first Core reached; its ability controls the Move.</span><span>FOLLOW · later Core; recharges Signal only.</span><span>LAST · final Core reached; recharges Signal only.</span></div></section><section class="inspectSection"><div class="inspectLabel">Evolution</div><p>${escapeHtml(evolution)}</p></section></div>`;
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
@@ -682,7 +682,7 @@
   }
   function laneId(lane){return lane.family+(lane.path?'.'+lane.path:'')}
   function laneLabel(lane){return(lane.family==='echo'?'ECHO':'MAIN')+(lane.path?' '+lane.path:'')}
-  function signalHudLaneLabel(key){const parts=String(key||'main').split('.'),path=parts.slice(1).join('');if(path)return path;if(parts[0]==='echo')return'E';return''}
+  function signalHudLaneLabel(key){const parts=String(key||'main').split('.'),path=parts.slice(1).join('');if(path)return path;if(parts[0]==='echo')return'E';return'M'}
   function renderSignalHud(){
     if(!signalHudEl)return;
     const values=signalHudEl.querySelector('.signalHudValues'),entries=[...signalHudState.lanes.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
@@ -696,7 +696,7 @@
     signalHudState.lanes.clear();if(model?.visible)signalHudState.lanes.set('main',Math.max(0,Number(model.start)||0));renderSignalHud()
   }
   function startSignalHud(value){
-    if(!signalHudEl)return;signalHudState.active=true;signalHudState.lanes.clear();signalHudState.lanes.set('main',Math.max(0,Number(value)||0));renderSignalHud()
+    if(!signalHudEl)return;const signal=GAME.snapshot().signal;if(!signal?.enabled){signalHudState.active=false;signalHudState.lanes.clear();renderSignalHud();return}signalHudState.active=true;signalHudState.lanes.clear();signalHudState.lanes.set('main',Math.max(0,Number(value)||0));renderSignalHud()
   }
   function pulseSignalHudRecharge(){
     if(!signalHudEl)return;if(signalHudState.rechargeTimer)clearTimeout(signalHudState.rechargeTimer);signalHudEl.classList.remove('signalHudRecharge');void signalHudEl.offsetWidth;signalHudEl.classList.add('signalHudRecharge');signalHudState.rechargeTimer=setTimeout(()=>{signalHudEl.classList.remove('signalHudRecharge');signalHudState.rechargeTimer=0},520)
@@ -708,7 +708,7 @@
     if(!signalHudEl)return;const parent=laneId(lane);signalHudState.lanes.delete(parent);for(const branch of branches||[]){const child={family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},value=Number(budgets?.[branch.arm]);signalHudState.lanes.set(laneId(child),Number.isFinite(value)?Math.max(0,value):0)}renderSignalHud()
   }
   function joinSignalHud(lane,branches,remaining){
-    if(!signalHudEl)return;for(const branch of branches||[]){const child={family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)};signalHudState.lanes.delete(laneId(child))}signalHudState.lanes.set(laneId(lane),Math.max(0,Number(remaining)||0));renderSignalHud()
+    if(!signalHudEl)return;let fallback=0;for(const branch of branches||[]){const child={family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},key=laneId(child);fallback=Math.max(fallback,Number(signalHudState.lanes.get(key))||0);signalHudState.lanes.delete(key)}const next=Number(remaining);signalHudState.lanes.set(laneId(lane),Math.max(0,Number.isFinite(next)?next:fallback));renderSignalHud()
   }
   function settleSignalValue(el){if(el?.isConnected)el.remove()}
   function clearLane(lane){board.querySelectorAll('.signalValue:not(.cascadeRetained)').forEach(el=>{if(el.dataset.lane===laneId(lane))settleSignalValue(el)})}
