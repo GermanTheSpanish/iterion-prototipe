@@ -42,7 +42,7 @@ test('Signal Route Preview turns the machine into the route and keeps Full / Pre
   expect(await page.locator('.routePreviewPulse').first().evaluate(el=>getComputedStyle(el).stroke)).not.toBe('none');
   expect(await page.locator('.routePreviewPulse').first().evaluate(el=>getComputedStyle(el).animationName)).toContain('routePreviewFlow');
   await expect(page.locator('.routePreviewStart')).toHaveText('START');expect(await page.locator('.routePreviewEnd').count()).toBeGreaterThan(0);
-  expect(await page.locator('.routePreviewJunctionRing').count()).toBeGreaterThan(0);await expect(page.locator('.routePreviewRule')).toContainText('MORE TILE PASSES');await expect(page.locator('.routePreviewRule')).toContainText('HIGHER OUTPUT');
+  expect(await page.locator('.routePreviewJunctionRing').count()).toBeGreaterThan(0);expect(await page.locator('.piece.routePreviewDim').count()).toBeGreaterThan(0);expect(await page.locator('.piece.routePreviewActiveTile').count()).toBeGreaterThan(0);await expect(page.locator('.routePreviewRule')).toContainText('MORE TILE PASSES');await expect(page.locator('.routePreviewRule')).toContainText('HIGHER OUTPUT');
   await expect(page.locator('.routePreviewCoach')).toHaveCount(0);await expect(page.locator('.routePreviewArrowHead')).toHaveCount(0);
   const ruleBox=await page.locator('.routePreviewRule').boundingBox(),boardBox=await page.locator('#board').boundingBox();expect(ruleBox.x).toBeGreaterThanOrEqual(boardBox.x);expect(ruleBox.x+ruleBox.width).toBeLessThanOrEqual(boardBox.x+boardBox.width);
   expect(await page.evaluate(()=>window.__routePreviewCalls)).toBeGreaterThan(0);
@@ -54,6 +54,13 @@ test('Signal Route Preview turns the machine into the route and keeps Full / Pre
 
   await page.locator('#menuButton').click();await page.locator('[data-route-preview="off"]').click();await expect(page.locator('[data-route-preview="off"]')).toHaveAttribute('aria-pressed','true');await page.locator('#closeMenu').click();const callsBefore=await page.evaluate(()=>window.__routePreviewCalls);
   await beginCandidateDrag(page);await expect(page.locator('.routePreviewSvg')).toHaveCount(0);expect(await page.evaluate(()=>window.__routePreviewCalls)).toBe(callsBefore);await cancelDrag(page)
+});
+
+test('Full route guidance stays contained on the compact mobile fixture',async({page})=>{
+  await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await beginCandidateDrag(page);
+  await expect(page.locator('.routePreviewStart')).toBeVisible();await expect(page.locator('.routePreviewEnd').first()).toBeVisible();await expect(page.locator('.routePreviewRule')).toBeVisible();
+  const contained=await page.evaluate(()=>{const board=document.querySelector('#board').getBoundingClientRect(),rule=document.querySelector('.routePreviewRule').getBoundingClientRect(),start=document.querySelector('.routePreviewStart').getBoundingClientRect(),end=document.querySelector('.routePreviewEnd').getBoundingClientRect();return{rule:rule.left>=board.left&&rule.right<=board.right&&rule.top>=board.top&&rule.bottom<=board.bottom,endpoints:[start,end].every(rect=>rect.left>=board.left&&rect.right<=board.right&&rect.top>=board.top&&rect.bottom<=board.bottom),pageFits:document.documentElement.scrollWidth<=window.innerWidth}});
+  expect(contained.rule).toBe(true);expect(contained.endpoints).toBe(true);expect(contained.pageFits).toBe(true);await page.screenshot({path:'test-results/route-preview-clarity-375x667.png',fullPage:true});await cancelDrag(page)
 });
 
 test('automatic assistance steps down to Preview after the first three Classic rounds',async({page})=>{
