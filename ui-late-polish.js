@@ -143,7 +143,7 @@
     const game=root.__monoidGame;if(!game?.marketOfferInfo)return;
     const assigned=assignedTiles(),endless=!!game.state?.().endlessMode;
     const foot=overlay.querySelector('.shopFoot');
-    const footCopy=`Buy SIGNAL +1 or one Mod. Tile Mods then choose a highlighted compatible tile. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
+    const footCopy=`Buy SIGNAL +1 or one Mod. Tile Mods then choose a highlighted compatible tile. Hold a Modded tile to inspect BUILD, REWARD and live status. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
     if(foot&&foot.textContent!==footCopy)foot.textContent=footCopy;
 
     doc.querySelectorAll('.marketOffer[data-market-offer]').forEach(offer=>{
