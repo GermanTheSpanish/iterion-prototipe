@@ -24,4 +24,4 @@ assert.match(theme,/\.boardVoid::after\{content:none\}/);
 assert.match(theme,/\.voidInspectorModal>h2,\.voidInspectorModal>\.modalActions\{display:none!important\}/);
 assert.match(theme,/\.voidInspectorWord\{/);
 
-console.log('v0.56.1 board touch, Void inspector and placement-lock regressions passed');
+console.log('v0.56.2 board touch, Void inspector and placement-lock regressions passed');
