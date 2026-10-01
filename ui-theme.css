@@ -301,7 +301,7 @@ body.monoidModeOrientActive #board .piece{opacity:.24!important;transition:opaci
 body.monoidModeOrientActive #board .coreNode{opacity:.36;transition:opacity .18s ease,box-shadow .18s ease}
 body.monoidModeOrientActive #board .boardVoid{opacity:.32;transition:opacity .18s ease,box-shadow .18s ease}
 body.monoidModeOrientActive #board .coreNode.modeOnboardingCore,body.monoidModeOrientActive #board .boardVoid.modeOnboardingVoid{opacity:1}
-.boardVoid.modeOnboardingVoid{z-index:14!important;box-shadow:inset 0 0 0 1px rgba(21,21,21,.16),0 0 0 3px rgba(247,247,244,.78),0 0 0 5px rgba(21,21,21,.16)}
+.boardVoid.modeOnboardingVoid{z-index:14!important;box-shadow:inset 0 0 12px rgba(0,0,0,.16),inset 0 0 0 1px rgba(21,21,21,.16),0 0 0 3px rgba(247,247,244,.78),0 0 0 5px rgba(21,21,21,.16)}
 .coreNode.modeOnboardingCore{z-index:14!important;box-shadow:0 0 0 3px rgba(247,247,244,.78),0 0 0 5px rgba(21,21,21,.22);animation:modeOnboardingPulse 900ms ease-in-out infinite alternate}
 @keyframes modeOnboardingPulse{from{transform:scale(1)}to{transform:scale(1.06)}}
 @media(prefers-reduced-motion:reduce){.coreNode.modeOnboardingCore{animation:none!important}body.monoidModeOrientActive #board .piece,body.monoidModeOrientActive #board .coreNode{transition:none!important}}
@@ -443,11 +443,17 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .ouroborosFire{background:var(--ink);color:var(--paper)}
 
 /* Mode geometry is physical board space. Voids read as quiet cut-outs rather than rewards. */
-.boardVoid{position:absolute;z-index:2;box-sizing:border-box;background:var(--bg);box-shadow:inset 0 0 0 1px rgba(21,21,21,.08);pointer-events:none}
-.boardVoid::after{content:"";position:absolute;inset:24%;border-radius:50%;background:rgba(21,21,21,.08)}
+.boardVoid{position:absolute;z-index:2;box-sizing:border-box;background:var(--bg);box-shadow:inset 0 0 12px rgba(0,0,0,.16),inset 0 0 0 1px rgba(21,21,21,.07);pointer-events:auto;touch-action:none;cursor:help}
+.boardVoid::before{content:"";position:absolute;inset:-8px}
+.boardVoid::after{content:none}
 .frameRevealTrace{position:absolute;z-index:1;box-sizing:border-box;border:1px solid rgba(21,21,21,.13);border-radius:5px;pointer-events:none;animation:frameRevealTrace 560ms ease-out both}
 @keyframes frameRevealTrace{0%{opacity:0}28%{opacity:.72}100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.frameRevealTrace{animation:none;opacity:.12}}
+
+.voidInspectorModal{width:min(72vw,280px);min-height:180px;display:grid;place-items:center;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important}
+.voidInspectorModal>h2,.voidInspectorModal>.modalActions{display:none!important}
+.voidInspectorModal #overlayBody{display:grid;place-items:center;width:100%;min-height:180px;cursor:pointer}
+.voidInspectorWord{font-size:clamp(28px,10vw,44px);font-weight:650;line-height:1;letter-spacing:.18em;text-indent:.18em;color:var(--ink);outline:none;user-select:none}
 
 /* Physical Cores occupy board space. Ports strengthen when the machine reaches them. */
 .coreNode{position:absolute;z-index:3;box-sizing:border-box;border:1px solid rgba(21,21,21,.68);background:rgba(236,236,230,.92);pointer-events:auto;touch-action:none;cursor:help}
