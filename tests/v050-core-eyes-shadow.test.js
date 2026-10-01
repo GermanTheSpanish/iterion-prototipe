@@ -128,11 +128,12 @@ const fire=runtime.beginOuroborosFire(a.id);
 assert.equal(fire.ok,true);
 assert(events(fire.sim,'core-activate').some(event=>event.coreId==='core-test'),'game orchestration must map a physical Core connection into engine Signal activation');
 assert.deepEqual(fire.signalRuntime.activatedCoreIds,['core-test']);
-assert.equal(fire.signalRuntime.remaining,6);
+assert.equal(fire.signalRuntime.remaining,11);
+assert.equal(fire.signalRuntime.coreSignalAdded,6,'Eyes Core must add its full +6 charge once');
 const fireResult=runtime.finishPlacement(fire);assert.equal(fireResult.ok,true);
 assert.equal(runtime.snapshot().signal.last.interaction,'runtime');
 assert.deepEqual(runtime.snapshot().signal.last.activatedCoreIds,['core-test']);
-assert.match(runtime.debugText(),/Signal: 6\/6/);
+assert.match(runtime.debugText(),/Signal: start=6 · core=\+6/);
 assert.match(runtime.debugText(),/cores=core-test/);
 
 const saved=first.exportState(),restored=G.createGame(E,{seed:1,GAME_MODE:'classic'});
