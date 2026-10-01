@@ -12,7 +12,7 @@ function piece(a,b,x,y,rr,id){
 }
 const events=(result,type)=>(result.events||[]).filter(event=>event.type===type);
 
-assert.equal(D.VERSION,'0.56.0');
+assert.equal(D.VERSION,'0.56.1');
 assert.equal(D.ENGINE_VERSION,'0.20.2-core-signal-additive-v1');
 assert.equal(D.CORE_SIGNAL_PURCHASE_COST,8);
 assert.equal(D.CORE_SIGNAL_PURCHASE_STEP,3);
