@@ -105,7 +105,8 @@ test('The Frames refreshed intro reappears once without spoiling Core or Void co
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE FRAMES');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 4.');
-  await expect(page.locator('#monoidBoardCoach')).toContainText('Cores add to it.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Route through Cores to extend it.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Each Market expands the Core network.');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Core');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Void');
   await expect(page.locator('#board .coreNode, #board .boardVoid')).toHaveCount(4);

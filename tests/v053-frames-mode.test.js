@@ -9,6 +9,7 @@ const C=require('../mode-carousel.js');
 
 const visible=(item,board=E.getBoardSize())=>item.x>=0&&item.y>=0&&item.x+item.size<=board.G&&item.y+item.size<=board.H;
 const overlap=(piece,item)=>piece.cubes.some(cube=>cube.x<item.x+item.size&&cube.x+E.S>item.x&&cube.y<item.y+item.size&&cube.y+E.S>item.y);
+const coreRectsOverlapForTest=(a,b)=>a.x<b.x+b.size&&a.x+a.size>b.x&&a.y<b.y+b.size&&a.y+a.size>b.y;
 const centres=item=>({x:item.x+item.size/2,y:item.y+item.size/2});
 
 assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes','frames']);
@@ -65,7 +66,7 @@ assert.equal(snap.signal.enabled,true);
 assert.equal(snap.signal.base,D.CORE_SIGNAL_BY_MODE.frames);
 assert.equal(snap.signal.max,D.CORE_SIGNAL_BY_MODE.frames);
 assert.equal(snap.cores.mode,'frames');
-assert.equal(snap.cores.maxPhysical,2);
+assert.equal(snap.cores.maxPhysical,6);
 assert.equal(snap.modeGeometry.voids.length,2);
 assert.equal(snap.modeGeometry.visibleIds.length,4);
 assert.equal(snap.cores.telemetry.coreCount,2,'both Frames Cores are physically active from the opening board');
@@ -101,11 +102,17 @@ for(let n=0;n<3;n++){
   assert.equal(growth.advance(),true)
 }
 assert.deepEqual(E.getBoardSize(),{G:21,H:28});
-assert.equal(growth.snapshot().modeGeometry.visibleIds.length,4,'board growth keeps the same four physical 2|2 sites visible');
-assert.equal(growth.snapshot().cores.telemetry.coreCount,2,'both Frames Cores remain active after board growth');
-assert.equal(gs.events.some(event=>event.type==='mode-geometry-reveal'),false,'Frames no longer hides pips for later board expansion');
-assert.equal(gs.cores.length,2,'Frames never invents extra pips when the board grows');
-assert.equal(gs.events.some(event=>event.type==='core-discover'),false,'Frames has fixed 2|2 Core sites rather than Eyes discovery');
+const stage2Snapshot=growth.snapshot(),stage2Discovery=[...gs.events].reverse().find(event=>event.type==='core-discover'&&event.stage===2);
+assert.equal(stage2Snapshot.modeGeometry.visibleIds.length,5,'Stage 2 keeps the canonical 2|2 sites and adds one network Core');
+assert.equal(stage2Snapshot.cores.telemetry.coreCount,3,'Frames gains one physical Core after its first Market');
+assert.equal(gs.events.some(event=>event.type==='mode-geometry-reveal'),false,'the canonical 2|2 pips remain visible from the opening board');
+assert.equal(gs.cores.length,3);
+assert(stage2Discovery,'Stage 2 must discover a Core');
+assert.equal(stage2Discovery.connectedAtDiscovery,0,'a new Frames Core should not auto-connect when empty frame space is available');
+const stage2Core=gs.cores.find(core=>core.id===stage2Discovery.core.id),oldRect={x:1,y:2,w:18,h:24};
+assert(stage2Core);
+assert.equal(stage2Core.x>=oldRect.x&&stage2Core.y>=oldRect.y&&stage2Core.x+stage2Core.size<=oldRect.x+oldRect.w&&stage2Core.y+stage2Core.size<=oldRect.y+oldRect.h,false,'the discovered Core belongs to the newly opened outer frame');
+assert.equal(gs.voids.some(voidItem=>coreRectsOverlapForTest(stage2Core,voidItem)),false,'new Frames Cores may not overlap canonical Voids');
 
 const source=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
 assert.match(source,/pieceOverlapsVoid\(candidate\).*void-overlap/,'HINGE must reject Void destinations');
