@@ -143,13 +143,21 @@
     const game=root.__monoidGame;if(!game?.marketOfferInfo)return;
     const assigned=assignedTiles(),endless=!!game.state?.().endlessMode;
     const foot=overlay.querySelector('.shopFoot');
-    const footCopy=`Buy one Mod, then choose a highlighted compatible tile. Hold a Modded tile to inspect BUILD, REWARD and live status. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
+    const footCopy=`Buy SIGNAL +1 or one Mod. Tile Mods then choose a highlighted compatible tile. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
     if(foot&&foot.textContent!==footCopy)foot.textContent=footCopy;
 
     doc.querySelectorAll('.marketOffer[data-market-offer]').forEach(offer=>{
       if(offer.classList.contains('marketStructuredOffer'))return;
-      const id=offer.dataset.marketOffer,info=game.marketOfferInfo(id),mod=info?.mod,guide=MG?.get?.(id);
-      const head=offer.querySelector(':scope > .marketOfferHead'),desc=offer.querySelector(':scope > p'),target=offer.querySelector(':scope > .marketTarget'),button=offer.querySelector(':scope > .shopBuy');
+      const id=offer.dataset.marketOffer,head=offer.querySelector(':scope > .marketOfferHead'),desc=offer.querySelector(':scope > p'),target=offer.querySelector(':scope > .marketTarget'),button=offer.querySelector(':scope > .shopBuy');
+      if(id==='signal'){
+        if(!head||!button)return;
+        const description=desc||doc.createElement('p');description.className='marketOfferDescription';
+        const context=doc.createElement('div');context.className='marketContextRow';
+        const physical=doc.createElement('div');physical.className='marketPhysicalContext';const upgrade=doc.createElement('div');upgrade.className='marketMachineTag';upgrade.innerHTML='<strong>START +1</strong><small>PERMANENT THIS RUN</small>';physical.appendChild(upgrade);
+        const action=doc.createElement('div');action.className='marketOfferAction';action.appendChild(button);if(button.disabled){const note=doc.createElement('small');note.className='marketActionReason';note.textContent='NOT ENOUGH COINS';action.appendChild(note)}
+        context.append(physical,action);target?.remove();offer.replaceChildren(head,description,context);offer.classList.add('marketStructuredOffer');return
+      }
+      const info=game.marketOfferInfo(id),mod=info?.mod,guide=MG?.get?.(id);
       if(!head||!button||!info||!mod)return;
 
       const description=desc||doc.createElement('p');description.className='marketOfferDescription';

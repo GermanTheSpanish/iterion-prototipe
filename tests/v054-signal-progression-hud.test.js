@@ -14,8 +14,10 @@ function piece(a,b,x,y,rr,id){
 }
 const events=(result,type)=>(result.events||[]).filter(event=>event.type===type);
 
-assert.equal(D.VERSION,'0.54.0');
+assert.equal(D.VERSION,'0.55.0');
 assert.equal(D.CORE_SIGNAL_MARKET_STEP,1);
+assert.equal(D.CORE_SIGNAL_PURCHASE_COST,8);
+assert.equal(D.CORE_SIGNAL_PURCHASE_STEP,3);
 assert.deepEqual(D.CORE_SIGNAL_BY_MODE,{eyes:6,frames:4});
 
 E.setBoardSize(30,40);
@@ -80,6 +82,6 @@ assert.match(ui,/function joinSignalHud/);
 assert.match(ui,/e\.signalAfter/,'HUD must consume live cascade Signal telemetry');
 assert.match(runtime,/\.signalHudLane\.low/);
 assert.match(runtime,/#b3261e/,'low Signal must use the gameplay warning red');
-assert.match(onboarding,/Each Market: \+1 refill\./);
+assert.match(onboarding,/Each Market: \+1 Core charge\./);
 
 console.log('v0.54 Signal progression + board HUD regression passed');

@@ -20,8 +20,8 @@ const coreOptions=(pieceId,core,{signalBase=2,signalMax=2,links=[]}={})=>({
   reservoirBonus:D.CORE_RESERVOIR_BONUS
 });
 
-assert.equal(D.VERSION,'0.54.0');
-assert.equal(D.ENGINE_VERSION,'0.20.1-core-abilities-v1');
+assert.equal(D.VERSION,'0.55.0');
+assert.equal(D.ENGINE_VERSION,'0.20.2-core-signal-additive-v1');
 assert.equal(D.CORE_SIGNAL_LEVEL_STEP,4);
 assert.equal(D.CORE_RESERVOIR_BONUS,8);
 assert.equal(D.CORE_LEVEL_MAX,5);
@@ -43,12 +43,14 @@ const reservoir=E.bestSignal(1,line,{initialOutput:2,...coreOptions(2,reservoirC
 const reservoirActivation=events(reservoir,'core-activate')[0];
 assert.equal(reservoirActivation.archetype,'reservoir');
 assert.equal(reservoirActivation.abilityApplied,'reservoir');
-assert.equal(reservoirActivation.afterSignal,10,'LEAD Reservoir I must refill 2 + 8 bonus in this constrained fixture');
+assert.equal(reservoirActivation.signalAdded,10,'LEAD Reservoir I must add base 2 + 8 bonus');
+assert.equal(reservoirActivation.afterSignal,reservoirActivation.beforeSignal+10,'Core charge must add to remaining Signal rather than refill to a cap');
 assert.equal(reservoir.signalRuntime.leadCoreArchetype,'reservoir');
 
 const levelTwoCore={id:'relay-level-two',archetype:'relay',level:2};
 const levelTwo=E.bestSignal(1,line,{initialOutput:2,...coreOptions(2,levelTwoCore)});
-assert.equal(events(levelTwo,'core-activate')[0].afterSignal,6,'Core II must add +4 Signal to its normal refill');
+assert.equal(events(levelTwo,'core-activate')[0].signalAdded,6,'Core II charge must be base 2 + level step 4');
+assert.equal(events(levelTwo,'core-activate')[0].afterSignal,events(levelTwo,'core-activate')[0].beforeSignal+6);
 
 const leadRelay={id:'lead-relay',archetype:'relay',level:1};
 const followReservoir={id:'follow-reservoir',archetype:'reservoir',level:1};
@@ -59,7 +61,8 @@ const follow=E.bestSignal(1,line,{
   coreLevelStep:D.CORE_SIGNAL_LEVEL_STEP,reservoirBonus:D.CORE_RESERVOIR_BONUS
 });
 assert.deepEqual(events(follow,'core-activate').map(event=>event.archetype),['relay','reservoir']);
-assert.equal(events(follow,'core-activate')[1].afterSignal,2,'Reservoir bonus is LEAD-only');
+assert.equal(events(follow,'core-activate')[1].signalAdded,2,'Reservoir bonus is LEAD-only');
+assert.equal(events(follow,'core-activate')[1].afterSignal,events(follow,'core-activate')[1].beforeSignal+2);
 
 const leadReservoir={id:'lead-reservoir',archetype:'reservoir',level:1};
 const followRelay={id:'follow-relay',archetype:'relay',level:1};
@@ -70,10 +73,12 @@ const nonDrainingFollow=E.bestSignal(1,line,{
   coreLevelStep:D.CORE_SIGNAL_LEVEL_STEP,reservoirBonus:D.CORE_RESERVOIR_BONUS
 });
 const nonDrainingActivations=events(nonDrainingFollow,'core-activate');
-assert.equal(nonDrainingActivations[0].afterSignal,10,'LEAD Reservoir must still refill to base + 8');
-assert.equal(nonDrainingActivations[1].beforeSignal,9,'fixture must reach the FOLLOW Core with more Signal than its normal refill');
-assert.equal(nonDrainingActivations[1].afterSignal,9,'FOLLOW Core recharge must never drain existing Signal');
-assert.equal(nonDrainingFollow.signalRuntime.remaining,8,'route must retain preserved Signal after the next paid visit');
+assert.equal(nonDrainingActivations[0].signalAdded,10,'LEAD Reservoir must add base + 8');
+assert.equal(nonDrainingActivations[0].afterSignal,11);
+assert.equal(nonDrainingActivations[1].beforeSignal,10,'fixture must reach the FOLLOW Core with additive Signal intact');
+assert.equal(nonDrainingActivations[1].signalAdded,2);
+assert.equal(nonDrainingActivations[1].afterSignal,12,'FOLLOW Core must add its charge instead of clamping Signal');
+assert.equal(nonDrainingFollow.signalRuntime.remaining,11,'route must retain additive Core Signal after the next paid visit');
 
 const splitFixture=[
   piece(3,3,6,8,0,11),
@@ -91,7 +96,7 @@ const distributed=E.bestSignal(14,splitFixture,{
   coreLevelStep:D.CORE_SIGNAL_LEVEL_STEP,reservoirBonus:D.CORE_RESERVOIR_BONUS
 });
 const distributedFork=events(distributed,'signal-fork')[0];
-assert.deepEqual(distributedFork.signalBudgets,[5,5],'LEAD Distributor must copy full remaining Signal into the first split');
+assert.deepEqual(distributedFork.signalBudgets,[9,9],'LEAD Distributor must copy the full additive Signal into the first split');
 assert.equal(distributedFork.distributorCoreId,distributorCore.id);
 assert.equal(distributed.signalRuntime.distributorUsed,true);
 
@@ -212,7 +217,8 @@ assert.equal(fire.ok,true);
 const gameActivation=events(fire.sim,'core-activate')[0];
 assert.equal(gameActivation.archetype,'reservoir');
 assert.equal(gameActivation.abilityApplied,'reservoir');
-assert.equal(gameActivation.afterSignal,D.CORE_SIGNAL_BY_MODE.eyes+D.CORE_RESERVOIR_BONUS,'game.js must pass the Eyes budget plus Core archetype/level into the engine runtime');
+assert.equal(gameActivation.signalAdded,D.CORE_SIGNAL_BY_MODE.eyes+D.CORE_RESERVOIR_BONUS,'game.js must pass the Eyes Core charge plus Reservoir bonus into the engine runtime');
+assert.equal(gameActivation.afterSignal,gameActivation.beforeSignal+gameActivation.signalAdded);
 assert.equal(fire.signalRuntime.leadCoreArchetype,'reservoir');
 assert.equal(fire.signalRuntime.effects.reservoirLead,true);
 
