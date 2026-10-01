@@ -71,7 +71,7 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE EYES');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 6.');
-  await expect(page.locator('#monoidBoardCoach')).toContainText('Cores refill it.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Cores add to it.');
   const before=await page.evaluate(()=>window.__monoidGame.exportState());
   await page.locator('[data-ux-action="start-mode"]').click();
   expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(before);
@@ -90,7 +90,7 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await expect(page.locator(`#board .coreNode[data-core-id="${activation}"].modeOnboardingCore`)).toHaveCount(1);
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('modePayoff');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('CORE LINKED');
-  await expect(page.locator('#monoidBoardCoach')).toContainText('Signal restored.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Core adds Signal.');
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('idle');
   const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.modeOnboarding.v1')));
   expect(progress.eyes).toEqual({reveal:true,orient:true,discovery:true,payoff:true});
@@ -105,7 +105,7 @@ test('The Frames refreshed intro reappears once without spoiling Core or Void co
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE FRAMES');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 4.');
-  await expect(page.locator('#monoidBoardCoach')).toContainText('Cores refill it.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Cores add to it.');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Core');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Void');
   await expect(page.locator('#board .coreNode, #board .boardVoid')).toHaveCount(4);

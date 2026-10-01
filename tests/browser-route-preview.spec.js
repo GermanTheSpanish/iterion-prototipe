@@ -75,7 +75,7 @@ test('route event vocabulary separates return lanes and labels route mechanics',
     }
   });
   await beginCandidateDrag(page);
-  await expect(page.locator('.routePreviewRebound')).toHaveText('REBOUND');await expect(page.locator('.routePreviewTeleport')).toHaveText('TELEPORT');await expect(page.locator('.routePreviewRecharge')).toHaveText('RECHARGE');await expect(page.locator('.routePreviewRelay')).toHaveText('RELAY');await expect(page.locator('.routePreviewDepleted')).toHaveText('SIGNAL OUT');
+  await expect(page.locator('.routePreviewRebound')).toHaveText('REBOUND');await expect(page.locator('.routePreviewTeleport')).toHaveText('TELEPORT');await expect(page.locator('.routePreviewRecharge')).toHaveText('CORE +21');await expect(page.locator('.routePreviewRelay')).toHaveText('RELAY');await expect(page.locator('.routePreviewDepleted')).toHaveText('SIGNAL OUT');
   const lanes=await page.evaluate(()=>{const forward=document.querySelector('.routePreviewLine.physical'),back=document.querySelector('.routePreviewLine.retrace'),attrs=el=>({x1:el?.getAttribute('x1'),y1:el?.getAttribute('y1'),x2:el?.getAttribute('x2'),y2:el?.getAttribute('y2'),stroke:el?getComputedStyle(el).stroke:null});return{forward:attrs(forward),back:attrs(back)}});expect(lanes.back.stroke).not.toBe(lanes.forward.stroke);expect([lanes.back.x1,lanes.back.y1,lanes.back.x2,lanes.back.y2]).not.toEqual([lanes.forward.x2,lanes.forward.y2,lanes.forward.x1,lanes.forward.y1]);await cancelDrag(page)
 });
 
