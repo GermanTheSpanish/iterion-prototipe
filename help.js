@@ -117,10 +117,10 @@
   const CORE_NAMES=Object.freeze({relay:'Relay',reservoir:'Reservoir',distributor:'Distributor',conductor:'Conductor'});
   function coreAbility(archetype){
     if(archetype==='relay')return{short:'Dead ends can bridge through this Core.',rule:'When this Core is LEAD, once per Move a Signal that would stop at one connected port jumps to another unvisited connected port.'};
-    if(archetype==='reservoir')return{short:'LEAD recharge gets extra Signal.',rule:`When this Core is LEAD, its recharge gains +${D.CORE_RESERVOIR_BONUS||8} Signal.`};
+    if(archetype==='reservoir')return{short:'LEAD charge adds extra Signal.',rule:`When this Core is LEAD, its Signal charge gains +${D.CORE_RESERVOIR_BONUS||8}.`};
     if(archetype==='distributor')return{short:'The first split keeps full Signal on every branch.',rule:'When this Core is LEAD, the first split after activation copies the full remaining Signal into every branch instead of dividing it.'};
     if(archetype==='conductor')return{short:'Doubles stop costing Signal.',rule:'When this Core is LEAD, the first visit to every double after activation costs 0 Signal for that Move.'};
-    return{short:'Refills Signal when activated.',rule:'A connected Core refills Signal when the cascade reaches it. Each passed Market raises Core refill by +1 Signal.'}
+    return{short:'Adds Signal when activated.',rule:'A connected Core adds its charge to the current Signal once per Move. Each passed Market raises Core charge by +1.'}
   }
   function signalMaxForMode(mode,marketCount=0){
     const mapped=Number(D.CORE_SIGNAL_BY_MODE?.[mode]),start=Math.max(1,Number.isFinite(mapped)&&mapped>0?mapped:Number(D.CORE_SIGNAL_MAX)||24),configuredStep=Number(D.CORE_SIGNAL_MARKET_STEP),step=Math.max(0,Number.isFinite(configuredStep)?configuredStep:1);
