@@ -8,7 +8,7 @@
   const TOUR_KEY='monoid.uiTour.v1',FIRST_BRIEF_KEY='monoid.firstRunBriefing.v1',MODE_ONBOARDING_KEY='monoid.modeOnboarding.v1',MODE_INTRO_KEY='monoid.modeIntro.v2',SYSTEMS_POWER_ID='g2-d1-2';
   const MODE_ONBOARDING=Object.freeze({
     eyes:Object.freeze({id:'eyes',kicker:'THE EYES · 1|1',name:'THE EYES',reveal:'Signal starts at 6.\\nCores add to it.\nEach Market: +1 Core charge.',orientTitle:'REACH A CORE',orient:'Reach a Core before the Signal dies.',discoveryTitle:'LEAD',discovery:'First Core sets the rule.',payoffTitle:'CORE LINKED',payoff:'Core adds Signal.'}),
-    frames:Object.freeze({id:'frames',kicker:'THE FRAMES · 2|2',name:'THE FRAMES',reveal:'Signal starts at 4.\\nCores add to it.\nEach Market: +1 Core charge.',orientTitle:'READ THE FRAME',orient:'Voids block placement. Reach a Core before Signal dies.',discoveryTitle:'LEAD',discovery:'First Core still sets the rule.',payoffTitle:'FRAME LINKED',payoff:'Core adds Signal. Voids stay permanent.'})
+    frames:Object.freeze({id:'frames',kicker:'THE FRAMES · 2|2',name:'THE FRAMES',reveal:'Signal starts at 4.\\nRoute through Cores to extend it.\nEach Market expands the Core network.',orientTitle:'READ THE FRAME',orient:'Voids block placement. Route through a Core before Signal dies.',discoveryTitle:'LEAD',discovery:'First Core still sets the rule.',payoffTitle:'FRAME LINKED',payoff:'Core adds Signal. Voids stay permanent.'})
   });
   const ux={mode:'idle',tourStep:null,commerce:null,tutorialKind:null,systemsPhase:null,rotationSeen:false,modeOnboarding:null};
   Object.defineProperty(root,'__monoidUx',{configurable:true,get:()=>({...ux})});
