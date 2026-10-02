@@ -35,9 +35,9 @@ assert(first.state().cores.every(core=>core.level===1&&D.CORE_ARCHETYPES.include
 assert(first.state().cores.every(core=>core.ports.length>=1&&core.ports.length<=4&&new Set(core.ports).size===core.ports.length));
 assert(first.state().cores[0].y<first.state().cores[1].y);
 const [northCore,southCore]=first.state().cores,northCenter=northCore.y+northCore.size/2,southCenter=southCore.y+southCore.size/2;
-assert.equal(northCenter,8,'The Eyes north pip should sit near one-third of the opening board');
-assert.equal(southCenter,16,'The Eyes south pip should sit near two-thirds of the opening board');
-assert.equal(southCenter-northCenter,8,'The Eyes pips should remain reachable without spanning half the board');
+assert.equal(northCenter,7,'The Eyes north pip must use the centre site of the shared 1|1 / 2|2 / 3|3 grid');
+assert.equal(southCenter,17,'The Eyes south pip must use the centre site of the shared 1|1 / 2|2 / 3|3 grid');
+assert.equal(southCenter-northCenter,10,'The Eyes pips must remain centred in their two separated board sectors');
 assert.equal(first.snapshot().cores.interaction,'physical');
 assert.equal(first.snapshot().signal.enabled,true);
 assert.equal(first.snapshot().signal.interaction,'runtime');
