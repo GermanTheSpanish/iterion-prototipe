@@ -74,8 +74,8 @@ try{
 }
 
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
-assert.match(ui,/ACTIVE_RUN_KEY='iterion\.activeRun\.v1'/);
-assert.match(ui,/LEGACY_RUN_KEY='iterion\.latestRun\.v9'/);
+assert.match(ui,/ACTIVE_RUN_KEY=scopeKey\('iterion\.activeRun\.v1'\)/,'active run persistence must be scoped to the selected profile');
+assert.match(ui,/LEGACY_RUN_KEY=scopeKey\('iterion\.latestRun\.v9'\)/,'legacy snapshot cleanup must target the selected profile');
 assert.match(ui,/localStorage\.removeItem\(LEGACY_RUN_KEY\)/,'active save frees the obsolete duplicate snapshot before writing');
 assert.doesNotMatch(ui,/const snap=GAME\.save\(\)/,'UI persistence must not write a second full run snapshot on every checkpoint');
 assert.match(ui,/SAVE FAILED · DOWNLOAD RUN DATA/,'quota/write failure must be visible instead of silently losing progress');
