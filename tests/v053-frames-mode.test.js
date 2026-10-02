@@ -106,8 +106,9 @@ for(let n=0;n<3;n++){
 }
 assert.deepEqual(E.getBoardSize(),{G:21,H:28});
 const stage2Snapshot=growth.snapshot(),stage2Discovery=[...gs.events].reverse().find(event=>event.type==='core-discover'&&event.stage===2);
-assert.equal(stage2Snapshot.modeGeometry.visibleIds.length,5,'Stage 2 keeps the canonical 2|2 sites and adds one network Core');
+assert.equal(stage2Snapshot.modeGeometry.visibleIds.length,6,'Stage 2 keeps the canonical 2|2 sites and adds one network Core plus one Void');
 assert.equal(stage2Snapshot.cores.telemetry.coreCount,3,'Frames gains one physical Core after its first Market');
+assert.equal(stage2Snapshot.modeGeometry.voids.length,3,'Frames gains one permanent Void with the discovered Core');
 assert.equal(gs.events.some(event=>event.type==='mode-geometry-reveal'),false,'the canonical 2|2 pips remain visible from the opening board');
 assert.equal(gs.cores.length,3);
 assert(stage2Discovery,'Stage 2 must discover a Core');
