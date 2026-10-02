@@ -1,13 +1,14 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
-  const ACTIVE_MODE_KEY='iterion.activeRunMode.v1',ACTIVE_RUN_KEY='iterion.activeRun.v1',LEGACY_RUN_KEY='iterion.latestRun.v9';
+  const PROFILE=window.MonoidProfile,scopeKey=key=>PROFILE?.storageKey?.(key)||key;
+  const ACTIVE_MODE_KEY=scopeKey('iterion.activeRunMode.v1'),ACTIVE_RUN_KEY=scopeKey('iterion.activeRun.v1'),LEGACY_RUN_KEY=scopeKey('iterion.latestRun.v9'),TUTORIAL_KEY=scopeKey('iterion.tutorialChoice.v1');
   const ROUTE_PREVIEW_KEY='iterion.routePreview.v1',ROUTE_PREVIEW_MODES=new Set(['full','preview','off']);
   const normalizeMode=mode=>['eyes','frames','river','loom','peaks'].includes(mode)?mode:'classic';
   const gameOptions=mode=>({GAME_MODE:normalizeMode(mode)});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
-  const V=window.IterionPresentation,MG=window.MonoidModGuidance,BATCH_STORE=window.MonoidPlaytestBatchStore?.create(),PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage}),gameMenu=$('gameMenu'),menuButton=$('menuButton'),modeIndicatorEl=$('modeIndicator');
+  const V=window.IterionPresentation,MG=window.MonoidModGuidance,BATCH_STORE=window.MonoidPlaytestBatchStore?.create(),PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage,...(PROFILE?.telemetryOptions?.()||{})}),gameMenu=$('gameMenu'),menuButton=$('menuButton'),modeIndicatorEl=$('modeIndicator');
   const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
@@ -85,7 +86,8 @@
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||window.__monoidSelectedMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function persistGame(){
     if(tutorial)return GAME.snapshot();
-    const snap=GAME.snapshot(),payload=JSON.stringify(GAME.exportState());
+    const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],payload=JSON.stringify(GAME.exportState());
+    if(unlockedModes.length){const names={eyes:'THE EYES',frames:'THE FRAMES',river:'THE RIVER',loom:'THE LOOM',peaks:'THE PEAKS'};queueMicrotask(()=>toast(`${names[unlockedModes.at(-1)]||unlockedModes.at(-1).toUpperCase()} UNLOCKED`))}
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
       localStorage.setItem(ACTIVE_RUN_KEY,payload);
@@ -132,13 +134,13 @@
   function showGame(){entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render();if(!tutorial)resumePlaytest()}
   function showSelection(){
     pausePlaytest();press?.cancel?.();if(gameMenu.open)gameMenu.close();hideOverlay();app.hidden=true;entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
-    const saved=storedState(),choiceMade=localStorage.getItem('iterion.tutorialChoice.v1')==='made',mode=selectedMode(saved),modeIndex=window.__monoidModes?.modes?.findIndex(item=>item.id===mode)??-1;if(modeIndex>=0)window.__monoidModes.select(modeIndex);continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
+    const saved=storedState(),choiceMade=localStorage.getItem(TUTORIAL_KEY)==='made',mode=selectedMode(saved),modeIndex=window.__monoidModes?.modes?.findIndex(item=>item.id===mode)??-1;if(modeIndex>=0)window.__monoidModes.select(modeIndex);continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
   async function startNormal(continueSaved=false){
     clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;if(!continueSaved)await archiveSavedRun('new-run');const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
     localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;window.__monoidSelectedMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
-    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem('iterion.tutorialChoice.v1','made');persistGame();handFx.fill('normal');showGame()
+    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem(TUTORIAL_KEY,'made');persistGame();handFx.fill('normal');showGame()
   }
   const tutorialCopy=[
     'Place the double. Every machine opens with one.',
@@ -155,7 +157,7 @@
   }
   function updateTutorial(){if(!tutorial)return;tutorialStep.textContent=`LEARN MONOID · ${tutorial.step+1}/6`;tutorialInstruction.textContent=tutorialCopy[tutorial.step];tutorialPanel.hidden=false;renderHand();renderBoard()}
   function startTutorial(){
-    clearModFaceReveals();pausePlaytest();if(!tutorial)activeRun=GAME;tutorial={step:0,exitPending:false};GAME=window.IterionGame.createGame(E,{seed:3100,TARGETS:[1e9],STARTING_COINS:30});prepareTutorialHand('d2-2');H.bindRun(GAME.state().runId);localStorage.setItem('iterion.tutorialChoice.v1','made');handFx.fill('normal');showGame();updateTutorial()
+    clearModFaceReveals();pausePlaytest();if(!tutorial)activeRun=GAME;tutorial={step:0,exitPending:false};GAME=window.IterionGame.createGame(E,{seed:3100,TARGETS:[1e9],STARTING_COINS:30});prepareTutorialHand('d2-2');H.bindRun(GAME.state().runId);localStorage.setItem(TUTORIAL_KEY,'made');handFx.fill('normal');showGame();updateTutorial()
   }
   function leaveTutorial(completed=false){
     clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;GAME=activeRun||window.IterionGame.createGame(E);activeRun=null;H.bindRun(GAME.state().runId);showSelection();if(completed)toast('Tutorial complete')
