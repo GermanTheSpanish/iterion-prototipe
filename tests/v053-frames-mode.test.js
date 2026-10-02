@@ -12,7 +12,7 @@ const overlap=(piece,item)=>piece.cubes.some(cube=>cube.x<item.x+item.size&&cube
 const coreRectsOverlapForTest=(a,b)=>a.x<b.x+b.size&&a.x+a.size>b.x&&a.y<b.y+b.size&&a.y+a.size>b.y;
 const centres=item=>({x:item.x+item.size/2,y:item.y+item.size/2});
 
-assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes','frames','river']);
+assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes','frames','river','loom','peaks']);
 
 E.setBoardSize(18,24);
 const first=G.createGame(E,{seed:5301,GAME_MODE:'frames',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)});
