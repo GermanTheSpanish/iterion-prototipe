@@ -491,7 +491,7 @@ function createGame(E,opts={}){
   }
   function growPeaksEndless(stage,reason='endless-growth'){
     if(canonicalGameMode(s.gameMode)!=='peaks'||!s.endlessMode||stage<=baseStageCount())return null;
-    const voidCount=Math.max(0,Math.trunc(Number(cfg.PEAKS_ENDLESS_VOID_COUNT)||4),denominator=Math.max(1,Math.trunc(Number(cfg.PEAKS_ENDLESS_CORE_CHANCE_DENOMINATOR)||3)),numerator=Math.max(0,Math.min(denominator,Math.trunc(Number(cfg.PEAKS_ENDLESS_CORE_CHANCE_NUMERATOR)||2))),canAddCore=(s.cores?.length||0)<coreMaxPhysicalForMode('peaks'),coreRoll=coreHash(s.seed||0,stage,701)%denominator,wantsCore=canAddCore&&coreRoll<numerator;
+    const voidCount=Math.max(0,Math.trunc(Number(cfg.PEAKS_ENDLESS_VOID_COUNT)||4)),denominator=Math.max(1,Math.trunc(Number(cfg.PEAKS_ENDLESS_CORE_CHANCE_DENOMINATOR)||3)),numerator=Math.max(0,Math.min(denominator,Math.trunc(Number(cfg.PEAKS_ENDLESS_CORE_CHANCE_NUMERATOR)||2))),canAddCore=(s.cores?.length||0)<coreMaxPhysicalForMode('peaks'),coreRoll=coreHash(s.seed||0,stage,701)%denominator,wantsCore=canAddCore&&coreRoll<numerator;
     if(wantsCore){
       const core=discoverCore(stage,reason);
       if(!core)return null;
