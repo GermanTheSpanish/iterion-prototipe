@@ -385,8 +385,20 @@ function createGame(E,opts={}){
     return(core.ports||[]).filter(side=>{const cells=coreApproachCells(core,side);return cells.length===2&&cells.every(free)})
   }
   function ensureOpeningCoreApproaches(reason='layout'){
-    const changes=[];for(let index=0;index<(s.cores||[]).length;index++){const core=s.cores[index];if(fullDominoApproachSides(core).length)continue;const available=CORE_SIDES.filter(side=>fullDominoApproachSides({...core,ports:[side]}).length);if(!available.length)continue;const side=[...available].sort((a,b)=>coreHash(s.seed||0,index,503+CORE_SIDES.indexOf(a))-coreHash(s.seed||0,index,503+CORE_SIDES.indexOf(b))||CORE_SIDES.indexOf(a)-CORE_SIDES.indexOf(b))[0],before=[...(core.ports||[])],ports=before.length?[side,...before.slice(1)]:[side];core.ports=[...new Set(ports)];changes.push({coreId:core.id,from:before,to:[...core.ports],approachSides:fullDominoApproachSides(core)})}
-    if(changes.length)s.events.push({type:'core-port-reachability',reason,cores:deepClone(changes)});return changes
+    const changes=[],unresolved=[];
+    s.cores=(s.cores||[]).map((core,index)=>{
+      const before=[...(core.ports||[])];if(fullDominoApproachSides(core).length)return core;
+      const available=CORE_SIDES.filter(side=>fullDominoApproachSides({...core,ports:[side]}).length);
+      if(!available.length){unresolved.push(core.id);return core}
+      const primary=[...available].sort((a,b)=>coreHash(s.seed||0,index,503+CORE_SIDES.indexOf(a))-coreHash(s.seed||0,index,503+CORE_SIDES.indexOf(b))||CORE_SIDES.indexOf(a)-CORE_SIDES.indexOf(b))[0],count=Math.max(1,before.length),ports=[primary];
+      for(const side of before)if(side!==primary&&!ports.includes(side)&&ports.length<count)ports.push(side);
+      for(const side of CORE_SIDES)if(!ports.includes(side)&&ports.length<count)ports.push(side);
+      const next={...core,ports};if(!fullDominoApproachSides(next).length){unresolved.push(core.id);return core}
+      changes.push({coreId:core.id,from:before,to:[...ports],approachSides:fullDominoApproachSides(next)});return next
+    });
+    if(changes.length)s.events.push({type:'core-port-reachability',reason,cores:deepClone(changes)});
+    if(unresolved.length)s.events.push({type:'core-port-reachability-blocked',reason,coreIds:[...unresolved]});
+    return changes
   }
   function growthStageRects(stage){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},stageBoard=progressionBoardSizeForStage(Math.max(0,stage-1)),previousBoard=progressionBoardSizeForStage(Math.max(0,stage-2));
@@ -1585,6 +1597,7 @@ function createGame(E,opts={}){
       if(v.type==='core-archetype-migrate'){lines.push(`CORE LEGACY ARCHETYPE MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${String(core.from||'-').toUpperCase()}>${String(core.to||'-').toUpperCase()}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='core-port-migrate'){lines.push(`CORE LEGACY PORT MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${(core.from||[]).join('')}>${(core.to||[]).join('')}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='core-port-reachability'){lines.push(`CORE PORT REACHABILITY ${(v.cores||[]).map(core=>`${core.coreId}:${(core.from||[]).join('')}>${(core.to||[]).join('')} approach=${(core.approachSides||[]).join('')||'-'}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-port-reachability-blocked'){lines.push(`CORE PORT REACHABILITY BLOCKED ids=${(v.coreIds||[]).join(',')||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='stage-start'){lines.push(`STAGE ${v.stage} START R${v.round} coins=${v.coins} inflation=${v.inflation} available=${v.available} board=${v.board.join('x')} freeReroll=${v.freeReroll||0} generation=${v.setGeneration||1}`);continue}
       if(v.type==='shop-scheduled'){lines.push(`R${v.round} NEXT ${v.shop.toUpperCase()}`);continue}
       if(v.type==='shop-open'){lines.push(`R${v.round} ${v.shop.toUpperCase()} OPEN coins=${v.coins} inflation=${v.inflation} available=${v.available}${v.offers?.length?` offers=${v.offers.join(',')}`:''}`);continue}
