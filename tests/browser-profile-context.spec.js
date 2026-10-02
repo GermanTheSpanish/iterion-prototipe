@@ -12,6 +12,17 @@ test('player, dev and fresh contexts keep progression and saves isolated',async(
   await page.addInitScript(()=>{
     localStorage.clear();
     localStorage.setItem('monoid.profileContext.v1','player');
+    localStorage.setItem('monoid.profile.player.v1',JSON.stringify({
+      version:1,
+      profileId:'P-NEWTEST',
+      createdAt:'2026-10-02T16:00:00.000Z',
+      context:'player',
+      unlockedModes:['classic'],
+      unlockedMods:[],
+      collection:{numbers:[]},
+      stats:{runsStarted:0,runsFinished:0,endlessRuns:0,ouroborosRuns:0},
+      migration:null
+    }));
     localStorage.setItem('monoid.firstRunBriefing.v1','seen');
     localStorage.setItem('iterion.tutorialChoice.v1','made');
   });
