@@ -3,7 +3,7 @@
   const PROFILE=window.MonoidProfile,scopeKey=key=>PROFILE?.storageKey?.(key)||key;
   const ACTIVE_MODE_KEY=scopeKey('iterion.activeRunMode.v1'),ACTIVE_RUN_KEY=scopeKey('iterion.activeRun.v1'),LEGACY_RUN_KEY=scopeKey('iterion.latestRun.v9'),TUTORIAL_KEY=scopeKey('iterion.tutorialChoice.v1');
   const ROUTE_PREVIEW_KEY='iterion.routePreview.v1',ROUTE_PREVIEW_MODES=new Set(['full','preview','off']);
-  const normalizeMode=mode=>['eyes','frames','river','loom','peaks'].includes(mode)?mode:'classic';
+  const normalizeMode=mode=>['eyes','frames','river','loom','peaks','islands'].includes(mode)?mode:'classic';
   const gameOptions=mode=>({GAME_MODE:normalizeMode(mode)});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
@@ -87,7 +87,7 @@
   function persistGame(){
     if(tutorial)return GAME.snapshot();
     const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],payload=JSON.stringify(GAME.exportState());
-    if(unlockedModes.length){const names={eyes:'THE EYES',frames:'THE FRAMES',river:'THE RIVER',loom:'THE LOOM',peaks:'THE PEAKS'};queueMicrotask(()=>toast(`${names[unlockedModes.at(-1)]||unlockedModes.at(-1).toUpperCase()} UNLOCKED`))}
+    if(unlockedModes.length){const names={eyes:'THE EYES',frames:'THE FRAMES',river:'THE RIVER',loom:'THE LOOM',peaks:'THE PEAKS',islands:'THE ISLANDS'};queueMicrotask(()=>toast(`${names[unlockedModes.at(-1)]||unlockedModes.at(-1).toUpperCase()} UNLOCKED`))}
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
       localStorage.setItem(ACTIVE_RUN_KEY,payload);
