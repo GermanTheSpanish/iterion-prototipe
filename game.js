@@ -701,11 +701,54 @@ function createGame(E,opts={}){
 
   function setRootRotation(rr){if(s.pieces.length||s.running)return false;s.rootRR=((rr%4)+4)%4;return true}
   function rotateRoot(){return setRootRotation(s.rootRR+1)}
-  function rootPlacements(tile){let out=[];for(let y=0;y<=E.H-E.S;y++)for(let x=0;x<=E.G-E.S;x++){let p=E.pieceFrom(tile,x,y,0,s.rootRR,-1);if(p.rect.minx>=0&&p.rect.miny>=0&&p.rect.maxx<=E.G&&p.rect.maxy<=E.H&&!pieceOverlapsBlockedGeometry(p))out.push({x,y,z:0,rr:s.rootRR})}return out}
+  function islandsMode(){return canonicalGameMode(s.gameMode)==='islands'}
+  function islandComponents(pieces=s.pieces){
+    const list=Array.isArray(pieces)?pieces:[],graph=new Map(list.map(piece=>[piece.id,new Set()]));
+    for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){const contact=E.contactBetweenPieces(list[i],list[j]);if(contact.touch&&contact.ok){graph.get(list[i].id).add(list[j].id);graph.get(list[j].id).add(list[i].id)}}
+    const components=[],componentByPieceId=new Map(),seen=new Set();
+    for(const piece of list)if(!seen.has(piece.id)){const ids=[],queue=[piece.id];seen.add(piece.id);for(let i=0;i<queue.length;i++){const id=queue[i];ids.push(id);for(const next of graph.get(id)||[])if(!seen.has(next)){seen.add(next);queue.push(next)}}ids.sort((a,b)=>String(a).localeCompare(String(b)));const index=components.length;components.push(ids);for(const id of ids)componentByPieceId.set(id,index)}
+    return{components,componentByPieceId,graph}
+  }
+  function islandTelemetry(pieces=s.pieces){
+    if(!islandsMode())return{enabled:false,rootPieceId:null,componentCount:0,dormantComponentCount:0,activePieceIds:[],dormantPieceIds:[],signalBonus:0,cores:[]};
+    const state=islandComponents(pieces),rootPieceId=state.componentByPieceId.has(s.islandRootPieceId)?s.islandRootPieceId:(pieces[0]?.id??null),activeIndex=rootPieceId==null?null:state.componentByPieceId.get(rootPieceId),activePieceIds=activeIndex==null?[]:[...(state.components[activeIndex]||[])],activeSet=new Set(activePieceIds),dormantPieceIds=state.components.filter((_,index)=>index!==activeIndex).flat(),coreShadow=coreShadowTelemetry(pieces),cores=(coreShadow.cores||[]).map(core=>{const pieceIds=(core.connectedLinks||[]).map(link=>link.pieceId),active=pieceIds.some(id=>activeSet.has(id)),dormant=pieceIds.some(id=>!activeSet.has(id));return{id:core.id,state:active?'active':dormant?'dormant':'unclaimed',active,dormant,connectedPieceIds:pieceIds}});
+    return{enabled:true,rootPieceId,componentCount:state.components.length,dormantComponentCount:Math.max(0,state.components.length-(activeIndex==null?0:1)),activePieceIds,dormantPieceIds,signalBonus:Math.max(0,Number(s.islandSignalBonus)||0),cores}
+  }
+  function islandCoreAnchorPlacements(tile){
+    if(!islandsMode()||!tile)return[];
+    const connected=new Set((coreShadowTelemetry(s.pieces).cores||[]).filter(core=>(core.connectedLinks||[]).length).map(core=>core.id)),cell=Math.max(1,Number(E.S)||2),out=[],seen=new Set();
+    for(const core of [...(s.cores||[])].filter(geometryItemVisible).sort((a,b)=>String(a.id).localeCompare(String(b.id)))){
+      if(connected.has(core.id))continue;
+      for(const side of core.ports||[]){const cells=coreApproachCells(core,side);if(cells.length!==2)continue;const dx=(cells[1].x-cells[0].x)/cell,dy=(cells[1].y-cells[0].y)/cell,forward=E.DIR.findIndex(dir=>dir[0]===dx&&dir[1]===dy);if(forward<0)continue;
+        for(const spec of [{x:cells[0].x,y:cells[0].y,rr:forward},{x:cells[1].x,y:cells[1].y,rr:(forward+2)%4}]){const piece=E.pieceFrom(tile,spec.x,spec.y,0,spec.rr,-1);if(piece.rect.minx<0||piece.rect.miny<0||piece.rect.maxx>E.G||piece.rect.maxy>E.H||pieceOverlapsBlockedGeometry(piece))continue;const validation=s.pieces.length?E.validatePlacement(tile,spec.x,spec.y,0,spec.rr,s.pieces):{ok:true};if(s.pieces.length&&(validation.ok||validation.reason!=='no-contact'))continue;const key=`${spec.x}:${spec.y}:${spec.rr}`;if(seen.has(key))continue;seen.add(key);out.push({...spec,z:0,islandAnchor:true,islandAnchorCoreId:core.id})}
+      }
+    }
+    return out
+  }
+  function islandAnchorForPlacement(tile,placement){
+    if(!islandsMode())return null;return islandCoreAnchorPlacements(tile).find(candidate=>candidate.x===placement.x&&candidate.y===placement.y&&candidate.rr===placement.rr)||null
+  }
+  function modePlacementValidation(tile,placement){
+    const x=Number(placement?.x),y=Number(placement?.y),rr=((Number(placement?.rr)||0)%4+4)%4;if(!Number.isInteger(x)||!Number.isInteger(y))return{ok:false,reason:'grid'};
+    if(placementOverlapsCore(tile,x,y,rr))return{ok:false,reason:'core-overlap'};if(placementOverlapsVoid(tile,x,y,rr))return{ok:false,reason:'void-overlap'};
+    const anchor=islandAnchorForPlacement(tile,{x,y,rr});
+    if(s.pieces.length){const validation=E.validatePlacement(tile,x,y,0,rr,s.pieces);if(validation.ok)return{ok:true,validation,islandAnchorCoreId:null,islandDisconnected:false};if(islandsMode()&&validation.reason==='no-contact'&&anchor)return{ok:true,validation,islandAnchorCoreId:anchor.islandAnchorCoreId,islandDisconnected:true};return{ok:false,reason:validation.reason||'invalid'}}
+    const piece=E.pieceFrom(tile,x,y,0,rr,-1);if(piece.rect.minx<0||piece.rect.miny<0||piece.rect.maxx>E.G||piece.rect.maxy>E.H)return{ok:false,reason:'bounds'};if(islandsMode()&&!anchor)return{ok:false,reason:'island-core-anchor'};return{ok:true,validation:null,islandAnchorCoreId:anchor?.islandAnchorCoreId||null,islandDisconnected:false}
+  }
+  function islandPlacementAnalysis(piece,piecesBefore=s.pieces){
+    if(!islandsMode())return{active:true,dormant:false,linkedDormantCount:0,touchedComponentIndexes:[]};
+    if(!piecesBefore.length)return{active:true,dormant:false,linkedDormantCount:0,touchedComponentIndexes:[]};
+    const state=islandComponents(piecesBefore),rootPieceId=state.componentByPieceId.has(s.islandRootPieceId)?s.islandRootPieceId:piecesBefore[0]?.id,activeIndex=state.componentByPieceId.get(rootPieceId),touched=new Set();
+    for(const other of piecesBefore){const contact=E.contactBetweenPieces(piece,other);if(contact.touch&&contact.ok){const index=state.componentByPieceId.get(other.id);if(index!=null)touched.add(index)}}
+    const active=touched.has(activeIndex),linkedDormantCount=active?[...touched].filter(index=>index!==activeIndex).length:0;
+    return{active,dormant:!active,linkedDormantCount,touchedComponentIndexes:[...touched].sort((a,b)=>a-b)}
+  }
+  function rootPlacements(tile){if(islandsMode())return islandCoreAnchorPlacements(tile);let out=[];for(let y=0;y<=E.H-E.S;y++)for(let x=0;x<=E.G-E.S;x++){let p=E.pieceFrom(tile,x,y,0,s.rootRR,-1);if(p.rect.minx>=0&&p.rect.miny>=0&&p.rect.maxx<=E.G&&p.rect.maxy<=E.H&&!pieceOverlapsBlockedGeometry(p))out.push({x,y,z:0,rr:s.rootRR})}return out}
   function placementCandidatesForTile(tile){
     if(!tile)return[];if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return[];
-    const candidates=s.pieces.length?E.allPlacements(tile,0,s.pieces):rootPlacements(tile);
-    return physicalCoreMode()||physicalVoidMode()?candidates.filter(c=>!placementOverlapsBlockedGeometry(tile,c.x,c.y,c.rr)):candidates
+    let candidates=s.pieces.length?E.allPlacements(tile,0,s.pieces):rootPlacements(tile);
+    if(islandsMode()&&s.pieces.length)candidates=[...candidates,...islandCoreAnchorPlacements(tile)];
+    const seen=new Set(),filtered=[];for(const candidate of candidates){if((physicalCoreMode()||physicalVoidMode())&&placementOverlapsBlockedGeometry(tile,candidate.x,candidate.y,candidate.rr))continue;const key=`${candidate.x}:${candidate.y}:${candidate.rr}`;if(seen.has(key))continue;seen.add(key);filtered.push(candidate)}return filtered
   }
   function candidatesForIndex(i){return placementCandidatesForTile(s.hand[i])}
   function legalHandMask(){return s.hand.map(tile=>!!tile&&placementCandidatesForTile(tile).length>0)}
