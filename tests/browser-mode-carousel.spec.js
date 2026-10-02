@@ -1,6 +1,12 @@
 const {test,expect}=require('@playwright/test');
 
 function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y}
+async function dismissModeIntro(page){
+  await page.waitForTimeout(40);
+  if(await page.locator('[data-ux-action="start-first"]').isVisible()){await page.locator('[data-ux-action="start-first"]').click();await page.waitForTimeout(40)}
+  if(await page.locator('[data-ux-action="start-mode"]').isVisible())await page.locator('[data-ux-action="start-mode"]').click();
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3500}).toBe('idle')
+}
 
 test('mode carousel keeps a continuous strip and weights its physical settle by release distance',async({page})=>{
   await page.setViewportSize({width:375,height:667});
@@ -72,7 +78,7 @@ test('Classic, The Eyes, The Frames and The River are playable while Classic kee
   await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
 
-  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes','frames','river']);
+  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes','frames','river','loom','peaks']);
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
   await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
   await page.locator('#startRun').click();
@@ -94,6 +100,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await page.locator('#startRun').click();
+  await dismissModeIntro(page);
   await expect(page.locator('#board .coreNode')).toHaveCount(2);
   await expect(page.locator('#modeIndicator')).toBeVisible();
   await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(2);
@@ -163,7 +170,7 @@ test('The Eyes makes the Stage 4 Core discovery a visible board event',async({pa
   await page.evaluate(()=>window.__monoidModes.select(1));
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await page.locator('#startRun').click();
-  if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
+  await dismissModeIntro(page);
   await page.evaluate(()=>{const g=window.__monoidGame,s=g.state();s.round=8;s.cleared=true;s.blocked=false;s.running=false;s.nextShopType='none';s.intermissionResolved=true;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false});
   await page.locator('#menuButton').click();await page.locator('#menuHelpButton').click();await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('ROUND CLEAR');
@@ -191,6 +198,7 @@ test('The Eyes keeps its 1|1 selector and replaces a saved Classic run without r
   expect(await page.evaluate(()=>window.__monoidSelectedMode)).toBe('eyes');
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#startRun').click();
+  await dismissModeIntro(page);
   await expect(page.locator('#board .coreNode')).toHaveCount(2);
   const state=await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,cores:window.__monoidGame.state().cores.length,storedMode:localStorage.getItem('iterion.activeRunMode.v1'),savedMode:JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.gameMode}));
   expect(state).toEqual({mode:'eyes',cores:2,storedMode:'eyes',savedMode:'eyes'});
@@ -207,6 +215,7 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   await expect(page.locator('#modeDescription')).toHaveText('2|2 · Signal 4');
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({frames:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({frames:true}))});
   await page.locator('#startRun').click();
+  await dismissModeIntro(page);
   await expect(page.locator('#modeIndicator')).toBeVisible();
   await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(2);
   await expect(page.locator('#modeIndicator .modePip')).toHaveCount(4);
@@ -254,6 +263,7 @@ test('The River starts a seeded 3|3 run with fixed Cores and four Voids',async({
   await expect(page.locator('#modeDescription')).toHaveText('3|3 · Signal 3');
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({river:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({river:true}))});
   await page.locator('#startRun').click();
+  await dismissModeIntro(page);
   await expect(page.locator('#modeIndicator')).toBeVisible();
   await expect(page.locator('#modeIndicator .modePip')).toHaveCount(6);
   await expect(page.locator('#board .coreNode')).toHaveCount(2);
@@ -276,4 +286,46 @@ test('The River starts a seeded 3|3 run with fixed Cores and four Voids',async({
   });
   expect(safety.checked).toBeGreaterThan(0);
   expect(safety.overlaps).toBe(0);
+});
+
+
+test('The Loom and The Peaks start as real 4|4 and 5|5 Core modes',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.waitForFunction(()=>!!window.__monoidModes);
+  await page.locator('#titleCard').click();
+
+  await page.evaluate(()=>window.__monoidModes.select(4));
+  await expect(page.locator('#modeName')).toHaveText('THE LOOM');
+  await expect(page.locator('#modeDescription')).toHaveText('4|4 · Signal 2');
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({loom:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({loom:true}))});
+  await page.locator('#startRun').click();
+  await dismissModeIntro(page);
+  await expect(page.locator('#modeIndicator .modePip')).toHaveCount(8);
+  await expect(page.locator('#board .coreNode')).toHaveCount(4);
+  await expect(page.locator('#board .boardVoid')).toHaveCount(4);
+  let state=await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,cores:window.__monoidGame.state().cores,voids:window.__monoidGame.state().voids,signal:window.__monoidGame.snapshot().signal,geometry:window.__monoidGame.snapshot().modeGeometry}));
+  expect(state.mode).toBe('loom');expect(state.cores).toHaveLength(4);expect(state.voids).toHaveLength(4);expect(state.signal.base).toBe(2);expect(state.geometry.visibleIds).toHaveLength(8);
+
+  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.evaluate(()=>window.__monoidModes.select(5));
+  await expect(page.locator('#modeName')).toHaveText('THE PEAKS');
+  await expect(page.locator('#modeDescription')).toHaveText('5|5 · Signal 2');
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({peaks:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({peaks:true}))});
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#startRun').click();
+  await dismissModeIntro(page);
+  await expect(page.locator('#modeIndicator .modePip')).toHaveCount(10);
+  await expect(page.locator('#board .coreNode')).toHaveCount(6);
+  await expect(page.locator('#board .coreNode.corePeak')).toHaveCount(2);
+  await expect(page.locator('#board .boardVoid')).toHaveCount(4);
+  state=await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,cores:window.__monoidGame.state().cores,voids:window.__monoidGame.state().voids,signal:window.__monoidGame.snapshot().signal,geometry:window.__monoidGame.snapshot().modeGeometry}));
+  expect(state.mode).toBe('peaks');expect(state.cores.filter(core=>core.peak)).toHaveLength(2);expect(state.signal.base).toBe(2);expect(state.geometry.visibleIds).toHaveLength(10);
+  expect(state.cores.filter(core=>core.peak).map(({half,x,y})=>({half,x,y}))).toEqual([{half:'north',x:8,y:6},{half:'south',x:8,y:16}]);
+
+  const peak=page.locator('#board .coreNode.corePeak').first(),box=await peak.boundingBox();expect(box).toBeTruthy();
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(600);await page.mouse.up();
+  await expect(page.locator('#overlayTitle')).toContainText('PEAK');
+  await expect(page.locator('#overlayBody')).toContainText('LEAD / LINK Ability');
+  await expect(page.locator('#overlayBody')).toContainText('PEAK ×2');
 });
