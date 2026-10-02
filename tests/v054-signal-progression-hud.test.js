@@ -18,7 +18,7 @@ assert.equal(D.VERSION,'0.62.0');
 assert.equal(D.CORE_SIGNAL_MARKET_STEP,1);
 assert.equal(D.CORE_SIGNAL_PURCHASE_COST,8);
 assert.equal(D.CORE_SIGNAL_PURCHASE_STEP,3);
-assert.deepEqual(D.CORE_SIGNAL_BY_MODE,{eyes:6,frames:4,river:3,loom:2,peaks:2});
+assert.deepEqual(D.CORE_SIGNAL_BY_MODE,{eyes:6,frames:4,river:3,loom:2,peaks:2,islands:2});
 
 E.setBoardSize(30,40);
 const rescueLine=[
