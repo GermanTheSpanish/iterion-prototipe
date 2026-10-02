@@ -11,6 +11,8 @@
   const LATEST_RUN_KEY='iterion.latestRun.v9';
   const TUTORIAL_KEY='iterion.tutorialChoice.v1';
   const PROTECTED_KEYS=new Set([ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY]);
+  const scopedKey=(root,key)=>root.MonoidProfile?.storageKey?.(key)||key;
+  const protectedKeys=root=>new Set([...PROTECTED_KEYS,...[...PROTECTED_KEYS].map(key=>scopedKey(root,key))]);
   const PRESETS=Object.freeze({
     classic14:Object.freeze({id:'classic14',mode:'classic',round:13,generation:2,score:0,best:57863119300,coins:165,inflation:8,endless:false,powerGeneration:2,sourceRunId:'mu66e4fp-116me8o'}),
     infinite16:Object.freeze({id:'infinite16',mode:'classic',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3}),
@@ -191,14 +193,14 @@
     return game
   }
   function installStorageSandbox(root,mode){
-    const storage=root.localStorage,proto=Object.getPrototypeOf(storage),raw={getItem:proto.getItem,setItem:proto.setItem,removeItem:proto.removeItem,clear:proto.clear};
-    const original=new Map([...PROTECTED_KEYS].map(key=>[key,raw.getItem.call(storage,key)]));
-    const shadow=new Map(original);shadow.set(ACTIVE_RUN_KEY,null);shadow.set(LATEST_RUN_KEY,null);shadow.set(ACTIVE_MODE_KEY,mode);shadow.set(TUTORIAL_KEY,'made');
-    proto.getItem=function(key){key=String(key);if(this===storage&&PROTECTED_KEYS.has(key))return shadow.get(key)??null;return raw.getItem.call(this,key)};
-    proto.setItem=function(key,value){key=String(key);if(this===storage&&PROTECTED_KEYS.has(key)){shadow.set(key,String(value));return}return raw.setItem.call(this,key,value)};
-    proto.removeItem=function(key){key=String(key);if(this===storage&&PROTECTED_KEYS.has(key)){shadow.set(key,null);return}return raw.removeItem.call(this,key)};
-    proto.clear=function(){if(this!==storage)return raw.clear.call(this);for(let i=this.length-1;i>=0;i--){const key=this.key(i);if(key&&!PROTECTED_KEYS.has(key))raw.removeItem.call(this,key)};for(const key of PROTECTED_KEYS)shadow.set(key,null)};
-    return Object.freeze({original:Object.fromEntries(original),shadow,protectedKeys:[...PROTECTED_KEYS]})
+    const storage=root.localStorage,proto=Object.getPrototypeOf(storage),raw={getItem:proto.getItem,setItem:proto.setItem,removeItem:proto.removeItem,clear:proto.clear},keys=protectedKeys(root),activeRunKey=scopedKey(root,ACTIVE_RUN_KEY),activeModeKey=scopedKey(root,ACTIVE_MODE_KEY),latestRunKey=scopedKey(root,LATEST_RUN_KEY),tutorialKey=scopedKey(root,TUTORIAL_KEY);
+    const original=new Map([...keys].map(key=>[key,raw.getItem.call(storage,key)]));
+    const shadow=new Map(original);shadow.set(activeRunKey,null);shadow.set(latestRunKey,null);shadow.set(activeModeKey,mode);shadow.set(tutorialKey,'made');
+    proto.getItem=function(key){key=String(key);if(this===storage&&keys.has(key))return shadow.get(key)??null;return raw.getItem.call(this,key)};
+    proto.setItem=function(key,value){key=String(key);if(this===storage&&keys.has(key)){shadow.set(key,String(value));return}return raw.setItem.call(this,key,value)};
+    proto.removeItem=function(key){key=String(key);if(this===storage&&keys.has(key)){shadow.set(key,null);return}return raw.removeItem.call(this,key)};
+    proto.clear=function(){if(this!==storage)return raw.clear.call(this);for(let i=this.length-1;i>=0;i--){const key=this.key(i);if(key&&!keys.has(key))raw.removeItem.call(this,key)};for(const key of keys)shadow.set(key,null)};
+    return Object.freeze({original:Object.fromEntries(original),shadow,protectedKeys:[...keys]})
   }
   function addQaStamp(root,preset){
     const menu=root.document.getElementById('gameMenu');if(!menu||menu.querySelector('.qaPresetStamp'))return;
@@ -208,7 +210,7 @@
     if(new URL(root.location.href).searchParams.has('qa'))return;
     const game=root.__monoidGame,flow=root.__monoidFlow;
     if(flow?.screen!=='game'||!game?.exportState)return;
-    try{root.localStorage.setItem(ACTIVE_RUN_KEY,JSON.stringify(game.exportState()))}catch(_){ }
+    try{root.localStorage.setItem(scopedKey(root,ACTIVE_RUN_KEY),JSON.stringify(game.exportState()))}catch(_){ }
   }
   function qaUrl(root,id){
     const url=new URL(root.location.href);url.search='';url.searchParams.set('qa',id);url.searchParams.set('cb',BUILD_ID);return url.href
@@ -240,12 +242,18 @@
       #qaTestRunsDialog .qaPresetChoice strong{font-size:13px;letter-spacing:.04em}
       #qaTestRunsDialog .qaPresetChoice small{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.3}
       #qaTestRunsDialog .qaReturn{display:block;margin-top:12px;padding:12px;text-align:center;text-decoration:none;background:#151515;color:#fff;border:1px solid #151515}
+      #qaTestRunsDialog .qaProfileContext{margin:0 0 14px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+      #qaTestRunsDialog .qaProfileContext strong{display:block;margin-bottom:7px;font-size:10px;letter-spacing:.08em}
+      #qaTestRunsDialog .qaProfileChoices{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+      #qaTestRunsDialog .qaProfileChoices button{min-height:36px;padding:6px 4px;border:1px solid var(--line);background:transparent;color:var(--ink);font:700 8px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace}
+      #qaTestRunsDialog .qaProfileChoices button[aria-pressed="true"]{background:#151515;color:#fff;border-color:#151515}
     `;doc.head.appendChild(style);
     const button=doc.createElement('button');button.id='qaTestRunsButton';button.className='menuAction';button.textContent='QA / TEST RUNS';menu.insertBefore(button,anchor||null);
     const dialog=doc.createElement('dialog');dialog.id='qaTestRunsDialog';dialog.className='gameMenu';
-    const inQa=new URL(root.location.href).searchParams.has('qa');
+    const inQa=new URL(root.location.href).searchParams.has('qa'),context=root.MonoidProfile?.contextInfo?.()?.context||'player';
     dialog.innerHTML=`<div class="menuHead"><h2>QA / Test runs</h2><button class="iconButton" aria-label="Close QA test runs">×</button></div>
       <p class="qaMenuIntro">Prepared late-game states. Your real saved run is protected.</p>
+      <div class="qaProfileContext"><strong>PROFILE CONTEXT · ${context.toUpperCase()}</strong><div class="qaProfileChoices" role="group" aria-label="Profile context"><button type="button" data-profile-context="player" aria-pressed="${context==='player'}">PLAYER</button><button type="button" data-profile-context="dev" aria-pressed="${context==='dev'}">DEV · ALL</button><button type="button" data-profile-context="fresh" aria-pressed="${context==='fresh'}">FRESH · RESET</button></div></div>
       <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Real R14 · 30 tiles · DD · DE · C5 · POWER ×2 · 2 clears from Endless</small></button>
       <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>ENDLESS · ROUND 16</strong><small>Generic late-game fixture · Classic progression</small></button>
       <button class="qaPresetChoice" data-qa-preset="german9Endless"><strong>GERMÁN RUN #9 · ENDLESS START</strong><small>Real R16 machine · 33 tiles · POWER ×2 · 5 Markets · saved run safe</small></button>
@@ -254,6 +262,11 @@
     const close=()=>dialog.close();dialog.querySelector('.iconButton').addEventListener('click',close);
     button.addEventListener('click',()=>{if(menu.open)menu.close();if(!dialog.open)dialog.showModal()});
     dialog.addEventListener('click',event=>{
+      const profileContext=event.target.closest('[data-profile-context]')?.dataset.profileContext;
+      if(profileContext&&root.MonoidProfile){
+        const reset=profileContext==='fresh';if(reset&&!root.confirm('Reset the Fresh Player test profile?'))return;
+        persistCurrentRun(root);root.MonoidProfile.setContext(profileContext,{reset});const url=new URL(root.location.href);url.search='';url.searchParams.set('cb',BUILD_ID);root.location.assign(url.href);return
+      }
       const choice=event.target.closest('[data-qa-preset]')?.dataset.qaPreset;
       if(choice&&PRESETS[choice]){persistCurrentRun(root);root.location.assign(qaUrl(root,choice));return}
     });
@@ -280,5 +293,5 @@
     };
     root.requestAnimationFrame(start);return true
   }
-  return{BUILD_ID,PRESETS,ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY,makeSet,pieceSpecs,applyPreset,installStorageSandbox,persistCurrentRun,qaUrl,normalUrl,installMenuAccess,autoStart,autoResumeReturn};
+  return{BUILD_ID,PRESETS,ACTIVE_RUN_KEY,ACTIVE_MODE_KEY,LATEST_RUN_KEY,TUTORIAL_KEY,PROTECTED_KEYS,scopedKey,protectedKeys,makeSet,pieceSpecs,applyPreset,installStorageSandbox,persistCurrentRun,qaUrl,normalUrl,installMenuAccess,autoStart,autoResumeReturn};
 });
