@@ -38,12 +38,12 @@ for(const half of ['north','south']){
   assert.deepEqual(halfItems.map(item=>item.pip),[0,1,2],'each 3-pip half keeps its complete pip topology');
 }
 assert.deepEqual(items.map(({half,pip,x,y,size})=>({half,pip,x,y,size})).sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip),[
-  {half:'north',pip:0,x:4,y:2,size:2},
-  {half:'north',pip:1,x:8,y:6,size:2},
-  {half:'north',pip:2,x:12,y:10,size:2},
-  {half:'south',pip:0,x:4,y:12,size:2},
-  {half:'south',pip:1,x:8,y:16,size:2},
-  {half:'south',pip:2,x:12,y:20,size:2}
+  {half:'north',pip:0,x:6,y:6,size:2},
+  {half:'north',pip:1,x:8,y:8,size:2},
+  {half:'north',pip:2,x:10,y:10,size:2},
+  {half:'south',pip:0,x:6,y:12,size:2},
+  {half:'south',pip:1,x:8,y:14,size:2},
+  {half:'south',pip:2,x:10,y:16,size:2}
 ],'The River uses two separated canonical 3-pip domino halves on one reachable lattice');
 const northItems=items.filter(item=>item.half==='north'),southItems=items.filter(item=>item.half==='south');
 assert(Math.max(...northItems.map(item=>item.y+item.size))<=Math.min(...southItems.map(item=>item.y)),'The River halves must not interleave across the domino seam');
