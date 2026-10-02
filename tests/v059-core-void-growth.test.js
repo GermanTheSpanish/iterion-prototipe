@@ -11,8 +11,9 @@ const cardinallyAdjacent=(a,b)=>{
   return horizontal||vertical
 };
 
-assert.deepEqual([...D.CORE_GROWTH_DISCOVERY_STAGES],[2,3,4,5]);
-assert.deepEqual({...D.CORE_DISCOVERY_VOID_COUNT_BY_MODE},{frames:1,river:2,loom:3,peaks:4});
+assert.deepEqual([...D.CORE_DISCOVERY_STAGES],[2,3,4,5]);
+assert.deepEqual({...D.CORE_DISCOVERY_VOID_COUNT_BY_MODE},{eyes:0,frames:1,river:2,loom:3,peaks:4});
+assert.equal(D.CORE_MAX_PHYSICAL,6);
 assert.equal(D.FRAMES_CORE_MAX_PHYSICAL,6);
 assert.equal(D.RIVER_CORE_MAX_PHYSICAL,6);
 assert.equal(D.LOOM_CORE_MAX_PHYSICAL,8);
@@ -38,26 +39,28 @@ function runGrowth(mode,seed,{initialCores,initialVoids,voidsPerCore,maxCores}){
     const coreEvent=[...state.events].reverse().find(event=>event.type==='core-discover'&&event.stage===stage);
     const voidEvent=[...state.events].reverse().find(event=>event.type==='void-discover'&&event.stage===stage);
     assert(coreEvent,`${mode} Stage ${stage} records its Core discovery`);
-    assert(voidEvent,`${mode} Stage ${stage} records its Void discovery`);
     assert.equal(coreEvent.mode,mode);
-    assert.equal(voidEvent.mode,mode);
     assert.equal(coreEvent.companionVoidIds.length,voidsPerCore);
-    assert.equal(voidEvent.count,voidsPerCore);
-    assert.equal(voidEvent.sourceCoreId,coreEvent.core.id);
-    assert.deepEqual(voidEvent.voids.map(item=>item.id),coreEvent.companionVoidIds);
     assert.equal(coreEvent.growthFallback,false,`${mode} Core should use the newly expanded frame during normal progression`);
-    assert.equal(voidEvent.growthFallback,false,`${mode} Voids should use the newly expanded frame during normal progression`);
+    if(voidsPerCore){
+      assert(voidEvent,`${mode} Stage ${stage} records its Void discovery`);
+      assert.equal(voidEvent.mode,mode);
+      assert.equal(voidEvent.count,voidsPerCore);
+      assert.equal(voidEvent.sourceCoreId,coreEvent.core.id);
+      assert.deepEqual(voidEvent.voids.map(item=>item.id),coreEvent.companionVoidIds);
+      assert.equal(voidEvent.growthFallback,false,`${mode} Voids should use the newly expanded frame during normal progression`)
+    }else assert.equal(voidEvent,undefined,'1|1 must not create a Void discovery event');
 
     const current=D.BOARD_SIZES[stage-1],previous=D.BOARD_SIZES[stage-2],oldRect={x:Math.floor((current[0]-previous[0])/2),y:Math.floor((current[1]-previous[1])/2),w:previous[0],h:previous[1]},core=coreEvent.core;
     const insideOld=item=>item.x>=oldRect.x&&item.y>=oldRect.y&&item.x+item.size<=oldRect.x+oldRect.w&&item.y+item.size<=oldRect.y+oldRect.h;
     assert.equal(insideOld(core),false,`${mode} new Core must sit in the new outer frame`);
-    assert.equal(voidEvent.voids.every(item=>!insideOld(item)),true,`${mode} companion Voids must sit in the new outer frame`);
+    if(voidEvent)assert.equal(voidEvent.voids.every(item=>!insideOld(item)),true,`${mode} companion Voids must sit in the new outer frame`);
 
     const canonical=[...state.cores,...state.voids].find(item=>item.siteId);
     assert(canonical,`${mode} must retain an opening pip as lattice reference`);
     const lattice={x:residue(canonical.x),y:residue(canonical.y)};
     assert.deepEqual({x:residue(core.x),y:residue(core.y)},lattice,`${mode} discovered Core stays on the canonical lattice`);
-    for(const item of voidEvent.voids){
+    for(const item of voidEvent?.voids||[]){
       assert.deepEqual({x:residue(item.x),y:residue(item.y)},lattice,`${mode} discovered Void stays on the canonical lattice`);
       assert.equal(rectOverlap(core,item),false,'Core and companion Void cannot overlap');
       assert.equal(cardinallyAdjacent(core,item),false,'companion Voids must preserve the new Core cardinal approaches')
@@ -67,16 +70,17 @@ function runGrowth(mode,seed,{initialCores,initialVoids,voidsPerCore,maxCores}){
     for(let i=0;i<geometry.length;i++)for(let j=i+1;j<geometry.length;j++)assert.equal(rectOverlap(geometry[i],geometry[j]),false,`${mode} geometry may never overlap: ${geometry[i].id} / ${geometry[j].id}`);
 
     counts.push({cores:state.cores.length,voids:state.voids.length});
-    discoveries.push({stage,core:{id:core.id,x:core.x,y:core.y,ports:[...core.ports],archetype:core.archetype},voids:voidEvent.voids.map(({id,x,y})=>({id,x,y}))})
+    discoveries.push({stage,core:{id:core.id,x:core.x,y:core.y,ports:[...core.ports],archetype:core.archetype},voids:(voidEvent?.voids||[]).map(({id,x,y})=>({id,x,y}))})
   }
   assert.equal(state.cores.length,maxCores);
   assert.equal(state.coreProgressMilestones.filter(key=>key.startsWith('discover:')).length,4);
   assert.match(game.debugText(),new RegExp(`Cores: THE ${mode==='frames'?'FRAMES':mode==='river'?'RIVER':mode==='loom'?'LOOM':'PEAKS'}`));
-  assert.match(game.debugText(),/VOID DISCOVER/);
+  if(voidsPerCore)assert.match(game.debugText(),/VOID DISCOVER/);else assert.doesNotMatch(game.debugText(),/VOID DISCOVER/);
   return{game,counts,discoveries}
 }
 
 const configs={
+  eyes:{initialCores:2,initialVoids:0,voidsPerCore:0,maxCores:6},
   frames:{initialCores:2,initialVoids:2,voidsPerCore:1,maxCores:6},
   river:{initialCores:2,initialVoids:4,voidsPerCore:2,maxCores:6},
   loom:{initialCores:4,initialVoids:4,voidsPerCore:3,maxCores:8},
