@@ -81,6 +81,8 @@ test('Frames Voids read as recessed holes and inspect to only VOID',async({page}
     after:getComputedStyle(el,'::after').content
   }));
   expect(visual.background).toBe(visual.body);expect(visual.shadow).toContain('inset');expect(visual.after).toBe('none');
+  const boardShadow=await page.locator('#board').evaluate(el=>getComputedStyle(el).boxShadow);
+  expect(boardShadow).not.toBe('none');expect(boardShadow).not.toContain('inset');
   await holes.first().click();
   await expect(page.locator('#overlay')).toHaveClass(/show/);
   await expect(page.locator('.voidInspectorWord')).toHaveText('VOID');
@@ -117,7 +119,7 @@ test('stable placement target survives a small release slip toward its neighbour
   });
   expect(probe).toBeTruthy();expect(probe.slip).toBeLessThanOrEqual(22);
   const sx=tileBox.x+tileBox.width/2,sy=tileBox.y+tileBox.height/2;
-  await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx+16,sy,{steps:2});await page.mouse.move(probe.start.x,probe.start.y,{steps:6});await page.waitForTimeout(330);await page.mouse.move(probe.release.x,probe.release.y);await page.mouse.up();
+  await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx+16,sy,{steps:2});await page.mouse.move(probe.start.x,probe.start.y,{steps:6});await page.waitForTimeout(190);await page.mouse.move(probe.release.x,probe.release.y);await page.mouse.up();
   await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length),{timeout:12000}).toBe(1);
   const placed=await page.evaluate(()=>{const p=window.__monoidGame.state().pieces[0];return{x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr}});
   expect(placed).toEqual({x:probe.a.x,y:probe.a.y,rr:probe.a.rr});

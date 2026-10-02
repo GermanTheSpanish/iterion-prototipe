@@ -8,7 +8,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await page.locator('#titleCard').click();
   await expect(page.locator('#modeCarouselFrame')).toBeVisible();
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
-  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
+  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
 
   const viewport=await page.locator('#modeCarouselViewport').boundingBox();
   const before=await page.locator('#modeClassic').boundingBox();
@@ -63,7 +63,7 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await page.mouse.move(lx,ly);await page.mouse.down();await page.mouse.move(lx-78,ly);await page.mouse.up();
   for(const wait of [25,45,55,65,75,85]){await page.waitForTimeout(wait);const box=await farTile.boundingBox();expect(box).toBeTruthy();expect(intersects(box,seamViewport)).toBe(false)}
   await expect(page.locator('#modeName')).toHaveText('CLASSIC',{timeout:1200});
-  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
+  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
 });
 
 test('Classic, The Eyes, The Frames and The River are playable while Classic keeps its full progression',async({page})=>{
@@ -74,7 +74,7 @@ test('Classic, The Eyes, The Frames and The River are playable while Classic kee
 
   expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes','frames','river']);
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
-  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
+  await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
   await page.locator('#startRun').click();
   expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('classic');
   expect(await page.evaluate(()=>window.__monoidGame.state().scoringModel??null)).toBeNull();
@@ -123,9 +123,16 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(state.snapshot.signal.base).toBe(6);
   expect(state.snapshot.signal.max).toBe(6);
   await expect(page.locator('#signalHud')).toBeVisible();
+  await expect(page.locator('#signalHud .signalHudIcon')).toBeVisible();
+  await expect(page.locator('#signalHud .signalHudLabel')).toHaveCount(0);
   await expect(page.locator('#signalHud .signalHudLane b')).toHaveText('6');
   await expect(page.locator('#signalHud .signalHudLane')).not.toHaveClass(/low|critical/);
   if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
+  await page.locator('#signalHud').click();
+  await expect(page.locator('#overlayTitle')).toHaveText('SIGNAL');
+  await expect(page.locator('#overlayBody')).toContainText('FIRST VISIT · −1');
+  await expect(page.locator('#overlayBody')).toContainText('RETRACE · 0');
+  await page.locator('#overlayPrimary').click();
   await expect(page.locator('#hint')).not.toContainText('CONNECT A CORE');
   await expect(page.locator('#board .coreNode.coreNeedsConnection')).toHaveCount(2);
   expect(new Set(state.cores.map(core=>core.archetype)).size).toBe(2);

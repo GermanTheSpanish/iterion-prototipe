@@ -22,7 +22,7 @@
   const SETTLE_MS=SETTLE_APPROACH_MS+SETTLE_LAND_MS;
   const SETTLE_OVERSHOOT=8;
   const MODES=Object.freeze([
-    Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite → Ouroboros',available:true,kind:'classic'}),
+    Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite',available:true,kind:'classic'}),
     Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · Signal 6',available:true,kind:'eyes'}),
     Object.freeze({id:'frames',name:'THE FRAMES',description:'2|2 · Signal 4',available:true,kind:'frames'}),
     Object.freeze({id:'river',name:'THE RIVER',description:'3|3 · Signal 3',available:true,kind:'river'}),

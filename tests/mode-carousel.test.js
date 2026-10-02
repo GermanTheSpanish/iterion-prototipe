@@ -5,7 +5,7 @@ const C=require('../mode-carousel.js');
 
 assert.strictEqual(C.MODES.length,8);
 assert.deepStrictEqual(C.MODES.filter(m=>m.available).map(m=>m.id),['classic','eyes','frames','river']);
-assert.strictEqual(C.MODES[0].description,'Classic → Endless → Infinite → Ouroboros');
+assert.strictEqual(C.MODES[0].description,'Classic → Endless → Infinite');
 assert.strictEqual(C.MODES[1].name,'THE EYES');
 assert.strictEqual(C.MODES[1].description,'1|1 · Signal 6');
 assert.strictEqual(C.MODES[2].name,'THE FRAMES');
@@ -53,6 +53,6 @@ assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circul
 assert.match(src,/startRun\.disabled=!mode\.available/);
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20261002\.1/);
+assert.match(gesture,/mode-carousel\.js\?v=20261002\.2/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');
