@@ -66,7 +66,11 @@
 
     function currentContext(){
       const stored=validContext(storage&&storage.getItem(CONTEXT_KEY));
-      return stored||(isLocalDevHost()?'dev':'player')
+      return stored||'player'
+    }
+
+    function implicitLocalDevAccess(){
+      return !validContext(storage&&storage.getItem(CONTEXT_KEY))&&isLocalDevHost()
     }
 
     function storageKey(baseKey,context){
@@ -152,13 +156,13 @@
     }
 
     function isDevAccess(){
-      return currentContext()==='dev'
+      return currentContext()==='dev'||implicitLocalDevAccess()
     }
 
     function isModeUnlocked(mode,context){
       if(!ALL_MODES.includes(mode))return false;
-      const id=validContext(context)||currentContext();
-      if(id==='dev')return true;
+      const explicit=validContext(context),id=explicit||currentContext();
+      if(id==='dev'||(!explicit&&implicitLocalDevAccess()))return true;
       return ensureProfile(id).unlockedModes.includes(mode)
     }
 
@@ -227,6 +231,7 @@
       CONTEXTS:CONTEXTS,
       ALL_MODES:ALL_MODES,
       currentContext:currentContext,
+      implicitLocalDevAccess:implicitLocalDevAccess,
       storageKey:storageKey,
       profileKey:profileKey,
       ensureProfile:ensureProfile,
