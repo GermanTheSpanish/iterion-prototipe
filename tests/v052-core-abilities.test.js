@@ -20,8 +20,8 @@ const coreOptions=(pieceId,core,{signalBase=2,signalMax=2,links=[]}={})=>({
   reservoirBonus:D.CORE_RESERVOIR_BONUS
 });
 
-assert.equal(D.VERSION,'0.60.0');
-assert.equal(D.ENGINE_VERSION,'0.20.2-core-signal-additive-v1');
+assert.equal(D.VERSION,'0.61.0');
+assert.equal(D.ENGINE_VERSION,'0.21.0-peaks-ridge-v1');
 assert.equal(D.CORE_SIGNAL_LEVEL_STEP,4);
 assert.equal(D.CORE_RESERVOIR_BONUS,8);
 assert.equal(D.CORE_LEVEL_MAX,5);
