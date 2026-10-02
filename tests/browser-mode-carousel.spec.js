@@ -127,12 +127,12 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await expect(page.locator('#signalHud .signalHudLabel')).toHaveCount(0);
   await expect(page.locator('#signalHud .signalHudLane b')).toHaveText('6');
   await expect(page.locator('#signalHud .signalHudLane')).not.toHaveClass(/low|critical/);
+  if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
   await page.locator('#signalHud').click();
   await expect(page.locator('#overlayTitle')).toHaveText('SIGNAL');
   await expect(page.locator('#overlayBody')).toContainText('FIRST VISIT · −1');
   await expect(page.locator('#overlayBody')).toContainText('RETRACE · 0');
   await page.locator('#overlayPrimary').click();
-  if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
   await expect(page.locator('#hint')).not.toContainText('CONNECT A CORE');
   await expect(page.locator('#board .coreNode.coreNeedsConnection')).toHaveCount(2);
   expect(new Set(state.cores.map(core=>core.archetype)).size).toBe(2);
