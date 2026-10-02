@@ -907,16 +907,16 @@ function createGame(E,opts={}){
     return{ok:true,mod,tileId,targetTileId,delivery,topologyLosses:deepClone(option.topologyLosses||[]),destroyed:deepClone(destroyed),autoRerolls:continuation.autoRerolls||0}
   }
 
-  function coreSignalBudgetForMode(mode=s.gameMode){
+  function coreSignalBudgetForMode(mode=s.gameMode,options={}){
     const id=canonicalGameMode(mode),mapped=Number(cfg.CORE_SIGNAL_BY_MODE?.[id]),hasMapped=Number.isFinite(mapped)&&mapped>0,modeBase=Math.max(1,hasMapped?mapped:Number(cfg.CORE_SIGNAL_BASE)||24),purchased=Math.max(0,Number(s.signalUpgrades)||0);
-    const discoveredCoreCount=coreGameMode(id)?(s.cores||[]).filter(core=>Number.isFinite(Number(core?.stage))).length:0,configuredDiscoveredStep=Number(cfg.CORE_SIGNAL_DISCOVERED_CORE_STEP),discoveredCoreStep=Math.max(0,Number.isFinite(configuredDiscoveredStep)?configuredDiscoveredStep:1),discoveredCoreBonus=discoveredCoreCount*discoveredCoreStep;
-    const base=modeBase+discoveredCoreBonus+purchased,configuredStep=Number(cfg.CORE_SIGNAL_MARKET_STEP),marketStep=Math.max(0,Number.isFinite(configuredStep)?configuredStep:1),markets=coreGameMode(id)?Math.max(0,Number(s.marketCount)||0):0,marketBonus=markets*marketStep,coreCharge=modeBase+marketBonus,max=coreCharge;
-    return{modeBase,base,max,coreCharge,purchased,discoveredCoreCount,discoveredCoreBonus,discoveredCoreStep,markets,marketBonus,marketStep}
+    const discoveredCoreCount=coreGameMode(id)?(s.cores||[]).filter(core=>Number.isFinite(Number(core?.stage))).length:0,configuredDiscoveredStep=Number(cfg.CORE_SIGNAL_DISCOVERED_CORE_STEP),discoveredCoreStep=Math.max(0,Number.isFinite(configuredDiscoveredStep)?configuredDiscoveredStep:1),discoveredCoreBonus=discoveredCoreCount*discoveredCoreStep,islandSignalBonus=id==='islands'?Math.max(0,Number(options.islandSignalBonus??s.islandSignalBonus)||0):0;
+    const base=modeBase+discoveredCoreBonus+islandSignalBonus+purchased,configuredStep=Number(cfg.CORE_SIGNAL_MARKET_STEP),marketStep=Math.max(0,Number.isFinite(configuredStep)?configuredStep:1),markets=coreGameMode(id)?Math.max(0,Number(s.marketCount)||0):0,marketBonus=markets*marketStep,coreCharge=modeBase+marketBonus,max=coreCharge;
+    return{modeBase,base,max,coreCharge,purchased,discoveredCoreCount,discoveredCoreBonus,discoveredCoreStep,islandSignalBonus,markets,marketBonus,marketStep}
   }
 
-  function signalOptionsForPieces(pieces,trigger){
+  function signalOptionsForPieces(pieces,trigger,options={}){
     const doubleDoublePieceId=pieces.find(x=>x.tile.id===s.doubleDoubleTileId)?.id||null,doubleEchoPieceId=pieces.find(x=>x.tile.id===s.doubleEchoTileId)?.id||null,tripleDoublePieceId=pieces.find(x=>x.tile.id===s.tripleDoubleTileId)?.id||null,diodePieceId=pieces.find(x=>x.tile.id===s.diodeTileId)?.id||null,returnPieceId=pieces.find(x=>x.tile.id===s.returnTileId)?.id||null,mergePieceId=pieces.find(x=>x.tile.id===s.mergeTileId)?.id||null,hinge=hingeOptionForPieces(pieces);
-    const signalEnabled=coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,signalBudget=coreSignalBudgetForMode(),signalCoreIdsByPiece=new Map(),signalCoreById=new Map();
+    const signalEnabled=coreGameMode(s.gameMode)&&cfg.CORE_SIGNAL_ENABLED!==false,signalBudget=coreSignalBudgetForMode(s.gameMode,options),signalCoreIdsByPiece=new Map(),signalCoreById=new Map();
     if(signalEnabled){
       const coreTelemetry=coreShadowTelemetry(pieces);
       for(const core of coreTelemetry.cores||[]){
