@@ -105,10 +105,10 @@
       .boardTop:has(.machineModStatus:not([hidden])){position:absolute!important;left:0!important;right:0!important;top:-20px!important;z-index:18!important;display:flex!important;justify-content:center!important;padding:0!important;pointer-events:none!important}
       .boardTop>strong,.boardTop>#boardsize{display:none!important}
       .boardFrame{position:relative!important;display:block!important;width:100%!important;min-height:0!important;overflow:visible!important}
-      .board{position:relative!important;width:min(100%,350px,calc((100dvh - 280px) * .75))!important;max-width:350px!important;height:auto!important;max-height:none!important;flex:none!important;aspect-ratio:3 / 4!important;margin:0!important;border:1px solid #d4d2cc!important;border-radius:0!important;background-color:#fff!important;background-image:none!important;box-shadow:none!important;overflow:hidden!important}
-      .signalHud{position:absolute!important;z-index:82!important;left:8px!important;top:8px!important;display:flex!important;align-items:baseline!important;gap:6px!important;min-height:26px!important;padding:4px 7px 4px 8px!important;border:1px solid rgba(21,21,21,.22)!important;background:rgba(251,250,246,.92)!important;color:#20201d!important;pointer-events:none!important;font-variant-numeric:tabular-nums!important;backdrop-filter:blur(2px)}
+      .board{position:relative!important;width:min(100%,350px,calc((100dvh - 280px) * .75))!important;max-width:350px!important;height:auto!important;max-height:none!important;flex:none!important;aspect-ratio:3 / 4!important;margin:0!important;border:1px solid #d4d2cc!important;border-radius:0!important;background-color:#fff!important;background-image:none!important;box-shadow:0 4px 12px rgba(25,23,19,.10)!important;overflow:hidden!important}
+      .signalHud{position:absolute!important;z-index:82!important;left:8px!important;top:8px!important;display:flex!important;align-items:center!important;gap:5px!important;min-height:26px!important;padding:4px 7px!important;border:1px solid rgba(21,21,21,.22)!important;background:rgba(251,250,246,.92)!important;color:#20201d!important;pointer-events:auto!important;cursor:help!important;touch-action:manipulation!important;font-variant-numeric:tabular-nums!important;backdrop-filter:blur(2px)}
       .signalHud[hidden]{display:none!important}
-      .signalHudLabel{font-size:8px!important;font-weight:800!important;line-height:1!important;letter-spacing:.16em!important;color:#68655f!important}
+      .signalHudIcon{display:inline-block!important;width:8px!important;height:13px!important;flex:none!important;background:#68655f!important;clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%)!important;-webkit-clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%)!important}\n      .signalHud:focus-visible{outline:1px solid #20201d!important;outline-offset:2px!important}
       .signalHudValues{display:flex!important;align-items:baseline!important;gap:4px!important;min-width:14px!important}
       .signalHudLane{display:inline-flex!important;align-items:baseline!important;gap:2px!important;color:#20201d!important}
       .signalHudLane small{font-size:7px!important;font-weight:800!important;line-height:1!important;letter-spacing:.08em!important;color:currentColor!important}
@@ -120,7 +120,7 @@
       @keyframes signalHudRecharge{0%{transform:scale(1)}35%{transform:scale(1.22)}100%{transform:scale(1)}}
       @keyframes signalHudCritical{from{opacity:.72}to{opacity:1}}
       body.endlessPalette .board{background-color:rgb(214,211,203)!important}
-      .board.dragging{box-shadow:inset 0 0 0 1px rgba(17,17,17,.15)!important}
+      .board.dragging{box-shadow:0 4px 12px rgba(25,23,19,.10),inset 0 0 0 1px rgba(17,17,17,.15)!important}
       .boardCenterMark{position:absolute;z-index:3;display:block;background:#aaa8a2;pointer-events:none}
       .boardCenterMark[data-side="top"],.boardCenterMark[data-side="bottom"]{left:50%;width:1px;height:10px;transform:translateX(-50%)}
       .boardCenterMark[data-side="top"]{top:-1px}.boardCenterMark[data-side="bottom"]{bottom:-1px}
@@ -193,7 +193,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20261002.1';
+    const BUILD_ID='20261002.2';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);
