@@ -25,7 +25,7 @@
     fresh:'monoid.ctx.fresh.'
   });
   const CONTEXTS=Object.freeze(['player','dev','fresh']);
-  const ALL_MODES=Object.freeze(['classic','eyes','frames','river','loom','peaks']);
+  const ALL_MODES=Object.freeze(['classic','eyes','frames','river','loom','peaks','islands']);
   const LEGACY_PLAYER_KEY='monoid.playtestPlayer.v1';
   const LEGACY_ACTIVITY_KEYS=Object.freeze([
     LEGACY_PLAYER_KEY,
@@ -237,6 +237,7 @@
         const circuitThroughCore=events.some(function(event){return event.type==='circuit-closed'&&activatedMoves.has(Number(event.move))});
         if(circuitThroughCore)unlock('peaks')
       }
+      if(mode==='peaks'&&state.endlessMode)unlock('islands');
       return{unlocked:unlocked,profile:ensureProfile(id)}
     }
 
