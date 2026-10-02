@@ -5,10 +5,10 @@ const G=require('../game.js');
 
 function piece(a,b,x,id){
   const p=E.pieceFrom({a,b},x,8,0,0,id);
-  p.tile={id:\`v061-\${id}\`,a,b};
+  p.tile={id:`v061-${id}`,a,b};
   return p
 }
-function routeKeys(result){return(result.events||[]).filter(e=>e.type==='route').map(e=>\`\${e.piece}>\${e.toPieceId}\`)}
+function routeKeys(result){return(result.events||[]).filter(e=>e.type==='route').map(e=>`${e.piece}>${e.toPieceId}`)}
 
 assert.equal(D.CORE_SIGNAL_DISCOVERED_CORE_STEP,1);
 assert.equal(D.PEAK_RIDGE_ENABLED,true);
@@ -19,17 +19,17 @@ E.setBoardSize(30,40);
 for(const mode of ['eyes','frames','river','loom','peaks']){
   const game=G.createGame(E,{seed:61000+mode.length,GAME_MODE:mode,TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)});
   const before=game.snapshot().signal;
-  assert.equal(before.discoveredCoreCount,0,\`\${mode} opening Cores are not discovery bonuses\`);
+  assert.equal(before.discoveredCoreCount,0,`${mode} opening Cores are not discovery bonuses`);
   assert.equal(before.discoveredCoreBonus,0);
   const baseCoreCharge=before.coreCharge;
-  game.state().cores.push({id:\`core-\${mode}-stage-2\`,slot:\`\${mode}-stage-2\`,stage:2,x:24,y:30,size:2,ports:['U'],archetype:'relay',level:1});
+  game.state().cores.push({id:`core-${mode}-stage-2`,slot:`${mode}-stage-2`,stage:2,x:24,y:30,size:2,ports:['U'],archetype:'relay',level:1});
   const afterOne=game.snapshot().signal;
-  assert.equal(afterOne.base,before.base+1,\`\${mode} gains +1 starting Signal for one discovered Core\`);
+  assert.equal(afterOne.base,before.base+1,`${mode} gains +1 starting Signal for one discovered Core`);
   assert.equal(afterOne.discoveredCoreCount,1);
   assert.equal(afterOne.discoveredCoreBonus,1);
   assert.equal(afterOne.coreCharge,baseCoreCharge,'discovery bonus must not increase Core recharge');
-  game.state().cores.push({id:\`core-\${mode}-stage-3\`,slot:\`\${mode}-stage-3\`,stage:3,x:26,y:32,size:2,ports:['U'],archetype:'relay',level:1});
-  assert.equal(game.snapshot().signal.base,before.base+2,\`\${mode} discovered Core bonus is cumulative\`);
+  game.state().cores.push({id:`core-${mode}-stage-3`,slot:`${mode}-stage-3`,stage:3,x:26,y:32,size:2,ports:['U'],archetype:'relay',level:1});
+  assert.equal(game.snapshot().signal.base,before.base+2,`${mode} discovered Core bonus is cumulative`);
 }
 
 const line=[
