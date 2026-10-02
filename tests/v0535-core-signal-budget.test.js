@@ -6,7 +6,7 @@ const H=require('../help.js');
 
 E.setBoardSize(18,24);
 
-assert.deepEqual({...D.CORE_SIGNAL_BY_MODE},{eyes:6,frames:4,river:3},'Core modes must expose explicit Signal budgets');
+assert.deepEqual({...D.CORE_SIGNAL_BY_MODE},{eyes:6,frames:4,river:3,loom:2,peaks:2},'Core modes must expose explicit Signal budgets');
 
 function primePreview(game){
   const s=game.state(),root=s.set.find(tile=>tile.id==='d2-2'),next=s.set.find(tile=>tile.id==='d2-3');
