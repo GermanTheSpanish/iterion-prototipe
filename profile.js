@@ -215,12 +215,37 @@
       }
     }
 
+    function evaluateRun(state,snapshot,context){
+      const id=validContext(context)||currentContext();
+      if(id==='dev'||!state||!snapshot)return{unlocked:[],profile:ensureProfile(id)};
+      const mode=String(state.gameMode||snapshot.gameMode||'classic'),events=Array.isArray(state.events)?state.events:[],cores=Array.isArray(state.cores)?state.cores:[],unlocked=[];
+      const unlock=function(next){const result=unlockMode(next,id);if(result.changed)unlocked.push(next)};
+      if(mode==='classic'&&state.endlessMode)unlock('eyes');
+      if(mode==='eyes'&&Number(snapshot.cores?.telemetry?.connectedCoreCount||0)>=2)unlock('frames');
+      if(mode==='frames'){
+        const discovered=new Set(cores.filter(function(core){return Number.isFinite(Number(core.stage))}).map(function(core){return core.id})),activated=new Set();
+        events.forEach(function(event){(event.coreActivations||[]).forEach(function(item){if(discovered.has(item.coreId))activated.add(item.coreId)})});
+        if(activated.size>=3)unlock('river')
+      }
+      if(mode==='river'){
+        const halfByCore=new Map(cores.filter(function(core){return core.half==='north'||core.half==='south'}).map(function(core){return[core.id,core.half]}));
+        const crossed=events.some(function(event){if(!Array.isArray(event.coreActivations))return false;const halves=new Set(event.coreActivations.map(function(item){return halfByCore.get(item.coreId)}).filter(Boolean));return halves.has('north')&&halves.has('south')});
+        if(crossed)unlock('loom')
+      }
+      if(mode==='loom'){
+        const activatedMoves=new Set(events.filter(function(event){return Array.isArray(event.coreActivations)&&event.coreActivations.length}).map(function(event){return Number(event.turn)}));
+        const circuitThroughCore=events.some(function(event){return event.type==='circuit-closed'&&activatedMoves.has(Number(event.move))});
+        if(circuitThroughCore)unlock('peaks')
+      }
+      return{unlocked:unlocked,profile:ensureProfile(id)}
+    }
+
     function contextInfo(){
       const context=currentContext(),profile=ensureProfile(context);
       return{
         context:context,
         label:context==='player'?'PLAYER':context==='dev'?'DEV':'FRESH PLAYER',
-        devAccess:context==='dev',
+        devAccess:isDevAccess(),
         profile:profile
       }
     }
@@ -242,6 +267,7 @@
       resetContext:resetContext,
       setContext:setContext,
       telemetryOptions:telemetryOptions,
+      evaluateRun:evaluateRun,
       contextInfo:contextInfo
     })
   }
