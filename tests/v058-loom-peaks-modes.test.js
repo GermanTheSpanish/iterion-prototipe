@@ -15,8 +15,8 @@ const approachSides=(core,geometry,board={G:18,H:24})=>{
 };
 
 assert.equal(D.VERSION,'0.61.0');
-assert.deepEqual({...D.CORE_SIGNAL_BY_MODE},{eyes:6,frames:4,river:3,loom:2,peaks:2});
-assert.deepEqual({...D.CORE_ABILITY_LIMIT_BY_MODE},{loom:2,peaks:2});
+assert.deepEqual({...D.CORE_SIGNAL_BY_MODE},{eyes:6,frames:4,river:3,loom:2,peaks:2,islands:2});
+assert.deepEqual({...D.CORE_ABILITY_LIMIT_BY_MODE},{loom:2,peaks:2,islands:2});
 assert.equal(D.CORE_PEAK_SIGNAL_MULTIPLIER,2);
 
 E.setBoardSize(18,24);
