@@ -103,7 +103,7 @@ const placement=[...bs.events].reverse().find(event=>event.tile?.id==='island-br
 assert.equal(placement.islandLinkCount,1);
 assert.equal(placement.islandSignalAdded,2);
 assert.equal(placement.islandSignalBonus,2);
-assert.equal(bridge.canUseUndo(),true);
+assert.equal(bridge.canUndo(),true);
 const undone=bridge.useUndo();
 assert.equal(undone.ok,true);
 assert.equal(bridge.state().islandSignalBonus,0,'Undo restores pre-link Signal capacity');
