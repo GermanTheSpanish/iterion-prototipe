@@ -1052,13 +1052,12 @@ function createGame(E,opts={}){
     if(i<0||i>=s.hand.length||!s.hand[i]||!c)return{ok:false,reason:'state'};const tile=s.hand[i];
     if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
-    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};if(placementOverlapsVoid(tile,c.x,c.y,c.rr))return{ok:false,reason:'void-overlap'};
-    if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
-    else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
-    const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...cloneTile(tile)};const pieces=[...s.pieces,p],topologyBreaks=topologyBreaksForPieces(pieces),trigger=tile.a+tile.b;
-    const sim=pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,pieces,signalOptionsForPieces(pieces,trigger));
-    const resonance=C.resonance(sim.output??trigger,sim.events,pieces,s.circuitRanks,cfg,sim.outputExact??SCORE.exact(sim.output??trigger));
-    return{ok:true,handIndex:i,tile:cloneTile(tile),placement:{x:c.x,y:c.y,z:0,rr:c.rr},trigger,selectionOutput:sim.output??trigger,selectionOutputExact:sim.outputExact??SCORE.exact(sim.output??trigger),output:resonance.output,outputExact:resonance.outputExact,sim,resonance,topologyBreaks}
+    const validation=modePlacementValidation(tile,c);if(!validation.ok)return validation;
+    const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...cloneTile(tile)};const analysis=islandPlacementAnalysis(p,s.pieces),islandSignalAdded=analysis.linkedDormantCount*Math.max(0,Number(cfg.ISLAND_LINK_SIGNAL_STEP)||2),prospectiveIslandBonus=Math.max(0,Number(s.islandSignalBonus)||0)+islandSignalAdded,pieces=[...s.pieces,p],topologyBreaks=topologyBreaksForPieces(pieces),trigger=tile.a+tile.b;
+    let sim;if(islandsMode()&&analysis.dormant)sim={output:0,outputExact:SCORE.exact(0),events:[{type:'island-dormant',piece:p.id,coreId:validation.islandAnchorCoreId||null}],reason:'island-dormant',rebounds:0,search:{starts:0,leaves:1,expanded:0}};else sim=pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,pieces,signalOptionsForPieces(pieces,trigger,{islandSignalBonus:prospectiveIslandBonus}));
+    if(islandSignalAdded>0)sim={...sim,events:[...(sim.events||[]),{type:'island-link',piece:p.id,linkedComponents:analysis.linkedDormantCount,signalAdded:islandSignalAdded,signalBonus:prospectiveIslandBonus}]};
+    const resonance=C.resonance(sim.output??0,sim.events,pieces,s.circuitRanks,cfg,sim.outputExact??SCORE.exact(sim.output??0));
+    return{ok:true,handIndex:i,tile:cloneTile(tile),placement:{x:c.x,y:c.y,z:0,rr:c.rr},trigger,selectionOutput:sim.output??0,selectionOutputExact:sim.outputExact??SCORE.exact(sim.output??0),output:resonance.output,outputExact:resonance.outputExact,sim,resonance,topologyBreaks,islandDormant:islandsMode()&&analysis.dormant,islandAnchorCoreId:validation.islandAnchorCoreId||null,islandLinkCount:analysis.linkedDormantCount,islandSignalAdded,prospectiveIslandBonus}
   }
 
   function decisionTelemetry(chosenIndex,chosenCandidate,options={}){
@@ -1088,17 +1087,20 @@ function createGame(E,opts={}){
     const tile=s.hand[i];
     if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
-    if(placementOverlapsCore(tile,c.x,c.y,c.rr))return{ok:false,reason:'core-overlap'};if(placementOverlapsVoid(tile,c.x,c.y,c.rr))return{ok:false,reason:'void-overlap'};
-    if(s.pieces.length){const v=E.validatePlacement(tile,c.x,c.y,0,c.rr,s.pieces);if(!v.ok)return{ok:false,reason:v.reason||'invalid'}}
-    else{const p0=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);if(p0.rect.minx<0||p0.rect.miny<0||p0.rect.maxx>E.G||p0.rect.maxy>E.H)return{ok:false,reason:'bounds'}}
+    const validation=modePlacementValidation(tile,c);if(!validation.ok)return validation;
     const undoFrame=captureUndoFrame();
     s.running=true;
     const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,++s.idc);p.tile={...cloneTile(tile)};
+    const analysis=islandPlacementAnalysis(p,s.pieces),islandSignalAdded=analysis.linkedDormantCount*Math.max(0,Number(cfg.ISLAND_LINK_SIGNAL_STEP)||2);
+    if(islandsMode()&&!s.pieces.length)s.islandRootPieceId=p.id;
+    if(islandSignalAdded>0)s.islandSignalBonus=Math.max(0,Number(s.islandSignalBonus)||0)+islandSignalAdded;
     const topologyBreaks=topologyBreaksForPieces([...s.pieces,p]);
     s.pieces.push(p);s.placedTileIds.push(tile.id);
     const topologyLosses=removeTopologyMods(topologyBreaks,tile.id);
     const trigger=tile.a+tile.b;
-    const sim=s.pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
+    let sim;if(islandsMode()&&analysis.dormant)sim={output:0,outputExact:SCORE.exact(0),events:[{type:'island-dormant',piece:p.id,coreId:validation.islandAnchorCoreId||null}],reason:'island-dormant',rebounds:0,search:{starts:0,leaves:1,expanded:0}};else sim=s.pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger));
+    if(islandSignalAdded>0)sim={...sim,events:[...(sim.events||[]),{type:'island-link',piece:p.id,linkedComponents:analysis.linkedDormantCount,signalAdded:islandSignalAdded,signalBonus:s.islandSignalBonus}]};
+    const signalRuntime=signalShadowTelemetry(sim);if(islandsMode())signalRuntime.islandSignalBonus=Math.max(0,Number(s.islandSignalBonus)||0);
     if(isZero(tile))s.roundZero.placed++;
     const generationBefore=s.setGeneration||1;s.hand[i]=drawOne();
     if((s.setGeneration||1)>generationBefore){
@@ -1107,7 +1109,7 @@ function createGame(E,opts={}){
     }
     s.turn++;s.roundTurn++;s.undoFrame=undoFrame;
     if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
-    return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalRuntime,signalShadow:signalRuntime,handIndex:i,topologyLosses}
+    return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalRuntime,signalShadow:signalRuntime,handIndex:i,topologyLosses,islandDormant:islandsMode()&&analysis.dormant,islandAnchorCoreId:validation.islandAnchorCoreId||null,islandLinkCount:analysis.linkedDormantCount,islandSignalAdded}
   }
 
   function upgradeIncomeFor(sim){
