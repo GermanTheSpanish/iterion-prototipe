@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.57.0',
+    VERSION:'0.58.0',
     ENGINE_VERSION:'0.20.2-core-signal-additive-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -25,7 +25,7 @@
     MAX_SET_GENERATION:3,
     CORE_SIGNAL_BASE:24,
     CORE_SIGNAL_MAX:24,
-    CORE_SIGNAL_BY_MODE:Object.freeze({eyes:6,frames:4,river:3}),
+    CORE_SIGNAL_BY_MODE:Object.freeze({eyes:6,frames:4,river:3,loom:2,peaks:2}),
     CORE_SIGNAL_MARKET_STEP:1,
     CORE_SIGNAL_PURCHASE_COST:8,
     CORE_SIGNAL_PURCHASE_STEP:3,
@@ -33,12 +33,16 @@
     CORE_SIGNAL_SHADOW:false,
     CORE_SIGNAL_LEVEL_STEP:4,
     CORE_RESERVOIR_BONUS:8,
+    CORE_ABILITY_LIMIT_BY_MODE:Object.freeze({loom:2,peaks:2}),
+    CORE_PEAK_SIGNAL_MULTIPLIER:2,
     CORE_LEVEL_MAX:5,
     CORE_MAX_PHYSICAL:4,
     CORE_DISCOVERY_STAGES:Object.freeze([4,7]),
     FRAMES_CORE_MAX_PHYSICAL:6,
     FRAMES_CORE_DISCOVERY_STAGES:Object.freeze([2,3,4,5]),
     RIVER_CORE_MAX_PHYSICAL:2,
+    LOOM_CORE_MAX_PHYSICAL:4,
+    PEAKS_CORE_MAX_PHYSICAL:6,
     CORE_UPGRADE_START_STAGE:10,
     CORE_UPGRADE_STAGE_INTERVAL:3,
     CORE_ARCHETYPES:Object.freeze(['relay','reservoir','distributor','conductor']),
