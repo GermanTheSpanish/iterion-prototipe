@@ -307,9 +307,10 @@
     if(fromPieceId===toPieceId)return[fromPieceId];
     const graph=new Map();
     for(const event of events||[]){
-      if(event?.type!=='route'||event.piece==null||event.toPieceId==null)continue;
-      if(!graph.has(event.piece))graph.set(event.piece,new Set());
-      graph.get(event.piece).add(event.toPieceId)
+      const from=event?.type==='route'?event.piece:event?.type==='move'?event.fromPiece:null,to=event?.type==='route'?event.toPieceId:event?.type==='move'?event.toPiece:null;
+      if(from==null||to==null)continue;
+      if(!graph.has(from))graph.set(from,new Set());
+      graph.get(from).add(to)
     }
     const queue=[[fromPieceId,[fromPieceId]]],seen=new Set([fromPieceId]);
     for(let i=0;i<queue.length;i++){
