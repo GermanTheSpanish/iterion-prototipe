@@ -16,7 +16,7 @@ const approachDominoes=item=>[
 ];
 
 assert.equal(D.CORE_SIGNAL_BY_MODE.river,3);
-assert.equal(D.RIVER_CORE_MAX_PHYSICAL,2);
+assert.equal(D.RIVER_CORE_MAX_PHYSICAL,6);
 assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes','frames','river','loom','peaks']);
 
 E.setBoardSize(18,24);
@@ -72,7 +72,7 @@ assert.equal(snap.signal.enabled,true);
 assert.equal(snap.signal.base,3);
 assert.equal(snap.signal.max,3);
 assert.equal(snap.cores.mode,'river');
-assert.equal(snap.cores.maxPhysical,2);
+assert.equal(snap.cores.maxPhysical,6);
 assert.equal(snap.modeGeometry.voids.length,4);
 assert.equal(snap.modeGeometry.visibleIds.length,6);
 assert.deepEqual(P.modeIndicatorViewModel(s,snap).pips,[3,3]);
@@ -102,20 +102,24 @@ assert.deepEqual(restored.state().voids,s.voids);
 assert.equal(restored.snapshot().signal.base,3);
 
 E.setBoardSize(18,24);
-const progression=G.createGame(E,{seed:5702,GAME_MODE:'river',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),ps=progression.state(),initialCoreIds=ps.cores.map(core=>core.id);
+const progression=G.createGame(E,{seed:5702,GAME_MODE:'river',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),ps=progression.state();
 for(let stage=2;stage<=5;stage++){
   while(progression.snapshot().stage.index<stage){
     ps.cleared=true;ps.blocked=false;ps.running=false;ps.nextShopType='none';ps.intermissionResolved=true;ps.pendingCircuit=null;ps.pendingModPlacement=null;ps.shopOpen=false;
     assert.equal(progression.advance(),true)
   }
-  assert.deepEqual(ps.cores.map(core=>core.id),initialCoreIds,'The River keeps a fixed Core network as the board expands');
+  assert.equal(ps.cores.length,stage+1,'The River adds one Core at every board-growth Stage');
+  assert.equal(ps.voids.length,4+(stage-1)*2,'The River adds two Voids with every discovered Core');
+  const coreEvent=[...ps.events].reverse().find(event=>event.type==='core-discover'&&event.stage===stage),voidEvent=[...ps.events].reverse().find(event=>event.type==='void-discover'&&event.stage===stage);
+  assert(coreEvent);assert(voidEvent);assert.equal(coreEvent.companionVoidIds.length,2);assert.equal(voidEvent.count,2)
 }
-assert.equal(ps.events.some(event=>event.type==='core-discover'),false,'River Markets must not spawn new Cores');
-assert.deepEqual(ps.coreProgressMilestones,[]);
+assert.equal(ps.events.filter(event=>event.type==='core-discover').length,4);
+assert.equal(ps.events.filter(event=>event.type==='void-discover').length,4);
+assert.equal(ps.coreProgressMilestones.filter(key=>key.startsWith('discover:')).length,4);
 ps.marketCount=2;
 const charged=progression.snapshot().signal;
 assert.equal(charged.base,3);
 assert.equal(charged.coreCharge,5);
 assert.equal(charged.marketBonus,2);
 
-console.log('The River 3|3 fixed Core/Void geometry regressions passed');
+console.log('The River 3|3 Core/Void growth regressions passed');
