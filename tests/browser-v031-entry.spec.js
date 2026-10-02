@@ -37,7 +37,7 @@ test('entry card uses keyboard, has no click-through and starts the real opening
 
 test('game mode carousel keeps its frame and exposes The Eyes beside Classic',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();
-  await expect(page.locator('#modeCarouselFrame')).toBeVisible();await expect(page.locator('.modeSlide')).toHaveCount(8);await expect(page.locator('#modeName')).toHaveText('CLASSIC');await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
+  await expect(page.locator('#modeCarouselFrame')).toBeVisible();await expect(page.locator('.modeSlide')).toHaveCount(8);await expect(page.locator('#modeName')).toHaveText('CLASSIC');await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
   const frame=await page.locator('#modeCarouselFrame').boundingBox(),viewport=await page.locator('#modeCarouselViewport').boundingBox();expect(frame).toBeTruthy();expect(viewport).toBeTruthy();
   const neighbor=await page.locator('.modeSlide[data-index="1"]').boundingBox();expect(neighbor).toBeTruthy();expect(neighbor.x).toBeLessThan(frame.x+frame.width);expect(neighbor.x+neighbor.width).toBeGreaterThan(frame.x+frame.width);
   await page.mouse.move(viewport.x+viewport.width*.70,viewport.y+viewport.height*.5);await page.mouse.down();await page.mouse.move(viewport.x+viewport.width*.20,viewport.y+viewport.height*.5);await page.mouse.up();
