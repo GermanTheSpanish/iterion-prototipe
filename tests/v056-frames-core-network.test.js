@@ -28,13 +28,13 @@ assert.equal(coverage.worstTileId,'coverage-6');
 
 function runProgression(seed){
   E.setBoardSize(18,24);
-  const game=G.createGame(E,{seed,GAME_MODE:'frames',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),state=game.state(),counts=[state.cores.length],discoveries=[];
+  const game=G.createGame(E,{seed,GAME_MODE:'frames',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),state=game.state(),counts=[state.cores.length],voidCounts=[state.voids.length],discoveries=[];
   for(let targetStage=2;targetStage<=5;targetStage++){
     while(game.snapshot().stage.index<targetStage){
       state.cleared=true;state.blocked=false;state.running=false;state.nextShopType='none';state.intermissionResolved=true;state.pendingCircuit=null;state.pendingModPlacement=null;state.shopOpen=false;
       assert.equal(game.advance(),true)
     }
-    counts.push(state.cores.length);
+    counts.push(state.cores.length);voidCounts.push(state.voids.length);
     const event=[...state.events].reverse().find(item=>item.type==='core-discover'&&item.stage===targetStage);
     assert(event,`Stage ${targetStage} must discover one Frames Core`);
     assert.equal(event.connectedAtDiscovery,0,'new frame infrastructure must not auto-connect on an empty machine');
@@ -46,6 +46,9 @@ function runProgression(seed){
     const expectedLattice={x:residue(canonical.x),y:residue(canonical.y)};
     assert.deepEqual({x:residue(core.x),y:residue(core.y)},expectedLattice,'Market-spawned Frames Cores must remain on the canonical pip lattice');
     assert.deepEqual(event.lattice,expectedLattice,'Core discovery telemetry must record the lattice used for placement');
+    const voidEvent=[...state.events].reverse().find(item=>item.type==='void-discover'&&item.stage===targetStage);
+    assert(voidEvent,`Stage ${targetStage} must discover one companion Frames Void`);
+    assert.equal(voidEvent.count,1);assert.equal(event.companionVoidIds.length,1);assert.equal(voidEvent.sourceCoreId,core.id);
     discoveries.push({stage:event.stage,id:core.id,x:core.x,y:core.y,ports:[...core.ports],archetype:core.archetype})
   }
   const snap=game.snapshot();
@@ -53,10 +56,11 @@ function runProgression(seed){
   assert.equal(snap.cores.items.length,6);
   assert.equal(snap.cores.progressMilestones.filter(key=>key.startsWith('discover:')).length,4);
   assert.match(game.debugText(),/coverage=max:/);
-  return{counts,discoveries}
+  return{counts,voidCounts,discoveries}
 }
 const first=runProgression(56002),second=runProgression(56002);
 assert.deepEqual(first.counts,[2,3,4,5,6]);
+assert.deepEqual(first.voidCounts,[2,3,4,5,6],'2|2 adds one Void with every new Core');
 assert.deepEqual(second,first,'Frames Core growth must be seed-deterministic');
 for(const seed of [1153920735,1362192979,56003,56004,56005,56006,56007,56008])runProgression(seed);
 
