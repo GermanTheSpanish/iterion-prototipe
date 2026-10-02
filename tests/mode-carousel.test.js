@@ -5,7 +5,7 @@ const C=require('../mode-carousel.js');
 
 assert.strictEqual(C.MODES.length,8);
 assert.deepStrictEqual(C.MODES.filter(m=>m.available).map(m=>m.id),['classic','eyes','frames','river']);
-assert.strictEqual(C.MODES[0].description,'Classic → Endless → Infinite → Ouroboros');
+assert.strictEqual(C.MODES[0].description,'Classic → Endless → Infinite');
 assert.strictEqual(C.MODES[1].name,'THE EYES');
 assert.strictEqual(C.MODES[1].description,'1|1 · Signal 6');
 assert.strictEqual(C.MODES[2].name,'THE FRAMES');
