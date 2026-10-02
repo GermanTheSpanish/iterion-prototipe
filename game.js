@@ -180,7 +180,7 @@ function createGame(E,opts={}){
   const stageSize=()=>cfg.STAGE_SIZE||3;
   const baseStageCount=()=>Math.ceil((cfg.TOTAL_ROUNDS||0)/stageSize());
   const canonicalGameMode=mode=>mode==='eyes'||mode==='frames'||mode==='river'?mode:'classic';
-  const coreGameMode=mode=>{const id=canonicalGameMode(mode);return id==='eyes'||id==='frames'};
+  const coreGameMode=mode=>{const id=canonicalGameMode(mode);return id==='eyes'||id==='frames'||id==='river'};
   const infinitePhaseStartRound=()=>Math.max(0,(cfg.TOTAL_ROUNDS||0)+(cfg.INFINITE_PHASE_AFTER_STAGES||15)*stageSize());
   function infinitePhase(roundIndex=s.round){return !!s.endlessMode&&Math.max(0,Number(roundIndex)||0)>=infinitePhaseStartRound()}
   function ouroborosPhase(){return!!s.ouroborosMode}
