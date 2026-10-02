@@ -307,7 +307,7 @@ function createGame(E,opts={}){
   function pieceOverlapsBlockedGeometry(piece){return pieceOverlapsCore(piece)||pieceOverlapsVoid(piece)}
   function placementOverlapsBlockedGeometry(tile,x,y,rr){return pieceOverlapsBlockedGeometry(E.pieceFrom(tile,x,y,0,rr,-1))}
   function geometryItemVisible(item,board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H}){const size=Math.max(1,Number(item?.size)||Number(E.S)||2);return item&&item.x>=0&&item.y>=0&&item.x+size<=board.G&&item.y+size<=board.H}
-  function modeGeometryItems(){return[...(s.cores||[]).map(item=>({...item,kind:'core'})),...(s.voids||[]).map(item=>({...item,kind:'void'}))]}
+  function modeGeometryItems(){return[...(s.cores||[]).map(item=>({...item,kind:item.kind||'core'})),...(s.voids||[]).map(item=>({...item,kind:'void'}))]}
   function coreRectsOverlap(a,b){
     const as=coreSize(a),bs=coreSize(b);
     return a.x<b.x+bs&&a.x+as>b.x&&a.y<b.y+bs&&a.y+as>b.y
@@ -337,7 +337,7 @@ function createGame(E,opts={}){
   const CORE_LEVEL_ROMAN=Object.freeze(['I','II','III','IV','V']);
   function coreLevelRoman(level){return CORE_LEVEL_ROMAN[Math.max(0,Math.min(CORE_LEVEL_ROMAN.length-1,(Number(level)||1)-1))]||'I'}
   function coreRechargeValue(core,{lead=false}={}){
-    const level=Math.max(1,Math.min(Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5),Number(core?.level)||1)),base=Math.max(1,Number(cfg.CORE_SIGNAL_MAX)||24)+(level-1)*Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4);
+    const level=Math.max(1,Math.min(Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5),Number(core?.level)||1)),charge=Math.max(1,Number(coreSignalBudgetForMode().coreCharge)||Number(cfg.CORE_SIGNAL_MAX)||24)+(level-1)*Math.max(0,Number(cfg.CORE_SIGNAL_LEVEL_STEP)||4),base=core?.peak?charge*Math.max(1,Number(cfg.CORE_PEAK_SIGNAL_MULTIPLIER)||2):charge;
     return base+(lead&&core?.archetype==='reservoir'?Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8):0)
   }
   function coreProgressKeys(){if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];return new Set(s.coreProgressMilestones)}
