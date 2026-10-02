@@ -39,7 +39,7 @@ for(const mode of Object.keys(expected)){
         assert.deepEqual(sites,expected[mode][half],`${mode} ${half} opening pips must use the widened shared grid`)
       }
     }
-    for(const core of state.cores)assert(approachSides(core,geometry).length>0,`${mode} seed ${60100+seed} Core ${core.id} needs one complete two-cell domino approach through an actual port`)
+    for(const core of state.cores){const sides=approachSides(core,geometry),reachabilityEvents=state.events.filter(event=>event.type==='core-port-reachability'||event.type==='core-port-reachability-blocked');assert(sides.length>0,`${mode} seed ${60100+seed} Core ${core.id} needs one complete two-cell domino approach through an actual port; ports=${(core.ports||[]).join('')||'-'} events=${JSON.stringify(reachabilityEvents)}`)}
   }
 }
 
