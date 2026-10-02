@@ -17,7 +17,7 @@
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal'),ouroborosSelection=null;
   const MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
-  const PLACEMENT_LOCK_MS=280,PLACEMENT_LOCK_TOLERANCE_PX=22;
+  const PLACEMENT_LOCK_MS=140,PLACEMENT_LOCK_TOLERANCE_PX=22;
   let drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null,grabOffsetX:0,grabOffsetY:0,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   function explicitRoutePreviewMode(){
@@ -417,6 +417,7 @@
   function openTileInspector(tileId){if(drag.active||uiBusy)return;const model=H.inspectTile(GAME.state(),tileId);if(!model)return;auxOverlay={type:'inspector',tileId,model};renderAuxOverlay()}
   function openCoreInspector(coreId){if(drag.active||uiBusy)return;const model=H.inspectCore?.(GAME.state(),coreId,GAME.coreShadowTelemetry?.());if(!model)return;auxOverlay={type:'core-inspector',coreId,model};renderAuxOverlay()}
   function openVoidInspector(voidId){if(drag.active||uiBusy)return;const voidItem=(GAME.state().voids||[]).find(item=>item.id===voidId);if(!voidItem)return;auxOverlay={type:'void-inspector',voidId};renderAuxOverlay()}
+  function openSignalInspector(){if(drag.active||uiBusy)return;const signal=GAME.snapshot().signal;if(!signal?.enabled)return;auxOverlay={type:'signal-inspector'};renderAuxOverlay()}
   function modifierGuideHtml(mod){
     const guide=mod.guidance||MG?.get(mod.id),status=mod.status||MG?.status(mod.id,GAME.state(),auxOverlay?.tileId);
     if(!guide)return`<div class="inspectModifier"><strong>${escapeHtml(mod.displayName)}</strong><span>${escapeHtml(mod.shortDescription)}</span><p>${escapeHtml(mod.rulesDescription)}</p></div>`;
@@ -471,6 +472,13 @@
     return`<section class="inspectSection"><div class="inspectLabel">Mutation · ${escapeHtml(mod?.displayName||info.mod)}</div><div class="mutationActions">${info.options.map(option=>{const warnings=mutationWarning(option),warning=warnings.length?`<small>${escapeHtml(warnings.join(' · '))}</small>`:'';return`<button class="shopBuy mutationAction" data-mutation-action="${escapeHtml(option.key)}"><strong>${escapeHtml(mutationOptionLabel(option,state))}</strong>${warning}</button>`}).join('')}</div><p class="inspectEmpty">1 use per ${cadence.toLowerCase()}. Using a Mutation commits the machine and clears the current Undo frame.</p></section>`
   }
   function renderVoidInspector(){overlayTitle.textContent='';overlayBody.innerHTML='<div class="voidInspectorWord" tabindex="-1">VOID</div>';overlayPrimary.style.display=overlaySecondary.style.display=overlayTertiary.style.display='none';modalEl.classList.add('voidInspectorModal');overlayBody.onclick=closeAuxOverlay}
+  function renderSignalInspector(){
+    const signal=GAME.snapshot().signal;if(!signal?.enabled){closeAuxOverlay();return}
+    const start=Math.max(0,Number(signal.base)||0),modeBase=Math.max(0,Number(signal.modeBase)||0),coreCharge=Math.max(0,Number(signal.coreCharge)||0),purchased=Math.max(0,Number(signal.purchasedSignal)||0),marketBonus=Math.max(0,Number(signal.marketBonus)||0);
+    overlayTitle.textContent='SIGNAL';
+    overlayBody.innerHTML=`<div class="inspector signalInspector"><section class="inspectSection"><div class="inspectHero"><strong>${start}</strong><span>START THIS RUN</span></div><div class="stateRows"><span>MODE BASE · ${modeBase}</span><span>CORE I · +${coreCharge}</span>${purchased?`<span>BOUGHT · +${purchased}</span>`:''}${marketBonus?`<span>MARKET CORE · +${marketBonus}</span>`:''}</div></section><section class="inspectSection"><div class="inspectLabel">Route cost</div><div class="stateRows"><span>FIRST VISIT · −1</span><span>RETRACE · 0</span><span>REACH CORE · ADD ITS CHARGE</span></div></section></div>`;
+    overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
+  }
   function renderCoreInspector(){
     const state=GAME.state(),model=H.inspectCore?.(state,auxOverlay.coreId,GAME.coreShadowTelemetry?.())||auxOverlay.model;if(!model){closeAuxOverlay();return}
     auxOverlay.model=model;overlayTitle.textContent=`${model.displayName.toUpperCase()} · ${model.roman}`;
@@ -503,7 +511,7 @@
   }
   function renderAuxOverlay(){
     if(!auxOverlay)return;resetOverlay();overlay.classList.add('aux');modalEl.classList.add('auxModal');overlay.onclick=e=>{if(e.target===overlay)closeAuxOverlay()};
-    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else if(auxOverlay.type==='core-inspector')renderCoreInspector();else if(auxOverlay.type==='void-inspector')renderVoidInspector();else renderInspector();
+    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else if(auxOverlay.type==='core-inspector')renderCoreInspector();else if(auxOverlay.type==='void-inspector')renderVoidInspector();else if(auxOverlay.type==='signal-inspector')renderSignalInspector();else renderInspector();
     if(!overlay.contains(document.activeElement)){if(!returnFocus)returnFocus=document.activeElement;const focusTarget=auxOverlay.type==='void-inspector'?overlayBody.querySelector('.voidInspectorWord'):overlayPrimary;focusTarget?.focus()}
   }
 
@@ -696,12 +704,13 @@
     signalHudEl.hidden=!entries.length;if(!entries.length){if(values)values.innerHTML='';return}
     const multiple=entries.length>1;
     if(values)values.innerHTML=entries.map(([key,raw])=>{const value=Math.max(0,Math.floor(Number(raw)||0)),label=signalHudLaneLabel(key),cls=value<=1?' critical':value<=3?' low':'';return`<span class="signalHudLane${cls}">${multiple&&label?`<small>${label}</small>`:''}<b>${value}</b></span>`}).join(multiple?'<i class="signalHudDivider">|</i>':'');
-    signalHudEl.setAttribute('aria-label',`Signal ${entries.map(([key,value])=>`${multiple&&signalHudLaneLabel(key)?signalHudLaneLabel(key)+' ':''}${Math.max(0,Math.floor(Number(value)||0))}`).join(', ')}`)
+    signalHudEl.setAttribute('aria-label',`Signal ${entries.map(([key,value])=>`${multiple&&signalHudLaneLabel(key)?signalHudLaneLabel(key)+' ':''}${Math.max(0,Math.floor(Number(value)||0))}`).join(', ')}. Tap to inspect.`)
   }
   function renderSignalHudIdle(model){
     if(!signalHudEl)return;if(signalHudState.active)return renderSignalHud();
     signalHudState.lanes.clear();if(model?.visible)signalHudState.lanes.set('main',Math.max(0,Number(model.start)||0));renderSignalHud()
   }
+  if(signalHudEl){signalHudEl.onclick=e=>{e.stopPropagation();openSignalInspector()};signalHudEl.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openSignalInspector()}}}
   function startSignalHud(value){
     if(!signalHudEl)return;const signal=GAME.snapshot().signal;if(!signal?.enabled){signalHudState.active=false;signalHudState.lanes.clear();renderSignalHud();return}signalHudState.active=true;signalHudState.lanes.clear();signalHudState.lanes.set('main',Math.max(0,Number(value)||0));renderSignalHud()
   }
