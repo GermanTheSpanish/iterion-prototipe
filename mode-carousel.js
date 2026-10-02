@@ -59,7 +59,7 @@
 .modeCarouselViewport.isDragging .modeSlide,.modeCarouselViewport.isRebasing .modeSlide{transition:none!important}
 .modeCarouselViewport.isPulling .modeSlide{transition:translate var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1),opacity .18s ease}
 .modeCarouselViewport.isLanding .modeSlide{transition:translate var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1),opacity .12s ease}
-.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{visibility:hidden;pointer-events:none}.modeSlide.isRemote .modeTile{visibility:visible}
+.modeSlide.isSelected{z-index:3}.modeSlide.isNeighbor{z-index:2}.modeSlide.isRemote{visibility:hidden;pointer-events:none}.modeSlide.isRemote .modeTile{visibility:visible}.modeSlide.isLocked .modeTile{filter:grayscale(1);opacity:.28}
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
@@ -93,21 +93,22 @@
     const doc=root.document,oldClassic=doc.getElementById('modeClassic');
     if(!doc||!oldClassic||doc.getElementById('modeCarouselFrame'))return false;
     injectStyles(doc);
-    const startRun=doc.getElementById('startRun'),continueRun=doc.getElementById('continueRun');
+    const startRun=doc.getElementById('startRun'),continueRun=doc.getElementById('continueRun'),activeModeKey=root.MonoidProfile?.storageKey?.(ACTIVE_MODE_KEY)||ACTIVE_MODE_KEY,modeAvailable=mode=>!!mode?.available&&(!root.MonoidProfile||root.MonoidProfile.isModeUnlocked(mode.id));
     if(!startRun)return false;
     const originalStart=startRun.onclick,originalContinue=continueRun?.onclick||null;
     const frame=doc.createElement('div');frame.id='modeCarouselFrame';frame.className='modeCard modeCarouselFrame';frame.tabIndex=0;frame.setAttribute('role','group');frame.setAttribute('aria-label','Game mode selector');
     const viewport=doc.createElement('div');viewport.id='modeCarouselViewport';viewport.className='modeCarouselViewport';
-    const slides=MODES.map((mode,index)=>{const button=doc.createElement('button');button.type='button';button.className='modeSlide';button.dataset.mode=mode.id;button.dataset.index=String(index);button.setAttribute('aria-label',mode.available?mode.name:`Unavailable mode ${index-1}`);if(!mode.available)button.setAttribute('aria-disabled','true');button.innerHTML=tileMarkup(mode);viewport.appendChild(button);return button});
+    const slides=MODES.map((mode,index)=>{const button=doc.createElement('button');button.type='button';button.className='modeSlide';button.dataset.mode=mode.id;button.dataset.index=String(index);button.innerHTML=tileMarkup(mode);viewport.appendChild(button);return button});
     slides[0].id='modeClassic';
     const name=doc.createElement('strong');name.id='modeName';
     const description=doc.createElement('small');description.id='modeDescription';
     frame.append(viewport,name,description);oldClassic.replaceWith(frame);
-    const initialMode=root.__monoidSelectedMode||root.__monoidActiveMode||root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic';
-    let selected=Math.max(0,MODES.findIndex(mode=>mode.id===initialMode)),drag=null,suppressClickUntil=0,settleTimer=0,settleState=null;
+    const initialMode=root.__monoidSelectedMode||root.__monoidActiveMode||root.localStorage?.getItem(activeModeKey)||'classic';
+    const requestedIndex=Math.max(0,MODES.findIndex(mode=>mode.id===initialMode));
+    let selected=modeAvailable(MODES[requestedIndex])?requestedIndex:0,drag=null,suppressClickUntil=0,settleTimer=0,settleState=null;
     function render(trackX=0){
-      const mode=MODES[selected];frame.dataset.mode=mode.id;frame.dataset.modeAvailable=String(mode.available);name.textContent=mode.name;description.textContent=mode.description;startRun.disabled=!mode.available;
-      slides.forEach((slide,i)=>{const offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+trackX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.setProperty('--mode-x',`${x}px`);slide.style.setProperty('--tile-scale',String(scale))});
+      const mode=MODES[selected],available=modeAvailable(mode);frame.dataset.mode=mode.id;frame.dataset.modeAvailable=String(available);name.textContent=available?mode.name:'LOCKED';description.textContent=available?mode.description:'Progress to unlock';startRun.disabled=!available;
+      slides.forEach((slide,i)=>{const item=MODES[i],itemAvailable=modeAvailable(item),offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+trackX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.classList.toggle('isLocked',!itemAvailable);slide.setAttribute('aria-label',itemAvailable?item.name:'Locked game mode');slide.setAttribute('aria-disabled',itemAvailable?'false':'true');slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.setProperty('--mode-x',`${x}px`);slide.style.setProperty('--tile-scale',String(scale))});
       root.__monoidSelectedMode=mode.id;if(root.__monoidModes)root.__monoidModes.selected=mode.id
     }
     function clearSettleTimer(){if(settleTimer){root.clearTimeout(settleTimer);settleTimer=0}}
@@ -146,9 +147,9 @@
     }
     viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;const startShift=drag.visualX;drag=null;viewport.classList.remove('isDragging');settle(selected,startShift,0)});
     frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();settle(stepIndex(selected,1),0,-SPACING)}else if(e.key==='ArrowLeft'){e.preventDefault();settle(stepIndex(selected,-1),0,SPACING)}});
-    startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!mode.available)return false;root.__monoidSelectedMode=mode.id;return originalStart?.call(this,event)}
+    startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!modeAvailable(mode))return false;root.__monoidSelectedMode=mode.id;return originalStart?.call(this,event)}
     if(continueRun)continueRun.onclick=function(event){stopSettling(true);return originalContinue?.call(this,event)};
-    root.__monoidModes={modes:MODES,selected:MODES[0].id,get active(){return root.localStorage?.getItem(ACTIVE_MODE_KEY)||'classic'},select};
+    root.__monoidModes={modes:MODES,selected:MODES[selected].id,get active(){return root.localStorage?.getItem(activeModeKey)||'classic'},isAvailable:id=>{const mode=MODES.find(item=>item.id===id);return!!mode&&modeAvailable(mode)},select};
     render();return true
   }
   return{ACTIVE_MODE_KEY,MODES,SPACING,SETTLE_MS,SETTLE_APPROACH_MS,SETTLE_LAND_MS,SETTLE_MIN_APPROACH_MS,SETTLE_MIN_LAND_MS,SETTLE_OVERSHOOT,clampIndex,wrapIndex,stepIndex,cyclicOffset,magnetizeDrag,settleProfile,mount};
