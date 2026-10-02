@@ -179,7 +179,7 @@ function createGame(E,opts={}){
   const deepClone=x=>JSON.parse(JSON.stringify(x));
   const stageSize=()=>cfg.STAGE_SIZE||3;
   const baseStageCount=()=>Math.ceil((cfg.TOTAL_ROUNDS||0)/stageSize());
-  const canonicalGameMode=mode=>['eyes','frames','river','loom','peaks'].includes(mode)?mode:'classic';
+  const canonicalGameMode=mode=>['eyes','frames','river','loom','peaks','islands'].includes(mode)?mode:'classic';
   const coreGameMode=mode=>canonicalGameMode(mode)!=='classic';
   const infinitePhaseStartRound=()=>Math.max(0,(cfg.TOTAL_ROUNDS||0)+(cfg.INFINITE_PHASE_AFTER_STAGES||15)*stageSize());
   function infinitePhase(roundIndex=s.round){return !!s.endlessMode&&Math.max(0,Number(roundIndex)||0)>=infinitePhaseStartRound()}
@@ -206,7 +206,7 @@ function createGame(E,opts={}){
   }
   function normalizeLegacyCoreArchetypes(reason='restore'){
     if(!coreGameMode(s.gameMode)||!Array.isArray(s.cores)||s.cores.length<2||(s.coreProgressMilestones||[]).length)return[];
-    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],seen=new Set(),changed=[],enforceUnique=!['loom','peaks'].includes(canonicalGameMode(s.gameMode));
+    const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],seen=new Set(),changed=[],enforceUnique=!['loom','peaks','islands'].includes(canonicalGameMode(s.gameMode));
     s.cores=s.cores.map((core,index)=>{
       let archetype=core.archetype;if(!archetypes.includes(archetype))archetype=archetypes[coreHash(s.seed||0,index,197)%archetypes.length];
       if(enforceUnique&&seen.has(archetype)){const missing=archetypes.filter(id=>!seen.has(id));if(missing.length)archetype=missing[coreHash(s.seed||0,index,199)%missing.length]}
@@ -257,9 +257,16 @@ function createGame(E,opts={}){
     return{cores,voids,sites}
   }
   function highPipModeGeometry(mode,seed=s.seed){
-    const id=canonicalGameMode(mode);if(id!=='loom'&&id!=='peaks')return{cores:[],voids:[],sites:[]};
+    const id=canonicalGameMode(mode);if(!['loom','peaks','islands'].includes(id))return{cores:[],voids:[],sites:[]};
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
-    const site=(half,pip,cx,cy)=>({id:`${id}-${half}-${pip}`,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),makeHalf=(half,cy)=>[
+    const site=(half,pip,cx,cy)=>({id:`${id}-${half}-${pip}`,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),makeHalf=(half,cy)=>id==='islands'?[
+      site(half,0,centerX-pipXOffset,cy-pipYOffset),
+      site(half,1,centerX+pipXOffset,cy-pipYOffset),
+      site(half,2,centerX-pipXOffset,cy),
+      site(half,3,centerX+pipXOffset,cy),
+      site(half,4,centerX-pipXOffset,cy+pipYOffset),
+      site(half,5,centerX+pipXOffset,cy+pipYOffset)
+    ]:[
       site(half,0,centerX-pipXOffset,cy-pipYOffset),
       site(half,1,centerX+pipXOffset,cy-pipYOffset),
       site(half,2,centerX-pipXOffset,cy+pipYOffset),
@@ -267,17 +274,22 @@ function createGame(E,opts={}){
       ...(id==='peaks'?[site(half,4,centerX,cy)]:[])
     ],sites=[...makeHalf('north',topCenterY),...makeHalf('south',bottomCenterY)],archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],cores=[],voids=[];
     for(const [half,halfIndex] of [['north',0],['south',1]]){
-      const halfSites=sites.filter(item=>item.half===half),cornerSites=halfSites.filter(item=>item.pip<4),ranked=[...cornerSites].sort((a,b)=>coreHash(seed,halfIndex*8+a.pip,401)-coreHash(seed,halfIndex*8+b.pip,401)||a.pip-b.pip),normalCoreSites=ranked.slice(0,2),normalIds=new Set(normalCoreSites.map(item=>item.id)),selected=id==='peaks'?[halfSites.find(item=>item.pip===4),...normalCoreSites]:normalCoreSites;
+      const halfSites=sites.filter(item=>item.half===half);
+      if(id==='islands'){
+        halfSites.forEach((coreSite,localIndex)=>{const coreIndex=halfIndex*6+localIndex,archetype=archetypes[coreHash(seed,coreIndex,409)%archetypes.length];cores.push({id:`core-islands-${half}-${coreSite.pip}`,slot:`${half}-${coreSite.pip}`,half,pip:coreSite.pip,siteId:coreSite.id,x:coreSite.x,y:coreSite.y,size,ports:corePortsForArchetype(seed,coreIndex+40,archetype),archetype,level:1,kind:'core',peak:false})});
+        continue
+      }
+      const cornerSites=halfSites.filter(item=>item.pip<4),ranked=[...cornerSites].sort((a,b)=>coreHash(seed,halfIndex*8+a.pip,401)-coreHash(seed,halfIndex*8+b.pip,401)||a.pip-b.pip),normalCoreSites=ranked.slice(0,2),normalIds=new Set(normalCoreSites.map(item=>item.id)),selected=id==='peaks'?[halfSites.find(item=>item.pip===4),...normalCoreSites]:normalCoreSites;
       selected.forEach((coreSite,localIndex)=>{const coreIndex=halfIndex*(id==='peaks'?3:2)+localIndex,archetype=archetypes[coreHash(seed,coreIndex,409)%archetypes.length],peak=id==='peaks'&&coreSite.pip===4;cores.push({id:`core-${id}-${half}-${coreSite.pip}`,slot:peak?`${half}-peak`:`${half}-${coreSite.pip}`,half,pip:coreSite.pip,siteId:coreSite.id,x:coreSite.x,y:coreSite.y,size,ports:corePortsForArchetype(seed,coreIndex+40,archetype),archetype,level:1,kind:peak?'peak':'core',peak})});
       for(const voidSite of cornerSites)if(!normalIds.has(voidSite.id))voids.push({id:`void-${id}-${half}-${voidSite.pip}`,half,pip:voidSite.pip,siteId:voidSite.id,x:voidSite.x,y:voidSite.y,size})
     }
-    cores.sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip);voids.sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip);return{cores,voids,sites}
+    cores.sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip);voids.sort((a,b)=>(a.half||'').localeCompare(b.half||'')||(a.pip??0)-(b.pip??0));return{cores,voids,sites}
   }
   function coreLayoutForMode(mode=s.gameMode,seed=s.seed){
     const id=canonicalGameMode(mode);
     if(id==='frames')return framesModeGeometry(seed).cores;
     if(id==='river')return riverModeGeometry(seed).cores;
-    if(id==='loom'||id==='peaks')return highPipModeGeometry(id,seed).cores;
+    if(id==='loom'||id==='peaks'||id==='islands')return highPipModeGeometry(id,seed).cores;
     if(id!=='eyes')return[];
     const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),centerX=bs.G/2,centerY=bs.H/2,halfCenterOffset=size*2.5,x=Math.round(centerX-size/2),topY=Math.round(centerY-halfCenterOffset-size/2),bottomY=Math.round(centerY+halfCenterOffset-size/2);
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,99)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,99)%(southPool.length||archetypes.length)];
@@ -286,7 +298,7 @@ function createGame(E,opts={}){
       {id:'core-eyes-south',slot:'south',x,y:bottomY,size,ports:corePortsForArchetype(seed,1,southArchetype),archetype:southArchetype,level:1}
     ]
   }
-  function voidLayoutForMode(mode=s.gameMode,seed=s.seed){const id=canonicalGameMode(mode);return id==='frames'?framesModeGeometry(seed).voids:id==='river'?riverModeGeometry(seed).voids:['loom','peaks'].includes(id)?highPipModeGeometry(id,seed).voids:[]}
+  function voidLayoutForMode(mode=s.gameMode,seed=s.seed){const id=canonicalGameMode(mode);return id==='frames'?framesModeGeometry(seed).voids:id==='river'?riverModeGeometry(seed).voids:['loom','peaks','islands'].includes(id)?highPipModeGeometry(id,seed).voids:[]}
 
   function physicalCoreMode(){return coreGameMode(s.gameMode)&&Array.isArray(s.cores)&&s.cores.length>0}
   function coreSize(core){return Math.max(1,Number(core?.size)||Number(E.S)||2)}
@@ -296,7 +308,7 @@ function createGame(E,opts={}){
   }
   function pieceOverlapsCore(piece,cores=s.cores){return physicalCoreMode()&&(cores||[]).some(core=>(canonicalGameMode(s.gameMode)!=='frames'||geometryItemVisible(core))&&(piece?.cubes||[]).some(cube=>cubeOverlapsCore(cube,core)))}
   function placementOverlapsCore(tile,x,y,rr){return physicalCoreMode()&&pieceOverlapsCore(E.pieceFrom(tile,x,y,0,rr,-1))}
-  function physicalVoidMode(){return['frames','river','loom','peaks'].includes(canonicalGameMode(s.gameMode))&&Array.isArray(s.voids)&&s.voids.length>0}
+  function physicalVoidMode(){return['frames','river','loom','peaks','islands'].includes(canonicalGameMode(s.gameMode))&&Array.isArray(s.voids)&&s.voids.length>0}
   function voidSize(voidItem){return Math.max(1,Number(voidItem?.size)||Number(E.S)||2)}
   function cubeOverlapsVoid(cube,voidItem){
     const cell=Math.max(1,Number(E.S)||2),size=voidSize(voidItem);
@@ -341,7 +353,7 @@ function createGame(E,opts={}){
     return base+(lead&&core?.archetype==='reservoir'?Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8):0)
   }
   function coreProgressKeys(){if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];return new Set(s.coreProgressMilestones)}
-  function coreMaxPhysicalForMode(mode=s.gameMode){const id=canonicalGameMode(mode);return id==='frames'?Math.max(2,Number(cfg.FRAMES_CORE_MAX_PHYSICAL)||6):id==='river'?Math.max(2,Number(cfg.RIVER_CORE_MAX_PHYSICAL)||6):id==='loom'?Math.max(4,Number(cfg.LOOM_CORE_MAX_PHYSICAL)||8):id==='peaks'?Math.max(6,Number(cfg.PEAKS_CORE_MAX_PHYSICAL)||10):Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||6)}
+  function coreMaxPhysicalForMode(mode=s.gameMode){const id=canonicalGameMode(mode);return id==='frames'?Math.max(2,Number(cfg.FRAMES_CORE_MAX_PHYSICAL)||6):id==='river'?Math.max(2,Number(cfg.RIVER_CORE_MAX_PHYSICAL)||6):id==='loom'?Math.max(4,Number(cfg.LOOM_CORE_MAX_PHYSICAL)||8):id==='peaks'?(s.endlessMode?Math.max(10,Number(cfg.PEAKS_ENDLESS_CORE_MAX_PHYSICAL)||64):Math.max(6,Number(cfg.PEAKS_CORE_MAX_PHYSICAL)||10)):id==='islands'?Math.max(12,Number(cfg.ISLANDS_CORE_MAX_PHYSICAL)||12):Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||6)}
   function coreDiscoveryStagesForMode(mode=s.gameMode){
     const id=canonicalGameMode(mode),configured=coreGameMode(id)?(cfg.CORE_DISCOVERY_STAGES||[2,3,4,5]):[];
     return[...new Set(configured.map(Number).filter(stage=>Number.isFinite(stage)&&stage>1).map(stage=>Math.trunc(stage)))].sort((a,b)=>a-b)
@@ -367,7 +379,7 @@ function createGame(E,opts={}){
     if(id==='eyes')return(s.cores||[]).filter(core=>core.slot==='north'||core.slot==='south');
     if(id==='frames')return framesModeGeometry(seed).sites||[];
     if(id==='river')return riverModeGeometry(seed).sites||[];
-    if(id==='loom'||id==='peaks')return highPipModeGeometry(id,seed).sites||[];
+    if(id==='loom'||id==='peaks'||id==='islands')return highPipModeGeometry(id,seed).sites||[];
     return[]
   }
   function growthLatticeResidue(mode=s.gameMode,cell=Math.max(1,Number(E.S)||2)){
