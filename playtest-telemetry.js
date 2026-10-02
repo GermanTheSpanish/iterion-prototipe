@@ -10,7 +10,7 @@
   const bucket=()=>({activeMs:0,decisionMs:0,cascadeMs:0,placements:0,markets:0,marketMs:0,ouroborosDecisionMs:0,ouroborosFires:0,ouroborosRebuilds:0});
   const duration=ms=>{const total=Math.max(0,Math.round(finite(ms)/1000)),h=Math.floor(total/3600),m=Math.floor(total%3600/60),s=total%60;return(h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')};
   function create(options={}){
-    const storage=options.storage||null,now=options.now||(()=>Date.now()),randomUint32=options.randomUint32||(()=>{
+    const storage=options.storage||null,now=options.now||(()=>Date.now()),keys=Object.freeze({player:options.keys?.player||PLAYER_KEY,run:options.keys?.run||RUN_KEY,batch:options.keys?.batch||BATCH_KEY,lastBatch:options.keys?.lastBatch||LAST_BATCH_KEY}),fixedPlayerId=options.playerId||null,environment=options.environment||'player',profileType=options.profileType||'player',randomUint32=options.randomUint32||(()=>{
       try{if(typeof crypto!=='undefined'&&crypto.getRandomValues)return crypto.getRandomValues(new Uint32Array(1))[0]>>>0}catch(_){}
       return((Math.random()*0xffffffff)>>>0)
     });
@@ -19,23 +19,23 @@
     const write=(key,value)=>{try{storage?.setItem(key,JSON.stringify(value));return true}catch(_){return false}};
     const makeId=prefix=>prefix+'-'+randomUint32().toString(36).toUpperCase().padStart(7,'0').slice(-7);
     function profile(){
-      let p=read(PLAYER_KEY);
-      if(!p?.playerId){p={version:1,playerId:makeId('P'),runSequence:0};write(PLAYER_KEY,p)}
+      let p=read(keys.player);
+      if(!p?.playerId){p={version:1,playerId:fixedPlayerId||makeId('P'),runSequence:0};write(keys.player,p)}
       if(!Number.isInteger(p.runSequence)||p.runSequence<0)p.runSequence=0;
       return p
     }
     function ensureBatch(){
-      let b=read(BATCH_KEY);
+      let b=read(keys.batch);
       if(!b?.batchId)b={version:1,batchId:makeId('B'),createdAt:now(),runs:[]};
       if(!Array.isArray(b.runs))b.runs=[];
-      write(BATCH_KEY,b);return b
+      write(keys.batch,b);return b
     }
     const ensureBucket=(collection,key)=>collection[key]||(collection[key]=bucket());
     function migrate(saved,p,batch){
-      return{...saved,version:2,rounds:saved.rounds||{},stages:saved.stages||{},markets:saved.markets||[],marketOpen:saved.marketOpen||null,placements:Array.isArray(saved.placements)?saved.placements:[],ouroborosRebuilds:Array.isArray(saved.ouroborosRebuilds)?saved.ouroborosRebuilds:[],ouroborosFires:Array.isArray(saved.ouroborosFires)?saved.ouroborosFires:[],ouroborosPendingRebuilds:Array.isArray(saved.ouroborosPendingRebuilds)?saved.ouroborosPendingRebuilds:[],ouroborosDecisionTotalMs:finite(saved.ouroborosDecisionTotalMs),bestRoute:saved.bestRoute||null,lastOuroborosLayout:Array.isArray(saved.lastOuroborosLayout)?saved.lastOuroborosLayout:[],status:saved.status||'active',statusReason:saved.statusReason||null,finalized:!!saved.finalized,batchId:saved.batchId||batch.batchId,playerId:saved.playerId||p.playerId}
+      return{...saved,version:2,rounds:saved.rounds||{},stages:saved.stages||{},markets:saved.markets||[],marketOpen:saved.marketOpen||null,placements:Array.isArray(saved.placements)?saved.placements:[],ouroborosRebuilds:Array.isArray(saved.ouroborosRebuilds)?saved.ouroborosRebuilds:[],ouroborosFires:Array.isArray(saved.ouroborosFires)?saved.ouroborosFires:[],ouroborosPendingRebuilds:Array.isArray(saved.ouroborosPendingRebuilds)?saved.ouroborosPendingRebuilds:[],ouroborosDecisionTotalMs:finite(saved.ouroborosDecisionTotalMs),bestRoute:saved.bestRoute||null,lastOuroborosLayout:Array.isArray(saved.lastOuroborosLayout)?saved.lastOuroborosLayout:[],status:saved.status||'active',statusReason:saved.statusReason||null,finalized:!!saved.finalized,batchId:saved.batchId||batch.batchId,playerId:saved.playerId||p.playerId,environment:saved.environment||environment,profileType:saved.profileType||profileType}
     }
     function persistedState(){return state?clone(state):null}
-    function persist(){if(state)write(RUN_KEY,persistedState())}
+    function persist(){if(state)write(keys.run,persistedState())}
     function checkpoint(){
       if(!state||activeSince==null)return;
       const t=now(),delta=Math.max(0,t-activeSince);activeSince=t;state.activeMs+=delta;
@@ -49,23 +49,23 @@
     }
     function summary(){
       const x=snapshot();if(!x)return null;const last=x.placements[x.placements.length-1]||null;
-      return{runId:x.runId,playerId:x.playerId,runSequence:x.runSequence,status:x.status,statusReason:x.statusReason||null,wallStartedAt:x.wallStartedAt,endedAt:x.endedAt||null,round:x.round,stage:x.stage,activePlayMs:x.activePlayMs,decisionTotalMs:x.decisionTotalMs,decisionCount:x.decisionCount,cascadeTotalMs:x.cascadeTotalMs,cascadeCount:x.cascadeCount,marketVisits:x.markets.length,placementTelemetryCount:x.placements.length,ouroborosDecisionTotalMs:x.ouroborosDecisionTotalMs||0,ouroborosFireCount:(x.ouroborosFires||[]).length,ouroborosRebuildCount:(x.ouroborosRebuilds||[]).length,topology:last?.topologyAfter||last?.topologyBefore||null}
+      return{runId:x.runId,playerId:x.playerId,environment:x.environment||environment,profileType:x.profileType||profileType,runSequence:x.runSequence,status:x.status,statusReason:x.statusReason||null,wallStartedAt:x.wallStartedAt,endedAt:x.endedAt||null,round:x.round,stage:x.stage,activePlayMs:x.activePlayMs,decisionTotalMs:x.decisionTotalMs,decisionCount:x.decisionCount,cascadeTotalMs:x.cascadeTotalMs,cascadeCount:x.cascadeCount,marketVisits:x.markets.length,placementTelemetryCount:x.placements.length,ouroborosDecisionTotalMs:x.ouroborosDecisionTotalMs||0,ouroborosFireCount:(x.ouroborosFires||[]).length,ouroborosRebuildCount:(x.ouroborosRebuilds||[]).length,topology:last?.topologyAfter||last?.topologyBefore||null}
     }
     function upsertBatchRun(item){
-      if(!item)return;const batch=ensureBatch(),at=batch.runs.findIndex(r=>r.runId===item.runId);if(at>=0)batch.runs[at]=item;else batch.runs.push(item);write(BATCH_KEY,batch)
+      if(!item)return;const batch=ensureBatch(),at=batch.runs.findIndex(r=>r.runId===item.runId);if(at>=0)batch.runs[at]=item;else batch.runs.push(item);write(keys.batch,batch)
     }
     function finalizeCurrent(status='abandoned',meta={}){
       if(!state)return null;checkpoint();activeSince=null;state.status=status;state.statusReason=meta.reason||state.statusReason||null;state.endedAt=state.endedAt||now();state.finalized=true;persist();const item=summary();upsertBatchRun(item);return clone(item)
     }
     function bindRun({runId,round=1,stage=1}={}){
       if(!runId)return null;
-      const saved=read(RUN_KEY),p=profile(),batch=ensureBatch();
+      const saved=read(keys.run),p=profile(),batch=ensureBatch();
       if(saved?.runId===runId&&(saved.playerId||p.playerId)===p.playerId){
         state=migrate(saved,p,batch);state.sessions=(state.sessions||0)+1
       }else{
         if(saved?.runId&&!saved.finalized){state=migrate(saved,p,batch);finalizeCurrent(saved.status==='failed'?'failed':'abandoned',{reason:'new-run-unarchived'})}
-        p.runSequence+=1;write(PLAYER_KEY,p);
-        state={version:2,runId,playerId:p.playerId,runSequence:p.runSequence,batchId:batch.batchId,wallStartedAt:now(),activeMs:0,round,stage,rounds:{},stages:{},decisionStartedAtActiveMs:null,decisionTotalMs:0,decisionCount:0,cascadeTotalMs:0,cascadeCount:0,markets:[],marketOpen:null,placements:[],ouroborosRebuilds:[],ouroborosFires:[],ouroborosPendingRebuilds:[],ouroborosDecisionTotalMs:0,bestRoute:null,lastOuroborosLayout:[],sessions:1,status:'active',statusReason:null,endedAt:null,finalized:false}
+        p.runSequence+=1;write(keys.player,p);
+        state={version:2,runId,playerId:p.playerId,environment,profileType,runSequence:p.runSequence,batchId:batch.batchId,wallStartedAt:now(),activeMs:0,round,stage,rounds:{},stages:{},decisionStartedAtActiveMs:null,decisionTotalMs:0,decisionCount:0,cascadeTotalMs:0,cascadeCount:0,markets:[],marketOpen:null,placements:[],ouroborosRebuilds:[],ouroborosFires:[],ouroborosPendingRebuilds:[],ouroborosDecisionTotalMs:0,bestRoute:null,lastOuroborosLayout:[],sessions:1,status:'active',statusReason:null,endedAt:null,finalized:false}
       }
       activeSince=null;setContext(round,stage);persist();return snapshot()
     }
@@ -122,13 +122,13 @@
       const rounds=Object.entries(x.rounds).sort((a,b)=>Number(a[0])-Number(b[0])).map(([id,b])=>`R${id}: active=${duration(b.activeMs)} decision=${duration(b.decisionMs)} cascade=${duration(b.cascadeMs)} placements=${b.placements}`);
       const stages=Object.entries(x.stages).sort((a,b)=>Number(a[0])-Number(b[0])).map(([id,b])=>`S${id}: active=${duration(b.activeMs)} decision=${duration(b.decisionMs)} cascade=${duration(b.cascadeMs)} placements=${b.placements} markets=${b.markets} marketTime=${duration(b.marketMs)}`);
       const markets=x.markets.map((m,i)=>`#${i+1} R${m.round}/S${m.stage}: ${duration(m.durationMs)} outcome=${m.outcome} offers=${m.offers.join(',')||'-'}`),placements=x.placements.map(placementLine),ouroboros=(x.ouroborosFires||[]).map((fire,i)=>`#${i+1} T${fire.turn??'?'} R${fire.round}/S${fire.stage}: decision=${duration(fire.decisionMs)} rebuilds=${fire.rebuildCount||0} rotations=${fire.rotationCount||0} relocations=${fire.relocationCount||0} tiles=${fire.rebuildTileCount||0} route=${fire.routeLength??'-'} visited=${fire.uniqueVisitedPieceCount??'-'} reentry=${fire.reentryOperationCount??0}/${fire.operationCount??0} retrace=${fire.retraceMoveCount??0} output=${scoreText(fire.outputExact??fire.output)} bestBefore=${fire.bestHistoricalOutputExact??(fire.bestHistoricalOutput==null?'-':scoreText(fire.bestHistoricalOutput))} overlap=${fire.routeOverlapCount==null?'-':fire.routeOverlapCount+'/'+(fire.routeTileIds?.length||0)} bestCoverage=${fire.bestRouteCoverage==null?'-':(fire.bestRouteCoverage*100).toFixed(1)+'%'} layout=${fire.layoutSignature||'-'} delta=${fire.layoutChangedTiles??'-'}`),batch=ensureBatch();
-      return['PLAYTEST TELEMETRY',`Player: ${x.playerId} · Run #${x.runSequence} · sessions=${x.sessions}`,`Run ID: ${x.runId} · Batch ID: ${x.batchId||batch.batchId} · status=${x.status}${x.statusReason?` (${x.statusReason})`:''}`,`Wall clock: ${duration(x.wallClockMs)} · ${Math.round(x.wallClockMs)}ms`,`Active play: ${duration(x.activePlayMs)} · ${Math.round(x.activePlayMs)}ms`,`Decision time: total=${duration(x.decisionTotalMs)} avg=${duration(x.decisionAverageMs)} placements=${x.decisionCount}`,`Ouroboros decision time: total=${duration(x.ouroborosDecisionTotalMs||0)} fires=${(x.ouroborosFires||[]).length} rebuilds=${(x.ouroborosRebuilds||[]).length}`,`Cascade time: total=${duration(x.cascadeTotalMs)} avg=${duration(x.cascadeAverageMs)} cascades=${x.cascadeCount}`,`Market time: total=${duration(x.marketTotalMs)} avg=${duration(x.marketAverageMs)} visits=${x.markets.length}`,'Round timing:',...(rounds.length?rounds:['-']),'Stage timing:',...(stages.length?stages:['-']),'Market visits:',...(markets.length?markets:['-']),'Ouroboros fires:',...(ouroboros.length?ouroboros:['-']),'Placement decisions:',...(placements.length?placements:['-'])].join('\n')
+      return['PLAYTEST TELEMETRY',`Player: ${x.playerId} · Run #${x.runSequence} · sessions=${x.sessions}`,`Environment: ${(x.environment||environment).toUpperCase()} · Profile: ${x.profileType||profileType}`,`Run ID: ${x.runId} · Batch ID: ${x.batchId||batch.batchId} · status=${x.status}${x.statusReason?` (${x.statusReason})`:''}`,`Wall clock: ${duration(x.wallClockMs)} · ${Math.round(x.wallClockMs)}ms`,`Active play: ${duration(x.activePlayMs)} · ${Math.round(x.activePlayMs)}ms`,`Decision time: total=${duration(x.decisionTotalMs)} avg=${duration(x.decisionAverageMs)} placements=${x.decisionCount}`,`Ouroboros decision time: total=${duration(x.ouroborosDecisionTotalMs||0)} fires=${(x.ouroborosFires||[]).length} rebuilds=${(x.ouroborosRebuilds||[]).length}`,`Cascade time: total=${duration(x.cascadeTotalMs)} avg=${duration(x.cascadeAverageMs)} cascades=${x.cascadeCount}`,`Market time: total=${duration(x.marketTotalMs)} avg=${duration(x.marketAverageMs)} visits=${x.markets.length}`,'Round timing:',...(rounds.length?rounds:['-']),'Stage timing:',...(stages.length?stages:['-']),'Market visits:',...(markets.length?markets:['-']),'Ouroboros fires:',...(ouroboros.length?ouroboros:['-']),'Placement decisions:',...(placements.length?placements:['-'])].join('\n')
     }
     function batchInfo(){const batch=ensureBatch();return{...clone(batch),playerId:profile().playerId,currentRunId:state?.runId||null,currentRunSequence:state?.runSequence||null}}
     function markBatchExported(meta={}){
-      const current=ensureBatch(),exported={...clone(current),exportedAt:now(),includedRunIds:Array.isArray(meta.includedRunIds)?[...meta.includedRunIds]:[]};write(LAST_BATCH_KEY,exported);const next={version:1,batchId:makeId('B'),createdAt:now(),runs:[]};write(BATCH_KEY,next);if(state){state.batchId=next.batchId;persist()}return{exported:clone(exported),next:clone(next)}
+      const current=ensureBatch(),exported={...clone(current),exportedAt:now(),includedRunIds:Array.isArray(meta.includedRunIds)?[...meta.includedRunIds]:[]};write(keys.lastBatch,exported);const next={version:1,batchId:makeId('B'),createdAt:now(),runs:[]};write(keys.batch,next);if(state){state.batchId=next.batchId;persist()}return{exported:clone(exported),next:clone(next)}
     }
-    return{bindRun,resume,pause,setContext,startDecision,recordDecision,recordCascade,recordPlacement,recordOuroborosRebuild,recordOuroborosFire,openMarket,closeMarket,snapshot,text,summary,finalizeCurrent,batchInfo,markBatchExported,identity:()=>clone(profile()),keys:Object.freeze({player:PLAYER_KEY,run:RUN_KEY,batch:BATCH_KEY,lastBatch:LAST_BATCH_KEY})}
+    return{bindRun,resume,pause,setContext,startDecision,recordDecision,recordCascade,recordPlacement,recordOuroborosRebuild,recordOuroborosFire,openMarket,closeMarket,snapshot,text,summary,finalizeCurrent,batchInfo,markBatchExported,identity:()=>({...clone(profile()),environment,profileType}),keys}
   }
   return{create,duration,PLAYER_KEY,RUN_KEY,BATCH_KEY,LAST_BATCH_KEY}
 });
