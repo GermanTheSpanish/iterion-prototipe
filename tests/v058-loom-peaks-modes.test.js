@@ -7,8 +7,14 @@ const visible=(item,board=E.getBoardSize())=>item.x>=0&&item.y>=0&&item.x+item.s
 const itemsByHalf=(state,half)=>[...state.cores,...state.voids].filter(item=>item.half===half).sort((a,b)=>a.pip-b.pip);
 const piece=(a,b,x,y,id)=>{const p=E.pieceFrom({a,b},x,y,0,0,id);p.tile={id:`v058-${id}`,a,b};return p};
 const events=(result,type)=>(result.events||[]).filter(event=>event.type===type);
+const approachSides=(core,geometry,board={G:18,H:24})=>{
+  const cell=E.S,size=core.size,vectors={U:[0,-cell],R:[cell,0],D:[0,cell],L:[-cell,0]};
+  const cells=side=>{const [dx,dy]=vectors[side],first=side==='U'?{x:core.x,y:core.y-cell}:side==='R'?{x:core.x+size,y:core.y}:side==='D'?{x:core.x,y:core.y+size}:{x:core.x-cell,y:core.y};return[first,{x:first.x+dx,y:first.y+dy}]};
+  const blocked=cellRect=>geometry.some(other=>other.id!==core.id&&cellRect.x<other.x+other.size&&cellRect.x+cell>other.x&&cellRect.y<other.y+other.size&&cellRect.y+cell>other.y);
+  return core.ports.filter(side=>cells(side).every(cellRect=>cellRect.x>=0&&cellRect.y>=0&&cellRect.x+cell<=board.G&&cellRect.y+cell<=board.H&&!blocked(cellRect)))
+};
 
-assert.equal(D.VERSION,'0.59.0');
+assert.equal(D.VERSION,'0.59.1');
 assert.deepEqual({...D.CORE_SIGNAL_BY_MODE},{eyes:6,frames:4,river:3,loom:2,peaks:2});
 assert.deepEqual({...D.CORE_ABILITY_LIMIT_BY_MODE},{loom:2,peaks:2});
 assert.equal(D.CORE_PEAK_SIGNAL_MULTIPLIER,2);
@@ -30,8 +36,9 @@ for(const half of ['north','south']){
   assert.deepEqual(items.map(item=>item.pip),[0,1,2,3],'each Loom half keeps the complete 4-pip topology');
   assert.equal(items.every(item=>visible(item)),true,'all Loom pips are visible on the opening board');
 }
-assert.deepEqual(itemsByHalf(loom.state(),'north').map(({x,y})=>({x,y})),[{x:4,y:4},{x:12,y:4},{x:4,y:8},{x:12,y:8}]);
-assert.deepEqual(itemsByHalf(loom.state(),'south').map(({x,y})=>({x,y})),[{x:4,y:14},{x:12,y:14},{x:4,y:18},{x:12,y:18}]);
+assert.deepEqual(itemsByHalf(loom.state(),'north').map(({x,y})=>({x,y})),[{x:2,y:2},{x:14,y:2},{x:2,y:10},{x:14,y:10}]);
+assert.deepEqual(itemsByHalf(loom.state(),'south').map(({x,y})=>({x,y})),[{x:2,y:12},{x:14,y:12},{x:2,y:20},{x:14,y:20}]);
+for(const core of loom.state().cores)assert(approachSides(core,[...loom.state().cores,...loom.state().voids]).length>0,`Loom Core ${core.id} keeps a full-domino approach through one real port`);
 assert(loom.candidatesForIndex(loom.state().hand.findIndex(tile=>tile?.a===tile?.b)).length>0,'Loom must retain legal double openings around fixed geometry');
 
 E.setBoardSize(18,24);
@@ -57,6 +64,7 @@ for(const [half,center] of [['north',{x:8,y:6}],['south',{x:8,y:16}]]){
   assert.equal(voids.every(item=>item.pip<4),true);
   assert.equal(items.every(item=>visible(item)),true,'all Peaks pips are visible on the opening board');
 }
+for(const core of peaks.state().cores)assert(approachSides(core,[...peaks.state().cores,...peaks.state().voids]).length>0,`Peaks Core ${core.id} keeps a full-domino approach through one real port`);
 assert(peaks.candidatesForIndex(peaks.state().hand.findIndex(tile=>tile?.a===tile?.b)).length>0,'Peaks must retain legal double openings around fixed geometry');
 
 const loomSaved=loom.exportState(),loomRestored=G.createGame(E,{seed:1,GAME_MODE:'classic'});

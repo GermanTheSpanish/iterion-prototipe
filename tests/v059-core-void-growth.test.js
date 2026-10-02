@@ -58,13 +58,18 @@ function runGrowth(mode,seed,{initialCores,initialVoids,voidsPerCore,maxCores}){
 
     const canonical=[...state.cores,...state.voids].find(item=>item.siteId)||state.cores[0];
     assert(canonical,`${mode} must retain an opening pip as lattice reference`);
-    const lattice={x:residue(canonical.x),y:residue(canonical.y)};
-    assert.deepEqual({x:residue(core.x),y:residue(core.y)},lattice,`${mode} discovered Core stays on the canonical lattice`);
+    const lattice=coreEvent.lattice;
+    assert(lattice,`${mode} discovery must record its canonical pip lattice`);
+    assert.equal(lattice.stepX,E.S*3,`${mode} discovered Cores use the widened pip-column spacing`);
+    assert.equal(lattice.stepY,E.S,`${mode} discovered Cores remain on the domino row lattice`);
+    assert.deepEqual({x:residue(core.x,lattice.stepX),y:residue(core.y,lattice.stepY)},{x:lattice.x,y:lattice.y},`${mode} discovered Core stays on the canonical pip grid`);
+    assert((coreEvent.approachSides||[]).length>0,`${mode} discovered Core must retain at least one full-domino port approach`);
     for(const item of voidEvent?.voids||[]){
-      assert.deepEqual({x:residue(item.x),y:residue(item.y)},lattice,`${mode} discovered Void stays on the canonical lattice`);
+      assert.deepEqual({x:residue(item.x,lattice.stepX),y:residue(item.y,lattice.stepY)},{x:lattice.x,y:lattice.y},`${mode} discovered Void stays on the canonical pip grid`);
       assert.equal(rectOverlap(core,item),false,'Core and companion Void cannot overlap');
       assert.equal(cardinallyAdjacent(core,item),false,'companion Voids must preserve the new Core cardinal approaches')
     }
+    if(voidEvent)assert((voidEvent.approachSides||[]).length>0,'the full Void packet must preserve at least one full-domino Core approach');
 
     const geometry=[...state.cores,...state.voids];
     for(let i=0;i<geometry.length;i++)for(let j=i+1;j<geometry.length;j++)assert.equal(rectOverlap(geometry[i],geometry[j]),false,`${mode} geometry may never overlap: ${geometry[i].id} / ${geometry[j].id}`);

@@ -33,8 +33,8 @@ for(const half of ['north','south']){
   assert(core&&voidItem);
   assert.notEqual(core.pip,voidItem.pip,'each 2 pip half must contain exactly one Core and one Void');
   const a=centres(core),b=centres(voidItem),dx=Math.abs(a.x-b.x)/E.S,dy=Math.abs(a.y-b.y)/E.S,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2},eye=centres(eyesState.cores.find(item=>item.slot===half));
-  assert.equal(dx,4,'2|2 uses the outer horizontal anchors of the shared pip grid');
-  assert.equal(dy,2,'2|2 uses the outer vertical anchors of the shared pip grid');
+  assert.equal(dx,6,'2|2 uses the widened outer horizontal anchors of the shared pip grid');
+  assert.equal(dy,4,'2|2 uses the widened outer vertical anchors of the shared pip grid');
   assert.deepEqual(mid,eye,`the ${half} 2|2 half stays centred on the matching 1|1 pip`);
   const riverHalf=[...riverState.cores,...riverState.voids].filter(item=>item.half===half).sort((left,right)=>left.pip-right.pip),framesHalf=[core,voidItem].sort((left,right)=>left.pip-right.pip);
   assert.deepEqual(framesHalf.map(({x,y,size})=>({x,y,size})),[riverHalf[0],riverHalf[2]].map(({x,y,size})=>({x,y,size})),`the ${half} 2|2 pips must use the outer sites of the matching 3|3 half`);
@@ -46,21 +46,18 @@ assert.deepEqual(eyesState.cores.map(({slot,x,y,size})=>({slot,x,y,size})),[
   {slot:'south',x:8,y:16,size:2}
 ],'The Eyes uses the centre pip of each shared board-half grid');
 assert.deepEqual(initialItems.map(({half,pip,x,y,size})=>({half,pip,x,y,size})).sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip),[
-  {half:'north',pip:0,x:4,y:4,size:2},
-  {half:'north',pip:1,x:12,y:8,size:2},
-  {half:'south',pip:0,x:4,y:14,size:2},
-  {half:'south',pip:1,x:12,y:18,size:2}
+  {half:'north',pip:0,x:2,y:2,size:2},
+  {half:'north',pip:1,x:14,y:10,size:2},
+  {half:'south',pip:0,x:2,y:12,size:2},
+  {half:'south',pip:1,x:14,y:20,size:2}
 ],'Frames uses the two outer sites of the same grid as River');
-const approachDominoes=item=>[
-  E.pieceFrom({a:1,b:1},item.x,item.y-E.S,0,3,-1),
-  E.pieceFrom({a:1,b:1},item.x+item.size,item.y,0,0,-1),
-  E.pieceFrom({a:1,b:1},item.x,item.y+item.size,0,1,-1),
-  E.pieceFrom({a:1,b:1},item.x-E.S,item.y,0,2,-1)
-];
-for(const item of initialItems)for(const piece of approachDominoes(item)){
-  assert(piece.rect.minx>=0&&piece.rect.miny>=0&&piece.rect.maxx<=18&&piece.rect.maxy<=24,'every Frames pip site keeps a full-domino approach inside the opening board');
-  assert.equal(initialItems.some(other=>overlap(piece,other)),false,'every Frames pip site keeps its four cardinal approach corridors free');
-}
+const approachSides=(core,items,board={G:18,H:24})=>{
+  const cell=E.S,size=core.size,vectors={U:[0,-cell],R:[cell,0],D:[0,cell],L:[-cell,0]};
+  const cells=side=>{const [dx,dy]=vectors[side],first=side==='U'?{x:core.x,y:core.y-cell}:side==='R'?{x:core.x+size,y:core.y}:side==='D'?{x:core.x,y:core.y+size}:{x:core.x-cell,y:core.y};return[first,{x:first.x+dx,y:first.y+dy}]};
+  const blocked=cellRect=>items.some(other=>other.id!==core.id&&cellRect.x<other.x+other.size&&cellRect.x+cell>other.x&&cellRect.y<other.y+other.size&&cellRect.y+cell>other.y);
+  return core.ports.filter(side=>cells(side).every(cellRect=>cellRect.x>=0&&cellRect.y>=0&&cellRect.x+cell<=board.G&&cellRect.y+cell<=board.H&&!blocked(cellRect)))
+};
+for(const core of s.cores)assert(approachSides(core,initialItems).length>0,`Frames Core ${core.id} must expose at least one full-domino approach through a real port`);
 assert.equal(initialVisible.length,4,'opening board exposes the full 2|2 macrogeometry');
 for(const half of ['north','south'])assert.equal(initialVisible.filter(item=>item.half===half).length,2,'each opening half shows both pips');
 

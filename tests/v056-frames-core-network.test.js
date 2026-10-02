@@ -11,7 +11,7 @@ function piece(a,b,x,y,rr,id){
 const rectOverlap=(a,b)=>a.x<b.x+b.size&&a.x+a.size>b.x&&a.y<b.y+b.size&&a.y+a.size>b.y;
 const residue=(value,cell=E.S)=>((value%cell)+cell)%cell;
 
-assert.equal(D.VERSION,'0.59.0');
+assert.equal(D.VERSION,'0.59.1');
 assert.equal(D.FRAMES_CORE_MAX_PHYSICAL,6);
 assert.deepEqual(D.FRAMES_CORE_DISCOVERY_STAGES,[2,3,4,5]);
 
@@ -43,9 +43,10 @@ function runProgression(seed){
     assert.equal(core.x>=oldRect.x&&core.y>=oldRect.y&&core.x+core.size<=oldRect.x+oldRect.w&&core.y+core.size<=oldRect.y+oldRect.h,false,'new Core must sit in the new outer frame');
     assert.equal(state.voids.some(voidItem=>rectOverlap(core,voidItem)),false,'new Core may not overlap a Void');
     const canonical=[...state.cores,...state.voids].find(item=>item.siteId);assert(canonical,'Frames must retain one canonical 2|2 pip site as the lattice reference');
-    const expectedLattice={x:residue(canonical.x),y:residue(canonical.y)};
-    assert.deepEqual({x:residue(core.x),y:residue(core.y)},expectedLattice,'Market-spawned Frames Cores must remain on the canonical pip lattice');
-    assert.deepEqual(event.lattice,expectedLattice,'Core discovery telemetry must record the lattice used for placement');
+    const expectedLattice={x:residue(canonical.x,E.S*3),y:residue(canonical.y,E.S),stepX:E.S*3,stepY:E.S};
+    assert.deepEqual({x:residue(core.x,expectedLattice.stepX),y:residue(core.y,expectedLattice.stepY)},{x:expectedLattice.x,y:expectedLattice.y},'Market-spawned Frames Cores must remain on the widened canonical pip grid');
+    assert.deepEqual(event.lattice,expectedLattice,'Core discovery telemetry must record the widened pip grid used for placement');
+    assert((event.approachSides||[]).length>0,'Market-spawned Frames Cores must retain one complete domino approach');
     const voidEvent=[...state.events].reverse().find(item=>item.type==='void-discover'&&item.stage===targetStage);
     assert(voidEvent,`Stage ${targetStage} must discover one companion Frames Void`);
     assert.equal(voidEvent.count,1);assert.equal(event.companionVoidIds.length,1);assert.equal(voidEvent.sourceCoreId,core.id);

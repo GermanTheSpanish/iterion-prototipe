@@ -222,7 +222,7 @@ function createGame(E,opts={}){
   }
   function framesModeGeometry(seed=s.seed){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24);
-    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size});
     const sites=[
       site('frames-north-a','north',0,centerX-pipXOffset,topCenterY-pipYOffset),
@@ -239,7 +239,7 @@ function createGame(E,opts={}){
     return{cores,voids,sites}
   }
   function riverModeGeometry(seed=s.seed){
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),sites=[
       site('river-north-a','north',0,centerX-pipXOffset,topCenterY-pipYOffset),
       site('river-north-b','north',1,centerX,topCenterY),
@@ -258,7 +258,7 @@ function createGame(E,opts={}){
   }
   function highPipModeGeometry(mode,seed=s.seed){
     const id=canonicalGameMode(mode);if(id!=='loom'&&id!=='peaks')return{cores:[],voids:[],sites:[]};
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(half,pip,cx,cy)=>({id:`${id}-${half}-${pip}`,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),makeHalf=(half,cy)=>[
       site(half,0,centerX-pipXOffset,cy-pipYOffset),
       site(half,1,centerX+pipXOffset,cy-pipYOffset),
@@ -371,8 +371,34 @@ function createGame(E,opts={}){
     return[]
   }
   function growthLatticeResidue(mode=s.gameMode,cell=Math.max(1,Number(E.S)||2)){
-    const site=growthModeSites(mode,s.seed)[0]||null,mod=value=>((Math.trunc(Number(value)||0)%cell)+cell)%cell;
-    return{x:mod(site?.x),y:mod(site?.y)}
+    const sites=growthModeSites(mode,s.seed),site=sites[0]||null,stepX=cell*3,stepY=cell,mod=(value,step)=>((Math.trunc(Number(value)||0)%step)+step)%step;
+    return{x:mod(site?.x,stepX),y:mod(site?.y,stepY),stepX,stepY}
+  }
+  function coreApproachCells(core,side){
+    const cell=Math.max(1,Number(E.S)||2),size=coreSize(core),vectors={U:[0,-cell],R:[cell,0],D:[0,cell],L:[-cell,0]},vector=vectors[side];if(!vector)return[];
+    const first=side==='U'?{x:core.x,y:core.y-cell}:side==='R'?{x:core.x+size,y:core.y}:side==='D'?{x:core.x,y:core.y+size}:{x:core.x-cell,y:core.y};
+    return[first,{x:first.x+vector[0],y:first.y+vector[1]}].map(cellPos=>({...cellPos,size:cell}))
+  }
+  function fullDominoApproachSides(core,{extraVoids=[]}={}){
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},blockedCore=cell=>(s.cores||[]).some(existing=>existing.id!==core.id&&coreRectsOverlap(cell,existing)),blockedVoid=cell=>[...(s.voids||[]).filter(item=>geometryItemVisible(item)),...extraVoids].some(item=>coreRectsOverlap(cell,item)),blockedPiece=cell=>s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cube.x<cell.x+cell.size&&cube.x+Math.max(1,Number(E.S)||2)>cell.x&&cube.y<cell.y+cell.size&&cube.y+Math.max(1,Number(E.S)||2)>cell.y));
+    const free=cell=>cell.x>=0&&cell.y>=0&&cell.x+cell.size<=board.G&&cell.y+cell.size<=board.H&&!blockedCore(cell)&&!blockedVoid(cell)&&!blockedPiece(cell);
+    return(core.ports||[]).filter(side=>{const cells=coreApproachCells(core,side);return cells.length===2&&cells.every(free)})
+  }
+  function ensureOpeningCoreApproaches(reason='layout'){
+    const changes=[],unresolved=[];
+    s.cores=(s.cores||[]).map((core,index)=>{
+      const before=[...(core.ports||[])];if(fullDominoApproachSides(core).length)return core;
+      const available=CORE_SIDES.filter(side=>fullDominoApproachSides({...core,ports:[side]}).length);
+      if(!available.length){unresolved.push(core.id);return core}
+      const primary=[...available].sort((a,b)=>coreHash(s.seed||0,index,503+CORE_SIDES.indexOf(a))-coreHash(s.seed||0,index,503+CORE_SIDES.indexOf(b))||CORE_SIDES.indexOf(a)-CORE_SIDES.indexOf(b))[0],count=Math.max(1,before.length),ports=[primary];
+      for(const side of before)if(side!==primary&&!ports.includes(side)&&ports.length<count)ports.push(side);
+      for(const side of CORE_SIDES)if(!ports.includes(side)&&ports.length<count)ports.push(side);
+      const next={...core,ports};if(!fullDominoApproachSides(next).length){unresolved.push(core.id);return core}
+      changes.push({coreId:core.id,from:before,to:[...ports],approachSides:fullDominoApproachSides(next)});return next
+    });
+    if(changes.length)s.events.push({type:'core-port-reachability',reason,cores:deepClone(changes)});
+    if(unresolved.length)s.events.push({type:'core-port-reachability-blocked',reason,coreIds:[...unresolved]});
+    return changes
   }
   function growthStageRects(stage){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},stageBoard=progressionBoardSizeForStage(Math.max(0,stage-1)),previousBoard=progressionBoardSizeForStage(Math.max(0,stage-2));
@@ -380,20 +406,20 @@ function createGame(E,opts={}){
   }
   function rectOverlapArea(candidate,rect,size=Math.max(1,Number(candidate?.size)||Number(E.S)||2)){return Math.max(0,Math.min(candidate.x+size,rect.x+rect.w)-Math.max(candidate.x,rect.x))*Math.max(0,Math.min(candidate.y+size,rect.y+rect.h)-Math.max(candidate.y,rect.y))}
   function growthCoreCandidatePosition(mode,stage,size,ports){
-    const {board,stageRect,previousRect}=growthStageRects(stage),cell=Math.max(1,Number(E.S)||2),lattice=growthLatticeResidue(mode,cell),coverage=coreCoverageTelemetry(),target=coverage.rows.find(row=>row.tileId===coverage.worstTileId)||null,existing=s.cores||[],desiredDistance=Math.max(size*2,cell*3),onLattice=candidate=>((candidate.x%cell)+cell)%cell===lattice.x&&((candidate.y%cell)+cell)%cell===lattice.y;
-    const fits=candidate=>onLattice(candidate)&&candidate.x>=stageRect.x&&candidate.y>=stageRect.y&&candidate.x+size<=stageRect.x+stageRect.w&&candidate.y+size<=stageRect.y+stageRect.h&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!existing.some(core=>coreRectsOverlap(candidate,core))&&!(s.voids||[]).some(voidItem=>geometryItemVisible(voidItem)&&coreRectsOverlap(candidate,voidItem));
-    const collect=ringOnly=>{const candidates=[];for(let y=stageRect.y;y<=stageRect.y+stageRect.h-size;y++)for(let x=stageRect.x;x<=stageRect.x+stageRect.w-size;x++){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=rectOverlapArea(candidate,previousRect,size),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const center={x:x+size/2,y:y+size/2},dx=(target?.x??stageRect.x+stageRect.w/2)-center.x,dy=(target?.y??stageRect.y+stageRect.h/2)-center.y,desiredSide=Math.abs(dx)>=Math.abs(dy)?(dx<0?'L':'R'):(dy<0?'U':'D'),portPenalty=ports.includes(desiredSide)?0:1,targetDistance=Math.abs(dx)+Math.abs(dy),gapError=Math.abs(targetDistance-desiredDistance),live=coreShadowTelemetry(s.pieces,[{id:'candidate',slot:`${mode}-growth`,x,y,size,ports,archetype:'relay',level:1}]).cores[0],touches=live?.connectedTileIds?.length||0,nearestCore=existing.length?Math.min(...existing.map(core=>Math.abs(center.x-(core.x+coreSize(core)/2))+Math.abs(center.y-(core.y+coreSize(core)/2)))):0;candidates.push({candidate,oldOverlap,touches,portPenalty,targetDistance,gapError,nearestCore,hash:coreHash(s.seed||0,x+y*board.G+stage*131,263)})}candidates.sort((a,b)=>a.oldOverlap-b.oldOverlap||a.touches-b.touches||a.portPenalty-b.portPenalty||a.gapError-b.gapError||a.targetDistance-b.targetDistance||b.nearestCore-a.nearestCore||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates[0]||null};
-    const selected=collect(true)||collect(false);return selected?{position:selected.candidate,targetTileId:coverage.worstTileId,coverage,fallbackToBoard:selected.oldOverlap>=size*size,connectedAtDiscovery:selected.touches,lattice}:null
+    const {board,stageRect,previousRect}=growthStageRects(stage),cell=Math.max(1,Number(E.S)||2),lattice=growthLatticeResidue(mode,cell),coverage=coreCoverageTelemetry(),target=coverage.rows.find(row=>row.tileId===coverage.worstTileId)||null,existing=s.cores||[],desiredDistance=Math.max(size*2,cell*3),onLattice=candidate=>((candidate.x%lattice.stepX)+lattice.stepX)%lattice.stepX===lattice.x&&((candidate.y%lattice.stepY)+lattice.stepY)%lattice.stepY===lattice.y;
+    const fits=candidate=>onLattice(candidate)&&candidate.x>=stageRect.x&&candidate.y>=stageRect.y&&candidate.x+size<=stageRect.x+stageRect.w&&candidate.y+size<=stageRect.y+stageRect.h&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!existing.some(core=>coreRectsOverlap(candidate,core))&&!(s.voids||[]).some(voidItem=>geometryItemVisible(voidItem)&&coreRectsOverlap(candidate,voidItem))&&fullDominoApproachSides({...candidate,id:'candidate',ports}).length>0;
+    const collect=ringOnly=>{const candidates=[];for(let y=stageRect.y;y<=stageRect.y+stageRect.h-size;y++)for(let x=stageRect.x;x<=stageRect.x+stageRect.w-size;x++){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=rectOverlapArea(candidate,previousRect,size),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const center={x:x+size/2,y:y+size/2},dx=(target?.x??stageRect.x+stageRect.w/2)-center.x,dy=(target?.y??stageRect.y+stageRect.h/2)-center.y,desiredSide=Math.abs(dx)>=Math.abs(dy)?(dx<0?'L':'R'):(dy<0?'U':'D'),portPenalty=ports.includes(desiredSide)?0:1,targetDistance=Math.abs(dx)+Math.abs(dy),gapError=Math.abs(targetDistance-desiredDistance),live=coreShadowTelemetry(s.pieces,[{id:'candidate',slot:`${mode}-growth`,x,y,size,ports,archetype:'relay',level:1}]).cores[0],touches=live?.connectedTileIds?.length||0,nearestCore=existing.length?Math.min(...existing.map(core=>Math.abs(center.x-(core.x+coreSize(core)/2))+Math.abs(center.y-(core.y+coreSize(core)/2)))):0,approachSides=fullDominoApproachSides({...candidate,id:'candidate',ports});candidates.push({candidate,oldOverlap,touches,portPenalty,targetDistance,gapError,nearestCore,approachSides,hash:coreHash(s.seed||0,x+y*board.G+stage*131,263)})}candidates.sort((a,b)=>a.oldOverlap-b.oldOverlap||a.touches-b.touches||a.portPenalty-b.portPenalty||a.gapError-b.gapError||a.targetDistance-b.targetDistance||b.nearestCore-a.nearestCore||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates[0]||null};
+    const selected=collect(true)||collect(false);return selected?{position:selected.candidate,targetTileId:coverage.worstTileId,coverage,fallbackToBoard:selected.oldOverlap>=size*size,connectedAtDiscovery:selected.touches,approachSides:selected.approachSides,lattice}:null
   }
   function growthVoidPositions(mode,stage,core,count){
-    if(count<=0)return{positions:[],fallbackToBoard:false,lattice:growthLatticeResidue(mode)};
-    const {board,stageRect,previousRect}=growthStageRects(stage),size=Math.max(1,Number(core?.size)||Number(E.S)||2),cell=Math.max(1,Number(E.S)||2),lattice=growthLatticeResidue(mode,cell),selected=[],onLattice=candidate=>((candidate.x%cell)+cell)%cell===lattice.x&&((candidate.y%cell)+cell)%cell===lattice.y;
+    if(count<=0)return{positions:[],fallbackToBoard:false,lattice:growthLatticeResidue(mode),approachSides:fullDominoApproachSides(core)};
+    const {board,stageRect,previousRect}=growthStageRects(stage),size=Math.max(1,Number(core?.size)||Number(E.S)||2),cell=Math.max(1,Number(E.S)||2),lattice=growthLatticeResidue(mode,cell),selected=[],onLattice=candidate=>((candidate.x%lattice.stepX)+lattice.stepX)%lattice.stepX===lattice.x&&((candidate.y%lattice.stepY)+lattice.stepY)%lattice.stepY===lattice.y;
     const adjacentToCore=candidate=>((candidate.x+size===core.x||core.x+size===candidate.x)&&candidate.y<core.y+size&&candidate.y+size>core.y)||((candidate.y+size===core.y||core.y+size===candidate.y)&&candidate.x<core.x+size&&candidate.x+size>core.x);
-    const fits=candidate=>onLattice(candidate)&&candidate.x>=stageRect.x&&candidate.y>=stageRect.y&&candidate.x+size<=stageRect.x+stageRect.w&&candidate.y+size<=stageRect.y+stageRect.h&&!adjacentToCore(candidate)&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!(s.cores||[]).some(existing=>coreRectsOverlap(candidate,existing))&&!coreRectsOverlap(candidate,core)&&!(s.voids||[]).some(existing=>geometryItemVisible(existing)&&coreRectsOverlap(candidate,existing))&&!selected.some(existing=>coreRectsOverlap(candidate,existing));
+    const fits=candidate=>onLattice(candidate)&&candidate.x>=stageRect.x&&candidate.y>=stageRect.y&&candidate.x+size<=stageRect.x+stageRect.w&&candidate.y+size<=stageRect.y+stageRect.h&&!adjacentToCore(candidate)&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!(s.cores||[]).some(existing=>coreRectsOverlap(candidate,existing))&&!coreRectsOverlap(candidate,core)&&!(s.voids||[]).some(existing=>geometryItemVisible(existing)&&coreRectsOverlap(candidate,existing))&&!selected.some(existing=>coreRectsOverlap(candidate,existing))&&fullDominoApproachSides(core,{extraVoids:[...selected,candidate]}).length>0;
     const ranked=ringOnly=>{const candidates=[];for(let y=stageRect.y;y<=stageRect.y+stageRect.h-size;y++)for(let x=stageRect.x;x<=stageRect.x+stageRect.w-size;x++){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=rectOverlapArea(candidate,previousRect,size),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const distance=Math.abs((x+size/2)-(core.x+size/2))+Math.abs((y+size/2)-(core.y+size/2));candidates.push({candidate,oldOverlap,distance,hash:coreHash(s.seed||0,x+y*board.G+stage*191+selected.length*17,347)})}candidates.sort((a,b)=>a.oldOverlap-b.oldOverlap||a.distance-b.distance||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates};
     let fallbackToBoard=false;
     for(let index=0;index<count;index++){let candidates=ranked(true);if(!candidates.length){candidates=ranked(false);fallbackToBoard=true}if(!candidates.length)break;selected.push(candidates[0].candidate)}
-    return{positions:selected,fallbackToBoard,lattice}
+    return{positions:selected,fallbackToBoard,lattice,approachSides:fullDominoApproachSides(core,{extraVoids:selected})}
   }
   function eyesCoreCrossGeometry(size){
     const north=(s.cores||[]).find(core=>core.slot==='north'),south=(s.cores||[]).find(core=>core.slot==='south');if(!north||!south)return null;
@@ -443,8 +469,8 @@ function createGame(E,opts={}){
       const voids=voidChoice.positions.map((item,voidIndex)=>({id:`void-${mode}-stage-${stage}-${voidIndex+1}`,slot:`${slot}-void-${voidIndex+1}`,stage,sourceCoreId:core.id,x:item.x,y:item.y,size}));
       const coverage=choice.coverage||coreCoverageTelemetry(),coverageBefore={pieceCount:coverage.pieceCount,connectedCoreCount:coverage.connectedCoreCount,reachableCount:coverage.reachableCount,unreachableCount:coverage.unreachableCount,maxDistance:coverage.maxDistance,p50Distance:coverage.p50Distance,beyondStartCount:coverage.beyondStartCount,startSignal:coverage.startSignal,worstTileId:coverage.worstTileId,worstDistance:coverage.worstDistance};
       s.cores.push(core);if(voids.length)s.voids.push(...voids);
-      s.events.push({type:'core-discover',mode,stage,reason,core:deepClone(core),recharge:coreRechargeValue(core),targetTileId:choice.targetTileId||null,coverageBefore,connectedAtDiscovery:choice.connectedAtDiscovery||0,frameFallback:!!choice.fallbackToBoard,growthFallback:!!choice.fallbackToBoard,lattice:choice.lattice||null,companionVoidIds:voids.map(item=>item.id)});
-      if(voids.length)s.events.push({type:'void-discover',mode,stage,reason,sourceCoreId:core.id,count:voids.length,voids:deepClone(voids),lattice:voidChoice.lattice||choice.lattice||null,growthFallback:!!voidChoice.fallbackToBoard});
+      s.events.push({type:'core-discover',mode,stage,reason,core:deepClone(core),recharge:coreRechargeValue(core),targetTileId:choice.targetTileId||null,coverageBefore,connectedAtDiscovery:choice.connectedAtDiscovery||0,frameFallback:!!choice.fallbackToBoard,growthFallback:!!choice.fallbackToBoard,lattice:choice.lattice||null,approachSides:[...(voidChoice.approachSides||choice.approachSides||[])],companionVoidIds:voids.map(item=>item.id)});
+      if(voids.length)s.events.push({type:'void-discover',mode,stage,reason,sourceCoreId:core.id,count:voids.length,voids:deepClone(voids),lattice:voidChoice.lattice||choice.lattice||null,approachSides:[...(voidChoice.approachSides||[])],growthFallback:!!voidChoice.fallbackToBoard});
       return core
     }
     return null
@@ -633,7 +659,7 @@ function createGame(E,opts={}){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
     s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,terminalTileId:null,diodeTileId:null,diodeInHalf:null,returnTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,scrapTileId:null,brokerTileId:null,swapTileId:null,spendTileId:null,mergeTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,tollTileId:null,tollArmed:false,brokerDiscountReady:false,foundationTileId:null,knotTileId:null,mirrorTileId:null,mintTileId:null,marketCount:0,signalUpgrades:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{mirror:null,pivot:null,recall:null,swap:null},scrapUsedMarket:null,cores:[],voids:[],coreProgressMilestones:[]};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
-    startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);s.voids=voidLayoutForMode(s.gameMode,seed);if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});if(['frames','river','loom','peaks'].includes(s.gameMode))s.events.push({type:'mode-geometry-layout',mode:s.gameMode,items:deepClone(modeGeometryItems()),visibleIds:modeGeometryItems().filter(item=>geometryItemVisible(item)).map(item=>item.id)});return s
+    startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);s.voids=voidLayoutForMode(s.gameMode,seed);ensureOpeningCoreApproaches('layout');if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});if(['frames','river','loom','peaks'].includes(s.gameMode))s.events.push({type:'mode-geometry-layout',mode:s.gameMode,items:deepClone(modeGeometryItems()),visibleIds:modeGeometryItems().filter(item=>geometryItemVisible(item)).map(item=>item.id)});return s
   }
 
   function setRootRotation(rr){if(s.pieces.length||s.running)return false;s.rootRR=((rr%4)+4)%4;return true}
@@ -1570,6 +1596,8 @@ function createGame(E,opts={}){
       if(v.type==='core-progress-blocked'){lines.push(`STAGE ${v.stage} CORE PROGRESS BLOCKED action=${v.action||'-'} slot=${v.slot||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='core-archetype-migrate'){lines.push(`CORE LEGACY ARCHETYPE MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${String(core.from||'-').toUpperCase()}>${String(core.to||'-').toUpperCase()}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='core-port-migrate'){lines.push(`CORE LEGACY PORT MIGRATE ${(v.cores||[]).map(core=>`${core.coreId}:${(core.from||[]).join('')}>${(core.to||[]).join('')}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-port-reachability'){lines.push(`CORE PORT REACHABILITY ${(v.cores||[]).map(core=>`${core.coreId}:${(core.from||[]).join('')}>${(core.to||[]).join('')} approach=${(core.approachSides||[]).join('')||'-'}`).join(',')||'-'} reason=${v.reason||'-'}`);continue}
+      if(v.type==='core-port-reachability-blocked'){lines.push(`CORE PORT REACHABILITY BLOCKED ids=${(v.coreIds||[]).join(',')||'-'} reason=${v.reason||'-'}`);continue}
       if(v.type==='stage-start'){lines.push(`STAGE ${v.stage} START R${v.round} coins=${v.coins} inflation=${v.inflation} available=${v.available} board=${v.board.join('x')} freeReroll=${v.freeReroll||0} generation=${v.setGeneration||1}`);continue}
       if(v.type==='shop-scheduled'){lines.push(`R${v.round} NEXT ${v.shop.toUpperCase()}`);continue}
       if(v.type==='shop-open'){lines.push(`R${v.round} ${v.shop.toUpperCase()} OPEN coins=${v.coins} inflation=${v.inflation} available=${v.available}${v.offers?.length?` offers=${v.offers.join(',')}`:''}`);continue}

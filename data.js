@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.59.0',
+    VERSION:'0.59.1',
     ENGINE_VERSION:'0.20.2-core-signal-additive-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
