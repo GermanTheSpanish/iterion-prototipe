@@ -76,7 +76,7 @@
     return Object.freeze({owned,used,remaining,cap,endless,visible,ratio,ariaLabel:endless?`Long Chain · ${remaining} of ${cap} Endless activations remaining`:'Long Chain ready'})
   }
   function modeIndicatorViewModel(state={},snapshot={}){
-    const mode=state.gameMode==='eyes'||state.gameMode==='frames'?state.gameMode:'classic',endless=!!snapshot.endless?.active,infinitePhase=!!snapshot.endless?.infinitePhase,ouroboros=!!snapshot.endless?.ouroboros,pips=mode==='eyes'?[1,1]:mode==='frames'?[2,2]:[],phaseSymbol=ouroboros?'⟳':endless?'∞':'',phaseName=ouroboros?'Ouroboros':infinitePhase?'Infinite':endless?'Endless':null,modeName=mode==='eyes'?'The Eyes':mode==='frames'?'The Frames':'Classic',visible=pips.length>0||!!phaseSymbol,phasePosition=!phaseSymbol?'none':phaseSymbol==='∞'&&pips.length===2?'between':pips.length?'after':'solo';
+    const mode=['eyes','frames','river'].includes(state.gameMode)?state.gameMode:'classic',endless=!!snapshot.endless?.active,infinitePhase=!!snapshot.endless?.infinitePhase,ouroboros=!!snapshot.endless?.ouroboros,pips=mode==='eyes'?[1,1]:mode==='frames'?[2,2]:mode==='river'?[3,3]:[],phaseSymbol=ouroboros?'⟳':endless?'∞':'',phaseName=ouroboros?'Ouroboros':infinitePhase?'Infinite':endless?'Endless':null,modeName=mode==='eyes'?'The Eyes':mode==='frames'?'The Frames':mode==='river'?'The River':'Classic',visible=pips.length>0||!!phaseSymbol,phasePosition=!phaseSymbol?'none':phaseSymbol==='∞'&&pips.length===2?'between':pips.length?'after':'solo';
     return Object.freeze({visible,mode,pips:Object.freeze(pips),phaseSymbol,phasePosition,ariaLabel:visible?[mode!=='classic'?modeName:null,phaseName].filter(Boolean).join(' · '):''})
   }
   function hudViewModel(state={},snapshot={},options={}){

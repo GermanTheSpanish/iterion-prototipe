@@ -14,11 +14,11 @@ function piece(a,b,x,y,rr,id){
 }
 const events=(result,type)=>(result.events||[]).filter(event=>event.type===type);
 
-assert.equal(D.VERSION,'0.56.2');
+assert.equal(D.VERSION,'0.57.0');
 assert.equal(D.CORE_SIGNAL_MARKET_STEP,1);
 assert.equal(D.CORE_SIGNAL_PURCHASE_COST,8);
 assert.equal(D.CORE_SIGNAL_PURCHASE_STEP,3);
-assert.deepEqual(D.CORE_SIGNAL_BY_MODE,{eyes:6,frames:4});
+assert.deepEqual(D.CORE_SIGNAL_BY_MODE,{eyes:6,frames:4,river:3});
 
 E.setBoardSize(30,40);
 const rescueLine=[
