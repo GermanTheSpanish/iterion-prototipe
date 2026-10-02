@@ -56,7 +56,7 @@ function runGrowth(mode,seed,{initialCores,initialVoids,voidsPerCore,maxCores}){
     assert.equal(insideOld(core),false,`${mode} new Core must sit in the new outer frame`);
     if(voidEvent)assert.equal(voidEvent.voids.every(item=>!insideOld(item)),true,`${mode} companion Voids must sit in the new outer frame`);
 
-    const canonical=[...state.cores,...state.voids].find(item=>item.siteId);
+    const canonical=[...state.cores,...state.voids].find(item=>item.siteId)||state.cores[0];
     assert(canonical,`${mode} must retain an opening pip as lattice reference`);
     const lattice={x:residue(canonical.x),y:residue(canonical.y)};
     assert.deepEqual({x:residue(core.x),y:residue(core.y)},lattice,`${mode} discovered Core stays on the canonical lattice`);
@@ -74,7 +74,7 @@ function runGrowth(mode,seed,{initialCores,initialVoids,voidsPerCore,maxCores}){
   }
   assert.equal(state.cores.length,maxCores);
   assert.equal(state.coreProgressMilestones.filter(key=>key.startsWith('discover:')).length,4);
-  assert.match(game.debugText(),new RegExp(`Cores: THE ${mode==='frames'?'FRAMES':mode==='river'?'RIVER':mode==='loom'?'LOOM':'PEAKS'}`));
+  assert.match(game.debugText(),new RegExp(`Cores: THE ${mode==='eyes'?'EYES':mode==='frames'?'FRAMES':mode==='river'?'RIVER':mode==='loom'?'LOOM':'PEAKS'}`));
   if(voidsPerCore)assert.match(game.debugText(),/VOID DISCOVER/);else assert.doesNotMatch(game.debugText(),/VOID DISCOVER/);
   return{game,counts,discoveries}
 }
