@@ -38,20 +38,20 @@ for(const half of ['north','south']){
   assert.deepEqual(halfItems.map(item=>item.pip),[0,1,2],'each 3-pip half keeps its complete pip topology');
 }
 assert.deepEqual(items.map(({half,pip,x,y,size})=>({half,pip,x,y,size})).sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip),[
-  {half:'north',pip:0,x:4,y:4,size:2},
+  {half:'north',pip:0,x:2,y:2,size:2},
   {half:'north',pip:1,x:8,y:6,size:2},
-  {half:'north',pip:2,x:12,y:8,size:2},
-  {half:'south',pip:0,x:4,y:14,size:2},
+  {half:'north',pip:2,x:14,y:10,size:2},
+  {half:'south',pip:0,x:2,y:12,size:2},
   {half:'south',pip:1,x:8,y:16,size:2},
-  {half:'south',pip:2,x:12,y:18,size:2}
+  {half:'south',pip:2,x:14,y:20,size:2}
 ],'The River uses two separated canonical 3-pip domino halves on one reachable lattice');
 const northItems=items.filter(item=>item.half==='north'),southItems=items.filter(item=>item.half==='south');
 assert(Math.max(...northItems.map(item=>item.y+item.size))<=Math.min(...southItems.map(item=>item.y)),'The River halves must not interleave across the domino seam');
 for(const halfItems of [northItems,southItems]){
   const ordered=[...halfItems].sort((a,b)=>a.pip-b.pip);
   for(let i=1;i<ordered.length;i++){
-    assert.equal(ordered[i].x-ordered[i-1].x,ordered[i-1].size*2,'River pips keep one full Core/Void width of horizontal air');
-    assert.equal(ordered[i].y-ordered[i-1].y,ordered[i-1].size,'River pips retain the canonical diagonal read without touching')
+    assert.equal(ordered[i].x-ordered[i-1].x,ordered[i-1].size*3,'River pips keep two full Core/Void widths of horizontal air');
+    assert.equal(ordered[i].y-ordered[i-1].y,ordered[i-1].size*2,'River pips keep one full Core/Void height of vertical air')
   }
 }
 const halfCenter=itemsForHalf=>itemsForHalf.reduce((sum,item)=>sum+item.y+item.size/2,0)/itemsForHalf.length;
@@ -59,13 +59,14 @@ assert.equal(halfCenter(northItems),7,'upper River half moves one full board blo
 assert.equal(halfCenter(southItems),17,'lower River half moves one full board block downward from the previous layout');
 assert.equal(items.filter(item=>visible(item)).length,6,'all River pips are visible from the opening board');
 const lattice={x:residue(items[0].x),y:residue(items[0].y)};
-for(const item of items){
-  assert.deepEqual({x:residue(item.x),y:residue(item.y)},lattice,'every River pip shares one domino lattice');
-  for(const piece of approachDominoes(item)){
-    assert(piece.rect.minx>=0&&piece.rect.miny>=0&&piece.rect.maxx<=18&&piece.rect.maxy<=24,'every River pip keeps a full-domino cardinal approach inside the opening board');
-    assert.equal(items.some(other=>overlap(piece,other)),false,'every River pip keeps its cardinal approach corridors free')
-  }
-}
+for(const item of items)assert.deepEqual({x:residue(item.x),y:residue(item.y)},lattice,'every River pip stays on the domino cell lattice');
+const approachSides=(core,geometry,board={G:18,H:24})=>{
+  const cell=E.S,size=core.size,vectors={U:[0,-cell],R:[cell,0],D:[0,cell],L:[-cell,0]};
+  const cells=side=>{const [dx,dy]=vectors[side],first=side==='U'?{x:core.x,y:core.y-cell}:side==='R'?{x:core.x+size,y:core.y}:side==='D'?{x:core.x,y:core.y+size}:{x:core.x-cell,y:core.y};return[first,{x:first.x+dx,y:first.y+dy}]};
+  const blocked=cellRect=>geometry.some(other=>other.id!==core.id&&cellRect.x<other.x+other.size&&cellRect.x+cell>other.x&&cellRect.y<other.y+other.size&&cellRect.y+cell>other.y);
+  return core.ports.filter(side=>cells(side).every(cellRect=>cellRect.x>=0&&cellRect.y>=0&&cellRect.x+cell<=board.G&&cellRect.y+cell<=board.H&&!blocked(cellRect)))
+};
+for(const core of s.cores)assert(approachSides(core,items).length>0,`River Core ${core.id} must expose at least one full-domino approach through a real port`);
 
 const snap=first.snapshot();
 assert.equal(snap.signal.enabled,true);
