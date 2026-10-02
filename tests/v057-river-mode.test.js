@@ -38,15 +38,25 @@ for(const half of ['north','south']){
   assert.deepEqual(halfItems.map(item=>item.pip),[0,1,2],'each 3-pip half keeps its complete pip topology');
 }
 assert.deepEqual(items.map(({half,pip,x,y,size})=>({half,pip,x,y,size})).sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip),[
-  {half:'north',pip:0,x:6,y:6,size:2},
-  {half:'north',pip:1,x:8,y:8,size:2},
-  {half:'north',pip:2,x:10,y:10,size:2},
-  {half:'south',pip:0,x:6,y:12,size:2},
-  {half:'south',pip:1,x:8,y:14,size:2},
-  {half:'south',pip:2,x:10,y:16,size:2}
+  {half:'north',pip:0,x:4,y:4,size:2},
+  {half:'north',pip:1,x:8,y:6,size:2},
+  {half:'north',pip:2,x:12,y:8,size:2},
+  {half:'south',pip:0,x:4,y:14,size:2},
+  {half:'south',pip:1,x:8,y:16,size:2},
+  {half:'south',pip:2,x:12,y:18,size:2}
 ],'The River uses two separated canonical 3-pip domino halves on one reachable lattice');
 const northItems=items.filter(item=>item.half==='north'),southItems=items.filter(item=>item.half==='south');
 assert(Math.max(...northItems.map(item=>item.y+item.size))<=Math.min(...southItems.map(item=>item.y)),'The River halves must not interleave across the domino seam');
+for(const halfItems of [northItems,southItems]){
+  const ordered=[...halfItems].sort((a,b)=>a.pip-b.pip);
+  for(let i=1;i<ordered.length;i++){
+    assert.equal(ordered[i].x-ordered[i-1].x,ordered[i-1].size*2,'River pips keep one full Core/Void width of horizontal air');
+    assert.equal(ordered[i].y-ordered[i-1].y,ordered[i-1].size,'River pips retain the canonical diagonal read without touching')
+  }
+}
+const halfCenter=itemsForHalf=>itemsForHalf.reduce((sum,item)=>sum+item.y+item.size/2,0)/itemsForHalf.length;
+assert.equal(halfCenter(northItems),7,'upper River half moves one full board block upward from the previous layout');
+assert.equal(halfCenter(southItems),17,'lower River half moves one full board block downward from the previous layout');
 assert.equal(items.filter(item=>visible(item)).length,6,'all River pips are visible from the opening board');
 const lattice={x:residue(items[0].x),y:residue(items[0].y)};
 for(const item of items){

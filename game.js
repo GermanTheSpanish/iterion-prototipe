@@ -239,14 +239,14 @@ function createGame(E,opts={}){
     return{cores,voids,sites}
   }
   function riverModeGeometry(seed=s.seed){
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*1.5,pipOffset=size,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),sites=[
-      site('river-north-a','north',0,centerX-pipOffset,topCenterY-pipOffset),
+      site('river-north-a','north',0,centerX-pipXOffset,topCenterY-pipYOffset),
       site('river-north-b','north',1,centerX,topCenterY),
-      site('river-north-c','north',2,centerX+pipOffset,topCenterY+pipOffset),
-      site('river-south-a','south',0,centerX-pipOffset,bottomCenterY-pipOffset),
+      site('river-north-c','north',2,centerX+pipXOffset,topCenterY+pipYOffset),
+      site('river-south-a','south',0,centerX-pipXOffset,bottomCenterY-pipYOffset),
       site('river-south-b','south',1,centerX,bottomCenterY),
-      site('river-south-c','south',2,centerX+pipOffset,bottomCenterY+pipOffset)
+      site('river-south-c','south',2,centerX+pipXOffset,bottomCenterY+pipYOffset)
     ];
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,329)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,329)%(southPool.length||archetypes.length)],byHalf={north:sites.filter(site=>site.half==='north'),south:sites.filter(site=>site.half==='south')},cores=[],voids=[];
     for(const [half,index,archetype] of [['north',0,northArchetype],['south',1,southArchetype]]){
