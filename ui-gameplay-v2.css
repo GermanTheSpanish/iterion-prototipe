@@ -155,7 +155,7 @@ body .app .board{
   border-radius:0!important;
   background-color:#fff!important;
   background-image:none!important;
-  box-shadow:none!important;
+  box-shadow:0 4px 12px rgba(25,23,19,.10)!important;
   overflow:hidden!important;
 }
 body.endlessPalette .app .board{background-color:rgb(214,211,203)!important}
