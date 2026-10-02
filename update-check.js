@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUpdateBootstrapped)return;
   root.__monoidUpdateBootstrapped=true;
 
-  const CURRENT_BUILD='20261002.7',CHECK_MIN_MS=60000;
+  const CURRENT_BUILD='20261002.8',CHECK_MIN_MS=60000;
   const state={currentBuild:CURRENT_BUILD,latestBuild:null,latestVersion:null,updateAvailable:false,status:'idle',lastCheck:0};
   let checkButton=null,applyButton=null,startupTimer=0;
   Object.defineProperty(root,'__monoidUpdate',{configurable:true,get:()=>({...state})});
@@ -37,7 +37,7 @@
   function persistActiveRun(){
     if(new URL(root.location.href).searchParams.has('qa'))return;
     const flow=root.__monoidFlow,game=root.__monoidGame;if(flow?.screen!=='game'||!game?.exportState)return;
-    try{root.localStorage.setItem('iterion.activeRun.v1',JSON.stringify(game.exportState()))}catch(_){ }
+    try{const key=root.MonoidProfile?.storageKey?.('iterion.activeRun.v1')||'iterion.activeRun.v1';root.localStorage.setItem(key,JSON.stringify(game.exportState()))}catch(_){ }
   }
   async function checkForUpdates({silent=false,force=false}={}){
     const now=Date.now();if(!force&&state.lastCheck&&now-state.lastCheck<CHECK_MIN_MS)return state.updateAvailable;

@@ -5,7 +5,8 @@
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),startRun=$('startRun'),modeClassic=$('modeClassic'),leaveTutorial=$('leaveTutorial');
   if(!app||!board||!boardShell||!overlay||!modal)return;
 
-  const TOUR_KEY='monoid.uiTour.v1',FIRST_BRIEF_KEY='monoid.firstRunBriefing.v1',MODE_ONBOARDING_KEY='monoid.modeOnboarding.v1',MODE_INTRO_KEY='monoid.modeIntro.v2',SYSTEMS_POWER_ID='g2-d1-2';
+  const PROFILE=root.MonoidProfile,scopeKey=key=>PROFILE?.storageKey?.(key)||key;
+  const TOUR_KEY=scopeKey('monoid.uiTour.v1'),FIRST_BRIEF_KEY=scopeKey('monoid.firstRunBriefing.v1'),MODE_ONBOARDING_KEY=scopeKey('monoid.modeOnboarding.v1'),MODE_INTRO_KEY=scopeKey('monoid.modeIntro.v2'),ACTIVE_RUN_KEY=scopeKey('iterion.activeRun.v1'),SYSTEMS_POWER_ID='g2-d1-2';
   const MODE_ONBOARDING=Object.freeze({
     eyes:Object.freeze({id:'eyes',kicker:'THE EYES · 1|1',name:'THE EYES',reveal:'Signal starts at 6.\\nCores add to it.\nEach Market: +1 Core charge.',orientTitle:'REACH A CORE',orient:'Reach a Core before the Signal dies.',discoveryTitle:'LEAD',discovery:'First Core sets the rule.',payoffTitle:'CORE LINKED',payoff:'Core adds Signal.'}),
     frames:Object.freeze({id:'frames',kicker:'THE FRAMES · 2|2',name:'THE FRAMES',reveal:'Signal starts at 4.\\nRoute through Cores to extend it.\nEach Market expands the Core network.',orientTitle:'READ THE FRAME',orient:'Voids block placement. Route through a Core before Signal dies.',discoveryTitle:'LEAD',discovery:'First Core still sets the rule.',payoffTitle:'FRAME LINKED',payoff:'Core adds Signal. Voids stay permanent.'}),
@@ -154,7 +155,7 @@
 
   function wrapTutorialTrigger(button){if(!button||button.__monoidUxWrapped)return;const original=button.onclick;if(typeof original!=='function')return;button.__monoidUxWrapped=true;button.onclick=function(e){tutorialController.setNextKind('basics');const value=original.call(this,e);requestAnimationFrame(scheduleSync);return value}}
   function scheduleNewRunBriefing(previousGame,previousRunId,{skipWhenSaved=false,forceModeIntro=false,hadSaved=false}={}){let attempts=0;const probe=()=>{const game=currentGame(),runId=game?.state?.().runId||null,started=gameFlow().screen==='game'&&game&&(game!==previousGame||runId!==previousRunId);if(started){if(!(skipWhenSaved&&hadSaved))showRunBriefing({forceModeIntro});return}attempts++;if(attempts<30)requestAnimationFrame(probe)};requestAnimationFrame(probe)}
-  function wrapNewRunTrigger(button,{skipWhenSaved=false,forceModeIntro=false}={}){if(!button||button.__monoidBriefWrapped)return;const original=button.onclick;if(typeof original!=='function')return;button.__monoidBriefWrapped=true;button.onclick=function(e){const hadSaved=!!localStorage.getItem('iterion.activeRun.v1'),previousGame=currentGame(),previousRunId=previousGame?.state?.().runId||null,value=original.call(this,e);scheduleNewRunBriefing(previousGame,previousRunId,{skipWhenSaved,forceModeIntro,hadSaved});return value}}
+  function wrapNewRunTrigger(button,{skipWhenSaved=false,forceModeIntro=false}={}){if(!button||button.__monoidBriefWrapped)return;const original=button.onclick;if(typeof original!=='function')return;button.__monoidBriefWrapped=true;button.onclick=function(e){const hadSaved=!!localStorage.getItem(ACTIVE_RUN_KEY),previousGame=currentGame(),previousRunId=previousGame?.state?.().runId||null,value=original.call(this,e);scheduleNewRunBriefing(previousGame,previousRunId,{skipWhenSaved,forceModeIntro,hadSaved});return value}}
   wrapTutorialTrigger(learn);wrapTutorialTrigger(replay);if(systems)systems.onclick=startSystemsTutorial;wrapNewRunTrigger(startRun,{forceModeIntro:true});wrapNewRunTrigger(modeClassic,{skipWhenSaved:true});
 
   app.addEventListener('pointerdown',e=>{

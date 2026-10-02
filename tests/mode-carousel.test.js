@@ -54,9 +54,10 @@ assert.match(src,/overshootShift=targetShift\+direction\*profile\.overshoot/,'ov
 assert.match(src,/strength=t\*t\*\(3-2\*t\)/,'settle strength must ease down strongly near centre');
 assert.match(src,/\.modeSlide\.isRemote\{visibility:hidden;pointer-events:none\}\.modeSlide\.isRemote \.modeTile\{visibility:visible\}/,'remote controls stay out of layout checks while their tile visuals remain physically pre-positioned');
 assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circular seam rebasing must happen offscreen without crossing the window');
-assert.match(src,/startRun\.disabled=!mode\.available/);
+assert.match(src,/modeAvailable=mode=>/,'runtime availability must be profile-aware');
+assert.match(src,/startRun\.disabled=!available/,'Start must remain disabled for a profile-locked mode');
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20261002\.7/);
+assert.match(gesture,/mode-carousel\.js\?v=20261002\.8/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');

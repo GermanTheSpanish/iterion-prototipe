@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const D=require('../data.js'),E=require('../engine.js'),Game=require('../game.js');
 
-assert.equal(D.VERSION,'0.59.1');
+assert.equal(D.VERSION,'0.60.0');
 
 const g=Game.createGame(E,{seed:44301,STARTING_UNDO_CONSUMABLES:1});
 const s=g.state();
@@ -74,10 +74,10 @@ try{
 }
 
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
-assert.match(ui,/ACTIVE_RUN_KEY='iterion\.activeRun\.v1'/);
-assert.match(ui,/LEGACY_RUN_KEY='iterion\.latestRun\.v9'/);
+assert.match(ui,/ACTIVE_RUN_KEY=scopeKey\('iterion\.activeRun\.v1'\)/,'active run persistence must be scoped to the selected profile');
+assert.match(ui,/LEGACY_RUN_KEY=scopeKey\('iterion\.latestRun\.v9'\)/,'legacy snapshot cleanup must target the selected profile');
 assert.match(ui,/localStorage\.removeItem\(LEGACY_RUN_KEY\)/,'active save frees the obsolete duplicate snapshot before writing');
 assert.doesNotMatch(ui,/const snap=GAME\.save\(\)/,'UI persistence must not write a second full run snapshot on every checkpoint');
 assert.match(ui,/SAVE FAILED · DOWNLOAD RUN DATA/,'quota/write failure must be visible instead of silently losing progress');
 
-console.log('v0.59.1 quota-safe active-run persistence and restored Undo regressions passed');
+console.log('v0.60.0 quota-safe active-run persistence and restored Undo regressions passed');
