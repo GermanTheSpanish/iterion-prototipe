@@ -58,6 +58,6 @@ assert.match(src,/modeAvailable=mode=>/,'runtime availability must be profile-aw
 assert.match(src,/startRun\.disabled=!available/,'Start must remain disabled for a profile-locked mode');
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20261002\.8/);
+assert.match(gesture,/mode-carousel\.js\?v=20261002\.9/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');
