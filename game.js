@@ -380,7 +380,7 @@ function createGame(E,opts={}){
     return[first,{x:first.x+vector[0],y:first.y+vector[1]}].map(cellPos=>({...cellPos,size:cell}))
   }
   function fullDominoApproachSides(core,{extraVoids=[]}={}){
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},blockedCore=cell=>(s.cores||[]).some(existing=>existing.id!==core.id&&coreRectsOverlap(cell,existing)),blockedVoid=cell=>[...(s.voids||[]).filter(geometryItemVisible),...extraVoids].some(item=>coreRectsOverlap(cell,item)),blockedPiece=cell=>s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cube.x<cell.x+cell.size&&cube.x+Math.max(1,Number(E.S)||2)>cell.x&&cube.y<cell.y+cell.size&&cube.y+Math.max(1,Number(E.S)||2)>cell.y));
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},blockedCore=cell=>(s.cores||[]).some(existing=>existing.id!==core.id&&coreRectsOverlap(cell,existing)),blockedVoid=cell=>[...(s.voids||[]).filter(item=>geometryItemVisible(item)),...extraVoids].some(item=>coreRectsOverlap(cell,item)),blockedPiece=cell=>s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cube.x<cell.x+cell.size&&cube.x+Math.max(1,Number(E.S)||2)>cell.x&&cube.y<cell.y+cell.size&&cube.y+Math.max(1,Number(E.S)||2)>cell.y));
     const free=cell=>cell.x>=0&&cell.y>=0&&cell.x+cell.size<=board.G&&cell.y+cell.size<=board.H&&!blockedCore(cell)&&!blockedVoid(cell)&&!blockedPiece(cell);
     return(core.ports||[]).filter(side=>{const cells=coreApproachCells(core,side);return cells.length===2&&cells.every(free)})
   }
