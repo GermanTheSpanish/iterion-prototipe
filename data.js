@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.58.0',
+    VERSION:'0.59.0',
     ENGINE_VERSION:'0.20.2-core-signal-additive-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -36,13 +36,14 @@
     CORE_ABILITY_LIMIT_BY_MODE:Object.freeze({loom:2,peaks:2}),
     CORE_PEAK_SIGNAL_MULTIPLIER:2,
     CORE_LEVEL_MAX:5,
-    CORE_MAX_PHYSICAL:4,
-    CORE_DISCOVERY_STAGES:Object.freeze([4,7]),
+    CORE_MAX_PHYSICAL:6,
+    CORE_DISCOVERY_STAGES:Object.freeze([2,3,4,5]),
+    CORE_DISCOVERY_VOID_COUNT_BY_MODE:Object.freeze({eyes:0,frames:1,river:2,loom:3,peaks:4}),
     FRAMES_CORE_MAX_PHYSICAL:6,
     FRAMES_CORE_DISCOVERY_STAGES:Object.freeze([2,3,4,5]),
-    RIVER_CORE_MAX_PHYSICAL:2,
-    LOOM_CORE_MAX_PHYSICAL:4,
-    PEAKS_CORE_MAX_PHYSICAL:6,
+    RIVER_CORE_MAX_PHYSICAL:6,
+    LOOM_CORE_MAX_PHYSICAL:8,
+    PEAKS_CORE_MAX_PHYSICAL:10,
     CORE_UPGRADE_START_STAGE:10,
     CORE_UPGRADE_STAGE_INTERVAL:3,
     CORE_ARCHETYPES:Object.freeze(['relay','reservoir','distributor','conductor']),

@@ -8,7 +8,7 @@ const itemsByHalf=(state,half)=>[...state.cores,...state.voids].filter(item=>ite
 const piece=(a,b,x,y,id)=>{const p=E.pieceFrom({a,b},x,y,0,0,id);p.tile={id:`v058-${id}`,a,b};return p};
 const events=(result,type)=>(result.events||[]).filter(event=>event.type===type);
 
-assert.equal(D.VERSION,'0.58.0');
+assert.equal(D.VERSION,'0.59.0');
 assert.deepEqual({...D.CORE_SIGNAL_BY_MODE},{eyes:6,frames:4,river:3,loom:2,peaks:2});
 assert.deepEqual({...D.CORE_ABILITY_LIMIT_BY_MODE},{loom:2,peaks:2});
 assert.equal(D.CORE_PEAK_SIGNAL_MULTIPLIER,2);

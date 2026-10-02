@@ -20,13 +20,13 @@ const coreOptions=(pieceId,core,{signalBase=2,signalMax=2,links=[]}={})=>({
   reservoirBonus:D.CORE_RESERVOIR_BONUS
 });
 
-assert.equal(D.VERSION,'0.58.0');
+assert.equal(D.VERSION,'0.59.0');
 assert.equal(D.ENGINE_VERSION,'0.20.2-core-signal-additive-v1');
 assert.equal(D.CORE_SIGNAL_LEVEL_STEP,4);
 assert.equal(D.CORE_RESERVOIR_BONUS,8);
 assert.equal(D.CORE_LEVEL_MAX,5);
-assert.equal(D.CORE_MAX_PHYSICAL,4);
-assert.deepEqual([...D.CORE_DISCOVERY_STAGES],[4,7]);
+assert.equal(D.CORE_MAX_PHYSICAL,6);
+assert.deepEqual([...D.CORE_DISCOVERY_STAGES],[2,3,4,5]);
 assert.equal(D.CORE_UPGRADE_START_STAGE,10);
 assert.equal(D.CORE_UPGRADE_STAGE_INTERVAL,3);
 
@@ -161,18 +161,12 @@ const progressed=G.createGame(E,{seed:1,GAME_MODE:'classic'});
 assert.equal(progressed.restoreState(saved),true);
 const progressedState=progressed.state();
 assert.equal(progressedState.gameMode,'eyes');
-assert.equal(progressedState.cores.length,4,'Stage 12 restore must retroactively discover the Stage 4 and Stage 7 Cores');
-assert.equal(new Set(progressedState.cores.map(core=>core.id)).size,4);
-assert.equal(new Set(progressedState.cores.map(core=>core.archetype)).size,4,'first four physical Cores must cover all four archetypes');
-const bySlot=Object.fromEntries(progressedState.cores.map(core=>[core.slot,core]));
-const coreCenter=core=>({x:core.x+core.size/2,y:core.y+core.size/2}),northCenter=coreCenter(bySlot.north),southCenter=coreCenter(bySlot.south),eastCenter=coreCenter(bySlot.east),westCenter=coreCenter(bySlot.west),crossCenter={x:(northCenter.x+southCenter.x)/2,y:(northCenter.y+southCenter.y)/2},coreRadius=Math.abs(southCenter.y-northCenter.y)/2;
-assert.equal(northCenter.x,southCenter.x,'The Eyes north/south Cores must share one vertical axis');
-assert.equal(eastCenter.y,crossCenter.y,'Stage 4 Core must stay on the horizontal Eyes axis');
-assert.equal(westCenter.y,crossCenter.y,'Stage 7 Core must stay on the horizontal Eyes axis');
-assert.equal(eastCenter.x-crossCenter.x,coreRadius,'clear Stage 4 discovery should preserve the opening Eyes radius');
-assert.equal(crossCenter.x-westCenter.x,coreRadius,'clear Stage 7 discovery should preserve the opening Eyes radius');
-assert.deepEqual(progressedState.coreProgressMilestones,['discover:4','discover:7','upgrade:10']);
-assert.equal(progressedState.cores.reduce((sum,core)=>sum+core.level,0),5,'Stage 10 milestone must upgrade exactly one Core to II');
+assert.equal(progressedState.cores.length,6,'Stage 12 restore must retroactively discover one Eyes Core at Stages 2, 3, 4 and 5');
+assert.equal(new Set(progressedState.cores.map(core=>core.id)).size,6);
+assert.equal(new Set(progressedState.cores.map(core=>core.archetype)).size,4,'the first discoveries must complete the four Core archetypes before repeats');
+assert.deepEqual(progressedState.coreProgressMilestones,['discover:2','discover:3','discover:4','discover:5','upgrade:10']);
+assert.equal(progressedState.voids.length,0,'1|1 discovery never creates Voids');
+assert.equal(progressedState.cores.reduce((sum,core)=>sum+core.level,0),7,'Stage 10 milestone must upgrade exactly one of six Cores to II');
 assert.equal(progressed.coreShadowTelemetry().overlapTileIds.length,0);
 assert(progressedState.events.some(event=>event.type==='core-archetype-migrate'&&event.reason==='restore'),'legacy duplicate Core labels must normalize before abilities become gameplay');
 assert(progressedState.events.some(event=>event.type==='core-discover'&&event.reason==='restore'));
