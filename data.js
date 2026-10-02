@@ -27,6 +27,7 @@
     CORE_SIGNAL_MAX:24,
     CORE_SIGNAL_BY_MODE:Object.freeze({eyes:6,frames:4,river:3,loom:2,peaks:2}),
     CORE_SIGNAL_MARKET_STEP:1,
+    CORE_SIGNAL_DISCOVERED_CORE_STEP:1,
     CORE_SIGNAL_PURCHASE_COST:8,
     CORE_SIGNAL_PURCHASE_STEP:3,
     CORE_SIGNAL_ENABLED:true,
@@ -35,6 +36,12 @@
     CORE_RESERVOIR_BONUS:8,
     CORE_ABILITY_LIMIT_BY_MODE:Object.freeze({loom:2,peaks:2}),
     CORE_PEAK_SIGNAL_MULTIPLIER:2,
+    PEAK_RIDGE_ENABLED:true,
+    PEAK_RIDGE_TIERS:Object.freeze([
+      Object.freeze({minTiles:2,multiplier:2}),
+      Object.freeze({minTiles:5,multiplier:3}),
+      Object.freeze({minTiles:7,multiplier:4})
+    ]),
     CORE_LEVEL_MAX:5,
     CORE_MAX_PHYSICAL:6,
     CORE_DISCOVERY_STAGES:Object.freeze([2,3,4,5]),
