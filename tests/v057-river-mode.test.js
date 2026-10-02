@@ -17,7 +17,7 @@ const approachDominoes=item=>[
 
 assert.equal(D.CORE_SIGNAL_BY_MODE.river,3);
 assert.equal(D.RIVER_CORE_MAX_PHYSICAL,6);
-assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes','frames','river','loom','peaks']);
+assert.deepEqual(C.MODES.filter(mode=>mode.available).map(mode=>mode.id),['classic','eyes','frames','river','loom','peaks','islands']);
 
 E.setBoardSize(18,24);
 const first=G.createGame(E,{seed:5701,GAME_MODE:'river',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)});
