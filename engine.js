@@ -302,6 +302,53 @@
     const die=events.length&&events[events.length-1].type==='die'?events.pop():null;events.push({type:'double-echo-result',piece:opts.doubleEchoPieceId,mainOutput,mainOutputExact,echoOutput,echoOutputExact,finalOutput:output,finalOutputExact:outputExact,echoRebounds});if(die)events.push(die);
     return{...result,mainOutput,mainOutputExact,echoOutput,echoOutputExact,output,outputExact,gain:SCORE.approx(gainExact),gainExact,events,doubleEchoActivated:true,echoRebounds}
   }
+  function directedRoutePath(events,fromPieceId,toPieceId){
+    if(fromPieceId==null||toPieceId==null)return null;
+    if(fromPieceId===toPieceId)return[fromPieceId];
+    const graph=new Map();
+    for(const event of events||[]){
+      const from=event?.type==='route'?event.piece:event?.type==='move'?event.fromPiece:null,to=event?.type==='route'?event.toPieceId:event?.type==='move'?event.toPiece:null;
+      if(from==null||to==null)continue;
+      if(!graph.has(from))graph.set(from,new Set());
+      graph.get(from).add(to)
+    }
+    const queue=[[fromPieceId,[fromPieceId]]],seen=new Set([fromPieceId]);
+    for(let i=0;i<queue.length;i++){
+      const[node,path]=queue[i],next=[...(graph.get(node)||[])].sort((a,b)=>String(a).localeCompare(String(b)));
+      for(const id of next){
+        if(seen.has(id))continue;
+        const candidate=[...path,id];if(id===toPieceId)return candidate;
+        seen.add(id);queue.push([id,candidate])
+      }
+    }
+    return null
+  }
+  function peakRidgeTier(tileCount,tiers){
+    const list=(Array.isArray(tiers)?tiers:[]).map(tier=>({minTiles:Math.max(1,Math.trunc(Number(tier?.minTiles)||0)),multiplier:Math.max(1,Number(tier?.multiplier)||1)})).filter(tier=>tier.multiplier>1).sort((a,b)=>b.minTiles-a.minTiles||b.multiplier-a.multiplier);
+    return list.find(tier=>tileCount>=tier.minTiles)||null
+  }
+  function applyPeakRidgeMultiplier(result,opts={}){
+    if(opts.peakRidgeEnabled!==true)return result;
+    const activations=[],seen=new Set();
+    for(const event of result?.events||[]){
+      if(event?.type!=='core-activate'||!event.peak||event.coreId==null||seen.has(event.coreId))continue;
+      seen.add(event.coreId);activations.push(event)
+    }
+    if(activations.length<2)return result;
+    let ridge=null;
+    for(let i=0;i<activations.length-1;i++)for(let j=i+1;j<activations.length;j++){
+      const from=activations[i],to=activations[j],path=directedRoutePath(result.events,from.piece,to.piece);
+      if(!path)continue;
+      const tier=peakRidgeTier(path.length,opts.peakRidgeTiers);if(!tier)continue;
+      const candidate={fromCoreId:from.coreId,toCoreId:to.coreId,fromPieceId:from.piece,toPieceId:to.piece,pieceIds:path,tileCount:path.length,multiplier:tier.multiplier};
+      if(!ridge||candidate.multiplier>ridge.multiplier||candidate.multiplier===ridge.multiplier&&candidate.tileCount>ridge.tileCount)ridge=candidate
+    }
+    if(!ridge)return result;
+    const beforeExact=SCORE.exact(result.output||0,result.outputExact),before=SCORE.approx(beforeExact),outputExact=SCORE.multiply(beforeExact,ridge.multiplier),output=SCORE.approx(outputExact),initialExact=SCORE.exact(opts.initialOutput||0,opts.initialOutputExact||result.initialOutputExact),gainExact=SCORE.subtract(outputExact,initialExact);
+    const event={type:'peak-ridge',...ridge,before,beforeExact,after:output,afterExact:outputExact};
+    const events=[...(result.events||[])],die=events.length&&events.at(-1)?.type==='die'?events.pop():null;events.push(event);if(die)events.push(die);
+    return{...result,output,outputExact,gain:SCORE.approx(gainExact),gainExact,events,peakRidge:{...ridge,before,beforeExact,after:output,afterExact:outputExact}}
+  }
   function bestSignal(newPieceId,pieces,opts={}){
     const initialOutput=Number.isFinite(opts.initialOutput)?opts.initialOutput:0,initialOutputExact=SCORE.exact(initialOutput,opts.initialOutputExact);
     const emptyResult=reason=>({output:SCORE.approx(initialOutputExact),outputExact:initialOutputExact,gain:0,gainExact:'0',path:[],segments:[],events:[],reason,traversals:0,rebounds:0});
@@ -482,14 +529,15 @@
     for(const first of starts){const st={current:{pieceId:first.toPieceId,entryHalf:first.entryHalf,fromPieceId:newPieceId,fromHalf:first.fromHalf},mode:1,output:SCORE.approx(initialOutputExact),outputExact:initialOutputExact,initialOutput:SCORE.approx(initialOutputExact),initialOutputExact,suppressZeroPiece:null,doubleDoubleUsed:false,splitUsed:new Set(),usedEdges:new Set([extKey(newPieceId,first.fromHalf,first.toPieceId,first.toHalf)]),zeroCharges:new Map(),zeroPortUsed:new Set(),returnUsed:false,mergeCapture:false,mergeConsumed:false,mergeFromPieceIds:new Set(),hingeMoved:false,hingeOverride:null,signalRemaining:signalEnabled?signalBase:null,signalVisited:new Set(),activatedCoreIds:new Set(),coreActivationOrder:[],leadCoreId:null,leadCoreArchetype:null,leadCoreLevel:0,distributorUsed:false,relayUsed:false,back:[],forward:[],path:[],segments:[],events:[{type:'start',key:first.key,toPieceId:first.toPieceId,toHalf:first.entryHalf,fromHalf:first.fromHalf,flipped:first.flipped,signalRemaining:signalEnabled?signalBase:undefined}],traversals:0,rebounds:0};const r=walk(st);if(better(r,best))best=r;if(expanded>=maxExpanded){truncated=true;break}}
     best=best||{...emptyResult('no-route'),traversals:0,rebounds:0,signalRemaining:signalEnabled?signalBase:null,signalVisited:new Set(),activatedCoreIds:new Set(),coreActivationOrder:[],leadCoreId:null,leadCoreArchetype:null,leadCoreLevel:0,distributorUsed:false,relayUsed:false};best.search={starts:starts.length,expanded,leaves,truncated};if(best.hingeOverride)best.hingeFinalPlacement={x:best.hingeOverride.cubes[0].x,y:best.hingeOverride.cubes[0].y,z:best.hingeOverride.z||0,rr:best.hingeOverride.rr};
     if(signalEnabled){const order=orderedUnion(best.coreActivationOrder,best.events.filter(e=>e.type==='core-activate').map(e=>e.coreId)),last=order.length-1;best.coreActivationOrder=order;best.events=best.events.map(e=>{if(e.type!=='core-activate')return e;const index=order.indexOf(e.coreId),lead=index===0,link=coreAbilityLimit>1&&index===1;return{...e,lead,link,last:index===last,role:lead?'lead':link?'link':index===last?'last':'follow'}})}
-    best=replaySelectedScoring(best,initialOutput,{...opts,initialOutputExact,pieces,powerByPiece:new Map(pieces.map(p=>[p.id,Math.max(1,Number(p.tile?.powerMultiplier)||1)]))});const final=replaySelectedEcho(best,{...opts,initialOutput,initialOutputExact});
-    if(signalEnabled){const coreSignalAdded=final.events.filter(e=>e.type==='core-activate').reduce((sum,e)=>sum+Math.max(0,Number(e.signalAdded)||0),0),signalLevels=[signalBase,...final.events.filter(e=>e.type==='core-activate').map(e=>Number(e.afterSignal)).filter(Number.isFinite),...final.events.filter(e=>e.type==='op').flatMap(e=>[Number(e.signalBefore),Number(e.signalAfter)]).filter(Number.isFinite)],order=[...(best.coreActivationOrder||[])],linkCore=coreAbilityLimit>1?coreInfo(order[1]):null;final.signalRuntime={enabled:true,base:signalBase,max:signalMax,coreCharge:signalCoreCharge,coreSignalAdded,peak:signalLevels.length?Math.max(...signalLevels):signalBase,remaining:Math.max(0,Number(best.signalRemaining)||0),depleted:final.events.some(e=>e.type==='signal-depleted'),activatedCoreIds:order,abilityCoreIds:order.slice(0,coreAbilityLimit),leadCoreId:best.leadCoreId||null,leadCoreArchetype:best.leadCoreArchetype||null,leadCoreLevel:Math.max(0,Number(best.leadCoreLevel)||0),linkCoreId:linkCore?.id||null,linkCoreArchetype:linkCore?.archetype||null,distributorUsed:!!best.distributorUsed,relayUsed:!!best.relayUsed}}
+    best=replaySelectedScoring(best,initialOutput,{...opts,initialOutputExact,pieces,powerByPiece:new Map(pieces.map(p=>[p.id,Math.max(1,Number(p.tile?.powerMultiplier)||1)]))});let final=replaySelectedEcho(best,{...opts,initialOutput,initialOutputExact});
+    final=applyPeakRidgeMultiplier(final,{...opts,initialOutput,initialOutputExact});
+    if(signalEnabled){const coreSignalAdded=final.events.filter(e=>e.type==='core-activate').reduce((sum,e)=>sum+Math.max(0,Number(e.signalAdded)||0),0),signalLevels=[signalBase,...final.events.filter(e=>e.type==='core-activate').map(e=>Number(e.afterSignal)).filter(Number.isFinite),...final.events.filter(e=>e.type==='op').flatMap(e=>[Number(e.signalBefore),Number(e.signalAfter)]).filter(Number.isFinite)],order=[...(best.coreActivationOrder||[])],linkCore=coreAbilityLimit>1?coreInfo(order[1]):null;final.signalRuntime={enabled:true,base:signalBase,max:signalMax,coreCharge:signalCoreCharge,coreSignalAdded,peak:signalLevels.length?Math.max(...signalLevels):signalBase,remaining:Math.max(0,Number(best.signalRemaining)||0),depleted:final.events.some(e=>e.type==='signal-depleted'),activatedCoreIds:order,abilityCoreIds:order.slice(0,coreAbilityLimit),leadCoreId:best.leadCoreId||null,leadCoreArchetype:best.leadCoreArchetype||null,leadCoreLevel:Math.max(0,Number(best.leadCoreLevel)||0),linkCoreId:linkCore?.id||null,linkCoreArchetype:linkCore?.archetype||null,distributorUsed:!!best.distributorUsed,relayUsed:!!best.relayUsed,peakRidge:final.peakRidge?{...final.peakRidge}:null}}
     return final
   }
   function simulateSignal(newPieceId,pieces,opts={}){return bestSignal(newPieceId,pieces,opts)}
   function portKey(pieceId,half,side){return`${pieceId}:${half}:${side}`}
   function exposedPorts(tile,z,pieces){const placements=allPlacements(tile,z,pieces),groups=new Map();for(const pl of placements)for(const group of pl.contacts||[]){if(group.kind==='double-centered'&&group.piece.double){const side=group.relation.sideB,key=`${group.piece.id}:center:${side}`;if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:null,side,value:group.piece.tile.a,centered:true,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl);continue}for(const c of group.contacts||[]){const key=portKey(group.piece.id,c.bHalf,c.otherSide);if(!groups.has(key))groups.set(key,{key,pieceId:group.piece.id,half:c.bHalf,side:c.otherSide,value:c.bV,centered:false,placements:[]});const g=groups.get(key);if(!g.placements.some(p=>placementKey(tile,p)===placementKey(tile,pl)))g.placements.push(pl)}}return[...groups.values()]}
-  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,replaySelectedEcho,bestSignal,simulateSignal,exposedPorts,modGeometryFacts,hingeAlternates};
+  const api={S,DIR,ARROW,axis,setBoardSize,getBoardSize,cubesFor,rectForCubes,pieceFrom,edgeContact,contactBetweenPieces,validatePlacement,allPlacements,hasAnyPlacement,hasLegalMove,cubeCenter,connectionsForPiece,connectionKey,startChoices,applyOp,replaySelectedScoring,replaySelectedEcho,applyPeakRidgeMultiplier,bestSignal,simulateSignal,exposedPorts,modGeometryFacts,hingeAlternates};
   Object.defineProperties(api,{G:{enumerable:true,get:()=>G},H:{enumerable:true,get:()=>H}});
   return api;
 });

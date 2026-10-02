@@ -119,8 +119,10 @@ assert.equal(ps.events.filter(event=>event.type==='void-discover').length,4);
 assert.equal(ps.coreProgressMilestones.filter(key=>key.startsWith('discover:')).length,4);
 ps.marketCount=2;
 const charged=progression.snapshot().signal;
-assert.equal(charged.base,3);
-assert.equal(charged.coreCharge,5);
+assert.equal(charged.discoveredCoreCount,4,'River tracks four extra Cores after Stages 2–5');
+assert.equal(charged.discoveredCoreBonus,4,'each discovered River Core adds +1 starting Signal');
+assert.equal(charged.base,7,'River starts from 3 Signal plus four discovered-Core Signal');
+assert.equal(charged.coreCharge,5,'Market progression still changes Core recharge independently');
 assert.equal(charged.marketBonus,2);
 
 console.log('The River 3|3 Core/Void growth regressions passed');
