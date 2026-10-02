@@ -430,7 +430,7 @@ function createGame(E,opts={}){
     const adjacentToCore=candidate=>((candidate.x+size===core.x||core.x+size===candidate.x)&&candidate.y<core.y+size&&candidate.y+size>core.y)||((candidate.y+size===core.y||core.y+size===candidate.y)&&candidate.x<core.x+size&&candidate.x+size>core.x);
     const fits=candidate=>onLattice(candidate)&&candidate.x>=stageRect.x&&candidate.y>=stageRect.y&&candidate.x+size<=stageRect.x+stageRect.w&&candidate.y+size<=stageRect.y+stageRect.h&&!adjacentToCore(candidate)&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!(s.cores||[]).some(existing=>coreRectsOverlap(candidate,existing))&&!coreRectsOverlap(candidate,core)&&!(s.voids||[]).some(existing=>geometryItemVisible(existing)&&coreRectsOverlap(candidate,existing))&&!selected.some(existing=>coreRectsOverlap(candidate,existing))&&fullDominoApproachSides(core,{extraVoids:[...selected,candidate]}).length>0;
     const distribution=candidate=>{const pool=[...(s.voids||[]).filter(item=>geometryItemVisible(item)),...selected],near=pool.filter(item=>Math.abs(item.x-candidate.x)+Math.abs(item.y-candidate.y)<=radius),sameColumn=near.filter(item=>item.x===candidate.x).length,sameRow=near.filter(item=>item.y===candidate.y).length;return{sameColumn,sameRow,columnPenalty:Math.max(0,sameColumn-columnCap+1),rowPenalty:Math.max(0,sameRow-rowCap+1),density:near.length}};
-    const ranked=ringOnly=>{const candidates=[];for(let y=stageRect.y;y<=stageRect.y+stageRect.h-size;y+=cell)for(let x=stageRect.x;x<=stageRect.x+stageRect.w-size;x+=cell){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=rectOverlapArea(candidate,previousRect,size),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const distance=Math.abs((x+size/2)-(core.x+size/2))+Math.abs((y+size/2)-(core.y+size/2)),spread=distribution(candidate);candidates.push({candidate,oldOverlap,distance,...spread,hash:coreHash(s.seed||0,x+y*board.G+stage*191+selected.length*17,347)})}candidates.sort((a,b)=>a.columnPenalty-b.columnPenalty||a.rowPenalty-b.rowPenalty||a.density-b.density||a.oldOverlap-b.oldOverlap||a.distance-b.distance||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates};
+    const ranked=ringOnly=>{const candidates=[],startY=stageRect.y+mod(voidLattice.y-stageRect.y,cell),startX=stageRect.x+mod(voidLattice.x-stageRect.x,cell);for(let y=startY;y<=stageRect.y+stageRect.h-size;y+=cell)for(let x=startX;x<=stageRect.x+stageRect.w-size;x+=cell){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=rectOverlapArea(candidate,previousRect,size),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const distance=Math.abs((x+size/2)-(core.x+size/2))+Math.abs((y+size/2)-(core.y+size/2)),spread=distribution(candidate);candidates.push({candidate,oldOverlap,distance,...spread,hash:coreHash(s.seed||0,x+y*board.G+stage*191+selected.length*17,347)})}candidates.sort((a,b)=>a.columnPenalty-b.columnPenalty||a.rowPenalty-b.rowPenalty||a.density-b.density||a.oldOverlap-b.oldOverlap||a.distance-b.distance||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates};
     let fallbackToBoard=false;
     for(let index=0;index<count;index++){let candidates=ranked(true);if(!candidates.length){candidates=ranked(false);fallbackToBoard=true}if(!candidates.length)break;selected.push(candidates[0].candidate)}
     return{positions:selected,fallbackToBoard,lattice:coreLattice,voidLattice,approachSides:fullDominoApproachSides(core,{extraVoids:selected})}
@@ -489,6 +489,26 @@ function createGame(E,opts={}){
     }
     return null
   }
+  function growPeaksEndless(stage,reason='endless-growth'){
+    if(canonicalGameMode(s.gameMode)!=='peaks'||!s.endlessMode||stage<=baseStageCount())return null;
+    const voidCount=Math.max(0,Math.trunc(Number(cfg.PEAKS_ENDLESS_VOID_COUNT)||4),denominator=Math.max(1,Math.trunc(Number(cfg.PEAKS_ENDLESS_CORE_CHANCE_DENOMINATOR)||3)),numerator=Math.max(0,Math.min(denominator,Math.trunc(Number(cfg.PEAKS_ENDLESS_CORE_CHANCE_NUMERATOR)||2))),canAddCore=(s.cores?.length||0)<coreMaxPhysicalForMode('peaks'),coreRoll=coreHash(s.seed||0,stage,701)%denominator,wantsCore=canAddCore&&coreRoll<numerator;
+    if(wantsCore){
+      const core=discoverCore(stage,reason);
+      if(!core)return null;
+      const companionVoidIds=(s.events||[]).at(-1)?.type==='void-discover'&&(s.events||[]).at(-1)?.sourceCoreId===core.id?((s.events||[]).at(-1).voids||[]).map(item=>item.id):[];
+      s.events.push({type:'peaks-endless-growth',mode:'peaks',stage,reason,nodeKind:'core',nodeId:core.id,coreId:core.id,voidCount:companionVoidIds.length,voidIds:companionVoidIds,roll:coreRoll,numerator,denominator});
+      return{nodeKind:'core',core,voidIds:companionVoidIds}
+    }
+    const archetype='relay',size=Math.max(1,Number(E.S)||2),ports=corePortsForArchetype(s.seed||0,stage+701,archetype),choice=growthCoreCandidatePosition('peaks',stage,size,ports),nodeId=`void-peaks-endless-${stage}-node`;
+    if(!choice?.position){s.events.push({type:'core-progress-blocked',mode:'peaks',stage,reason,action:'endless-growth-void-node',slot:`peaks-endless-${stage}`});return null}
+    const virtual={id:`virtual-peaks-endless-${stage}`,slot:`peaks-endless-${stage}`,stage,x:choice.position.x,y:choice.position.y,size,ports,archetype,level:1},voidChoice=growthVoidPositions('peaks',stage,virtual,voidCount);
+    if(voidChoice.positions.length!==voidCount){s.events.push({type:'core-progress-blocked',mode:'peaks',stage,reason,action:'endless-growth-void-pack',slot:virtual.slot,requiredVoids:voidCount+1,availableVoids:voidChoice.positions.length+1});return null}
+    const node={id:nodeId,slot:`${virtual.slot}-void-node`,stage,sourceCoreId:null,sourceGrowthNodeId:nodeId,growthNode:true,x:virtual.x,y:virtual.y,size},companions=voidChoice.positions.map((item,index)=>({id:`void-peaks-endless-${stage}-${index+1}`,slot:`${virtual.slot}-void-${index+1}`,stage,sourceCoreId:null,sourceGrowthNodeId:nodeId,x:item.x,y:item.y,size})),voids=[node,...companions];
+    s.voids.push(...voids);
+    s.events.push({type:'void-discover',mode:'peaks',stage,reason,sourceCoreId:null,sourceGrowthNodeId:nodeId,count:voids.length,voids:deepClone(voids),lattice:choice.lattice||null,voidLattice:voidChoice.voidLattice||null,growthFallback:!!voidChoice.fallbackToBoard});
+    s.events.push({type:'peaks-endless-growth',mode:'peaks',stage,reason,nodeKind:'void',nodeId,coreId:null,voidCount:voids.length,voidIds:voids.map(item=>item.id),roll:coreRoll,numerator,denominator});
+    return{nodeKind:'void',core:null,voidIds:voids.map(item=>item.id)}
+  }
   function upgradeCore(stage,reason='stage'){
     if(!coreGameMode(s.gameMode)||!s.cores?.length)return null;
     const maxLevel=Math.max(1,Number(cfg.CORE_LEVEL_MAX)||5),eligible=s.cores.filter(core=>(Number(core.level)||1)<maxLevel).sort((a,b)=>String(a.id).localeCompare(String(b.id)));if(!eligible.length)return null;
@@ -500,6 +520,9 @@ function createGame(E,opts={}){
     if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];
     const processed=coreProgressKeys(),changes=[],discoverStages=coreDiscoveryStagesForMode(),maxPhysical=coreMaxPhysicalForMode();
     for(const stage of discoverStages){const key=`discover:${stage}`;if(stage>stageNumber||processed.has(key))continue;const change=discoverCore(stage,reason);if(change||(s.cores?.length||0)>=maxPhysical){processed.add(key);changes.push({type:'discover',stage,core:change})}}
+    if(canonicalGameMode(s.gameMode)==='peaks'&&s.endlessMode){
+      for(let stage=baseStageCount()+1;stage<=stageNumber;stage++){const key=`endless-growth:${stage}`;if(processed.has(key))continue;const change=growPeaksEndless(stage,'endless-growth');if(change){processed.add(key);changes.push({type:'endless-growth',stage,...change})}}
+    }
     const start=Math.max(1,Number(cfg.CORE_UPGRADE_START_STAGE)||10),interval=Math.max(1,Number(cfg.CORE_UPGRADE_STAGE_INTERVAL)||3);
     for(let stage=start;stage<=stageNumber;stage+=interval){const key=`upgrade:${stage}`;if(processed.has(key))continue;const change=upgradeCore(stage,reason);processed.add(key);changes.push({type:'upgrade',stage,core:change})}
     s.coreProgressMilestones=[...processed].sort((a,b)=>{const [ak,av]=a.split(':'),[bk,bv]=b.split(':');return Number(av)-Number(bv)||ak.localeCompare(bk)});return changes
