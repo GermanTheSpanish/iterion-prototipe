@@ -103,7 +103,7 @@ const looped={
   output:100,outputExact:'100',gain:97,gainExact:'97',events:[
     {type:'core-activate',coreId:'peak-a',piece:2,peak:true},
     {type:'route',piece:2,toPieceId:3},
-    {type:'route',piece:3,toPieceId:2},
+    {type:'move',fromPiece:3,toPiece:2,retrace:true},
     {type:'route',piece:3,toPieceId:4},
     {type:'core-activate',coreId:'peak-b',piece:4,peak:true}
   ]
