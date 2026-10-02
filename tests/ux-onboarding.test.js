@@ -28,7 +28,7 @@ assert.match(ux,/THE MACHINE/);
 assert.match(ux,/BUILD\. ROUTE\. SCORE\./);
 assert.match(ux,/THE MACHINE CONTINUES\./);
 assert.match(ux,/monoid\.modeOnboarding\.v1/);assert.match(ux,/monoid\.modeIntro\.v2/);
-assert.match(ux,/Signal starts at 6\./);assert.match(ux,/Cores add to it\./);assert.match(ux,/Each Market: \+1 Core charge\./);assert.match(ux,/Signal starts at 4\./);assert.match(ux,/Route through Cores to extend it\./);assert.match(ux,/Each Market expands the Core network\./);assert.match(ux,/Voids block placement\. Route through a Core before Signal dies\./);assert.doesNotMatch(ux,/Each half holds one Core and one Void/);
+assert.match(ux,/Signal starts at 6\./);assert.match(ux,/Cores add to it\./);assert.match(ux,/Each Market: \+1 Core charge\./);assert.match(ux,/Signal starts at 4\./);assert.match(ux,/Route through Cores to extend it\./);assert.match(ux,/Each Market expands the Core network\./);assert.match(ux,/Voids block placement\. Route through a Core before Signal dies\./);assert.match(ux,/THE RIVER · 3\|3/);assert.match(ux,/Signal starts at 3\./);assert.match(ux,/Voids divide the board\./);assert.match(ux,/CROSS THE RIVER/);assert.doesNotMatch(ux,/Each half holds one Core and one Void/);
 assert.match(ux,/REACH A CORE/);assert.match(ux,/Reach a Core before the Signal dies\./);
 assert.match(ux,/discoveryTitle:'LEAD'/);assert.match(ux,/First Core sets the rule\./);
 assert.match(ux,/payoffTitle:'CORE LINKED'/);assert.match(ux,/Core adds Signal\./);

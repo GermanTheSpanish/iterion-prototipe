@@ -66,13 +66,13 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
 });
 
-test('Classic, The Eyes and The Frames are playable while Classic keeps its full progression',async({page})=>{
+test('Classic, The Eyes, The Frames and The River are playable while Classic keeps its full progression',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
   await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
 
-  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes','frames']);
+  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes','frames','river']);
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
   await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite → Ouroboros');
   await page.locator('#startRun').click();
@@ -225,6 +225,41 @@ test('The Frames starts a seeded 2|2 run with two physical Cores and two Voids',
   await expect(page.locator('#signalHud .signalHudLane')).not.toHaveClass(/low|critical/);
   const progressed=await page.evaluate(()=>{window.__monoidGame.state().marketCount=2;return window.__monoidGame.snapshot().signal});
   expect(progressed.base).toBe(4);expect(progressed.max).toBe(6);expect(progressed.marketBonus).toBe(2);
+  const safety=await page.evaluate(()=>{
+    const game=window.__monoidGame,E=window.IterionEngine,s=game.state(),items=[...s.cores,...s.voids];let checked=0,overlaps=0;
+    const hit=(piece,item)=>piece.cubes.some(cube=>cube.x<item.x+item.size&&cube.x+E.S>item.x&&cube.y<item.y+item.size&&cube.y+E.S>item.y);
+    s.hand.forEach((tile,index)=>{if(!tile)return;for(const candidate of game.candidatesForIndex(index)){const piece=E.pieceFrom(tile,candidate.x,candidate.y,0,candidate.rr,-1);checked++;if(items.some(item=>hit(piece,item)))overlaps++}});
+    return{checked,overlaps}
+  });
+  expect(safety.checked).toBeGreaterThan(0);
+  expect(safety.overlaps).toBe(0);
+});
+
+
+test('The River starts a seeded 3|3 run with fixed Cores and four Voids',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.waitForFunction(()=>!!window.__monoidModes);
+  await page.locator('#titleCard').click();
+  await page.evaluate(()=>window.__monoidModes.select(3));
+  await expect(page.locator('#modeName')).toHaveText('THE RIVER');
+  await expect(page.locator('#modeDescription')).toHaveText('3|3 · Signal 3');
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({river:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({river:true}))});
+  await page.locator('#startRun').click();
+  await expect(page.locator('#modeIndicator')).toBeVisible();
+  await expect(page.locator('#modeIndicator .modePip')).toHaveCount(6);
+  await expect(page.locator('#board .coreNode')).toHaveCount(2);
+  await expect(page.locator('#board .boardVoid')).toHaveCount(4);
+  const state=await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,cores:window.__monoidGame.state().cores,voids:window.__monoidGame.state().voids,snapshot:window.__monoidGame.snapshot(),storedMode:localStorage.getItem('iterion.activeRunMode.v1'),savedMode:JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.gameMode}));
+  expect(state.mode).toBe('river');
+  expect(state.storedMode).toBe('river');
+  expect(state.savedMode).toBe('river');
+  expect(state.cores).toHaveLength(2);
+  expect(state.voids).toHaveLength(4);
+  expect(state.snapshot.modeGeometry.visibleIds).toHaveLength(6);
+  expect(state.snapshot.signal.base).toBe(3);
+  expect(state.snapshot.signal.max).toBe(3);
+  await expect(page.locator('#signalHud .signalHudLane b')).toHaveText('3');
   const safety=await page.evaluate(()=>{
     const game=window.__monoidGame,E=window.IterionEngine,s=game.state(),items=[...s.cores,...s.voids];let checked=0,overlaps=0;
     const hit=(piece,item)=>piece.cubes.some(cube=>cube.x<item.x+item.size&&cube.x+E.S>item.x&&cube.y<item.y+item.size&&cube.y+E.S>item.y);
