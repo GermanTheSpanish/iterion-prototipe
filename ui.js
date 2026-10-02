@@ -86,7 +86,8 @@
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||window.__monoidSelectedMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function persistGame(){
     if(tutorial)return GAME.snapshot();
-    const snap=GAME.snapshot(),payload=JSON.stringify(GAME.exportState());
+    const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],payload=JSON.stringify(GAME.exportState());
+    if(unlockedModes.length){const names={eyes:'THE EYES',frames:'THE FRAMES',river:'THE RIVER',loom:'THE LOOM',peaks:'THE PEAKS'};queueMicrotask(()=>toast(`${names[unlockedModes.at(-1)]||unlockedModes.at(-1).toUpperCase()} UNLOCKED`))}
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
       localStorage.setItem(ACTIVE_RUN_KEY,payload);
