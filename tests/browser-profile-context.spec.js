@@ -10,6 +10,7 @@ async function openSelection(page){
 test('player, dev and fresh contexts keep progression and saves isolated',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>{
+    if(sessionStorage.getItem('monoid-profile-context-test-seeded'))return;
     localStorage.clear();
     localStorage.setItem('monoid.profileContext.v1','player');
     localStorage.setItem('monoid.profile.player.v1',JSON.stringify({
@@ -25,6 +26,7 @@ test('player, dev and fresh contexts keep progression and saves isolated',async(
     }));
     localStorage.setItem('monoid.firstRunBriefing.v1','seen');
     localStorage.setItem('iterion.tutorialChoice.v1','made');
+    sessionStorage.setItem('monoid-profile-context-test-seeded','1');
   });
   await page.goto(BASE);
   await openSelection(page);
