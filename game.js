@@ -222,13 +222,13 @@ function createGame(E,opts={}){
   }
   function framesModeGeometry(seed=s.seed){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24);
-    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=Math.max(size*2,Math.round(baseH/6)),pipSpan=size*3,pipOffset=pipSpan/2,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size});
     const sites=[
-      site('frames-north-a','north',0,centerX-pipOffset,topCenterY-pipOffset),
-      site('frames-north-b','north',1,centerX+pipOffset,topCenterY+pipOffset),
-      site('frames-south-a','south',0,centerX-pipOffset,bottomCenterY-pipOffset),
-      site('frames-south-b','south',1,centerX+pipOffset,bottomCenterY+pipOffset)
+      site('frames-north-a','north',0,centerX-pipXOffset,topCenterY-pipYOffset),
+      site('frames-north-b','north',1,centerX+pipXOffset,topCenterY+pipYOffset),
+      site('frames-south-a','south',0,centerX-pipXOffset,bottomCenterY-pipYOffset),
+      site('frames-south-b','south',1,centerX+pipXOffset,bottomCenterY+pipYOffset)
     ];
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,229)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,229)%(southPool.length||archetypes.length)],byHalf={north:sites.filter(site=>site.half==='north'),south:sites.filter(site=>site.half==='south')},cores=[],voids=[];
     for(const [half,index,archetype] of [['north',0,northArchetype],['south',1,southArchetype]]){
@@ -261,7 +261,7 @@ function createGame(E,opts={}){
     if(id==='frames')return framesModeGeometry(seed).cores;
     if(id==='river')return riverModeGeometry(seed).cores;
     if(id!=='eyes')return[];
-    const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),x=Math.floor((bs.G-size)/2),pipOffset=Math.max(size*2,Math.round(bs.H/6)),topY=Math.max(2,Math.round(bs.H/2-pipOffset-size/2)),bottomY=Math.min(bs.H-size-2,Math.round(bs.H/2+pipOffset-size/2));
+    const bs=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},size=Math.max(1,Number(E.S)||2),centerX=bs.G/2,centerY=bs.H/2,halfCenterOffset=size*2.5,x=Math.round(centerX-size/2),topY=Math.round(centerY-halfCenterOffset-size/2),bottomY=Math.round(centerY+halfCenterOffset-size/2);
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],northArchetype=archetypes[coreHash(seed,0,99)%archetypes.length],southPool=archetypes.filter(id=>id!==northArchetype),southArchetype=(southPool.length?southPool:archetypes)[coreHash(seed,1,99)%(southPool.length||archetypes.length)];
     return[
       {id:'core-eyes-north',slot:'north',x,y:topY,size,ports:corePortsForArchetype(seed,0,northArchetype),archetype:northArchetype,level:1},

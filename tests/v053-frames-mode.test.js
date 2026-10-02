@@ -19,7 +19,7 @@ const first=G.createGame(E,{seed:5301,GAME_MODE:'frames',TARGETS:Array(15).fill(
 const second=G.createGame(E,{seed:5301,GAME_MODE:'frames',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)});
 const s=first.state();
 E.setBoardSize(18,24);
-const eyesScale=G.createGame(E,{seed:5301,GAME_MODE:'eyes',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),eyesState=eyesScale.state();
+const eyesScale=G.createGame(E,{seed:5301,GAME_MODE:'eyes',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),eyesState=eyesScale.state(),riverScale=G.createGame(E,{seed:5301,GAME_MODE:'river',TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),riverState=riverScale.state();
 assert.equal(s.gameMode,'frames');
 assert.equal(s.cores.length,2);
 assert.equal(s.voids.length,2);
@@ -33,21 +33,24 @@ for(const half of ['north','south']){
   assert(core&&voidItem);
   assert.notEqual(core.pip,voidItem.pip,'each 2 pip half must contain exactly one Core and one Void');
   const a=centres(core),b=centres(voidItem),dx=Math.abs(a.x-b.x)/E.S,dy=Math.abs(a.y-b.y)/E.S,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2},eye=centres(eyesState.cores.find(item=>item.slot===half));
-  assert.equal(dx,3,'2|2 pip span leaves one full domino length between 2x2 pip footprints');
-  assert.equal(dy,3,'2|2 pip span leaves one full domino length between 2x2 pip footprints');
+  assert.equal(dx,4,'2|2 uses the outer horizontal anchors of the shared pip grid');
+  assert.equal(dy,2,'2|2 uses the outer vertical anchors of the shared pip grid');
   assert.deepEqual(mid,eye,`the ${half} 2|2 half stays centred on the matching 1|1 pip`);
+  const riverHalf=[...riverState.cores,...riverState.voids].filter(item=>item.half===half).sort((left,right)=>left.pip-right.pip),framesHalf=[core,voidItem].sort((left,right)=>left.pip-right.pip);
+  assert.deepEqual(framesHalf.map(({x,y,size})=>({x,y,size})),[riverHalf[0],riverHalf[2]].map(({x,y,size})=>({x,y,size})),`the ${half} 2|2 pips must use the outer sites of the matching 3|3 half`);
+  assert.deepEqual({x:eye.x,y:eye.y},centres(riverHalf[1]),`the ${half} 1|1 pip must use the centre site of the matching 3|3 half`);
 }
 const initialItems=[...s.cores,...s.voids],initialVisible=initialItems.filter(item=>visible(item));
 assert.deepEqual(eyesState.cores.map(({slot,x,y,size})=>({slot,x,y,size})),[
-  {slot:'north',x:8,y:7,size:2},
-  {slot:'south',x:8,y:15,size:2}
-],'The Eyes opening geometry is frozen while Frames changes around it');
+  {slot:'north',x:8,y:6,size:2},
+  {slot:'south',x:8,y:16,size:2}
+],'The Eyes uses the centre pip of each shared board-half grid');
 assert.deepEqual(initialItems.map(({half,pip,x,y,size})=>({half,pip,x,y,size})).sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip),[
-  {half:'north',pip:0,x:5,y:4,size:2},
-  {half:'north',pip:1,x:11,y:10,size:2},
-  {half:'south',pip:0,x:5,y:12,size:2},
-  {half:'south',pip:1,x:11,y:18,size:2}
-],'Frames uses the canonical 6-unit corner-to-corner pip span');
+  {half:'north',pip:0,x:4,y:4,size:2},
+  {half:'north',pip:1,x:12,y:8,size:2},
+  {half:'south',pip:0,x:4,y:14,size:2},
+  {half:'south',pip:1,x:12,y:18,size:2}
+],'Frames uses the two outer sites of the same grid as River');
 const approachDominoes=item=>[
   E.pieceFrom({a:1,b:1},item.x,item.y-E.S,0,3,-1),
   E.pieceFrom({a:1,b:1},item.x+item.size,item.y,0,0,-1),
