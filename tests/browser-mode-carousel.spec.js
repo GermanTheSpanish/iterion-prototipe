@@ -151,7 +151,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   await expect(page.locator('#overlayTitle')).toHaveText(/^(RELAY|RESERVOIR|DISTRIBUTOR|CONDUCTOR) · I$/);
   await expect(page.locator('#overlayBody')).toContainText('LEAD Ability');
   await expect(page.locator('#overlayBody')).toContainText('LEAD · first Core reached');
-  await expect(page.locator('#overlayBody')).toContainText('New Cores appear at Stages 4 and 7');
+  await expect(page.locator('#overlayBody')).toContainText('Stages 2, 3, 4, 5: Each discovery adds 1 Core and no Voids.');
   await page.locator('#overlayPrimary').click();
   const placementSafety=await page.evaluate(()=>{
     const game=window.__monoidGame,E=window.IterionEngine,s=game.state();let checked=0,overlaps=0;
@@ -162,7 +162,7 @@ test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Si
   expect(placementSafety.overlaps).toBe(0);
 });
 
-test('The Eyes makes the Stage 4 Core discovery a visible board event',async({page})=>{
+test('The Eyes makes the Stage 2 Core discovery a visible board event',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
   await page.waitForFunction(()=>!!window.__monoidModes);
@@ -171,14 +171,14 @@ test('The Eyes makes the Stage 4 Core discovery a visible board event',async({pa
   await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({eyes:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({eyes:true}))});
   await page.locator('#startRun').click();
   await dismissModeIntro(page);
-  await page.evaluate(()=>{const g=window.__monoidGame,s=g.state();s.round=8;s.cleared=true;s.blocked=false;s.running=false;s.nextShopType='none';s.intermissionResolved=true;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false});
+  await page.evaluate(()=>{const g=window.__monoidGame,s=g.state();s.round=2;s.cleared=true;s.blocked=false;s.running=false;s.nextShopType='none';s.intermissionResolved=true;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false});
   await page.locator('#menuButton').click();await page.locator('#menuHelpButton').click();await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('ROUND CLEAR');
   await page.locator('#overlayPrimary').click();
   await expect(page.locator('#board .coreNode')).toHaveCount(3);
   await expect(page.locator('.boardMessage')).toContainText(/NEW CORE · (RELAY|RESERVOIR|DISTRIBUTOR|CONDUCTOR) I/);
   await expect(page.locator('#board .coreNode.coreDiscovered')).toHaveCount(1);
-  expect(await page.evaluate(()=>window.__monoidGame.state().events.some(event=>event.type==='core-discover'&&event.stage===4))).toBe(true);
+  expect(await page.evaluate(()=>window.__monoidGame.state().events.some(event=>event.type==='core-discover'&&event.stage===2))).toBe(true);
 });
 
 test('The Eyes keeps its 1|1 selector and replaces a saved Classic run without reverting to Classic',async({page})=>{
