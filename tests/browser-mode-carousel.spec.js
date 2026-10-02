@@ -2,7 +2,8 @@ const {test,expect}=require('@playwright/test');
 
 function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y}
 async function dismissModeIntro(page){
-  if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
+  await page.waitForTimeout(40);
+  if(await page.locator('[data-ux-action="start-first"]').isVisible()){await page.locator('[data-ux-action="start-first"]').click();await page.waitForTimeout(40)}
   if(await page.locator('[data-ux-action="start-mode"]').isVisible())await page.locator('[data-ux-action="start-mode"]').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3500}).toBe('idle')
 }
