@@ -26,7 +26,9 @@
     Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · Signal 6',available:true,kind:'eyes'}),
     Object.freeze({id:'frames',name:'THE FRAMES',description:'2|2 · Signal 4',available:true,kind:'frames'}),
     Object.freeze({id:'river',name:'THE RIVER',description:'3|3 · Signal 3',available:true,kind:'river'}),
-    ...Array.from({length:4},(_,i)=>Object.freeze({id:`locked-${i+4}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
+    Object.freeze({id:'loom',name:'THE LOOM',description:'4|4 · Signal 2',available:true,kind:'loom'}),
+    Object.freeze({id:'peaks',name:'THE PEAKS',description:'5|5 · Signal 2',available:true,kind:'peaks'}),
+    ...Array.from({length:2},(_,i)=>Object.freeze({id:`locked-${i+6}`,name:'LOCKED',description:'Not available',available:false,kind:'locked'}))
   ]);
   const clampIndex=index=>Math.max(0,Math.min(MODES.length-1,Number.isFinite(index)?Math.trunc(index):0));
   const wrapIndex=index=>{const n=Number.isFinite(index)?Math.trunc(index):0;return((n%MODES.length)+MODES.length)%MODES.length};
@@ -61,7 +63,7 @@
 .modeSlide:focus-visible{outline:1px solid #151515;outline-offset:2px}
 .modeSlide .selectionDouble{margin:0;flex:none;box-shadow:none;transform-origin:center}
 .modeSlide .modeTile{transform:scale(var(--tile-scale,1));transition:transform .18s ease}
-.modeTileZero i:after{display:none}.modeTileEyes i:after{display:block!important}.modeTileFrames i:after,.modeTileRiver i:after{display:none!important}.modeTileFrames i b,.modeTileRiver i b{position:absolute;width:7px;height:7px;border-radius:50%;background:#151515;transform:translate(-50%,-50%)}.modeTileFrames i b:first-child,.modeTileRiver i b:first-child{left:28%;top:28%}.modeTileFrames i b:last-child,.modeTileRiver i b:last-child{left:72%;top:72%}.modeTileRiver i b:nth-child(2){left:50%;top:50%}
+.modeTileZero i:after{display:none}.modeTileEyes i:after{display:block!important}.modeTileFrames i:after,.modeTileRiver i:after,.modeTileLoom i:after,.modeTilePeaks i:after{display:none!important}.modeTileFrames i b,.modeTileRiver i b,.modeTileLoom i b,.modeTilePeaks i b{position:absolute;width:7px;height:7px;border-radius:50%;background:#151515;transform:translate(-50%,-50%)}.modeTileFrames i b:first-child,.modeTileRiver i b:first-child{left:28%;top:28%}.modeTileFrames i b:last-child,.modeTileRiver i b:last-child{left:72%;top:72%}.modeTileRiver i b:nth-child(2){left:50%;top:50%}.modeTileLoom i b:nth-child(1),.modeTilePeaks i b:nth-child(1){left:28%;top:28%}.modeTileLoom i b:nth-child(2),.modeTilePeaks i b:nth-child(2){left:72%;top:28%}.modeTileLoom i b:nth-child(3),.modeTilePeaks i b:nth-child(3){left:28%;top:72%}.modeTileLoom i b:nth-child(4),.modeTilePeaks i b:nth-child(4){left:72%;top:72%}.modeTilePeaks i b:nth-child(5){left:50%;top:50%}
 .modeCarouselViewport.isDragging .modeTile,.modeCarouselViewport.isRebasing .modeTile{transition:none!important}
 .modeCarouselViewport.isPulling .modeTile{transition:transform var(--settle-approach-ms,${SETTLE_APPROACH_MS}ms) cubic-bezier(.30,0,.22,1)}
 .modeCarouselViewport.isLanding .modeTile{transition:transform var(--settle-land-ms,${SETTLE_LAND_MS}ms) cubic-bezier(.18,.72,.28,1)}
@@ -82,6 +84,8 @@
     if(mode.kind==='eyes')return '<span class="selectionDouble modeTile modeTileEyes" aria-hidden="true"><i></i><i></i></span>';
     if(mode.kind==='frames')return '<span class="selectionDouble modeTile modeTileFrames" aria-hidden="true"><i><b></b><b></b></i><i><b></b><b></b></i></span>';
     if(mode.kind==='river')return '<span class="selectionDouble modeTile modeTileRiver" aria-hidden="true"><i><b></b><b></b><b></b></i><i><b></b><b></b><b></b></i></span>';
+    if(mode.kind==='loom')return '<span class="selectionDouble modeTile modeTileLoom" aria-hidden="true"><i><b></b><b></b><b></b><b></b></i><i><b></b><b></b><b></b><b></b></i></span>';
+    if(mode.kind==='peaks')return '<span class="selectionDouble modeTile modeTilePeaks" aria-hidden="true"><i><b></b><b></b><b></b><b></b><b></b></i><i><b></b><b></b><b></b><b></b><b></b></i></span>';
     if(mode.kind==='infinite')return '<span class="selectionDouble modeTile modeTileInfinite" aria-hidden="true"><b>∞</b></span>';
     return '<span class="selectionDouble modeTile modeTileLocked" aria-hidden="true"></span>'
   }
