@@ -23,7 +23,8 @@ const expected={
   frames:{north:[{x:2,y:2},{x:14,y:10}],south:[{x:2,y:12},{x:14,y:20}]},
   river:{north:[{x:2,y:2},{x:8,y:6},{x:14,y:10}],south:[{x:2,y:12},{x:8,y:16},{x:14,y:20}]},
   loom:{north:[{x:2,y:2},{x:14,y:2},{x:2,y:10},{x:14,y:10}],south:[{x:2,y:12},{x:14,y:12},{x:2,y:20},{x:14,y:20}]},
-  peaks:{north:[{x:2,y:2},{x:14,y:2},{x:2,y:10},{x:14,y:10},{x:8,y:6}],south:[{x:2,y:12},{x:14,y:12},{x:2,y:20},{x:14,y:20},{x:8,y:16}]}
+  peaks:{north:[{x:2,y:2},{x:14,y:2},{x:2,y:10},{x:14,y:10},{x:8,y:6}],south:[{x:2,y:12},{x:14,y:12},{x:2,y:20},{x:14,y:20},{x:8,y:16}]},
+  islands:{north:[{x:2,y:2},{x:14,y:2},{x:2,y:6},{x:14,y:6},{x:2,y:10},{x:14,y:10}],south:[{x:2,y:12},{x:14,y:12},{x:2,y:16},{x:14,y:16},{x:2,y:20},{x:14,y:20}]}
 };
 
 for(const mode of Object.keys(expected)){
@@ -43,7 +44,7 @@ for(const mode of Object.keys(expected)){
   }
 }
 
-for(const mode of Object.keys(expected)){
+for(const mode of Object.keys(expected).filter(mode=>mode!=='islands')){
   for(let seed=0;seed<12;seed++){
     E.setBoardSize(18,24);
     const game=G.createGame(E,{seed:60200+seed,GAME_MODE:mode,TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),state=game.state();
@@ -59,9 +60,11 @@ for(const mode of Object.keys(expected)){
       assert(core);
       assert(approachSides(core,geometry).length>0,`${mode} seed ${60200+seed} Stage ${stage} Core must remain physically reachable after companion Voids spawn`);
       assert((coreEvent.approachSides||[]).length>0,'Core discovery telemetry must record surviving approach sides');
+      const voidEvent=[...state.events].reverse().find(event=>event.type==='void-discover'&&event.stage===stage&&event.sourceCoreId===core.id);
       for(const voidItem of geometry.filter(item=>item.sourceCoreId===core.id)){
-        assert.equal(residue(voidItem.x,coreEvent.lattice.stepX),coreEvent.lattice.x,'companion Voids align to the same pip columns');
-        assert.equal(residue(voidItem.y,coreEvent.lattice.stepY),coreEvent.lattice.y,'companion Voids align to the same domino row grid')
+        assert(voidEvent?.voidLattice,'companion Voids record their domino-grid lattice');
+        assert.equal(residue(voidItem.x,voidEvent.voidLattice.stepX),voidEvent.voidLattice.x,'companion Voids stay on the domino grid');
+        assert.equal(residue(voidItem.y,voidEvent.voidLattice.stepY),voidEvent.voidLattice.y,'companion Voids stay on the domino row grid')
       }
     }
     assert.equal(state.events.some(event=>event.type==='core-progress-blocked'&&event.action==='discover-pack'),false,`${mode} seed ${60200+seed} must fit every Core/Void discovery packet`)

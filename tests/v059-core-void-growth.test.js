@@ -12,7 +12,7 @@ const cardinallyAdjacent=(a,b)=>{
 };
 
 assert.deepEqual([...D.CORE_DISCOVERY_STAGES],[2,3,4,5]);
-assert.deepEqual({...D.CORE_DISCOVERY_VOID_COUNT_BY_MODE},{eyes:0,frames:1,river:2,loom:3,peaks:4});
+assert.deepEqual({...D.CORE_DISCOVERY_VOID_COUNT_BY_MODE},{eyes:0,frames:1,river:2,loom:3,peaks:4,islands:0});
 assert.equal(D.CORE_MAX_PHYSICAL,6);
 assert.equal(D.FRAMES_CORE_MAX_PHYSICAL,6);
 assert.equal(D.RIVER_CORE_MAX_PHYSICAL,6);
@@ -65,7 +65,9 @@ function runGrowth(mode,seed,{initialCores,initialVoids,voidsPerCore,maxCores}){
     assert.deepEqual({x:residue(core.x,lattice.stepX),y:residue(core.y,lattice.stepY)},{x:lattice.x,y:lattice.y},`${mode} discovered Core stays on the canonical pip grid`);
     assert((coreEvent.approachSides||[]).length>0,`${mode} discovered Core must retain at least one full-domino port approach`);
     for(const item of voidEvent?.voids||[]){
-      assert.deepEqual({x:residue(item.x,lattice.stepX),y:residue(item.y,lattice.stepY)},{x:lattice.x,y:lattice.y},`${mode} discovered Void stays on the canonical pip grid`);
+      const voidLattice=voidEvent.voidLattice;assert(voidLattice,`${mode} Void discovery records its domino-grid lattice`);
+      assert.deepEqual({x:residue(item.x,voidLattice.stepX),y:residue(item.y,voidLattice.stepY)},{x:voidLattice.x,y:voidLattice.y},`${mode} discovered Void stays on the domino grid without being forced onto pip columns`);
+      assert.equal(voidLattice.stepX,E.S);assert.equal(voidLattice.stepY,E.S);
       assert.equal(rectOverlap(core,item),false,'Core and companion Void cannot overlap');
       assert.equal(cardinallyAdjacent(core,item),false,'companion Voids must preserve the new Core cardinal approaches')
     }

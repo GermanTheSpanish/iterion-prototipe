@@ -462,6 +462,11 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .coreNode>b{position:absolute;right:2px;bottom:1px;font:750 7px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#61615b;pointer-events:none}
 .coreNode.isConnected{border-width:2px}
 .coreNode.isDisconnected{border-style:dashed;opacity:.76}
+.coreNode.islandDormantCore{opacity:.38;border-style:dashed;box-shadow:inset 0 0 0 1px rgba(21,21,21,.08)}
+.coreNode.islandActiveCore{opacity:1;box-shadow:inset 0 0 0 1px rgba(21,21,21,.22)}
+.piece.islandDormant{opacity:.42;filter:saturate(.15);outline:1px dashed rgba(21,21,21,.48);outline-offset:1px}
+.piece.islandActive{opacity:1}
+
 .coreNode.coreNeedsConnection{opacity:1;outline:2px solid rgba(21,21,21,.54);outline-offset:3px}
 .coreNode.lastRoleLead{outline:2px solid rgba(21,21,21,.72);outline-offset:2px}
 .coreNode.lastRoleLink{outline:1px double rgba(21,21,21,.72);outline-offset:2px;box-shadow:inset 0 0 0 1px rgba(21,21,21,.18)}

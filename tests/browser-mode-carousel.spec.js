@@ -50,6 +50,9 @@ test('mode carousel keeps a continuous strip and weights its physical settle by 
   await expect(page.locator('#startRun')).toBeEnabled();
 
   await page.evaluate(()=>window.__monoidModes.select(6));
+  await expect(page.locator('#modeName')).toHaveText('THE ISLANDS');
+  await expect(page.locator('#modeDescription')).toHaveText('6|6 · Build from Cores');
+  await expect(page.locator('#startRun')).toBeEnabled();
   const frame=await page.locator('#modeCarouselFrame').boundingBox();
   const loopViewport=await page.locator('#modeCarouselViewport').boundingBox();
   const classicBefore=await page.locator('#modeClassic').boundingBox();
@@ -78,7 +81,7 @@ test('Classic, The Eyes, The Frames and The River are playable while Classic kee
   await page.waitForFunction(()=>!!window.__monoidModes);
   await page.locator('#titleCard').click();
 
-  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes','frames','river','loom','peaks']);
+  expect(await page.evaluate(()=>window.__monoidModes.modes.filter(mode=>mode.available).map(mode=>mode.id))).toEqual(['classic','eyes','frames','river','loom','peaks','islands']);
   await expect(page.locator('#modeName')).toHaveText('CLASSIC');
   await expect(page.locator('#modeDescription')).toHaveText('Classic → Endless → Infinite');
   await page.locator('#startRun').click();
@@ -90,6 +93,50 @@ test('Classic, The Eyes, The Frames and The River are playable while Classic kee
   await expect(page.locator('#signalHud')).toBeHidden();
 });
 
+
+test('The Islands starts a persisted 6|6 run where every opening placement is Core-anchored',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.waitForFunction(()=>!!window.__monoidModes);
+  await page.locator('#titleCard').click();
+  await page.evaluate(()=>window.__monoidModes.select(6));
+  await expect(page.locator('#modeName')).toHaveText('THE ISLANDS');
+  await expect(page.locator('#modeDescription')).toHaveText('6|6 · Build from Cores');
+  await page.evaluate(()=>{localStorage.setItem('monoid.modeOnboarding.v1',JSON.stringify({islands:{reveal:true,orient:true,discovery:true,payoff:true}}));localStorage.setItem('monoid.modeIntro.v2',JSON.stringify({islands:true}))});
+  await page.locator('#startRun').click();
+  await dismissModeIntro(page);
+  await expect(page.locator('#board .coreNode')).toHaveCount(12);
+  await expect(page.locator('#board .boardVoid')).toHaveCount(0);
+  await expect(page.locator('#modeIndicator')).toBeVisible();
+  await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(2);
+  await expect(page.locator('#modeIndicator .modePip')).toHaveCount(12);
+  const state=await page.evaluate(()=>{
+    const game=window.__monoidGame,s=game.state(),doubleIndex=s.hand.findIndex(tile=>tile&&tile.a===tile.b),candidates=doubleIndex>=0?game.candidatesForIndex(doubleIndex):[];
+    return{
+      mode:s.gameMode,
+      cores:s.cores.length,
+      voids:s.voids.length,
+      signal:game.snapshot().signal.base,
+      islands:game.snapshot().islands,
+      doubleIndex,
+      candidates,
+      storedMode:localStorage.getItem('iterion.activeRunMode.v1'),
+      savedMode:JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.gameMode
+    }
+  });
+  expect(state.mode).toBe('islands');
+  expect(state.storedMode).toBe('islands');
+  expect(state.savedMode).toBe('islands');
+  expect(state.cores).toBe(12);
+  expect(state.voids).toBe(0);
+  expect(state.signal).toBe(2);
+  expect(state.islands.componentCount).toBe(0);
+  expect(state.doubleIndex).toBeGreaterThanOrEqual(0);
+  expect(state.candidates.length).toBeGreaterThan(0);
+  expect(state.candidates.every(candidate=>candidate.islandAnchor===true&&!!candidate.islandAnchorCoreId)).toBe(true);
+  await expect(page.locator('#signalHud .signalHudLane b')).toHaveText('2');
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
 
 test('The Eyes starts a persisted 1|1 run with two physical Core fixtures and Signal 6 telemetry',async({page})=>{
   await page.setViewportSize({width:375,height:667});

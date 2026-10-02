@@ -90,7 +90,9 @@ function create(store,hostname='play.monoid.test'){
     events:[{turn:7,coreActivations:[{coreId:'core-a'}]},{type:'circuit-closed',move:7}]
   },{gameMode:'loom',cores:{telemetry:{connectedCoreCount:1}}});
   assert.deepEqual(result.unlocked,['peaks']);
-  assert.deepEqual(profile.ensureProfile().unlockedModes,['classic','eyes','frames','river','loom','peaks']);
+  result=profile.evaluateRun({gameMode:'peaks',endlessMode:true,events:[],cores:[]},{gameMode:'peaks',cores:{telemetry:{connectedCoreCount:0}}});
+  assert.deepEqual(result.unlocked,['islands']);
+  assert.deepEqual(profile.ensureProfile().unlockedModes,['classic','eyes','frames','river','loom','peaks','islands']);
 }
 
 {
