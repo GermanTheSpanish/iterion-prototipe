@@ -222,7 +222,7 @@ function createGame(E,opts={}){
   }
   function framesModeGeometry(seed=s.seed){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24);
-    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,centerX=baseG/2,centerY=baseH/2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size});
     const sites=[
       site('frames-north-a','north',0,centerX-pipXOffset,topCenterY-pipYOffset),
@@ -239,7 +239,7 @@ function createGame(E,opts={}){
     return{cores,voids,sites}
   }
   function riverModeGeometry(seed=s.seed){
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(id,half,pip,cx,cy)=>({id,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),sites=[
       site('river-north-a','north',0,centerX-pipXOffset,topCenterY-pipYOffset),
       site('river-north-b','north',1,centerX,topCenterY),
@@ -258,7 +258,7 @@ function createGame(E,opts={}){
   }
   function highPipModeGeometry(mode,seed=s.seed){
     const id=canonicalGameMode(mode);if(id!=='loom'&&id!=='peaks')return{cores:[],voids:[],sites:[]};
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*2,pipYOffset=size,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(half,pip,cx,cy)=>({id:`${id}-${half}-${pip}`,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),makeHalf=(half,cy)=>[
       site(half,0,centerX-pipXOffset,cy-pipYOffset),
       site(half,1,centerX+pipXOffset,cy-pipYOffset),
