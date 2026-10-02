@@ -341,10 +341,14 @@ function createGame(E,opts={}){
     return base+(lead&&core?.archetype==='reservoir'?Math.max(0,Number(cfg.CORE_RESERVOIR_BONUS)||8):0)
   }
   function coreProgressKeys(){if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];return new Set(s.coreProgressMilestones)}
-  function coreMaxPhysicalForMode(mode=s.gameMode){const id=canonicalGameMode(mode);return id==='frames'?Math.max(2,Number(cfg.FRAMES_CORE_MAX_PHYSICAL)||6):id==='river'?Math.max(2,Number(cfg.RIVER_CORE_MAX_PHYSICAL)||2):id==='loom'?Math.max(4,Number(cfg.LOOM_CORE_MAX_PHYSICAL)||4):id==='peaks'?Math.max(6,Number(cfg.PEAKS_CORE_MAX_PHYSICAL)||6):Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4)}
+  function coreMaxPhysicalForMode(mode=s.gameMode){const id=canonicalGameMode(mode);return id==='frames'?Math.max(2,Number(cfg.FRAMES_CORE_MAX_PHYSICAL)||6):id==='river'?Math.max(2,Number(cfg.RIVER_CORE_MAX_PHYSICAL)||6):id==='loom'?Math.max(4,Number(cfg.LOOM_CORE_MAX_PHYSICAL)||8):id==='peaks'?Math.max(6,Number(cfg.PEAKS_CORE_MAX_PHYSICAL)||10):Math.max(2,Number(cfg.CORE_MAX_PHYSICAL)||4)}
   function coreDiscoveryStagesForMode(mode=s.gameMode){
-    const id=canonicalGameMode(mode),configured=id==='frames'?(cfg.FRAMES_CORE_DISCOVERY_STAGES||[2,3,4,5]):id==='eyes'?(cfg.CORE_DISCOVERY_STAGES||[4,7]):[];
+    const id=canonicalGameMode(mode),growth=cfg.CORE_GROWTH_DISCOVERY_STAGES||[2,3,4,5],configured=id==='frames'?(cfg.FRAMES_CORE_DISCOVERY_STAGES||growth):id==='eyes'?(cfg.CORE_DISCOVERY_STAGES||[4,7]):['river','loom','peaks'].includes(id)?growth:[];
     return[...new Set(configured.map(Number).filter(stage=>Number.isFinite(stage)&&stage>1).map(stage=>Math.trunc(stage)))].sort((a,b)=>a-b)
+  }
+  function coreDiscoveryVoidCountForMode(mode=s.gameMode){
+    const id=canonicalGameMode(mode),configured=cfg.CORE_DISCOVERY_VOID_COUNT_BY_MODE||{};
+    return Math.max(0,Math.trunc(Number(configured[id])||0))
   }
   function coreCoverageTelemetry(pieces=s.pieces,cores=s.cores){
     const list=Array.isArray(pieces)?pieces:[],budget=coreSignalBudgetForMode(),startSignal=Math.max(0,Number(budget.base)||0);
@@ -358,16 +362,37 @@ function createGame(E,opts={}){
     const ranked=[...rows].sort((a,b)=>(a.distance==null?0:1)-(b.distance==null?0:1)||(b.distance??-1)-(a.distance??-1)||a.degree-b.degree||(b.physicalCoreDistance??-1)-(a.physicalCoreDistance??-1)||String(a.tileId).localeCompare(String(b.tileId))),worst=ranked[0]||null;
     return{pieceCount:rows.length,connectedCoreCount:shadow.connectedCoreCount||0,seedTileIds,reachableCount:reachable.length,unreachableCount,maxDistance,p50Distance,beyondStartCount,startSignal,worstTileId:worst?.tileId??null,worstDistance:worst?.distance??null,rows}
   }
-  function framesLatticeResidue(cell=Math.max(1,Number(E.S)||2)){
-    const site=framesModeGeometry(s.seed).sites?.[0]||null,mod=value=>((Math.trunc(Number(value)||0)%cell)+cell)%cell;
+  function growthModeSites(mode=s.gameMode,seed=s.seed){
+    const id=canonicalGameMode(mode);
+    if(id==='frames')return framesModeGeometry(seed).sites||[];
+    if(id==='river')return riverModeGeometry(seed).sites||[];
+    if(id==='loom'||id==='peaks')return highPipModeGeometry(id,seed).sites||[];
+    return[]
+  }
+  function growthLatticeResidue(mode=s.gameMode,cell=Math.max(1,Number(E.S)||2)){
+    const site=growthModeSites(mode,s.seed)[0]||null,mod=value=>((Math.trunc(Number(value)||0)%cell)+cell)%cell;
     return{x:mod(site?.x),y:mod(site?.y)}
   }
-  function framesCoreCandidatePosition(stage,size,ports){
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},cell=Math.max(1,Number(E.S)||2),lattice=framesLatticeResidue(cell),coverage=coreCoverageTelemetry(),target=coverage.rows.find(row=>row.tileId===coverage.worstTileId)||null,stageBoard=progressionBoardSizeForStage(Math.max(0,stage-1)),previousBoard=progressionBoardSizeForStage(Math.max(0,stage-2)),stageRect={x:Math.floor((board.G-stageBoard[0])/2),y:Math.floor((board.H-stageBoard[1])/2),w:stageBoard[0],h:stageBoard[1]},previousRect={x:Math.floor((board.G-previousBoard[0])/2),y:Math.floor((board.H-previousBoard[1])/2),w:previousBoard[0],h:previousBoard[1]},existing=s.cores||[],desiredDistance=Math.max(size*2,cell*3),onLattice=candidate=>((candidate.x%cell)+cell)%cell===lattice.x&&((candidate.y%cell)+cell)%cell===lattice.y;
-    const overlapArea=(candidate,rect)=>Math.max(0,Math.min(candidate.x+size,rect.x+rect.w)-Math.max(candidate.x,rect.x))*Math.max(0,Math.min(candidate.y+size,rect.y+rect.h)-Math.max(candidate.y,rect.y));
+  function growthStageRects(stage){
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},stageBoard=progressionBoardSizeForStage(Math.max(0,stage-1)),previousBoard=progressionBoardSizeForStage(Math.max(0,stage-2));
+    return{board,stageRect:{x:Math.floor((board.G-stageBoard[0])/2),y:Math.floor((board.H-stageBoard[1])/2),w:stageBoard[0],h:stageBoard[1]},previousRect:{x:Math.floor((board.G-previousBoard[0])/2),y:Math.floor((board.H-previousBoard[1])/2),w:previousBoard[0],h:previousBoard[1]}}
+  }
+  function rectOverlapArea(candidate,rect,size=Math.max(1,Number(candidate?.size)||Number(E.S)||2)){return Math.max(0,Math.min(candidate.x+size,rect.x+rect.w)-Math.max(candidate.x,rect.x))*Math.max(0,Math.min(candidate.y+size,rect.y+rect.h)-Math.max(candidate.y,rect.y))}
+  function growthCoreCandidatePosition(mode,stage,size,ports){
+    const {board,stageRect,previousRect}=growthStageRects(stage),cell=Math.max(1,Number(E.S)||2),lattice=growthLatticeResidue(mode,cell),coverage=coreCoverageTelemetry(),target=coverage.rows.find(row=>row.tileId===coverage.worstTileId)||null,existing=s.cores||[],desiredDistance=Math.max(size*2,cell*3),onLattice=candidate=>((candidate.x%cell)+cell)%cell===lattice.x&&((candidate.y%cell)+cell)%cell===lattice.y;
     const fits=candidate=>onLattice(candidate)&&candidate.x>=stageRect.x&&candidate.y>=stageRect.y&&candidate.x+size<=stageRect.x+stageRect.w&&candidate.y+size<=stageRect.y+stageRect.h&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!existing.some(core=>coreRectsOverlap(candidate,core))&&!(s.voids||[]).some(voidItem=>geometryItemVisible(voidItem)&&coreRectsOverlap(candidate,voidItem));
-    const collect=ringOnly=>{const candidates=[];for(let y=stageRect.y;y<=stageRect.y+stageRect.h-size;y++)for(let x=stageRect.x;x<=stageRect.x+stageRect.w-size;x++){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=overlapArea(candidate,previousRect),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const center={x:x+size/2,y:y+size/2},dx=(target?.x??stageRect.x+stageRect.w/2)-center.x,dy=(target?.y??stageRect.y+stageRect.h/2)-center.y,desiredSide=Math.abs(dx)>=Math.abs(dy)?(dx<0?'L':'R'):(dy<0?'U':'D'),portPenalty=ports.includes(desiredSide)?0:1,targetDistance=Math.abs(dx)+Math.abs(dy),gapError=Math.abs(targetDistance-desiredDistance),live=coreShadowTelemetry(s.pieces,[{id:'candidate',slot:'frame',x,y,size,ports,archetype:'relay',level:1}]).cores[0],touches=live?.connectedTileIds?.length||0,nearestCore=existing.length?Math.min(...existing.map(core=>Math.abs(center.x-(core.x+coreSize(core)/2))+Math.abs(center.y-(core.y+coreSize(core)/2)))):0;candidates.push({candidate,oldOverlap,touches,portPenalty,targetDistance,gapError,nearestCore,hash:coreHash(s.seed||0,x+y*board.G+stage*131,263)})}candidates.sort((a,b)=>a.oldOverlap-b.oldOverlap||a.touches-b.touches||a.portPenalty-b.portPenalty||a.gapError-b.gapError||a.targetDistance-b.targetDistance||b.nearestCore-a.nearestCore||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates[0]||null};
+    const collect=ringOnly=>{const candidates=[];for(let y=stageRect.y;y<=stageRect.y+stageRect.h-size;y++)for(let x=stageRect.x;x<=stageRect.x+stageRect.w-size;x++){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=rectOverlapArea(candidate,previousRect,size),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const center={x:x+size/2,y:y+size/2},dx=(target?.x??stageRect.x+stageRect.w/2)-center.x,dy=(target?.y??stageRect.y+stageRect.h/2)-center.y,desiredSide=Math.abs(dx)>=Math.abs(dy)?(dx<0?'L':'R'):(dy<0?'U':'D'),portPenalty=ports.includes(desiredSide)?0:1,targetDistance=Math.abs(dx)+Math.abs(dy),gapError=Math.abs(targetDistance-desiredDistance),live=coreShadowTelemetry(s.pieces,[{id:'candidate',slot:`${mode}-growth`,x,y,size,ports,archetype:'relay',level:1}]).cores[0],touches=live?.connectedTileIds?.length||0,nearestCore=existing.length?Math.min(...existing.map(core=>Math.abs(center.x-(core.x+coreSize(core)/2))+Math.abs(center.y-(core.y+coreSize(core)/2)))):0;candidates.push({candidate,oldOverlap,touches,portPenalty,targetDistance,gapError,nearestCore,hash:coreHash(s.seed||0,x+y*board.G+stage*131,263)})}candidates.sort((a,b)=>a.oldOverlap-b.oldOverlap||a.touches-b.touches||a.portPenalty-b.portPenalty||a.gapError-b.gapError||a.targetDistance-b.targetDistance||b.nearestCore-a.nearestCore||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates[0]||null};
     const selected=collect(true)||collect(false);return selected?{position:selected.candidate,targetTileId:coverage.worstTileId,coverage,fallbackToBoard:selected.oldOverlap>=size*size,connectedAtDiscovery:selected.touches,lattice}:null
+  }
+  function growthVoidPositions(mode,stage,core,count){
+    if(count<=0)return{positions:[],fallbackToBoard:false,lattice:growthLatticeResidue(mode)};
+    const {board,stageRect,previousRect}=growthStageRects(stage),size=Math.max(1,Number(core?.size)||Number(E.S)||2),cell=Math.max(1,Number(E.S)||2),lattice=growthLatticeResidue(mode,cell),selected=[],onLattice=candidate=>((candidate.x%cell)+cell)%cell===lattice.x&&((candidate.y%cell)+cell)%cell===lattice.y;
+    const adjacentToCore=candidate=>((candidate.x+size===core.x||core.x+size===candidate.x)&&candidate.y<core.y+size&&candidate.y+size>core.y)||((candidate.y+size===core.y||core.y+size===candidate.y)&&candidate.x<core.x+size&&candidate.x+size>core.x);
+    const fits=candidate=>onLattice(candidate)&&candidate.x>=stageRect.x&&candidate.y>=stageRect.y&&candidate.x+size<=stageRect.x+stageRect.w&&candidate.y+size<=stageRect.y+stageRect.h&&!adjacentToCore(candidate)&&!s.pieces.some(piece=>(piece.cubes||[]).some(cube=>cubeOverlapsCore(cube,candidate)))&&!(s.cores||[]).some(existing=>coreRectsOverlap(candidate,existing))&&!coreRectsOverlap(candidate,core)&&!(s.voids||[]).some(existing=>geometryItemVisible(existing)&&coreRectsOverlap(candidate,existing))&&!selected.some(existing=>coreRectsOverlap(candidate,existing));
+    const ranked=ringOnly=>{const candidates=[];for(let y=stageRect.y;y<=stageRect.y+stageRect.h-size;y++)for(let x=stageRect.x;x<=stageRect.x+stageRect.w-size;x++){const candidate={x,y,size};if(!fits(candidate))continue;const oldOverlap=rectOverlapArea(candidate,previousRect,size),insidePrevious=oldOverlap>=size*size;if(ringOnly&&insidePrevious)continue;const distance=Math.abs((x+size/2)-(core.x+size/2))+Math.abs((y+size/2)-(core.y+size/2));candidates.push({candidate,oldOverlap,distance,hash:coreHash(s.seed||0,x+y*board.G+stage*191+selected.length*17,347)})}candidates.sort((a,b)=>a.oldOverlap-b.oldOverlap||a.distance-b.distance||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);return candidates};
+    let fallbackToBoard=false;
+    for(let index=0;index<count;index++){let candidates=ranked(true);if(!candidates.length){candidates=ranked(false);fallbackToBoard=true}if(!candidates.length)break;selected.push(candidates[0].candidate)}
+    return{positions:selected,fallbackToBoard,lattice}
   }
   function eyesCoreCrossGeometry(size){
     const north=(s.cores||[]).find(core=>core.slot==='north'),south=(s.cores||[]).find(core=>core.slot==='south');if(!north||!south)return null;
