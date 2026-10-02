@@ -717,7 +717,7 @@ function createGame(E,opts={}){
   function islandCoreAnchorPlacements(tile){
     if(!islandsMode()||!tile)return[];
     const connected=new Set((coreShadowTelemetry(s.pieces).cores||[]).filter(core=>(core.connectedLinks||[]).length).map(core=>core.id)),cell=Math.max(1,Number(E.S)||2),out=[],seen=new Set();
-    for(const core of [...(s.cores||[])].filter(geometryItemVisible).sort((a,b)=>String(a.id).localeCompare(String(b.id)))){
+    for(const core of [...(s.cores||[])].filter(core=>geometryItemVisible(core)).sort((a,b)=>String(a.id).localeCompare(String(b.id)))){
       if(connected.has(core.id))continue;
       for(const side of core.ports||[]){const cells=coreApproachCells(core,side);if(cells.length!==2)continue;const dx=(cells[1].x-cells[0].x)/cell,dy=(cells[1].y-cells[0].y)/cell,forward=E.DIR.findIndex(dir=>dir[0]===dx&&dir[1]===dy);if(forward<0)continue;
         for(const spec of [{x:cells[0].x,y:cells[0].y,rr:forward},{x:cells[1].x,y:cells[1].y,rr:(forward+2)%4}]){const piece=E.pieceFrom(tile,spec.x,spec.y,0,spec.rr,-1);if(piece.rect.minx<0||piece.rect.miny<0||piece.rect.maxx>E.G||piece.rect.maxy>E.H||pieceOverlapsBlockedGeometry(piece))continue;const validation=s.pieces.length?E.validatePlacement(tile,spec.x,spec.y,0,spec.rr,s.pieces):{ok:true};if(s.pieces.length&&(validation.ok||validation.reason!=='no-contact'))continue;const key=`${spec.x}:${spec.y}:${spec.rr}`;if(seen.has(key))continue;seen.add(key);out.push({...spec,z:0,islandAnchor:true,islandAnchorCoreId:core.id})}
