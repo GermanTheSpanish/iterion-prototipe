@@ -286,6 +286,7 @@
       if(event.type==='zero-port'){appendRouteEventMarker(point(event.piece,event.fromHalf),'TELEPORT','routePreviewTeleport',markerSeen);continue}
       if(event.type==='core-relay'){appendRouteEventMarker(point(event.fromPieceId,event.fromHalf),'RELAY','routePreviewRelay',markerSeen);continue}
       if(event.type==='core-activate'&&Number(event.afterSignal)>Number(event.beforeSignal)){const core=coreById.get(String(event.coreId)),center=core?{x:core.x+(core.size||E.S)/2,y:core.y+(core.size||E.S)/2}:routePreviewPieceCenter(live.get(event.piece)),label=`${event.peak?'PEAK':'CORE'} +${Math.max(0,Number(event.signalAdded)||Number(event.afterSignal)-Number(event.beforeSignal)||0)}`;appendRouteEventMarker(center,label,'routePreviewRecharge',markerSeen);continue}
+      if(event.type==='peak-ridge'){const a=coreById.get(String(event.fromCoreId)),b=coreById.get(String(event.toCoreId)),center=a&&b?{x:(a.x+(a.size||E.S)/2+b.x+(b.size||E.S)/2)/2,y:(a.y+(a.size||E.S)/2+b.y+(b.size||E.S)/2)/2}:routePreviewPieceCenter(live.get(event.toPieceId));appendRouteEventMarker(center,`RIDGE ×${event.multiplier}`,'routePreviewRecharge',markerSeen);continue}
       if(event.type==='signal-depleted'){appendRouteEventMarker(routePreviewPieceCenter(live.get(event.piece)),'SIGNAL OUT','routePreviewDepleted',markerSeen)}
     }
 
@@ -818,6 +819,10 @@
       }
       if(e.type==='core-relay'){
         const core=GAME.state().cores?.find(core=>core.id===e.coreId);if(core){fx(core.x+(core.size||2)/2,core.y+(core.size||2)/2,'RELAY',0,'signal cascadeStructural coreActivationFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(220,V.cascadeDelay(index)),'cascade')}i++;continue
+      }
+      if(e.type==='peak-ridge'){
+        const cores=GAME.state().cores||[],from=cores.find(core=>core.id===e.fromCoreId),to=cores.find(core=>core.id===e.toCoreId),x=from&&to?(from.x+(from.size||2)/2+to.x+(to.size||2)/2)/2:E.G/2,y=from&&to?(from.y+(from.size||2)/2+to.y+(to.size||2)/2)/2:E.H/2;
+        fx(x,y,`RIDGE · ${e.tileCount} TILES · ×${e.multiplier}`,0,'signal cascadeStructural peakRidgeFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(260,V.cascadeDelay(index)),'cascade');i++;continue
       }
       if(e.type==='signal-depleted'){
         setSignalHudLane(lane,0);const pp=pc(e.piece),c=pp?.cubes?.[0];if(c){fx(c.x+1,c.y+1,'SIGNAL 0',0,'signal cascadeStructural signalDepletedFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(260,V.cascadeDelay(index)),'cascade')}i++;continue
