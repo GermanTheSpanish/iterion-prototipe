@@ -8,7 +8,7 @@
   function savedIds(){try{const value=JSON.parse(root.localStorage?.getItem(STORAGE_KEY)||'[]');return Array.isArray(value)?value.filter(id=>typeof id==='string'):[]}catch(_){return[]}}
   function unlockedIds(){const ids=new Set(savedIds());for(const slot of Mods.collection())if(slot.mod?.collectionDefaultUnlocked)ids.add(slot.mod.id);return ids}
   function persist(ids){try{root.localStorage?.setItem(STORAGE_KEY,JSON.stringify([...ids].sort()))}catch(_){}return ids}
-  function state(){const slots=Mods.collection(),unlocked=unlockedIds();return Object.freeze({slots,unlocked:Object.freeze([...unlocked]),count:slots.filter(slot=>slot.mod&&unlocked.has(slot.mod.id)).length,total:slots.length})}
+  function state(){const slots=Mods.collection(),unlocked=unlockedIds(),modSlots=slots.filter(slot=>!!slot.mod);return Object.freeze({slots,unlocked:Object.freeze([...unlocked]),count:modSlots.filter(slot=>unlocked.has(slot.mod.id)).length,total:modSlots.length})}
 
   const style=doc.createElement('style');style.id='monoidModCollectionStyles';style.textContent=`
 #modCollectionDialog{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:calc(12px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));border:0;border-radius:0;background:var(--bg);color:var(--ink);overflow:hidden}
@@ -39,7 +39,7 @@
 @media(prefers-reduced-motion:reduce){.modCollectionCell.justUnlocked .collectionDomino{animation:none}}
 `;doc.head.appendChild(style);
 
-  const dialog=doc.createElement('dialog');dialog.id='modCollectionDialog';dialog.setAttribute('aria-labelledby','modCollectionTitle');dialog.innerHTML='<header class="modCollectionHead"><h2 id="modCollectionTitle">MOD COLLECTION</h2><button class="modCollectionClose" type="button" aria-label="Close Mod Collection">×</button></header><div class="modCollectionProgress"><span>DOUBLE-SIX ARCHIVE</span><strong>0/28</strong></div><div class="modCollectionGrid" aria-label="The 28 canonical dominoes"></div><div class="modCollectionInfo" aria-live="polite"><strong>SELECT A DOMINO</strong><span>Reversed dominoes contain discovered Mods.</span></div>';doc.body.appendChild(dialog);
+  const dialog=doc.createElement('dialog');dialog.id='modCollectionDialog';dialog.setAttribute('aria-labelledby','modCollectionTitle');dialog.innerHTML='<header class="modCollectionHead"><h2 id="modCollectionTitle">MOD COLLECTION</h2><button class="modCollectionClose" type="button" aria-label="Close Mod Collection">×</button></header><div class="modCollectionProgress"><span>DOUBLE-SIX ARCHIVE</span><strong>0/19</strong></div><div class="modCollectionGrid" aria-label="The 28 canonical dominoes"></div><div class="modCollectionInfo" aria-live="polite"><strong>SELECT A DOMINO</strong><span>Reversed dominoes contain discovered Mods.</span></div>';doc.body.appendChild(dialog);
   const grid=dialog.querySelector('.modCollectionGrid'),progress=dialog.querySelector('.modCollectionProgress strong'),info=dialog.querySelector('.modCollectionInfo');
   let returnFocus=null,lastUnlocked=null;
   function codeMarkup(code){const value=String(code||'??').padEnd(2,'?').slice(0,2);return`<i class="collectionModCode" aria-hidden="true"><span>${value[0]}</span><span>${value[1]}</span></i>`}

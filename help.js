@@ -77,30 +77,9 @@
     const ids=[];
     if(state.doubleDoubleTileId===tileId)ids.push('double-double');
     if(state.doubleEchoTileId===tileId)ids.push('double-echo');
+    if(state.tripleDoubleTileId===tileId)ids.push('triple-double');
     if((state.zeroPortTileIds||[]).includes(tileId))ids.push('zero-port');
-    if(state.parityExchangeTileId===tileId)ids.push('parity-exchange');
-    if(state.cornerTileId===tileId)ids.push('corner');
-    if(state.longLineTileId===tileId)ids.push('long-line');
-    if(state.overloadTileId===tileId)ids.push('overload');
-    if(state.terminalTileId===tileId)ids.push('terminal');
-    if(state.diodeTileId===tileId)ids.push('diode');
-    if(state.returnTileId===tileId)ids.push('return');
-    if(state.recallTileId===tileId)ids.push('recall');
-    if(state.pairTileId===tileId)ids.push('pair');
-    if(state.bridgeTileId===tileId)ids.push('bridge');
-    if(state.pivotTileId===tileId)ids.push('pivot');
-    if(state.scrapTileId===tileId)ids.push('scrap');
-    if(state.brokerTileId===tileId)ids.push('broker');
-    if(state.swapTileId===tileId)ids.push('swap');
-    if(state.spendTileId===tileId)ids.push('spend');
-    if(state.mergeTileId===tileId)ids.push('merge');
-    if(state.hingeTileId===tileId)ids.push('hinge');
-    if(state.bankTileId===tileId)ids.push('bank');
-    if(state.tollTileId===tileId)ids.push('toll');
-    if(state.foundationTileId===tileId)ids.push('foundation');
-    if(state.knotTileId===tileId)ids.push('knot');
-    if(state.mirrorTileId===tileId)ids.push('mirror');
-    if(state.mintTileId===tileId)ids.push('mint');
+    for(const [id,field] of Object.entries({'parity-exchange':'parityExchangeTileId','corner':'cornerTileId','long-line':'longLineTileId','overload':'overloadTileId','recall':'recallTileId','pair':'pairTileId','bridge':'bridgeTileId','pivot':'pivotTileId','broker':'brokerTileId','hinge':'hingeTileId','bank':'bankTileId','foundation':'foundationTileId','knot':'knotTileId','mint':'mintTileId'}))if(state[field]===tileId)ids.push(id);
     return ids
   }
   function tileModifiers(state,tile){
@@ -110,9 +89,9 @@
   function tileRecord(state,tileId,tier){
     const turns=(state.events||[]).filter(e=>Number.isInteger(e.turn)&&Number.isFinite(Number(e.output))&&(e.tile?.id===tileId||(e.activatedTileIds||[]).includes(tileId)));
     const bestOutput=turns.reduce((best,e)=>best==null||Number(e.output)>best?Number(e.output):best,null);
-    const foundationBaseline=Number.isInteger(state.foundationLastPayoutMarket)?state.foundationLastPayoutMarket:Number.isInteger(state.foundationAssignedMarket)?state.foundationAssignedMarket:(Number(state.marketCount)||0),foundationInterval=Math.max(1,Number(D.FOUNDATION_MARKETS)||3),foundationProgress=state.foundationTileId===tileId?Math.max(0,(Number(state.marketCount)||0)-foundationBaseline)%foundationInterval:null;
-    const bankMultiplier=state.bankTileId===tileId?((Number(state.coins)||0)>=(D.BANK_HIGH_COINS||20)?D.BANK_HIGH_MOD_MULTIPLIER||3:(Number(state.coins)||0)>=(D.BANK_LOW_COINS||10)?D.BANK_LOW_MOD_MULTIPLIER||2:1):null,spendActive=state.spendTileId===tileId?(Number(state.coins)||0)<(D.SPEND_COIN_THRESHOLD||5):null;
-    return Object.freeze({upgradeTier:tier,starCoins:tier,bestOutput,activations:turns.length,modifierIds:Object.freeze(tileModifierIds(state,tileId)),doubleDoubleActive:state.doubleDoubleTileId===tileId,doubleEchoActive:state.doubleEchoTileId===tileId,zeroPortActive:(state.zeroPortTileIds||[]).includes(tileId),longRunOwned:(state.mods||[]).includes('long-run'),foundationProgress,foundationInterval,bankMultiplier,spendActive,tollArmed:state.tollTileId===tileId?!!state.tollArmed:null,brokerDiscountReady:state.brokerTileId===tileId?!!state.brokerDiscountReady:null,mintAvailable:state.mintTileId===tileId?state.mintPaidRound!==state.round:null})
+    const foundationAssigned=Number.isInteger(state.foundationAssignedMarket)?state.foundationAssignedMarket:(Number(state.marketCount)||0),foundationAge=state.foundationTileId===tileId?Math.max(0,(Number(state.marketCount)||0)-foundationAssigned):null,foundationTier=foundationAge==null?null:Math.min(Math.max(1,Number(D.FOUNDATION_PAYOUT_MAX)||3),foundationAge*Math.max(1,Number(D.FOUNDATION_PAYOUT_STEP)||1));
+    const bankMultiplier=state.bankTileId===tileId?((Number(state.coins)||0)>=(D.BANK_HIGH_COINS||20)?D.BANK_HIGH_MOD_MULTIPLIER||3:(Number(state.coins)||0)>=(D.BANK_LOW_COINS||10)?D.BANK_LOW_MOD_MULTIPLIER||2:1):null;
+    return Object.freeze({upgradeTier:tier,starCoins:tier,bestOutput,activations:turns.length,modifierIds:Object.freeze(tileModifierIds(state,tileId)),doubleDoubleActive:state.doubleDoubleTileId===tileId,doubleEchoActive:state.doubleEchoTileId===tileId,zeroPortActive:(state.zeroPortTileIds||[]).includes(tileId),longRunOwned:(state.mods||[]).includes('long-run'),foundationAge,foundationTier,bankMultiplier,brokerPrepared:state.brokerTileId===tileId?!!state.brokerPreparedMarket:null,brokerDiscountStored:state.brokerTileId===tileId?Math.max(0,Number(state.brokerDiscountStored)||0):null,mintAvailable:state.mintTileId===tileId?state.mintPaidRound!==state.round:null})
   }
   const CORE_NAMES=Object.freeze({relay:'Relay',reservoir:'Reservoir',distributor:'Distributor',conductor:'Conductor'});
   function coreAbility(archetype,{paired=false}={}){
