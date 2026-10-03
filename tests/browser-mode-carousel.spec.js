@@ -8,6 +8,54 @@ async function dismissModeIntro(page){
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3500}).toBe('idle')
 }
 
+test('MONOID wordmark opens a real dictionary inspector without entering selection',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  const title=page.locator('#titleCard'),box=await title.boundingBox();expect(box).toBeTruthy();
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(560);await page.mouse.up();
+  await expect(page.locator('#overlay')).toHaveClass(/show/);
+  await expect(page.locator('#overlayTitle')).toHaveText('MONOID');
+  await expect(page.locator('#overlayBody')).toContainText('1. Mathematics.');
+  await expect(page.locator('#overlayBody')).toContainText('binary operation');
+  await expect(page.locator('#overlayBody')).toContainText('associative');
+  await expect(page.locator('#overlayBody')).toContainText('identity element');
+  await expect(page.locator('#overlayBody')).toContainText('integers under addition, with 0 as the identity');
+  await expect(page.locator('#overlayBody')).toContainText('2. Video games.');
+  await expect(page.locator('#overlayBody')).toContainText('increasingly unreasonable numbers');
+  await expect(page.locator('#overlayBody')).toContainText('See also: domino, signal, bad decisions.');
+  expect(await page.locator('#overlay').evaluate(el=>Number(getComputedStyle(el).zIndex))).toBeGreaterThan(1000);
+  await expect(page.locator('#gameSelection')).toBeHidden();
+  await page.locator('#overlayPrimary').click();
+  await expect(page.locator('#overlay')).not.toHaveClass(/show/);
+  await title.click();
+  await expect(page.locator('#modeCarouselFrame')).toBeVisible()
+});
+
+test('locked mode tiles remain inspectable and explain both unlock and completion conditions',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','fresh'));
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.waitForFunction(()=>!!window.__monoidModes&&!!window.MonoidProfile?.modeProgress);
+  await page.locator('#titleCard').click();
+  expect(await page.evaluate(()=>window.MonoidProfile.isModeUnlocked('islands'))).toBe(false);
+  await page.evaluate(()=>window.__monoidModes.select(6));
+  await expect(page.locator('#modeName')).toHaveText('LOCKED');
+  await expect(page.locator('#startRun')).toBeDisabled();
+  const slide=page.locator('.modeSlide[data-mode="islands"]'),box=await slide.boundingBox();expect(box).toBeTruthy();
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(560);await page.mouse.up();
+  await expect(page.locator('#overlay')).toHaveClass(/show/);
+  await expect(page.locator('#overlayTitle')).toHaveText('THE ISLANDS');
+  await expect(page.locator('#overlayBody')).toContainText('LOCKED');
+  await expect(page.locator('#overlayBody')).toContainText('Reach Infinite in The Peaks.');
+  await expect(page.locator('#overlayBody')).toContainText('Clear one Ouroboros round.');
+  await expect(page.locator('#overlayBody')).toContainText('Unlock · PENDING');
+  await expect(page.locator('#overlayBody')).toContainText('Complete · INCOMPLETE');
+  expect(await page.evaluate(()=>window.MonoidProfile.isModeUnlocked('islands'))).toBe(false);
+  await page.locator('#overlayPrimary').click();
+  await expect(page.locator('#startRun')).toBeDisabled();
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+});
+
 test('mode carousel keeps a continuous strip and weights its physical settle by release distance',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
