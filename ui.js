@@ -9,11 +9,12 @@
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
   const V=window.IterionPresentation,MG=window.MonoidModGuidance,BATCH_STORE=window.MonoidPlaytestBatchStore?.create(),PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage,...(PROFILE?.telemetryOptions?.()||{})}),gameMenu=$('gameMenu'),menuButton=$('menuButton'),modeIndicatorEl=$('modeIndicator');
-  const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
+  const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),selectionTitle=$('selectionTitle'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
   const board=$('board'),signalHudEl=$('signalHud'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version'),machineModStatusEl=$('machineModStatus'),routePreviewSetting=$('routePreviewSetting'),routePreviewHelp=$('routePreviewHelp');
   let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null,persistenceFault=false,framesRevealRunId=null,framesRevealEventCursor=0,framesRevealFx=[];
+  const inspectorHoldSuppressed=new WeakSet();
   const performanceSamples=[];
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal'),ouroborosSelection=null;
@@ -75,6 +76,7 @@
   Object.defineProperty(window,'__monoidPlaytestBatchStore',{configurable:true,get:()=>BATCH_STORE||null});
   Object.defineProperty(window,'__monoidPersistence',{configurable:true,get:()=>({ok:!persistenceFault,key:ACTIVE_RUN_KEY})});
   Object.defineProperty(window,'__monoidSharePlaytestBatch',{configurable:true,value:()=>sharePlaytestBatch()});
+  Object.defineProperty(window,'__monoidInspectMode',{configurable:true,value:modeId=>openModeInspector(modeId)});
 
   function playtestContext(){const x=GAME.snapshot();return{runId:GAME.state().runId,round:GAME.state().round+1,stage:x.stage.index}}
   function bindPlaytestRun(){if(!PT||tutorial)return;PT.bindRun(playtestContext())}
@@ -86,8 +88,11 @@
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||window.__monoidSelectedMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function persistGame(){
     if(tutorial)return GAME.snapshot();
-    const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],payload=JSON.stringify(GAME.exportState());
-    if(unlockedModes.length){const names={eyes:'THE EYES',frames:'THE FRAMES',river:'THE RIVER',loom:'THE LOOM',peaks:'THE PEAKS',islands:'THE ISLANDS'};queueMicrotask(()=>toast(`${names[unlockedModes.at(-1)]||unlockedModes.at(-1).toUpperCase()} UNLOCKED`))}
+    const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],payload=JSON.stringify(GAME.exportState());
+    if(unlockedModes.length||completedModes.length){
+      const names={classic:'CLASSIC',eyes:'THE EYES',frames:'THE FRAMES',river:'THE RIVER',loom:'THE LOOM',peaks:'THE PEAKS',islands:'THE ISLANDS'},unlocked=unlockedModes.at(-1),completed=completedModes.at(-1),message=completed&&unlocked?`${names[completed]||completed.toUpperCase()} COMPLETE · ${names[unlocked]||unlocked.toUpperCase()} UNLOCKED`:completed?`${names[completed]||completed.toUpperCase()} COMPLETE`:`${names[unlocked]||unlocked.toUpperCase()} UNLOCKED`;
+      queueMicrotask(()=>toast(message))
+    }
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
       localStorage.setItem(ACTIVE_RUN_KEY,payload);
@@ -421,6 +426,33 @@
   function openCoreInspector(coreId){if(drag.active||uiBusy)return;const model=H.inspectCore?.(GAME.state(),coreId,GAME.coreShadowTelemetry?.());if(!model)return;auxOverlay={type:'core-inspector',coreId,model};renderAuxOverlay()}
   function openVoidInspector(voidId){if(drag.active||uiBusy)return;const voidItem=(GAME.state().voids||[]).find(item=>item.id===voidId);if(!voidItem)return;auxOverlay={type:'void-inspector',voidId};renderAuxOverlay()}
   function openSignalInspector(){if(drag.active||uiBusy)return;const signal=GAME.snapshot().signal;if(!signal?.enabled)return;auxOverlay={type:'signal-inspector'};renderAuxOverlay()}
+  function openModeInspector(modeId){
+    const progress=PROFILE?.modeProgress?.(modeId);if(!progress?.requirement)return;
+    returnFocus=document.activeElement;press.cancel();auxOverlay={type:'mode-inspector',modeId,progress};renderAuxOverlay()
+  }
+  function openMonoidInspector(){
+    returnFocus=document.activeElement;press.cancel();auxOverlay={type:'monoid-inspector'};renderAuxOverlay()
+  }
+  function renderModeInspector(){
+    const progress=PROFILE?.modeProgress?.(auxOverlay.modeId)||auxOverlay.progress;if(!progress?.requirement){closeAuxOverlay();return}
+    auxOverlay.progress=progress;const descriptor=window.MonoidModeCarousel?.MODES?.find(item=>item.id===auxOverlay.modeId),status=progress.completed?'COMPLETE':progress.unlocked?'UNLOCKED':'LOCKED',unlockState=progress.unlocked?'MET':'PENDING',completeState=progress.completed?'COMPLETE':'INCOMPLETE';
+    overlayTitle.textContent=progress.requirement.name;
+    overlayBody.innerHTML=`<div class="inspector modeProgressInspector"><section class="inspectSection"><div class="inspectLabel">Status</div><div class="inspectHero"><strong>${escapeHtml(status)}</strong><span>${escapeHtml(descriptor?.description||'Game mode')}</span></div></section><section class="inspectSection"><div class="inspectLabel">Unlock · ${escapeHtml(unlockState)}</div><p>${escapeHtml(progress.requirement.unlock)}</p></section><section class="inspectSection"><div class="inspectLabel">Complete · ${escapeHtml(completeState)}</div><p>${escapeHtml(progress.requirement.complete)}</p></section></div>`;
+    overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
+  }
+  function renderMonoidInspector(){
+    overlayTitle.textContent='MONOID';
+    overlayBody.innerHTML=`<article class="dictionaryInspector"><header><strong>monoid</strong><span>/ˈmɒnɔɪd/ · noun</span></header><section><b>1. Mathematics.</b><p>An algebraic structure consisting of a set together with a binary operation that combines any two elements of the set to produce another element of the same set. The operation is associative, and the set contains an identity element that leaves every element unchanged when combined with it.</p><p class="dictionaryExample">Example: the integers under addition, with 0 as the identity.</p></section><section><b>2. Video games.</b><p>A videogame about dominoes, machines, and increasingly unreasonable numbers.</p></section><footer>See also: domino, signal, bad decisions.</footer></article>`;
+    overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
+  }
+  function bindInspectorHold(element,open){
+    if(!element)return;let hold=null;
+    const cancel=()=>{if(hold?.timer)clearTimeout(hold.timer);hold=null};
+    element.addEventListener('pointerdown',event=>{if(event.button!=null&&event.button!==0)return;cancel();const state={id:event.pointerId,x:event.clientX,y:event.clientY,timer:0};state.timer=setTimeout(()=>{if(hold!==state)return;inspectorHoldSuppressed.add(element);setTimeout(()=>inspectorHoldSuppressed.delete(element),800);open()},Math.max(300,Number(D.LONG_PRESS_MS)||500));hold=state});
+    element.addEventListener('pointermove',event=>{if(!hold||hold.id!==event.pointerId)return;if(Math.hypot(event.clientX-hold.x,event.clientY-hold.y)>Math.max(4,Number(D.LONG_PRESS_MOVE_TOLERANCE_PX)||10))cancel()});
+    element.addEventListener('pointerup',cancel);element.addEventListener('pointercancel',cancel)
+  }
+  function consumeInspectorHoldClick(element,event){if(!inspectorHoldSuppressed.has(element))return false;inspectorHoldSuppressed.delete(element);event?.preventDefault?.();event?.stopPropagation?.();return true}
   function modifierGuideHtml(mod){
     const guide=mod.guidance||MG?.get(mod.id),status=mod.status||MG?.status(mod.id,GAME.state(),auxOverlay?.tileId);
     if(!guide)return`<div class="inspectModifier"><strong>${escapeHtml(mod.displayName)}</strong><span>${escapeHtml(mod.shortDescription)}</span><p>${escapeHtml(mod.rulesDescription)}</p></div>`;
@@ -486,7 +518,7 @@
     const state=GAME.state(),model=H.inspectCore?.(state,auxOverlay.coreId,GAME.coreShadowTelemetry?.())||auxOverlay.model;if(!model){closeAuxOverlay();return}
     auxOverlay.model=model;overlayTitle.textContent=`${model.displayName.toUpperCase()} · ${model.roman}`;
     const status=model.ready?'READY':model.connected?'CONNECTED':'DISCONNECTED',ports=model.ports.join(' · ')||'—',connectedPorts=model.connectedPorts.join(' · ')||'—',role=model.lastRole?String(model.lastRole).toUpperCase():'NOT ACTIVATED',debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(model.id)}</div>`:'';
-    const configuredMarketStep=Number(D.CORE_SIGNAL_MARKET_STEP),marketStep=Math.max(0,Number.isFinite(configuredMarketStep)?configuredMarketStep:1),marketBonus=Math.max(0,Number(state.marketCount)||0)*marketStep,abilityRole=model.paired?'LEAD / LINK':'LEAD',peakNote=model.peak?` · PEAK ×${Math.max(1,Number(D.CORE_PEAK_SIGNAL_MULTIPLIER)||2)}`:'',recharge=model.archetype==='reservoir'?`Charge +${model.recharge}${peakNote} · ${abilityRole} +${model.leadRecharge} · Markets +${marketBonus}`:`Charge +${model.recharge}${peakNote} · Markets +${marketBonus}`,next=model.level<model.maxLevel?`Next level: +${D.CORE_SIGNAL_LEVEL_STEP||4} base Signal`:'MAX LEVEL',evolution=(()=>{if(state.gameMode==='islands')return`The run opens with 12 Cores and seeded Voids. Stages add 1 Core + ${D.CORE_DISCOVERY_VOID_COUNT_BY_MODE?.islands||5} Voids; Endless keeps ${D.ISLANDS_ENDLESS_VOID_COUNT||5} Voids plus a Core or Void node. A free Core can found a dormant island; link it for +${D.ISLAND_LINK_SIGNAL_STEP||2} Signal.`;const voids=Math.max(0,Number(D.CORE_DISCOVERY_VOID_COUNT_BY_MODE?.[state.gameMode])||0),stages=(D.CORE_DISCOVERY_STAGES||[2,3,4,5]).join(', '),growth=voids?`Each discovery adds 1 Core + ${voids} Void${voids===1?'':'s'}.`:'Each discovery adds 1 Core and no Voids.',endless=state.gameMode==='peaks'?` Endless keeps growing: ${D.PEAKS_ENDLESS_VOID_COUNT||4} Voids plus a Core or Void node.`:'';return`Stages ${stages}: ${growth}${endless} From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`})();
+    const configuredMarketStep=Number(D.CORE_SIGNAL_MARKET_STEP),marketStep=Math.max(0,Number.isFinite(configuredMarketStep)?configuredMarketStep:1),marketBonus=Math.max(0,Number(state.marketCount)||0)*marketStep,abilityRole=model.paired?'LEAD / LINK':'LEAD',peakNote=model.peak?` · PEAK ×${Math.max(1,Number(D.CORE_PEAK_SIGNAL_MULTIPLIER)||2)}`:'',recharge=model.archetype==='reservoir'?`Charge +${model.recharge}${peakNote} · ${abilityRole} +${model.leadRecharge} · Markets +${marketBonus}`:`Charge +${model.recharge}${peakNote} · Markets +${marketBonus}`,next=model.level<model.maxLevel?`Next level: +${D.CORE_SIGNAL_LEVEL_STEP||4} base Signal`:'MAX LEVEL',evolution=(()=>{if(state.gameMode==='islands')return`The run opens with 12 Cores and seeded Voids. Stages add 1 Core + ${D.CORE_DISCOVERY_VOID_COUNT_BY_MODE?.islands||5} Voids; Endless adds ${D.ISLANDS_ENDLESS_VOID_COUNT||11} Voids plus a Core or Void node, rising to ${D.ISLANDS_INFINITE_VOID_COUNT||22} Voids in Infinite. A free Core can found a dormant island; link it for +${D.ISLAND_LINK_SIGNAL_STEP||2} Signal.`;const voids=Math.max(0,Number(D.CORE_DISCOVERY_VOID_COUNT_BY_MODE?.[state.gameMode])||0),stages=(D.CORE_DISCOVERY_STAGES||[2,3,4,5]).join(', '),growth=voids?`Each discovery adds 1 Core + ${voids} Void${voids===1?'':'s'}.`:'Each discovery adds 1 Core and no Voids.',endless=state.gameMode==='peaks'?` Endless keeps growing: ${D.PEAKS_ENDLESS_VOID_COUNT||4} Voids plus a Core or Void node.`:'';return`Stages ${stages}: ${growth}${endless} From Stage ${D.CORE_UPGRADE_START_STAGE||10}, one Core levels every ${D.CORE_UPGRADE_STAGE_INTERVAL||3} Stages.`})();
     const relayNeed=model.archetype==='relay'&&model.connectedPorts.length<2?'Relay needs two connected ports to bridge.':null,lastSignal=model.lastAfterSignal==null?'No activation recorded last Move.':`Last Move: ${role} · Signal ${model.lastBeforeSignal} → ${model.lastAfterSignal}.`,activationStates=model.paired?'<span>LEAD · first Core reached; its ability applies.</span><span>LINK · second distinct Core; its own ability also applies.</span><span>FOLLOW · later Core; adds Signal only.</span><span>LAST · final Core reached; may also be LINK.</span>':'<span>LEAD · first Core reached; its ability controls the Move.</span><span>FOLLOW · later Core; adds Signal only.</span><span>LAST · final Core reached; adds Signal only.</span>';
     overlayBody.innerHTML=`<div class="inspector coreInspector"><section class="inspectSection"><div class="inspectLabel">${model.peak?'Peak Core':'Core'}</div><div class="inspectHero"><strong>${escapeHtml(model.displayName)} ${model.roman}</strong><span>${escapeHtml(status)} · ${escapeHtml(recharge)}</span></div>${debugId}<div class="stateRows"><span>Ports: ${escapeHtml(ports)}</span><span>Connected: ${escapeHtml(connectedPorts)}</span><span>${escapeHtml(next)}</span></div></section><section class="inspectSection"><div class="inspectLabel">${escapeHtml(abilityRole)} Ability</div><strong>${escapeHtml(model.ability.short)}</strong><p>${escapeHtml(model.ability.rule)}</p>${relayNeed?`<p class="inspectEmpty">${escapeHtml(relayNeed)}</p>`:''}</section><section class="inspectSection"><div class="inspectLabel">Last Move</div><div class="stateRows"><span>${escapeHtml(lastSignal)}</span></div></section><section class="inspectSection"><div class="inspectLabel">Activation States</div><div class="stateRows">${activationStates}</div></section><section class="inspectSection"><div class="inspectLabel">Evolution</div><p>${escapeHtml(evolution)}</p></section></div>`;
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay
@@ -513,8 +545,8 @@
     }
   }
   function renderAuxOverlay(){
-    if(!auxOverlay)return;resetOverlay();overlay.classList.add('aux');modalEl.classList.add('auxModal');overlay.onclick=e=>{if(e.target===overlay)closeAuxOverlay()};
-    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else if(auxOverlay.type==='core-inspector')renderCoreInspector();else if(auxOverlay.type==='void-inspector')renderVoidInspector();else if(auxOverlay.type==='signal-inspector')renderSignalInspector();else renderInspector();
+    if(!auxOverlay)return;resetOverlay();overlay.classList.add('aux');if(auxOverlay.type==='mode-inspector'||auxOverlay.type==='monoid-inspector')overlay.classList.add('entryInspectorOverlay');modalEl.classList.add('auxModal');overlay.onclick=e=>{if(e.target===overlay)closeAuxOverlay()};
+    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else if(auxOverlay.type==='core-inspector')renderCoreInspector();else if(auxOverlay.type==='void-inspector')renderVoidInspector();else if(auxOverlay.type==='signal-inspector')renderSignalInspector();else if(auxOverlay.type==='mode-inspector')renderModeInspector();else if(auxOverlay.type==='monoid-inspector')renderMonoidInspector();else renderInspector();
     if(!overlay.contains(document.activeElement)){if(!returnFocus)returnFocus=document.activeElement;const focusTarget=auxOverlay.type==='void-inspector'?overlayBody.querySelector('.voidInspectorWord'):overlayPrimary;focusTarget?.focus()}
   }
 
@@ -878,14 +910,16 @@
     persistGame();const batch=await buildPlaytestBatch(),blob=new Blob([batch.text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`MONOID_PLAYTEST_v${D.VERSION}_${batch.batchId}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);await markBatchShared(batch);toast(`Playtest batch downloaded · ${batch.runIds.length} run${batch.runIds.length===1?'':'s'}`);return true
   }
   function closeMenu(){gameMenu.close();menuButton.setAttribute('aria-expanded','false')}
-  menuButton.onclick=()=>{if(GAME.state().running||uiBusy||drag.active)return;press.cancel();syncRoutePreviewSetting();gameMenu.showModal();menuButton.setAttribute('aria-expanded','true')};$('closeMenu').onclick=closeMenu;gameMenu.onclose=()=>menuButton.setAttribute('aria-expanded','false');gameMenu.onclick=e=>{if(e.target===gameMenu){const r=gameMenu.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeMenu()}};
+  menuButton.onclick=e=>{if(consumeInspectorHoldClick(menuButton,e))return;if(GAME.state().running||uiBusy||drag.active)return;press.cancel();syncRoutePreviewSetting();gameMenu.showModal();menuButton.setAttribute('aria-expanded','true')};$('closeMenu').onclick=closeMenu;gameMenu.onclose=()=>menuButton.setAttribute('aria-expanded','false');gameMenu.onclick=e=>{if(e.target===gameMenu){const r=gameMenu.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeMenu()}};
   $('scoreDetail').onclick=()=>openScoreDetails('score');$('targetDetail').onclick=()=>openScoreDetails('target');
   overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','overlayTitle');
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')pausePlaytest();else resumePlaytest()});window.addEventListener('pagehide',pausePlaytest);
   document.addEventListener('keydown',e=>{if(!overlay.classList.contains('show'))return;if(e.key==='Escape'&&auxOverlay){e.preventDefault();closeAuxOverlay();return}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled),[tabindex="0"]')].filter(b=>b.getClientRects().length);if(!buttons.length)return;const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&(document.activeElement===first||!overlay.contains(document.activeElement))){e.preventDefault();last.focus()}else if(!e.shiftKey&&(document.activeElement===last||!overlay.contains(document.activeElement))){e.preventDefault();first.focus()}}});
   routePreviewSetting?.querySelectorAll('[data-route-preview]').forEach(button=>button.addEventListener('click',()=>setRoutePreviewMode(button.dataset.routePreview)));
   shopBtn.onclick=openPermanentShop;moveBtn.onclick=activateMove;rerollBtn.onclick=activateReroll;undoBtn.onclick=activateUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;closeMenu();newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=()=>{closeMenu();copyRun()};viewBtn.onclick=()=>{closeMenu();viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
-  titleCard.onclick=e=>{e.preventDefault();e.stopPropagation();showSelection()};
+  bindInspectorHold(titleCard,openMonoidInspector);bindInspectorHold(selectionTitle,openMonoidInspector);bindInspectorHold(menuButton,openMonoidInspector);
+  if(selectionTitle){selectionTitle.tabIndex=0;selectionTitle.setAttribute('role','button');selectionTitle.setAttribute('aria-label','MONOID. Hold or press Enter to inspect the definition.');selectionTitle.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openMonoidInspector()}}}
+  titleCard.onclick=e=>{if(consumeInspectorHoldClick(titleCard,e))return;e.preventDefault();e.stopPropagation();showSelection()};
   titleCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showSelection()}};
   $('learnMonoid').onclick=startTutorial;$('replayTutorial').onclick=startTutorial;$('startRun').onclick=()=>{if(storedState()&&!confirm('Replace the saved run with a new run?'))return;startNormal(false)};continueRun.onclick=()=>startNormal(true);$('modeClassic').onclick=()=>storedState()?startNormal(true):startNormal(false);$('leaveTutorial').onclick=requestTutorialExit;$('gameSelectionButton').onclick=()=>{closeMenu();showSelection()};
   if(localStorage.getItem('iterion.entryBypass.v1')==='true')startNormal(false);else{app.inert=true;render()}
