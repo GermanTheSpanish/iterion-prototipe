@@ -48,7 +48,7 @@ check('legacy saves preserve useful identities and prune retired Mod state',()=>
 });
 check('MOD PERFORMANCE survives in snapshot and debug export',()=>{
   const g=G.createGame(E,{seed:6506}),s=g.state();
-  s.events.push({type:'shop-open',shop:'market',offers:['mint','bank'],round:3},{type:'market-mod-buy',mod:'mint',pending:true},{type:'market-mod-assign',mod:'mint'},{type:'mod-alive',round:4,mods:['mint']},{type:'mint-coins',amount:1},{turn:1,round:4,roundTurn:1,mode:'placement',tile:{a:5,b:6,id:'d5-6'},trigger:6,output:6,selectionOutput:6,rebounds:0,path:[],segments:[],modPerformance:{mint:{activations:2,effectiveActivations:1,scoreContributionExact:'0'}}});
+  s.events.push({type:'shop-open',shop:'market',offers:['mint','bank'],round:3},{type:'market-mod-buy',mod:'mint',pending:true},{type:'market-mod-assign',mod:'mint'},{type:'mod-alive',round:4,mods:['mint']},{type:'mint-coins',amount:1},{type:'test-mod-performance',modPerformance:{mint:{activations:2,effectiveActivations:1,scoreContributionExact:'0'}}});
   const p=g.snapshot().modPerformance.mint;assert.equal(p.offered,1);assert.equal(p.purchased,1);assert.equal(p.assigned,1);assert.equal(p.roundsAlive,1);assert.equal(p.activations,2);assert.equal(p.effectiveActivations,1);assert.equal(p.coinsGeneratedOrSaved,1);assert.match(g.debugText(),/MOD PERFORMANCE/);assert.match(g.debugText(),/mint offered=1 bought=1/);
 });
 check('protected route comparator remains unchanged',()=>{
