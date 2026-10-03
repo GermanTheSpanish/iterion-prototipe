@@ -39,7 +39,7 @@ function assertCompactValues(tiles){
         expect((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toBeGreaterThan(4.5);
       }
     }
-    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|TD|ZP|PX|CR|LN|OV|TE)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.mod)expect(tile.mark.color).toBe(tile.circuit?tile.halves.find(h=>h.pipColor)?.pipColor:'rgba(255, 255, 255, 0.92)')}
+    if(tile.mark){expect(tile.mark.text).toMatch(/^(DD|DE|TD|ZP|PX|CR|LN|OV|RC|PR|BR|PV|BO|HG|BK|FD|KN|MT)$/);expect(tile.mark.size).toBe(11);expect(tile.mark.dx).toBeLessThan(.6);expect(tile.mark.dy).toBeLessThan(.6);if(tile.mod)expect(tile.mark.color).toBe(tile.circuit?tile.halves.find(h=>h.pipColor)?.pipColor:'rgba(255, 255, 255, 0.92)')}
   }
 }
 
@@ -120,7 +120,7 @@ test('late mobile polish keeps MONOID centred and Market uses one stable three-b
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261003.2');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261003.3');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
