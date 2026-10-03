@@ -17,8 +17,8 @@ function elbow(g){
 
 assert.equal(D.MARKET_ACTIVE_TOPOLOGY_WEIGHT,0.25);
 assert.deepEqual(
-  ['corner','long-line','overload','terminal','pair','bridge','knot'].map(id=>[M.get(id).category,M.get(id).topologyRule]),
-  [['topology','corner'],['topology','long-line'],['topology','overload'],['topology','terminal'],['topology','pair'],['topology','bridge'],['topology','knot']]
+  ['corner','long-line','overload','pair','bridge','knot'].map(id=>[M.get(id).category,M.get(id).topologyRule]),
+  [['topology','corner'],['topology','long-line'],['topology','overload'],['topology','pair'],['topology','bridge'],['topology','knot']]
 );
 
 {
@@ -51,10 +51,12 @@ assert.deepEqual(
 }
 
 {
-  const g=G.createGame(E,{seed:4502}),s=elbow(g);
-  s.terminalTileId='d3-4'; // invalid: the centre already has two physical neighbours
-  const restored=G.createGame(E,{seed:1});assert(restored.restoreState(g.exportState()));
-  assert.equal(restored.state().terminalTileId,null,'restore prunes legacy dormant Topology assignments');
+  const g=G.createGame(E,{seed:4502}),saved=g.exportState();
+  saved.state.terminalTileId='d3-4';
+  saved.state.pendingModPlacement={mod:'terminal',stage:'target',eligibleTileIds:['d3-4'],sourceTileId:null,previousTileId:null,recordIndex:0};
+  const restored=G.createGame(E,{seed:1});assert(restored.restoreState(saved));
+  assert.equal('terminalTileId' in restored.state(),false,'retired Topology state must be removed on restore');
+  assert.equal(restored.state().pendingModPlacement,null,'retired pending Topology targeting must be cancelled');
 }
 
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
