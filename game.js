@@ -258,7 +258,7 @@ function createGame(E,opts={}){
   }
   function highPipModeGeometry(mode,seed=s.seed){
     const id=canonicalGameMode(mode);if(!['loom','peaks','islands'].includes(id))return{cores:[],voids:[],sites:[]};
-    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=size*2.5,pipXOffset=size*3,pipYOffset=size*2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
+    const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H},base=(cfg.BOARD_SIZES||[[18,24]])[0]||[18,24],size=Math.max(1,Number(E.S)||2),baseG=Math.max(6,Number(base[0])||18),baseH=Math.max(6,Number(base[1])||24),dx=Math.floor((board.G-baseG)/2),dy=Math.floor((board.H-baseH)/2),centerX=baseG/2,centerY=baseH/2,halfCenterOffset=id==='islands'?size*3.5:size*2.5,pipXOffset=size*3,pipYOffset=size*2,topCenterY=centerY-halfCenterOffset,bottomCenterY=centerY+halfCenterOffset;
     const site=(half,pip,cx,cy)=>({id:`${id}-${half}-${pip}`,half,pip,x:Math.round(cx-size/2)+dx,y:Math.round(cy-size/2)+dy,size}),makeHalf=(half,cy)=>id==='islands'?[
       site(half,0,centerX-pipXOffset,cy-pipYOffset),
       site(half,1,centerX+pipXOffset,cy-pipYOffset),
@@ -283,7 +283,25 @@ function createGame(E,opts={}){
       selected.forEach((coreSite,localIndex)=>{const coreIndex=halfIndex*(id==='peaks'?3:2)+localIndex,archetype=archetypes[coreHash(seed,coreIndex,409)%archetypes.length],peak=id==='peaks'&&coreSite.pip===4;cores.push({id:`core-${id}-${half}-${coreSite.pip}`,slot:peak?`${half}-peak`:`${half}-${coreSite.pip}`,half,pip:coreSite.pip,siteId:coreSite.id,x:coreSite.x,y:coreSite.y,size,ports:corePortsForArchetype(seed,coreIndex+40,archetype),archetype,level:1,kind:peak?'peak':'core',peak})});
       for(const voidSite of cornerSites)if(!normalIds.has(voidSite.id))voids.push({id:`void-${id}-${half}-${voidSite.pip}`,half,pip:voidSite.pip,siteId:voidSite.id,x:voidSite.x,y:voidSite.y,size})
     }
-    cores.sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip);voids.sort((a,b)=>(a.half||'').localeCompare(b.half||'')||(a.pip??0)-(b.pip??0));return{cores,voids,sites}
+    if(id==='islands'){
+      const openingPerHalf=Math.max(0,Math.trunc(Number(cfg.ISLANDS_OPENING_VOID_COUNT_PER_HALF)||6)),overlaps=(a,b)=>a.x<b.x+b.size&&a.x+a.size>b.x&&a.y<b.y+b.size&&a.y+a.size>b.y,dirs={U:[0,-size],R:[size,0],D:[0,size],L:[-size,0]},inside=item=>item.x>=0&&item.y>=0&&item.x+size<=board.G&&item.y+size<=board.H,coreBlocked=(item,core)=>cores.some(other=>other.id!==core.id&&overlaps(item,other)),voidBlocked=(item,list)=>list.some(other=>overlaps(item,other)),hasOpeningApproach=(core,list)=>Object.entries(dirs).some(([side,[vx,vy]])=>{const first=side==='U'?{x:core.x,y:core.y-size,size}:side==='R'?{x:core.x+size,y:core.y,size}:side==='D'?{x:core.x,y:core.y+size,size}:{x:core.x-size,y:core.y,size},second={x:first.x+vx,y:first.y+vy,size};return[first,second].every(item=>inside(item)&&!coreBlocked(item,core)&&!voidBlocked(item,list))}),columnCap=Math.max(1,Math.trunc(Number(cfg.VOID_COLUMN_SOFT_CAP)||2)),rowCap=Math.max(1,Math.trunc(Number(cfg.VOID_ROW_SOFT_CAP)||2)),radius=Math.max(size*2,Math.trunc(Number(cfg.VOID_DISTRIBUTION_RADIUS_CELLS)||6)*size),midY=dy+baseH/2;
+      for(const [half,halfIndex] of [['north',0],['south',1]]){
+        const selected=[],halfCores=cores.filter(core=>core.half===half),minY=half==='north'?dy:Math.ceil(midY),maxY=half==='north'?Math.floor(midY)-size:dy+baseH-size;
+        for(let index=0;index<openingPerHalf;index++){
+          const candidates=[];
+          for(let y=minY;y<=maxY;y+=size)for(let x=dx;x<=dx+baseG-size;x+=size){
+            const candidate={x,y,size};if(cores.some(core=>overlaps(candidate,core))||voids.some(item=>overlaps(candidate,item))||selected.some(item=>overlaps(candidate,item)))continue;
+            const trial=[...voids,...selected,candidate];if(!halfCores.every(core=>hasOpeningApproach(core,trial)))continue;
+            const sameColumn=selected.filter(item=>item.x===x).length,sameRow=selected.filter(item=>item.y===y).length,near=selected.filter(item=>Math.abs(item.x-x)+Math.abs(item.y-y)<=radius).length,columnPenalty=Math.max(0,sameColumn-columnCap+1),rowPenalty=Math.max(0,sameRow-rowCap+1),hash=coreHash(seed,x+y*board.G+halfIndex*977+index*131,811);
+            candidates.push({candidate,columnPenalty,rowPenalty,near,hash})
+          }
+          candidates.sort((a,b)=>a.columnPenalty-b.columnPenalty||a.rowPenalty-b.rowPenalty||a.near-b.near||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);
+          if(!candidates.length)break;selected.push(candidates[0].candidate)
+        }
+        selected.forEach((item,index)=>voids.push({id:`void-islands-${half}-opening-${index+1}`,slot:`${half}-opening-${index+1}`,half,opening:true,x:item.x,y:item.y,size}))
+      }
+    }
+    cores.sort((a,b)=>a.half.localeCompare(b.half)||a.pip-b.pip);voids.sort((a,b)=>(a.half||'').localeCompare(b.half||'')||(a.pip??99)-(b.pip??99)||String(a.id).localeCompare(String(b.id)));return{cores,voids,sites}
   }
   function coreLayoutForMode(mode=s.gameMode,seed=s.seed){
     const id=canonicalGameMode(mode);
