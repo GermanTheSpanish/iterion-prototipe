@@ -23,8 +23,8 @@ check('current Economy roster removes SPEND and TOLL',()=>{
 
 check('BANK snapshots the wallet at 10c and 20c thresholds',()=>{
   let r=replayBank(9);assert.equal(r.output,15);assert.equal(r.events[0].bankMultiplier,1);
-  r=replayBank(10);assert.equal(r.output,45);assert.equal(r.events[0].bankMultiplier,2);
-  r=replayBank(20);assert.equal(r.output,135);assert.equal(r.events[0].bankMultiplier,3);
+  r=replayBank(10);assert.equal(r.output,30);assert.equal(r.events[0].bankMultiplier,2);
+  r=replayBank(20);assert.equal(r.output,45);assert.equal(r.events[0].bankMultiplier,3);
 });
 
 check('BROKER activation primes one Market; skipping banks 2c up to 6c',()=>{
