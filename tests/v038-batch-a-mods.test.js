@@ -13,7 +13,7 @@ function replay(pieces,modId,pieceId,value,initial=5){
   return result
 }
 
-assert.equal(D.VERSION,'0.62.0');
+assert.equal(D.VERSION,'0.63.0');
 assert.equal(D.TWIN_MOD_MULTIPLIER,undefined);
 assert.equal(D.PAIR_MOD_MULTIPLIER,3);
 assert.equal(M.get('twin'),null);assert.equal(M.get('recall').collectionCode,'RC');assert.equal(M.get('pair').collectionCode,'PR');
