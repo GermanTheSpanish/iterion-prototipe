@@ -64,6 +64,6 @@ assert.match(src,/LONG_PRESS_MS/,'mode inspection should share the game long-pre
 assert.match(src,/Hold to inspect/,'mode controls should expose inspection affordance to assistive labels');
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20261003\.2/);
+assert.match(gesture,/mode-carousel\.js\?v=20261003\.3/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');
