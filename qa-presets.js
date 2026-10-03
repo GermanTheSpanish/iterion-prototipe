@@ -142,8 +142,8 @@
       ];
       s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;
       s.anchorId='g2-d2-5';s.freeReroll=1;s.consumables={move:0,reroll:0,undo:0};s.roundZero={drawn:2,placed:0,endHand:0};
-      s.doubleDoubleTileId=null;s.doubleEchoTileId=null;s.tripleDoubleTileId=null;s.zeroPortTileIds=['d0-3'];s.parityExchangeTileId=null;s.cornerTileId=null;s.longLineTileId=null;s.overloadTileId=null;s.terminalTileId=null;s.sequenceTileId=null;s.complementTileId=null;s.twinTileId=null;s.pairTileId=null;
-      s.bridgeTileId='d5-6';s.gateTileId=null;s.fanTileId=null;s.frameTileId='d3-4';s.crownTileId='d5-5';s.frontierTileId=null;s.relayTileId=null;s.couplerTileId=null;s.resonatorTileId=null;s.forgeTileId=null;s.foundationTileId='d4-5';s.knotTileId=null;s.mirrorTileId=null;s.mintTileId=null;s.mods=[];
+      s.doubleDoubleTileId=null;s.doubleEchoTileId=null;s.tripleDoubleTileId=null;s.zeroPortTileIds=['d0-3'];s.parityExchangeTileId=null;s.cornerTileId=null;s.longLineTileId=null;s.overloadTileId=null;s.recallTileId=null;s.pairTileId=null;
+      s.bridgeTileId='d5-6';s.pivotTileId=null;s.brokerTileId='d3-4';s.hingeTileId=null;s.bankTileId=null;s.foundationTileId='d4-5';s.knotTileId=null;s.mintTileId=null;s.mods=[];
       s.circuitRanks=clone(source.circuitRanks);s.circuitSignatures=clone(source.circuitSignatures);s.pendingCircuit=null;s.pendingModPlacement=null;
       s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
       s.standardComplete=true;s.endlessMode=true;s.endlessStartedRound=16;s.systemStrain=0;s.endlessLongRunActivations=0;s.boardStage=5;
