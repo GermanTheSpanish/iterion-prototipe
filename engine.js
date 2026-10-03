@@ -223,7 +223,7 @@
         if(mods.has('long-line')&&straightLine>=Math.max(1,Number(opts.longLineThreshold)||3))modMultiplier*=straightLine>=Math.max(1,Number(opts.longLineHighThreshold)||5)?Math.max(1,Number(opts.longLineHighMultiplier)||3):Math.max(1,Number(opts.longLineMultiplier)||2);
         if(mods.has('overload'))modMultiplier*=Math.max(1,Math.min(Math.max(1,Number(opts.overloadMaxMultiplier)||4),connections||1));
         if(mods.has('terminal')&&connections===1)modMultiplier*=Math.max(1,Number(opts.terminalMultiplier)||3);
-        if(mods.has('pair')&&pairTopology)modMultiplier*=Math.max(1,Number(opts.pairMultiplier)||3);
+        if(pairTopology)modMultiplier*=Math.max(1,Number(opts.pairMultiplier)||2);
         if(mods.has('bridge')&&bridgeTopology)modMultiplier*=Math.max(1,Number(opts.bridgeMultiplier)||3);
         if(mods.has('frame')&&frameTopology)modMultiplier*=Math.max(1,Number(opts.frameMultiplier)||2);
         if(mods.has('frontier')&&frontierTopology)modMultiplier*=Math.max(1,Number(opts.frontierMultiplier)||2);
