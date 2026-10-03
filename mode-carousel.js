@@ -21,6 +21,8 @@
   const SETTLE_MIN_LAND_MS=70;
   const SETTLE_MS=SETTLE_APPROACH_MS+SETTLE_LAND_MS;
   const SETTLE_OVERSHOOT=8;
+  const INSPECT_HOLD_MS=500;
+  const INSPECT_MOVE_TOLERANCE=10;
   const MODES=Object.freeze([
     Object.freeze({id:'classic',name:'CLASSIC',description:'Classic → Endless → Infinite',available:true,kind:'classic'}),
     Object.freeze({id:'eyes',name:'THE EYES',description:'1|1 · Signal 6',available:true,kind:'eyes'}),
@@ -107,11 +109,35 @@
     frame.append(viewport,name,description);oldClassic.replaceWith(frame);
     const initialMode=root.__monoidSelectedMode||root.__monoidActiveMode||root.localStorage?.getItem(activeModeKey)||'classic';
     const requestedIndex=Math.max(0,MODES.findIndex(mode=>mode.id===initialMode));
-    let selected=modeAvailable(MODES[requestedIndex])?requestedIndex:0,drag=null,suppressClickUntil=0,settleTimer=0,settleState=null;
+    let selected=modeAvailable(MODES[requestedIndex])?requestedIndex:0,drag=null,inspectHold=null,suppressClickUntil=0,settleTimer=0,settleState=null;
     function render(trackX=0){
       const mode=MODES[selected],available=modeAvailable(mode);frame.dataset.mode=mode.id;frame.dataset.modeAvailable=String(available);name.textContent=available?mode.name:'LOCKED';description.textContent=available?mode.description:'Progress to unlock';startRun.disabled=!available;
-      slides.forEach((slide,i)=>{const item=MODES[i],itemAvailable=modeAvailable(item),offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+trackX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.classList.toggle('isLocked',!itemAvailable);slide.setAttribute('aria-label',itemAvailable?item.name:'Locked game mode');slide.setAttribute('aria-disabled',itemAvailable?'false':'true');slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.setProperty('--mode-x',`${x}px`);slide.style.setProperty('--tile-scale',String(scale))});
+      slides.forEach((slide,i)=>{const item=MODES[i],itemAvailable=modeAvailable(item),offset=cyclicOffset(i,selected),abs=Math.abs(offset),x=offset*SPACING+trackX,progress=Math.min(1,Math.abs(x)/SPACING),scale=1-.18*progress,opacity=1-.22*progress;slide.classList.toggle('isSelected',offset===0);slide.classList.toggle('isNeighbor',abs===1);slide.classList.toggle('isRemote',abs>1);slide.classList.toggle('isLocked',!itemAvailable);slide.setAttribute('aria-label',`${itemAvailable?item.name:'Locked game mode'}. Hold to inspect.`);slide.setAttribute('aria-disabled',itemAvailable?'false':'true');slide.setAttribute('aria-pressed',offset===0?'true':'false');slide.tabIndex=abs<=1?0:-1;slide.style.opacity=String(opacity);slide.style.setProperty('--mode-x',`${x}px`);slide.style.setProperty('--tile-scale',String(scale))});
       root.__monoidSelectedMode=mode.id;if(root.__monoidModes)root.__monoidModes.selected=mode.id
+    }
+    function cancelInspectHold(){
+      if(inspectHold?.timer)root.clearTimeout(inspectHold.timer);
+      inspectHold=null
+    }
+    function startInspectHold(event,index){
+      cancelInspectHold();const mode=MODES[index];if(!mode||mode.kind==='locked'||(event.button!=null&&event.button!==0))return;
+      const hold={id:event.pointerId,startX:event.clientX,startY:event.clientY,index,fired:false,timer:0};
+      hold.timer=root.setTimeout(()=>{
+        if(inspectHold!==hold)return;hold.fired=true;suppressClickUntil=Date.now()+SETTLE_MS+180;
+        if(drag?.id===hold.id){drag=null;viewport.classList.remove('isDragging');render(0)}
+        const inspect=root.__monoidInspectMode;
+        if(typeof inspect==='function')inspect(mode.id);
+        else root.dispatchEvent?.(new CustomEvent('monoid:inspect-mode',{detail:{modeId:mode.id}}))
+      },Math.max(300,Number(root.IterionData?.LONG_PRESS_MS)||INSPECT_HOLD_MS));
+      inspectHold=hold
+    }
+    function trackInspectHold(event){
+      if(!inspectHold||inspectHold.id!==event.pointerId||inspectHold.fired)return;
+      if(Math.hypot(event.clientX-inspectHold.startX,event.clientY-inspectHold.startY)>Math.max(4,Number(root.IterionData?.LONG_PRESS_MOVE_TOLERANCE_PX)||INSPECT_MOVE_TOLERANCE))cancelInspectHold()
+    }
+    function finishInspectHold(event){
+      if(!inspectHold||inspectHold.id!==event.pointerId)return false;
+      const fired=!!inspectHold.fired;cancelInspectHold();return fired
     }
     function clearSettleTimer(){if(settleTimer){root.clearTimeout(settleTimer);settleTimer=0}}
     function clearSettleVars(){viewport.style.removeProperty('--settle-approach-ms');viewport.style.removeProperty('--settle-land-ms')}
@@ -139,15 +165,16 @@
     function select(index){
       stopSettling(true);viewport.classList.add('isRebasing');selected=clampIndex(index);render(0);void viewport.offsetWidth;viewport.classList.remove('isRebasing');return MODES[selected]
     }
-    slides.forEach((slide,i)=>slide.addEventListener('click',e=>{e.preventDefault();if(Date.now()<suppressClickUntil)return;const offset=cyclicOffset(i,selected);if(Math.abs(offset)!==1)return;if(settleState)stopSettling(true);settle(i,0,-offset*SPACING)}));
+    slides.forEach((slide,i)=>{slide.addEventListener('pointerdown',e=>startInspectHold(e,i));slide.addEventListener('click',e=>{e.preventDefault();if(Date.now()<suppressClickUntil)return;const offset=cyclicOffset(i,selected);if(Math.abs(offset)!==1)return;if(settleState)stopSettling(true);settle(i,0,-offset*SPACING)})});
     viewport.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;stopSettling(true);const now=root.performance?.now?.()??Date.now();drag={id:e.pointerId,startX:e.clientX,lastX:e.clientX,lastAt:now,velocityX:0,visualX:0};viewport.classList.add('isDragging');viewport.setPointerCapture?.(e.pointerId)});
-    viewport.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const now=root.performance?.now?.()??Date.now(),dt=Math.max(1,now-drag.lastAt),instant=(e.clientX-drag.lastX)/dt;drag.velocityX=drag.velocityX*.62+instant*.38;drag.lastX=e.clientX;drag.lastAt=now;drag.visualX=magnetizeDrag(e.clientX-drag.startX);render(drag.visualX)});
+    viewport.addEventListener('pointermove',e=>{trackInspectHold(e);if(!drag||e.pointerId!==drag.id)return;const now=root.performance?.now?.()??Date.now(),dt=Math.max(1,now-drag.lastAt),instant=(e.clientX-drag.lastX)/dt;drag.velocityX=drag.velocityX*.62+instant*.38;drag.lastX=e.clientX;drag.lastAt=now;drag.visualX=magnetizeDrag(e.clientX-drag.startX);render(drag.visualX)});
     function finishDrag(e){
+      const inspected=finishInspectHold(e);if(inspected){drag=null;viewport.classList.remove('isDragging');render(0);return}
       if(!drag||e.pointerId!==drag.id)return;
       const dx=drag.lastX-drag.startX,projected=dx+drag.velocityX*FLING_PROJECTION_MS,distanceEnough=Math.abs(dx)>=SWIPE_THRESHOLD,flingEnough=Math.abs(dx)>=MIN_FLING_DISTANCE&&Math.abs(projected)>=SWIPE_THRESHOLD,delta=distanceEnough||flingEnough?(projected<0?1:-1):0,next=delta?stepIndex(selected,delta):selected,startShift=drag.visualX,targetShift=-delta*SPACING;
       drag=null;viewport.classList.remove('isDragging');suppressClickUntil=Date.now()+SETTLE_MS+80;settle(next,startShift,targetShift)
     }
-    viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{if(!drag||e.pointerId!==drag.id)return;const startShift=drag.visualX;drag=null;viewport.classList.remove('isDragging');settle(selected,startShift,0)});
+    viewport.addEventListener('pointerup',finishDrag);viewport.addEventListener('pointercancel',e=>{finishInspectHold(e);if(!drag||e.pointerId!==drag.id)return;const startShift=drag.visualX;drag=null;viewport.classList.remove('isDragging');settle(selected,startShift,0)});
     frame.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();settle(stepIndex(selected,1),0,-SPACING)}else if(e.key==='ArrowLeft'){e.preventDefault();settle(stepIndex(selected,-1),0,SPACING)}});
     startRun.onclick=function(event){stopSettling(true);const mode=MODES[selected];if(!modeAvailable(mode))return false;root.__monoidSelectedMode=mode.id;return originalStart?.call(this,event)}
     if(continueRun)continueRun.onclick=function(event){stopSettling(true);return originalContinue?.call(this,event)};
