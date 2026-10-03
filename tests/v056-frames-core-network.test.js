@@ -11,7 +11,7 @@ function piece(a,b,x,y,rr,id){
 const rectOverlap=(a,b)=>a.x<b.x+b.size&&a.x+a.size>b.x&&a.y<b.y+b.size&&a.y+a.size>b.y;
 const residue=(value,cell=E.S)=>((value%cell)+cell)%cell;
 
-assert.equal(D.VERSION,'0.63.0');
+assert.equal(D.VERSION,'0.64.0');
 assert.equal(D.FRAMES_CORE_MAX_PHYSICAL,6);
 assert.deepEqual(D.FRAMES_CORE_DISCOVERY_STAGES,[2,3,4,5]);
 
