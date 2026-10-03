@@ -47,7 +47,8 @@ function opening(seed){
 assert.equal(D.CORE_DISCOVERY_VOID_COUNT_BY_MODE.islands,5);
 assert.equal(D.ISLANDS_OPENING_VOID_COUNT_PER_HALF,6);
 assert.equal(D.ISLANDS_CORE_MAX_PHYSICAL,16);
-assert.equal(D.ISLANDS_ENDLESS_VOID_COUNT,5);
+assert.equal(D.ISLANDS_ENDLESS_VOID_COUNT,11);
+assert.equal(D.ISLANDS_INFINITE_VOID_COUNT,22);
 assert.equal(D.ISLANDS_ENDLESS_CORE_CHANCE_NUMERATOR,2);
 assert.equal(D.ISLANDS_ENDLESS_CORE_CHANCE_DENOMINATOR,3);
 
@@ -83,38 +84,70 @@ assert.equal(growth.snapshot().signal.discoveredCoreCount,4);
 assert.equal(growth.snapshot().signal.discoveredCoreBonus,4);
 assert.equal(gs.events.some(event=>event.type==='core-progress-blocked'&&['discover','discover-pack'].includes(event.action)),false,'normal 6|6 growth must fit every Core + five Void packet');
 
-function endlessResult(seed){
+function growthResult(seed,{earlyInfinite=false}={}){
   E.setBoardSize(18,24);
-  const game=G.createGame(E,{seed,GAME_MODE:'islands',TARGETS:huge}),state=game.state();
+  const game=G.createGame(E,{seed,GAME_MODE:'islands',TARGETS:huge,...(earlyInfinite?{INFINITE_PHASE_AFTER_STAGES:1}:{})}),state=game.state();
   advanceToStage(game,5);
   const before={cores:state.cores.length,voids:state.voids.length,signal:game.snapshot().signal.discoveredCoreCount};
   state.standardComplete=true;state.endlessMode=true;state.endlessStartedRound=state.round;
   advanceToStage(game,6);
-  const event=[...state.events].reverse().find(item=>item.type==='islands-endless-growth'&&item.stage===6);
-  assert(event,'6|6 Endless must continue terrain growth at Stage 6');
-  if(event.nodeKind==='core'){
-    assert.equal(event.voidCount,5,'Core Growth Node keeps five guaranteed Voids');
+  const endlessEvent=[...state.events].reverse().find(item=>item.type==='islands-endless-growth'&&item.stage===6);
+  assert(endlessEvent,'6|6 Endless must continue terrain growth at Stage 6');
+  assert.equal(endlessEvent.phase,'endless');
+  if(endlessEvent.nodeKind==='core'){
+    assert.equal(endlessEvent.voidCount,11,'Endless Core Growth Node keeps eleven guaranteed Voids');
     assert.equal(state.cores.length,before.cores+1);
-    assert.equal(state.voids.length,before.voids+5);
+    assert.equal(state.voids.length,before.voids+11);
     assert.equal(game.snapshot().signal.discoveredCoreCount,before.signal+1)
   }else{
-    assert.equal(event.nodeKind,'void');
-    assert.equal(event.voidCount,6,'Void Growth Node substitutes the Core slot, producing six Voids');
+    assert.equal(endlessEvent.nodeKind,'void');
+    assert.equal(endlessEvent.voidCount,12,'Endless Void Growth Node substitutes the Core slot, producing twelve Voids');
     assert.equal(state.cores.length,before.cores);
-    assert.equal(state.voids.length,before.voids+6);
+    assert.equal(state.voids.length,before.voids+12);
     assert.equal(game.snapshot().signal.discoveredCoreCount,before.signal,'Void Growth Node grants no Core Signal')
   }
+
+  let infiniteEvent=null;
+  if(earlyInfinite){
+    const beforeInfinite={cores:state.cores.length,voids:state.voids.length,signal:game.snapshot().signal.discoveredCoreCount};
+    advanceToStage(game,7);
+    infiniteEvent=[...state.events].reverse().find(item=>item.type==='islands-endless-growth'&&item.stage===7);
+    assert(infiniteEvent,'6|6 Infinite must continue terrain growth at Stage 7 in the shortened fixture');
+    assert.equal(game.snapshot().endless.infinitePhase,true);
+    assert.equal(infiniteEvent.phase,'infinite');
+    if(infiniteEvent.nodeKind==='core'){
+      assert.equal(infiniteEvent.voidCount,22,'Infinite Core Growth Node keeps twenty-two guaranteed Voids');
+      assert.equal(state.cores.length,beforeInfinite.cores+1);
+      assert.equal(state.voids.length,beforeInfinite.voids+22);
+      assert.equal(game.snapshot().signal.discoveredCoreCount,beforeInfinite.signal+1)
+    }else{
+      assert.equal(infiniteEvent.nodeKind,'void');
+      assert.equal(infiniteEvent.voidCount,23,'Infinite Void Growth Node substitutes the Core slot, producing twenty-three Voids');
+      assert.equal(state.cores.length,beforeInfinite.cores);
+      assert.equal(state.voids.length,beforeInfinite.voids+23);
+      assert.equal(game.snapshot().signal.discoveredCoreCount,beforeInfinite.signal)
+    }
+  }
+
   const geometry=[...state.cores,...state.voids];
-  for(let i=0;i<geometry.length;i++)for(let j=i+1;j<geometry.length;j++)assert.equal(rectOverlap(geometry[i],geometry[j]),false,'6|6 Endless geometry never overlaps');
-  return{kind:event.nodeKind,cores:state.cores.map(({id,x,y,stage})=>({id,x,y,stage:stage||null})),voids:state.voids.map(({id,x,y,stage,growthNode})=>({id,x,y,stage:stage||null,growthNode:!!growthNode}))}
+  for(let i=0;i<geometry.length;i++)for(let j=i+1;j<geometry.length;j++)assert.equal(rectOverlap(geometry[i],geometry[j]),false,'6|6 late growth geometry never overlaps');
+  return{
+    endless:{kind:endlessEvent.nodeKind,voidCount:endlessEvent.voidCount},
+    infinite:infiniteEvent?{kind:infiniteEvent.nodeKind,voidCount:infiniteEvent.voidCount}:null,
+    cores:state.cores.map(({id,x,y,stage})=>({id,x,y,stage:stage||null})),
+    voids:state.voids.map(({id,x,y,stage,growthNode})=>({id,x,y,stage:stage||null,growthNode:!!growthNode}))
+  }
 }
 
 const kinds=new Set(),endlessSamples=[];
 for(const seed of [63020,63021,63022,63023,63024,63025]){
-  const result=endlessResult(seed);kinds.add(result.kind);endlessSamples.push([seed,result])
+  const result=growthResult(seed);kinds.add(result.endless.kind);endlessSamples.push([seed,result])
 }
 assert.deepEqual([...kinds].sort(),['core','void'],'seeded 6|6 Endless must exercise both Core and Void Growth Nodes');
-const deterministicA=endlessResult(63020),deterministicB=endlessResult(63020);
+const deterministicA=growthResult(63020),deterministicB=growthResult(63020);
 assert.deepEqual(deterministicB,deterministicA,'6|6 Endless growth remains seed deterministic');
 
-console.log('v0.63 6|6 opening topology and Core/Void growth regressions passed');
+const infiniteSamples=[63030,63031,63032,63033].map(seed=>growthResult(seed,{earlyInfinite:true}));
+assert(infiniteSamples.every(result=>result.infinite&&[22,23].includes(result.infinite.voidCount)),'Infinite always doubles the guaranteed erosion to 22 Voids before Growth Node substitution');
+
+console.log('v0.64 6|6 opening topology, escalated erosion and Core/Void growth regressions passed');
