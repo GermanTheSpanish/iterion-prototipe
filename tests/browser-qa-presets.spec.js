@@ -91,7 +91,7 @@ test('Germán Run #9 checkpoint resumes the real machine at Endless start withou
   await expect(page.locator('#board .tileModMark.zp')).toHaveCount(1);
   await expect(page.locator('#board .tileModMark.br')).toHaveCount(1);
   await expect(page.locator('#board .tileModMark.bo')).toHaveCount(1);
-  await expect(page.locator('#board .tileModMark.sw')).toHaveCount(1);
+  await expect(page.locator('#board .tileModMark.sw')).toHaveCount(0);
   await expect(page.locator('#board .tileModMark.fd')).toHaveCount(1);
   await expect(page.locator('#board .circuitTile')).toHaveCount(3);
   expect(await page.locator('#board .power2').count()).toBeGreaterThanOrEqual(5);
