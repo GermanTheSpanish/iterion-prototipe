@@ -106,7 +106,7 @@ test('The Islands starts a persisted 6|6 run where every opening placement is Co
   await page.locator('#startRun').click();
   await dismissModeIntro(page);
   await expect(page.locator('#board .coreNode')).toHaveCount(12);
-  await expect(page.locator('#board .boardVoid')).toHaveCount(0);
+  await expect(page.locator('#board .boardVoid')).toHaveCount(12);
   await expect(page.locator('#modeIndicator')).toBeVisible();
   await expect(page.locator('#modeIndicator .modeIndicatorHalf')).toHaveCount(2);
   await expect(page.locator('#modeIndicator .modePip')).toHaveCount(12);
@@ -128,7 +128,7 @@ test('The Islands starts a persisted 6|6 run where every opening placement is Co
   expect(state.storedMode).toBe('islands');
   expect(state.savedMode).toBe('islands');
   expect(state.cores).toBe(12);
-  expect(state.voids).toBe(0);
+  expect(state.voids).toBe(12);
   expect(state.signal).toBe(2);
   expect(state.islands.componentCount).toBe(0);
   expect(state.doubleIndex).toBeGreaterThanOrEqual(0);
