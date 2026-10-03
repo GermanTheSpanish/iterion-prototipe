@@ -26,6 +26,15 @@
   });
   const CONTEXTS=Object.freeze(['player','dev','fresh']);
   const ALL_MODES=Object.freeze(['classic','eyes','frames','river','loom','peaks','islands']);
+  const MODE_REQUIREMENTS=Object.freeze({
+    classic:Object.freeze({name:'CLASSIC',unlock:'Available from start.',complete:'Reach Endless.'}),
+    eyes:Object.freeze({name:'THE EYES',unlock:'Reach Endless in Classic.',complete:'Connect both starting Cores.'}),
+    frames:Object.freeze({name:'THE FRAMES',unlock:'Connect both starting Cores in The Eyes.',complete:'Activate 3 newly discovered Cores.'}),
+    river:Object.freeze({name:'THE RIVER',unlock:'Activate 3 newly discovered Cores in The Frames.',complete:'Reach both sides in one Move.'}),
+    loom:Object.freeze({name:'THE LOOM',unlock:'Reach both sides in one Move in The River.',complete:'Complete a Circuit through a Core.'}),
+    peaks:Object.freeze({name:'THE PEAKS',unlock:'Complete a Circuit through a Core in The Loom.',complete:'Reach Infinite.'}),
+    islands:Object.freeze({name:'THE ISLANDS',unlock:'Reach Infinite in The Peaks.',complete:'Clear one Ouroboros round.'})
+  });
   const LEGACY_PLAYER_KEY='monoid.playtestPlayer.v1';
   const LEGACY_ACTIVITY_KEYS=Object.freeze([
     LEGACY_PLAYER_KEY,
@@ -108,6 +117,7 @@
         createdAt:new Date(now()).toISOString(),
         context:context,
         unlockedModes:defaultUnlockedModes(context),
+        completedModes:[],
         unlockedMods:[],
         collection:{numbers:[]},
         stats:{
@@ -129,6 +139,8 @@
       base.unlockedModes=Array.from(new Set(base.unlockedModes.filter(function(mode){return ALL_MODES.includes(mode)})));
       if(!base.unlockedModes.includes('classic'))base.unlockedModes.unshift('classic');
       if(context==='dev')base.unlockedModes=ALL_MODES.slice();
+      if(!Array.isArray(base.completedModes))base.completedModes=[];
+      base.completedModes=Array.from(new Set(base.completedModes.filter(function(mode){return ALL_MODES.includes(mode)})));
       if(!Array.isArray(base.unlockedMods))base.unlockedMods=[];
       if(!base.collection||typeof base.collection!=='object')base.collection={numbers:[]};
       if(!Array.isArray(base.collection.numbers))base.collection.numbers=[];
@@ -175,6 +187,30 @@
       return{changed:true,profile:saveProfile(profile,id)}
     }
 
+    function isModeCompleted(mode,context){
+      if(!ALL_MODES.includes(mode))return false;
+      const id=validContext(context)||currentContext();
+      return ensureProfile(id).completedModes.includes(mode)
+    }
+
+    function completeMode(mode,context){
+      if(!ALL_MODES.includes(mode))return{changed:false,profile:ensureProfile(context)};
+      const id=validContext(context)||currentContext(),profile=ensureProfile(id);
+      if(profile.completedModes.includes(mode))return{changed:false,profile:profile};
+      profile.completedModes.push(mode);
+      return{changed:true,profile:saveProfile(profile,id)}
+    }
+
+    function modeProgress(mode,context){
+      const id=validContext(context)||currentContext(),requirement=MODE_REQUIREMENTS[mode]||null,profile=ensureProfile(id);
+      return{
+        mode:mode,
+        requirement:requirement?clone(requirement):null,
+        unlocked:isModeUnlocked(mode,id),
+        completed:profile.completedModes.includes(mode)
+      }
+    }
+
     function resetContext(context){
       const id=validContext(context);
       if(!id||id==='player')return false;
@@ -217,28 +253,33 @@
 
     function evaluateRun(state,snapshot,context){
       const id=validContext(context)||currentContext();
-      if(id==='dev'||!state||!snapshot)return{unlocked:[],profile:ensureProfile(id)};
-      const mode=String(state.gameMode||snapshot.gameMode||'classic'),events=Array.isArray(state.events)?state.events:[],cores=Array.isArray(state.cores)?state.cores:[],unlocked=[];
+      if(id==='dev'||!state||!snapshot)return{unlocked:[],completed:[],profile:ensureProfile(id)};
+      const mode=String(state.gameMode||snapshot.gameMode||'classic'),events=Array.isArray(state.events)?state.events:[],cores=Array.isArray(state.cores)?state.cores:[],unlocked=[],completed=[];
       const unlock=function(next){const result=unlockMode(next,id);if(result.changed)unlocked.push(next)};
-      if(mode==='classic'&&state.endlessMode)unlock('eyes');
-      if(mode==='eyes'&&Number(snapshot.cores?.telemetry?.connectedCoreCount||0)>=2)unlock('frames');
+      const complete=function(current){const result=completeMode(current,id);if(result.changed)completed.push(current)};
+      if(mode==='classic'&&state.endlessMode){complete('classic');unlock('eyes')}
+      if(mode==='eyes'&&Number(snapshot.cores?.telemetry?.connectedCoreCount||0)>=2){complete('eyes');unlock('frames')}
       if(mode==='frames'){
         const discovered=new Set(cores.filter(function(core){return Number.isFinite(Number(core.stage))}).map(function(core){return core.id})),activated=new Set();
         events.forEach(function(event){(event.coreActivations||[]).forEach(function(item){if(discovered.has(item.coreId))activated.add(item.coreId)})});
-        if(activated.size>=3)unlock('river')
+        if(activated.size>=3){complete('frames');unlock('river')}
       }
       if(mode==='river'){
         const halfByCore=new Map(cores.filter(function(core){return core.half==='north'||core.half==='south'}).map(function(core){return[core.id,core.half]}));
         const crossed=events.some(function(event){if(!Array.isArray(event.coreActivations))return false;const halves=new Set(event.coreActivations.map(function(item){return halfByCore.get(item.coreId)}).filter(Boolean));return halves.has('north')&&halves.has('south')});
-        if(crossed)unlock('loom')
+        if(crossed){complete('river');unlock('loom')}
       }
       if(mode==='loom'){
         const activatedMoves=new Set(events.filter(function(event){return Array.isArray(event.coreActivations)&&event.coreActivations.length}).map(function(event){return Number(event.turn)}));
         const circuitThroughCore=events.some(function(event){return event.type==='circuit-closed'&&activatedMoves.has(Number(event.move))});
-        if(circuitThroughCore)unlock('peaks')
+        if(circuitThroughCore){complete('loom');unlock('peaks')}
       }
-      if(mode==='peaks'&&state.endlessMode)unlock('islands');
-      return{unlocked:unlocked,profile:ensureProfile(id)}
+      if(mode==='peaks'&&snapshot.endless?.infinitePhase){complete('peaks');unlock('islands')}
+      if(mode==='islands'&&state.ouroborosMode){
+        const ouroborosStart=Math.max(1,Number(state.ouroborosStartedRound)||0),wonOuroborosRound=Array.isArray(state.wins)&&state.wins.some(function(win){return Number(win.round)>=ouroborosStart});
+        if(wonOuroborosRound)complete('islands')
+      }
+      return{unlocked:unlocked,completed:completed,profile:ensureProfile(id)}
     }
 
     function contextInfo(){
@@ -265,6 +306,9 @@
       isDevAccess:isDevAccess,
       isModeUnlocked:isModeUnlocked,
       unlockMode:unlockMode,
+      isModeCompleted:isModeCompleted,
+      completeMode:completeMode,
+      modeProgress:modeProgress,
       resetContext:resetContext,
       setContext:setContext,
       telemetryOptions:telemetryOptions,
@@ -279,6 +323,7 @@
     PROFILE_KEYS:PROFILE_KEYS,
     CONTEXT_PREFIX:CONTEXT_PREFIX,
     CONTEXTS:CONTEXTS,
-    ALL_MODES:ALL_MODES
+    ALL_MODES:ALL_MODES,
+    MODE_REQUIREMENTS:MODE_REQUIREMENTS
   }
 });

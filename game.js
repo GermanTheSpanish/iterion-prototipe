@@ -490,11 +490,11 @@ function createGame(E,opts={}){
     candidates.sort((a,b)=>a.touches-b.touches||a.distance-b.distance||a.hash-b.hash||a.candidate.y-b.candidate.y||a.candidate.x-b.candidate.x);
     return candidates[0]?.candidate||null
   }
-  function discoverCore(stage,reason='stage'){
+  function discoverCore(stage,reason='stage',options={}){
     const mode=canonicalGameMode(s.gameMode),maxPhysical=coreMaxPhysicalForMode(mode);if(!coreGameMode(mode)||(s.cores?.length||0)>=maxPhysical)return null;
     const archetypes=Array.isArray(cfg.CORE_ARCHETYPES)&&cfg.CORE_ARCHETYPES.length?cfg.CORE_ARCHETYPES:['relay','reservoir','distributor','conductor'],used=new Set((s.cores||[]).map(core=>core.archetype)),missing=archetypes.filter(id=>!used.has(id)),pool=missing.length?missing:archetypes,index=(s.cores?.length||0);
     if(['eyes','frames','river','loom','peaks','islands'].includes(mode)){
-      const archetype=pool[coreHash(s.seed||0,stage+index,251)%pool.length],size=Math.max(1,Number(E.S)||2),ports=corePortsForArchetype(s.seed||0,stage+index,archetype),choice=growthCoreCandidatePosition(mode,stage,size,ports),slot=mode==='frames'?`frame-${stage}`:`${mode}-stage-${stage}`,voidCount=coreDiscoveryVoidCountForMode(mode);
+      const archetype=pool[coreHash(s.seed||0,stage+index,251)%pool.length],size=Math.max(1,Number(E.S)||2),ports=corePortsForArchetype(s.seed||0,stage+index,archetype),choice=growthCoreCandidatePosition(mode,stage,size,ports),slot=mode==='frames'?`frame-${stage}`:`${mode}-stage-${stage}`,configuredVoidCount=Number(options?.voidCount),voidCount=Number.isFinite(configuredVoidCount)?Math.max(0,Math.trunc(configuredVoidCount)):coreDiscoveryVoidCountForMode(mode);
       if(!choice?.position){s.events.push({type:'core-progress-blocked',mode,stage,reason,action:'discover',slot});return null}
       const position=choice.position,core={id:`core-${mode}-stage-${stage}`,slot,stage,x:position.x,y:position.y,size,ports,archetype,level:1},voidChoice=growthVoidPositions(mode,stage,core,voidCount);
       if(voidChoice.positions.length!==voidCount){s.events.push({type:'core-progress-blocked',mode,stage,reason,action:'discover-pack',slot,requiredVoids:voidCount,availableVoids:voidChoice.positions.length});return null}
@@ -509,11 +509,11 @@ function createGame(E,opts={}){
   }
   function growLateModeEndless(mode,stage,reason='endless-growth'){
     const id=canonicalGameMode(mode);if(!['peaks','islands'].includes(id)||canonicalGameMode(s.gameMode)!==id||!s.endlessMode||stage<=baseStageCount())return null;
-    const isIslands=id==='islands',voidCount=Math.max(0,Math.trunc(Number(isIslands?cfg.ISLANDS_ENDLESS_VOID_COUNT:cfg.PEAKS_ENDLESS_VOID_COUNT)||(isIslands?5:4))),denominator=Math.max(1,Math.trunc(Number(isIslands?cfg.ISLANDS_ENDLESS_CORE_CHANCE_DENOMINATOR:cfg.PEAKS_ENDLESS_CORE_CHANCE_DENOMINATOR)||3)),numerator=Math.max(0,Math.min(denominator,Math.trunc(Number(isIslands?cfg.ISLANDS_ENDLESS_CORE_CHANCE_NUMERATOR:cfg.PEAKS_ENDLESS_CORE_CHANCE_NUMERATOR)||2))),canAddCore=(s.cores?.length||0)<coreMaxPhysicalForMode(id),coreRoll=coreHash(s.seed||0,stage,isIslands?733:701)%denominator,wantsCore=canAddCore&&coreRoll<numerator,eventType=`${id}-endless-growth`;
+    const isIslands=id==='islands',growthPhase=isIslands&&infinitePhase()?'infinite':'endless',islandsVoidCount=growthPhase==='infinite'?cfg.ISLANDS_INFINITE_VOID_COUNT:cfg.ISLANDS_ENDLESS_VOID_COUNT,voidCount=Math.max(0,Math.trunc(Number(isIslands?islandsVoidCount:cfg.PEAKS_ENDLESS_VOID_COUNT)||(isIslands?(growthPhase==='infinite'?22:11):4))),denominator=Math.max(1,Math.trunc(Number(isIslands?cfg.ISLANDS_ENDLESS_CORE_CHANCE_DENOMINATOR:cfg.PEAKS_ENDLESS_CORE_CHANCE_DENOMINATOR)||3)),numerator=Math.max(0,Math.min(denominator,Math.trunc(Number(isIslands?cfg.ISLANDS_ENDLESS_CORE_CHANCE_NUMERATOR:cfg.PEAKS_ENDLESS_CORE_CHANCE_NUMERATOR)||2))),canAddCore=(s.cores?.length||0)<coreMaxPhysicalForMode(id),coreRoll=coreHash(s.seed||0,stage,isIslands?733:701)%denominator,wantsCore=canAddCore&&coreRoll<numerator,eventType=`${id}-endless-growth`;
     if(wantsCore){
-      const core=discoverCore(stage,reason);if(!core)return null;
+      const core=discoverCore(stage,reason,{voidCount});if(!core)return null;
       const companionVoidIds=(s.events||[]).at(-1)?.type==='void-discover'&&(s.events||[]).at(-1)?.sourceCoreId===core.id?((s.events||[]).at(-1).voids||[]).map(item=>item.id):[];
-      s.events.push({type:eventType,mode:id,stage,reason,nodeKind:'core',nodeId:core.id,coreId:core.id,voidCount:companionVoidIds.length,voidIds:companionVoidIds,roll:coreRoll,numerator,denominator});
+      s.events.push({type:eventType,mode:id,stage,reason,phase:growthPhase,nodeKind:'core',nodeId:core.id,coreId:core.id,voidCount:companionVoidIds.length,voidIds:companionVoidIds,roll:coreRoll,numerator,denominator});
       return{nodeKind:'core',core,voidIds:companionVoidIds}
     }
     const archetype='relay',size=Math.max(1,Number(E.S)||2),ports=corePortsForArchetype(s.seed||0,stage+(isIslands?733:701),archetype),choice=growthCoreCandidatePosition(id,stage,size,ports),nodeId=`void-${id}-endless-${stage}-node`;
@@ -523,7 +523,7 @@ function createGame(E,opts={}){
     const node={id:nodeId,slot:`${virtual.slot}-void-node`,stage,sourceCoreId:null,sourceGrowthNodeId:nodeId,growthNode:true,x:virtual.x,y:virtual.y,size},companions=voidChoice.positions.map((item,index)=>({id:`void-${id}-endless-${stage}-${index+1}`,slot:`${virtual.slot}-void-${index+1}`,stage,sourceCoreId:null,sourceGrowthNodeId:nodeId,x:item.x,y:item.y,size})),voids=[node,...companions];
     s.voids.push(...voids);
     s.events.push({type:'void-discover',mode:id,stage,reason,sourceCoreId:null,sourceGrowthNodeId:nodeId,count:voids.length,voids:deepClone(voids),lattice:choice.lattice||null,voidLattice:voidChoice.voidLattice||null,growthFallback:!!voidChoice.fallbackToBoard});
-    s.events.push({type:eventType,mode:id,stage,reason,nodeKind:'void',nodeId,coreId:null,voidCount:voids.length,voidIds:voids.map(item=>item.id),roll:coreRoll,numerator,denominator});
+    s.events.push({type:eventType,mode:id,stage,reason,phase:growthPhase,nodeKind:'void',nodeId,coreId:null,voidCount:voids.length,voidIds:voids.map(item=>item.id),roll:coreRoll,numerator,denominator});
     return{nodeKind:'void',core:null,voidIds:voids.map(item=>item.id)}
   }
   function upgradeCore(stage,reason='stage'){

@@ -26,6 +26,7 @@ function create(store,hostname='play.monoid.test'){
   const store=storage(),profile=create(store);
   assert.equal(profile.currentContext(),'player');
   assert.deepEqual(profile.ensureProfile().unlockedModes,['classic']);
+  assert.deepEqual(profile.ensureProfile().completedModes,[]);
   assert.equal(profile.isModeUnlocked('eyes'),false);
   assert.equal(profile.storageKey('iterion.activeRun.v1'),'iterion.activeRun.v1');
 }
@@ -55,6 +56,7 @@ function create(store,hostname='play.monoid.test'){
   const store=storage({'iterion.activeRun.v1':'PLAYER-SAVE'}),profile=create(store);
   profile.setContext('dev');
   assert.deepEqual(profile.ensureProfile().unlockedModes,Profile.ALL_MODES);
+  assert.deepEqual(profile.ensureProfile().completedModes,[]);
   assert.equal(profile.storageKey('iterion.activeRun.v1'),'monoid.ctx.dev.iterion.activeRun.v1');
   store.setItem(profile.storageKey('iterion.activeRun.v1'),'DEV-SAVE');
   profile.setContext('fresh',{reset:true});
@@ -67,10 +69,10 @@ function create(store,hostname='play.monoid.test'){
 
 {
   const store=storage(),profile=create(store);
-  let result=profile.evaluateRun({gameMode:'classic',endlessMode:true,events:[],cores:[]},{gameMode:'classic',cores:{telemetry:{connectedCoreCount:0}}});
-  assert.deepEqual(result.unlocked,['eyes']);
-  result=profile.evaluateRun({gameMode:'eyes',events:[],cores:[]},{gameMode:'eyes',cores:{telemetry:{connectedCoreCount:2}}});
-  assert.deepEqual(result.unlocked,['frames']);
+  let result=profile.evaluateRun({gameMode:'classic',endlessMode:true,events:[],cores:[]},{gameMode:'classic',cores:{telemetry:{connectedCoreCount:0}},endless:{infinitePhase:false}});
+  assert.deepEqual(result.unlocked,['eyes']);assert.deepEqual(result.completed,['classic']);
+  result=profile.evaluateRun({gameMode:'eyes',events:[],cores:[]},{gameMode:'eyes',cores:{telemetry:{connectedCoreCount:2}},endless:{infinitePhase:false}});
+  assert.deepEqual(result.unlocked,['frames']);assert.deepEqual(result.completed,['eyes']);
   const discovered=[1,2,3].map(stage=>({id:'core-frames-stage-'+stage,stage}));
   result=profile.evaluateRun({
     gameMode:'frames',cores:discovered,events:[
@@ -78,21 +80,52 @@ function create(store,hostname='play.monoid.test'){
       {coreActivations:[{coreId:discovered[1].id}]},
       {coreActivations:[{coreId:discovered[2].id}]}
     ]
-  },{gameMode:'frames',cores:{telemetry:{connectedCoreCount:3}}});
-  assert.deepEqual(result.unlocked,['river']);
+  },{gameMode:'frames',cores:{telemetry:{connectedCoreCount:3}},endless:{infinitePhase:false}});
+  assert.deepEqual(result.unlocked,['river']);assert.deepEqual(result.completed,['frames']);
   result=profile.evaluateRun({
     gameMode:'river',cores:[{id:'north',half:'north'},{id:'south',half:'south'}],
     events:[{turn:4,coreActivations:[{coreId:'north'},{coreId:'south'}]}]
-  },{gameMode:'river',cores:{telemetry:{connectedCoreCount:2}}});
-  assert.deepEqual(result.unlocked,['loom']);
+  },{gameMode:'river',cores:{telemetry:{connectedCoreCount:2}},endless:{infinitePhase:false}});
+  assert.deepEqual(result.unlocked,['loom']);assert.deepEqual(result.completed,['river']);
   result=profile.evaluateRun({
     gameMode:'loom',cores:[{id:'core-a'}],
     events:[{turn:7,coreActivations:[{coreId:'core-a'}]},{type:'circuit-closed',move:7}]
-  },{gameMode:'loom',cores:{telemetry:{connectedCoreCount:1}}});
-  assert.deepEqual(result.unlocked,['peaks']);
-  result=profile.evaluateRun({gameMode:'peaks',endlessMode:true,events:[],cores:[]},{gameMode:'peaks',cores:{telemetry:{connectedCoreCount:0}}});
-  assert.deepEqual(result.unlocked,['islands']);
+  },{gameMode:'loom',cores:{telemetry:{connectedCoreCount:1}},endless:{infinitePhase:false}});
+  assert.deepEqual(result.unlocked,['peaks']);assert.deepEqual(result.completed,['loom']);
+
+  result=profile.evaluateRun(
+    {gameMode:'peaks',endlessMode:true,events:[],cores:[]},
+    {gameMode:'peaks',cores:{telemetry:{connectedCoreCount:0}},endless:{infinitePhase:false}}
+  );
+  assert.deepEqual(result.unlocked,[],'Peaks Endless alone must not unlock Islands');
+  assert.deepEqual(result.completed,[],'Peaks Endless alone must not complete Peaks');
+  assert.equal(profile.isModeUnlocked('islands'),false);
+
+  result=profile.evaluateRun(
+    {gameMode:'peaks',endlessMode:true,events:[],cores:[]},
+    {gameMode:'peaks',cores:{telemetry:{connectedCoreCount:0}},endless:{infinitePhase:true}}
+  );
+  assert.deepEqual(result.unlocked,['islands']);assert.deepEqual(result.completed,['peaks']);
+  assert.equal(profile.modeProgress('islands').unlocked,true);
+  assert.equal(profile.modeProgress('islands').completed,false);
+  assert.equal(profile.modeProgress('islands').requirement.unlock,'Reach Infinite in The Peaks.');
+  assert.equal(profile.modeProgress('islands').requirement.complete,'Clear one Ouroboros round.');
+
+  result=profile.evaluateRun(
+    {gameMode:'islands',ouroborosMode:true,ouroborosStartedRound:42,wins:[{round:41}],events:[],cores:[]},
+    {gameMode:'islands',cores:{telemetry:{connectedCoreCount:0}},endless:{infinitePhase:true,ouroboros:true}}
+  );
+  assert.deepEqual(result.completed,[],'entering Ouroboros is not enough to complete Islands');
+
+  result=profile.evaluateRun(
+    {gameMode:'islands',ouroborosMode:true,ouroborosStartedRound:42,wins:[{round:41},{round:42}],events:[],cores:[]},
+    {gameMode:'islands',cores:{telemetry:{connectedCoreCount:0}},endless:{infinitePhase:true,ouroboros:true}}
+  );
+  assert.deepEqual(result.completed,['islands']);
+  assert.deepEqual(result.unlocked,[]);
+  assert.equal(profile.isModeCompleted('islands'),true);
   assert.deepEqual(profile.ensureProfile().unlockedModes,['classic','eyes','frames','river','loom','peaks','islands']);
+  assert.deepEqual(profile.ensureProfile().completedModes,['classic','eyes','frames','river','loom','peaks','islands']);
 }
 
 {
