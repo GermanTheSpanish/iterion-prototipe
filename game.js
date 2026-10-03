@@ -291,7 +291,7 @@ function createGame(E,opts={}){
           const candidates=[];
           for(let y=minY;y<=maxY;y+=size)for(let x=dx;x<=dx+baseG-size;x+=size){
             const candidate={x,y,size};if(cores.some(core=>overlaps(candidate,core))||voids.some(item=>overlaps(candidate,item))||selected.some(item=>overlaps(candidate,item)))continue;
-            const trial=[...voids,...selected,candidate];if(!halfCores.every(core=>hasOpeningApproach(core,trial)))continue;
+            const trial=[...voids,...selected,candidate];if(!cores.every(core=>hasOpeningApproach(core,trial)))continue;
             const sameColumn=selected.filter(item=>item.x===x).length,sameRow=selected.filter(item=>item.y===y).length,near=selected.filter(item=>Math.abs(item.x-x)+Math.abs(item.y-y)<=radius).length,columnPenalty=Math.max(0,sameColumn-columnCap+1),rowPenalty=Math.max(0,sameRow-rowCap+1),hash=coreHash(seed,x+y*board.G+halfIndex*977+index*131,811);
             candidates.push({candidate,columnPenalty,rowPenalty,near,hash})
           }
