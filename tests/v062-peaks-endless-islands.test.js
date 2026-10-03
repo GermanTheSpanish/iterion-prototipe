@@ -24,14 +24,16 @@ assert.equal(D.PEAKS_ENDLESS_VOID_COUNT,4);
 assert.equal(D.PEAKS_ENDLESS_CORE_CHANCE_NUMERATOR,2);
 assert.equal(D.PEAKS_ENDLESS_CORE_CHANCE_DENOMINATOR,3);
 assert.equal(D.VOID_COLUMN_SOFT_CAP,2);
-assert.equal(D.ISLANDS_CORE_MAX_PHYSICAL,12);
+assert.equal(D.ISLANDS_OPENING_VOID_COUNT_PER_HALF,6);
+assert.equal(D.ISLANDS_CORE_MAX_PHYSICAL,16);
+assert.equal(D.ISLANDS_ENDLESS_VOID_COUNT,5);
 assert.equal(D.ISLAND_LINK_SIGNAL_STEP,2);
 
 E.setBoardSize(18,24);
 const islands=G.createGame(E,{seed:62010,GAME_MODE:'islands',TARGETS:huge,STARTING_UNDO_CONSUMABLES:1});
 assert.equal(islands.state().gameMode,'islands');
 assert.equal(islands.state().cores.length,12,'6|6 opens with six Cores per half');
-assert.equal(islands.state().voids.length,0,'6|6 opening topology is Core islands, not opening Voids');
+assert.equal(islands.state().voids.length,12,'6|6 opens with six seeded Voids per half');
 assert.equal(islands.snapshot().signal.base,2);
 assert.equal(islands.snapshot().islands.componentCount,0);
 assert.equal(islands.state().cores.every(core=>visible(core)),true);
@@ -39,6 +41,7 @@ for(const half of ['north','south']){
   const cores=islands.state().cores.filter(core=>core.half===half).sort((a,b)=>a.pip-b.pip);
   assert.equal(cores.length,6);
   assert.deepEqual(cores.map(core=>core.pip),[0,1,2,3,4,5]);
+  assert.equal(islands.state().voids.filter(item=>item.half===half).length,6);
 }
 
 const state=islands.state();

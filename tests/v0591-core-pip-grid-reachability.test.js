@@ -24,7 +24,7 @@ const expected={
   river:{north:[{x:2,y:2},{x:8,y:6},{x:14,y:10}],south:[{x:2,y:12},{x:8,y:16},{x:14,y:20}]},
   loom:{north:[{x:2,y:2},{x:14,y:2},{x:2,y:10},{x:14,y:10}],south:[{x:2,y:12},{x:14,y:12},{x:2,y:20},{x:14,y:20}]},
   peaks:{north:[{x:2,y:2},{x:14,y:2},{x:2,y:10},{x:14,y:10},{x:8,y:6}],south:[{x:2,y:12},{x:14,y:12},{x:2,y:20},{x:14,y:20},{x:8,y:16}]},
-  islands:{north:[{x:2,y:2},{x:14,y:2},{x:2,y:6},{x:14,y:6},{x:2,y:10},{x:14,y:10}],south:[{x:2,y:12},{x:14,y:12},{x:2,y:16},{x:14,y:16},{x:2,y:20},{x:14,y:20}]}
+  islands:{north:[{x:2,y:0},{x:14,y:0},{x:2,y:4},{x:14,y:4},{x:2,y:8},{x:14,y:8}],south:[{x:2,y:14},{x:14,y:14},{x:2,y:18},{x:14,y:18},{x:2,y:22},{x:14,y:22}]}
 };
 
 for(const mode of Object.keys(expected)){
@@ -36,15 +36,16 @@ for(const mode of Object.keys(expected)){
       assert.deepEqual(sites.map(({half,x,y})=>({half,x,y})),[{half:'north',x:8,y:6},{half:'south',x:8,y:16}])
     }else{
       for(const half of ['north','south']){
-        const sites=geometry.filter(item=>item.half===half).sort((a,b)=>a.pip-b.pip).map(({x,y})=>({x,y}));
-        assert.deepEqual(sites,expected[mode][half],`${mode} ${half} opening pips must use the widened shared grid`)
+        const source=mode==='islands'?state.cores:geometry,sites=source.filter(item=>item.half===half).sort((a,b)=>(a.pip??99)-(b.pip??99)).map(({x,y})=>({x,y}));
+        assert.deepEqual(sites,expected[mode][half],`${mode} ${half} opening Core pips must use the widened shared grid`)
       }
+      if(mode==='islands'){assert.equal(state.voids.filter(item=>item.half==='north').length,6);assert.equal(state.voids.filter(item=>item.half==='south').length,6)}
     }
     for(const core of state.cores){const sides=approachSides(core,geometry),reachabilityEvents=state.events.filter(event=>event.type==='core-port-reachability'||event.type==='core-port-reachability-blocked');assert(sides.length>0,`${mode} seed ${60100+seed} Core ${core.id} needs one complete two-cell domino approach through an actual port; ports=${(core.ports||[]).join('')||'-'} events=${JSON.stringify(reachabilityEvents)}`)}
   }
 }
 
-for(const mode of Object.keys(expected).filter(mode=>mode!=='islands')){
+for(const mode of Object.keys(expected)){
   for(let seed=0;seed<12;seed++){
     E.setBoardSize(18,24);
     const game=G.createGame(E,{seed:60200+seed,GAME_MODE:mode,TARGETS:Array(15).fill(Number.MAX_SAFE_INTEGER)}),state=game.state();
