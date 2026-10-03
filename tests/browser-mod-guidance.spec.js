@@ -1,12 +1,12 @@
 const{test,expect}=require('@playwright/test');
 
-async function startWithTerminal(page){
+async function startWithCorner(page){
   await page.addInitScript(()=>{
     localStorage.setItem('monoid.firstRunBriefing.v1','seen');
     let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){
-      const game=value.createGame(engine,{...options,seed:4201}),s=game.state(),specs=[['d1-2',6,8,0],['d2-3',10,8,0]];
+      const game=value.createGame(engine,{...options,seed:4201}),s=game.state(),specs=[['d2-3',6,8,0],['d2-2',2,8,0],['d3-3',8,4,1]];
       s.pieces=specs.map(([id,x,y,rr],i)=>{const tile=s.set.find(t=>t.id===id),p=engine.pieceFrom(tile,x,y,0,rr,i+1);p.tile={...tile};return p});
-      s.placedTileIds=specs.map(v=>v[0]);s.hand=s.hand.map(t=>t&&s.placedTileIds.includes(t.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));s.terminalTileId='d1-2';return game
+      s.placedTileIds=specs.map(v=>v[0]);s.hand=s.hand.map(t=>t&&s.placedTileIds.includes(t.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));s.cornerTileId='d2-3';return game
     }}}});
   });
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
@@ -23,10 +23,10 @@ test('Modifier primer teaches BUILD → REWARD without asking players to memoris
 });
 
 test('Inspector shows schematic, player-facing rule and live Mod status',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await startWithTerminal(page);
-  const tile=page.locator('#board .piece[data-tile-id="d1-2"]'),box=await tile.boundingBox();expect(box).toBeTruthy();
+  await page.setViewportSize({width:390,height:844});await startWithCorner(page);
+  const tile=page.locator('#board .piece[data-tile-id="d2-3"]'),box=await tile.boundingBox();expect(box).toBeTruthy();
   await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(650);await page.mouse.up();
-  await expect(page.locator('.inspector')).toBeVisible();const card=page.locator('.modGuideCard');await expect(card).toContainText('TERMINAL');await expect(card).toContainText('BUILD');await expect(card).toContainText('REWARD');await expect(card).toContainText('ACTIVE ×3');await expect(card.locator('.modDiagram')).toBeVisible();await expect(card).toContainText('exactly 1 physical neighbour');await expect(card.locator('.modExactRule')).toBeVisible();
+  await expect(page.locator('.inspector')).toBeVisible();const card=page.locator('.modGuideCard');await expect(card).toContainText('CORNER');await expect(card).toContainText('BUILD');await expect(card).toContainText('REWARD');await expect(card).toContainText('ACTIVE ×3');await expect(card.locator('.modDiagram')).toBeVisible();await expect(card).toContainText('exactly 2 neighbours at a right angle');await expect(card.locator('.modExactRule')).toBeVisible();
 });
 
 test('Market uses current physical-rule copy and compact Mod schematics',async({page})=>{
@@ -36,7 +36,7 @@ test('Market uses current physical-rule copy and compact Mod schematics',async({
     let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){
       const game=value.createGame(engine,{...options,seed:4202}),s=game.state(),specs=[['d1-2',6,8,0],['d2-3',10,8,0],['d3-4',14,8,0]];
       s.pieces=specs.map(([id,x,y,rr],i)=>{const tile=s.set.find(t=>t.id===id),p=engine.pieceFrom(tile,x,y,0,rr,i+1);p.tile={...tile};return p});s.placedTileIds=specs.map(v=>v[0]);s.hand=s.hand.map(t=>t&&s.placedTileIds.includes(t.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));
-      s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=100;game.openIntermission();s.shopOffers=['corner','long-line','terminal'];return game
+      s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=100;game.openIntermission();s.shopOffers=['corner','long-line','bridge'];return game
     }}}});
   });
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();await expect(page.locator('.marketStructuredOffer')).toHaveCount(3);
