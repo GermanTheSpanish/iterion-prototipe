@@ -12,12 +12,13 @@ const cardinallyAdjacent=(a,b)=>{
 };
 
 assert.deepEqual([...D.CORE_DISCOVERY_STAGES],[2,3,4,5]);
-assert.deepEqual({...D.CORE_DISCOVERY_VOID_COUNT_BY_MODE},{eyes:0,frames:1,river:2,loom:3,peaks:4,islands:0});
+assert.deepEqual({...D.CORE_DISCOVERY_VOID_COUNT_BY_MODE},{eyes:0,frames:1,river:2,loom:3,peaks:4,islands:5});
 assert.equal(D.CORE_MAX_PHYSICAL,6);
 assert.equal(D.FRAMES_CORE_MAX_PHYSICAL,6);
 assert.equal(D.RIVER_CORE_MAX_PHYSICAL,6);
 assert.equal(D.LOOM_CORE_MAX_PHYSICAL,8);
 assert.equal(D.PEAKS_CORE_MAX_PHYSICAL,10);
+assert.equal(D.ISLANDS_CORE_MAX_PHYSICAL,16);
 
 function advanceToStage(game,targetStage){
   const state=game.state();
@@ -81,7 +82,7 @@ function runGrowth(mode,seed,{initialCores,initialVoids,voidsPerCore,maxCores}){
   }
   assert.equal(state.cores.length,maxCores);
   assert.equal(state.coreProgressMilestones.filter(key=>key.startsWith('discover:')).length,4);
-  assert.match(game.debugText(),new RegExp(`Cores: THE ${mode==='eyes'?'EYES':mode==='frames'?'FRAMES':mode==='river'?'RIVER':mode==='loom'?'LOOM':'PEAKS'}`));
+  assert.match(game.debugText(),new RegExp(`Cores: THE ${mode==='eyes'?'EYES':mode==='frames'?'FRAMES':mode==='river'?'RIVER':mode==='loom'?'LOOM':mode==='peaks'?'PEAKS':'ISLANDS'}`));
   if(voidsPerCore)assert.match(game.debugText(),/VOID DISCOVER/);else assert.doesNotMatch(game.debugText(),/VOID DISCOVER/);
   return{game,counts,discoveries}
 }
@@ -91,7 +92,8 @@ const configs={
   frames:{initialCores:2,initialVoids:2,voidsPerCore:1,maxCores:6},
   river:{initialCores:2,initialVoids:4,voidsPerCore:2,maxCores:6},
   loom:{initialCores:4,initialVoids:4,voidsPerCore:3,maxCores:8},
-  peaks:{initialCores:6,initialVoids:4,voidsPerCore:4,maxCores:10}
+  peaks:{initialCores:6,initialVoids:4,voidsPerCore:4,maxCores:10},
+  islands:{initialCores:12,initialVoids:12,voidsPerCore:5,maxCores:16}
 };
 
 for(const [index,mode] of Object.keys(configs).entries()){
