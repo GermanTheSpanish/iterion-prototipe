@@ -36,7 +36,7 @@ async function assertLateGameSurface(page,id,{expectZp=2,minPieces=19,minPower=5
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20261003.2');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20261003.3');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -91,7 +91,7 @@ test('Germán Run #9 checkpoint resumes the real machine at Endless start withou
   await expect(page.locator('#board .tileModMark.zp')).toHaveCount(1);
   await expect(page.locator('#board .tileModMark.br')).toHaveCount(1);
   await expect(page.locator('#board .tileModMark.bo')).toHaveCount(1);
-  await expect(page.locator('#board .tileModMark.sw')).toHaveCount(1);
+  await expect(page.locator('#board .tileModMark.sw')).toHaveCount(0);
   await expect(page.locator('#board .tileModMark.fd')).toHaveCount(1);
   await expect(page.locator('#board .circuitTile')).toHaveCount(3);
   expect(await page.locator('#board .power2').count()).toBeGreaterThanOrEqual(5);

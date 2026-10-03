@@ -13,15 +13,15 @@ function replay(pieces,modId,pieceId,value,initial=5){
   return result
 }
 
-assert.equal(D.VERSION,'0.64.0');
+assert.equal(D.VERSION,'0.65.0');
 assert.equal(D.TWIN_MOD_MULTIPLIER,undefined);
-assert.equal(D.PAIR_MOD_MULTIPLIER,3);
+assert.equal(D.PAIR_MOD_MULTIPLIER,2);
 assert.equal(M.get('twin'),null);assert.equal(M.get('recall').collectionCode,'RC');assert.equal(M.get('pair').collectionCode,'PR');
 for(const retired of ['sequence','complement'])assert.equal(M.get(retired),null,`${retired} was replaced by Signal v2`);
 
 {
   const pair=[piece(2,3,2,2,0,1),piece(2,3,2,4,0,2)];
-  const r=replay(pair,'pair',1,3);assert.equal(r.events[0].pair,true);assert.equal(r.events[0].modMultiplier,3);assert.equal(r.output,45);
+  const r=replay(pair,'pair',1,3);assert.equal(r.events[0].pair,true);assert.equal(r.events[0].modMultiplier,2);assert.equal(r.output,30);
   const inactive=replay([piece(2,3,2,2,0,1)],'pair',1,3);assert.equal(inactive.events[0].pair,false);assert.equal(inactive.events[0].modMultiplier,1);
 }
 {

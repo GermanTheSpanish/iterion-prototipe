@@ -9,10 +9,11 @@ function fakeMarket(g,id){
 }
 E.setBoardSize(30,40);
 
-check('registry exposes twenty-seven targeted tile Mods and removes Zero Memory',()=>{
+check('registry exposes eighteen targeted tile Mods plus LONG CHAIN and removes retired Mods',()=>{
   const tileMods=M.all().filter(m=>m.kind==='market-tile-mod').map(m=>m.id).sort();
-  assert.deepEqual(tileMods,['bank','bridge','broker','corner','diode','double-double','double-echo','foundation','hinge','knot','long-line','merge','mint','mirror','overload','pair','parity-exchange','pivot','recall','return','scrap','spend','swap','terminal','toll','triple-double','zero-port']);
-  assert.equal(M.get('zero-memory'),null);
+  assert.deepEqual(tileMods,['bank','bridge','broker','corner','double-double','double-echo','foundation','hinge','knot','long-line','mint','overload','pair','parity-exchange','pivot','recall','triple-double','zero-port']);
+  assert.equal(M.all().filter(m=>m.market).length,19);
+  for(const id of ['diode','terminal','toll','scrap','spend','merge','return','swap','mirror','zero-memory'])assert.equal(M.get(id),null,id+' must be retired');
   assert.equal(D.MARKET_ZERO_MEMORY_COST,undefined);
 });
 
@@ -117,12 +118,6 @@ check('Overload uses physical neighbour count and a cross double reaches x4',()=
   assert.equal(r.events[0].connectionCount,4);assert.equal(r.events[0].modMultiplier,4);assert.equal(r.events[0].factor,12);assert.equal(r.output,60);
 });
 
-check('Terminal is x3 with exactly one physical neighbour and inactive otherwise',()=>{
-  const ps=[piece(3,3,6,8,0,1),piece(5,3,2,8,0,2),piece(3,4,10,8,0,3)];
-  const terminal=replay([op(2,5)],ps,new Map([[2,new Set(['terminal'])]])),center=replay([op(1,3)],ps,new Map([[1,new Set(['terminal'])]]));
-  assert.equal(terminal.events[0].connectionCount,1);assert.equal(terminal.events[0].modMultiplier,3);assert.equal(terminal.output,75);
-  assert.equal(center.events[0].connectionCount,2);assert.equal(center.events[0].modMultiplier,1);
-});
 
 check('snapshot and restore persist physical Mod assignments and pending targeting',()=>{
   const g=G.createGame(E,{seed:3504,STARTING_COINS:100}),s=g.state(),ids=['d0-2','d3-3','d2-4','d4-5'];
