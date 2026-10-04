@@ -109,7 +109,7 @@ test('Shop stays compact, buys to Hand and delegates Adapter rules to Inspector'
   expect(await preview.locator('.half').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
   const adapter=page.locator('[data-shop-inspect="adapter"]');await expect(adapter.locator('.domino')).toHaveClass(/compactPreview/);await expect(adapter).toContainText('•');
   const box=await adapter.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
-  await expect(page.locator('#overlayTitle')).toHaveText('ADAPTER');await expect(page.locator('#overlayBody')).toContainText('Place it only between two existing physical ends');await expect(page.locator('#overlayBody')).toContainText('one in Landing');await page.locator('#overlayPrimary').click();
+  await expect(page.locator('#overlayTitle')).toHaveText('ADAPTER');await expect(page.locator('#overlayBody')).toContainText('Place it only between two existing physical ends');await expect(page.locator('#overlayBody')).toContainText('One Adapter can be purchased in Landing');await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');
   await page.locator('#shopRandomBuy').click();await expect(page.locator('.randomTilePreview .domino')).toHaveClass(/reveal/);
   const delivery=await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),event=[...s.events].reverse().find(e=>e.type==='tile-buy');return{delivery:event.delivery,inHand:s.hand.some(t=>t?.id===event.tile.id),inReserve:s.reserve.some(t=>t?.id===event.tile.id)}});expect(delivery).toEqual({delivery:'hand',inHand:true,inReserve:false});
