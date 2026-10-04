@@ -89,7 +89,7 @@ const ui=fs.readFileSync(path.join(root,'ui.js'),'utf8');
 const late=fs.readFileSync(path.join(root,'ui-late-polish.js'),'utf8');
 assert.match(ui,/data-market-signal/);
 assert.match(ui,/SIGNAL \+1/);
-assert.match(ui,/CORE \+\$\{x\.signal\.coreCharge\}/);
+assert.match(ui,/CORE I · \+\$\{coreCharge\}/,'Signal inspector must show the current Core charge separately from starting Signal');
 assert.match(late,/id==='signal'/);
 
 console.log('v0.55 additive Core Signal + Market Signal upgrade regressions passed');
