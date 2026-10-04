@@ -149,7 +149,7 @@
       .hand.handOverflow[data-hand-count="8"] .handSlot{height:46px!important;min-height:46px!important;flex-basis:46px!important}
       .hand.handOverflow[data-hand-count="8"] .domino>.half{width:22px!important;height:22px!important}
       .hand.handOverflow[data-hand-count="8"] .domino{width:24px!important}
-      .hand.handOverflow .tile{width:44px!important;min-width:44px!important}
+      .hand.handOverflow .tile{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important}
       .hand.handOverflow .spip{width:3px!important;height:3px!important}
 
       .bottomBar{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto auto!important;gap:10px!important;align-items:stretch!important;min-height:0!important;padding-top:10px!important}

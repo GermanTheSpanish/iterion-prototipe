@@ -115,7 +115,7 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
     const layout=await page.evaluate(()=>{const board=document.querySelector('#board').getBoundingClientRect(),hand=document.querySelector('#hand').getBoundingClientRect();return{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,viewportWidth:innerWidth,viewportHeight:innerHeight,boardBottom:board.bottom,handTop:hand.top,handRight:hand.right,handBottom:hand.bottom}});expect(layout.width).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.height).toBeLessThanOrEqual(layout.viewportHeight);expect(layout.handTop).toBeGreaterThanOrEqual(layout.boardBottom);expect(layout.handRight).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.handBottom).toBeLessThanOrEqual(layout.viewportHeight);
     await page.evaluate(()=>{const g=window.__iterionTestGame,s=g.state();s.hand.fill(null);s.reserve=[];g.assessContinuation();g.save()});await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('#overlayTitle')).toHaveText('MACHINE STALLED');await expect(page.locator('#overlayBody')).toContainText('Classic complete');await expect(page.locator('#downloadFailedRun')).toHaveText('DOWNLOAD RUN .TXT');
-    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.66\.0_B-[0-9A-Z]{7}\.txt$/);
+    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.67\.0_B-[0-9A-Z]{7}\.txt$/);
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.standardComplete)).toBe(true);expect(errors).toEqual([]);
   });
 }
@@ -249,5 +249,5 @@ test('Terminal Infinite failure keeps the run debug download visible and functio
   expect(contrast.color).not.toBe(contrast.background);expect(contrast.textFill).not.toBe('transparent');
   const bounds=await page.locator('#overlayPrimary').boundingBox();expect(bounds).not.toBeNull();expect(bounds.y+bounds.height).toBeLessThanOrEqual(844);
   const downloadPromise=page.waitForEvent('download');await page.locator('#overlayPrimary').click();const download=await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.66\.0_B-[0-9A-Z]{7}\.txt$/);
+  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.67\.0_B-[0-9A-Z]{7}\.txt$/);
 });
