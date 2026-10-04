@@ -97,7 +97,7 @@
     /* Tile Shop physical pieces inherit the Hand geometry exactly: 40px body, 38px halves.
        Board pieces stay grid-owned; only presentation miniatures are normalised here. */
     .compactCommerceModal .shopOfferInspect{appearance:none;border:0;background:transparent;color:inherit;padding:0;min-width:44px;min-height:84px;display:grid;place-items:center}
-    .compactCommerceModal .shopOfferInspect .marketTile{display:grid;place-items:center;min-width:0;padding:0!important;background:transparent!important;gap:0!important}
+    .compactCommerceModal .shopOfferInspect .marketTile{display:grid;place-items:center;min-width:0;padding:0!important;background:transparent!important;gap:0!important;transform:none!important;transform-origin:center!important;margin-right:0!important}
     .compactCommerceModal .shopOfferInspect .marketTile small{display:none!important}
     .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:40px!important;height:auto!important;max-height:none!important;margin:auto!important}
     .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:38px!important;height:38px!important;min-height:38px!important;max-height:38px!important;flex:0 0 38px!important}
