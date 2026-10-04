@@ -127,10 +127,10 @@
       .commerceModal .marketPhysicalContext{gap:9px!important}
       .commerceModal .marketContextTiles .marketTile .domino{width:24px!important;height:46px!important}
       .commerceModal .marketOfferAction,.commerceModal .marketOfferAction .shopBuy{width:106px!important}
-      .compactCommerceModal .shopOfferInspect{min-height:70px}
+      .compactCommerceModal .shopOfferInspect{min-height:66px}
       .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:34px!important}
-      .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:32px!important;height:32px!important;min-height:32px!important;max-height:32px!important;flex-basis:32px!important}
-      .compactCommerceModal .exactShopOffer{grid-template-rows:70px 38px!important}
+      .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:32px!important;height:30px!important;min-height:30px!important;max-height:30px!important;flex-basis:30px!important}
+      .compactCommerceModal .exactShopOffer{grid-template-rows:66px 38px!important}
     }
   `;
   doc.head.appendChild(style);
