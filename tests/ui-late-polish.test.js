@@ -1,9 +1,10 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20261004\.2'/);
+assert.match(source,/BUILD_ID='20261004\.3'/);
 assert.match(source,/\.compactCommerceModal \.marketOfferGrid\{display:grid!important;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'Market must use a compact two-column card grid');
 assert.match(source,/\.compactCommerceModal \.shopTileOfferGrid\{display:grid!important;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/,'Tile Shop must keep four next-set pieces visible without prose rows');
+assert.match(source,/\.compactCommerceModal \.shopCompactOffer\{display:grid!important;grid-template-columns:1fr!important/,'Tile Shop cards must override the legacy side-by-side layout and centre the physical tile');
 assert.match(source,/marketOfferPayoff/);assert.match(source,/min-height:44px/,'Market actions must retain mobile touch height');
 assert.doesNotMatch(source,/offer\.replaceChildren\(head,description,visual,context\)/,'Late polish must not re-inject the verbose legacy Market structure');
 assert.doesNotMatch(source,/description\.textContent=guide\?guide\.market:/,'Market descriptions belong in Inspector, not late-polish cards');
@@ -13,10 +14,15 @@ assert.match(source,/color:var\(--circuit-pip,#fff\)!important/,'Circuit Mod let
 assert.match(source,/modFaceReveal/,'Board Mod reveal should have a lightweight face-flip transition');
 assert.match(source,/domino\.compactPreview>\.half\{width:100%!important/,'Compact halves must fit their own domino, not inherit hand widths');
 assert.match(source,/domino\.compactPreview>\.half>\.spips\{inset:16%!important;opacity:1!important/,'Compact pips must remain centred and fully opaque');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview\{width:30px!important;height:auto!important[^}]*aspect-ratio:1\/2!important/,'Tile Shop pieces must use the rendered Hand geometry');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview>\.half\{width:100%!important;height:50%!important/,'Tile Shop halves must follow the Hand half geometry');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview\{width:26px!important\}/,'Short-screen Tile Shop width must mirror the short-screen Hand');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.match(ui,/mini\(t,'normal',true\)/,'Commerce physical tiles use the shared compact renderer');
 assert.match(ui,/mini\(shopRevealTile,'reveal',true\)/,'Shop reveals use the same compact renderer');
 assert.match(ui,/mini\(\{a:0,b:0\},'back',true\)/,'Face-down Shop previews keep the compact mode');
+assert.match(ui,/shopTileOffer shopCompactOffer exactShopOffer/,'Visible next-set tiles need the centred Shop composition');
+assert.doesNotMatch(ui,/shopCompactOffer"><button[^\n]+<strong>\[\$\{t\.a\}\|\$\{t\.b\}\]<\/strong>/,'Visible Shop tiles must not repeat their printed values as text');
 assert.match(ui,/openShopOfferInspector/);assert.match(ui,/openMarketOfferInspector/,'Shop and Market must route exact explanations through Inspector');
 assert.match(ui,/HOLD AN OFFER TO INSPECT/);assert.match(ui,/compactCommerceModal/);
 assert.match(ui,/MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map\(\),modFaceRevealTimers=new Map\(\)/,'Each Mod tile reveal needs independent ephemeral timing');

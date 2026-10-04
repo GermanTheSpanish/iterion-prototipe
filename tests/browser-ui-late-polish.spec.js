@@ -102,9 +102,14 @@ test('Shop stays compact, buys to Hand and delegates Adapter rules to Inspector'
   await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){return value.createGame(engine,{...options,STARTING_COINS:200})}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish&&!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  const handGeometry=await page.locator('#hand .domino').first().evaluate(el=>{const r=el.getBoundingClientRect();return{width:r.width,height:r.height}});
   await page.evaluate(()=>{const s=window.__monoidGame.state(),i=s.hand.findIndex(Boolean),tile=s.hand[i];s.hand[i]=null;s.reserve.unshift(tile)});
   await page.locator('#shopButton').click();
   await expect(page.locator('.compactShop')).toBeVisible();await expect(page.locator('.shopCompactOffer')).toHaveCount(6);
+  const shopGeometry=await page.locator('.shopOfferInspect .domino.compactPreview').evaluateAll(nodes=>nodes.map(el=>{const r=el.getBoundingClientRect(),card=el.closest('.shopCompactOffer')?.getBoundingClientRect();return{width:r.width,height:r.height,centerOffset:card?Math.abs((r.left+r.width/2)-(card.left+card.width/2)):999}}));
+  expect(shopGeometry).toHaveLength(6);for(const tile of shopGeometry){expect(Math.abs(tile.width-handGeometry.width)).toBeLessThanOrEqual(1);expect(Math.abs(tile.height-handGeometry.height)).toBeLessThanOrEqual(1);expect(tile.centerOffset).toBeLessThanOrEqual(1)}
+  await expect(page.locator('.exactShopOffer')).toHaveCount(4);await expect(page.locator('.exactShopOffer>strong')).toHaveCount(0);
+  const exactCopy=await page.locator('.exactShopOffer').allTextContents();expect(exactCopy.every(text=>!/\[\d\|\d\]/.test(text))).toBe(true);
   const preview=page.locator('.randomTilePreview .domino');await expect(preview).toHaveClass(/compactPreview/);await expect(preview).toHaveClass(/back/);
   expect(await preview.locator('.half').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
   const adapter=page.locator('[data-shop-inspect="adapter"]');await expect(adapter.locator('.domino')).toHaveClass(/compactPreview/);await expect(adapter).toContainText('•');
@@ -120,7 +125,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261004.2');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261004.3');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
