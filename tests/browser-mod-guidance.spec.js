@@ -29,7 +29,7 @@ test('Inspector shows schematic, player-facing rule and live Mod status',async({
   await expect(page.locator('.inspector')).toBeVisible();const card=page.locator('.modGuideCard');await expect(card).toContainText('CORNER');await expect(card).toContainText('BUILD');await expect(card).toContainText('REWARD');await expect(card).toContainText('ACTIVE ×3');await expect(card.locator('.modDiagram')).toBeVisible();await expect(card).toContainText('exactly 2 neighbours at a right angle');await expect(card.locator('.modExactRule')).toBeVisible();
 });
 
-test('Market uses current physical-rule copy and compact Mod schematics',async({page})=>{
+test('Market keeps compact payoff copy and moves exact Mod guidance into Inspector',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>{
     localStorage.setItem('monoid.firstRunBriefing.v1','seen');
@@ -39,8 +39,10 @@ test('Market uses current physical-rule copy and compact Mod schematics',async({
       s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=100;game.openIntermission();s.shopOffers=['corner','long-line','bridge'];return game
     }}}});
   });
-  await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();await expect(page.locator('.marketStructuredOffer')).toHaveCount(3);
-  const corner=page.locator('[data-market-offer="corner"]');await expect(corner.locator('.marketOfferDescription')).toContainText('Corner: ×3.');await expect(corner.locator('.marketModDiagram .modDiagram')).toBeVisible();await expect(corner).not.toContainText('routed turn');
-  const line=page.locator('[data-market-offer="long-line"]');await expect(line.locator('.marketOfferDescription')).toContainText('3+ straight: ×2. 5+: ×3.');await expect(line).not.toContainText('traversals');
-  await expect(page.locator('.shopFoot')).toContainText('BUILD, REWARD and live status');
+  await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);
+  const corner=page.locator('[data-market-offer="corner"]');await expect(corner.locator('.marketOfferPayoff')).toContainText('×3');await expect(corner.locator('.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
+  const line=page.locator('[data-market-offer="long-line"]');await expect(line.locator('.marketOfferPayoff')).toContainText('×2');await expect(line.locator('.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
+  await expect(page.locator('.shopFoot')).toContainText('HOLD AN OFFER TO INSPECT');
+  const target=corner.locator('[data-market-inspect="corner"]'),box=await target.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+  await expect(page.locator('#overlayTitle')).toHaveText('CORNER');await expect(page.locator('#overlayBody .modDiagram')).toBeVisible();await expect(page.locator('#overlayBody')).toContainText('Build');await expect(page.locator('#overlayBody')).toContainText('Reward');await expect(page.locator('.modExactRule')).toBeVisible()
 });

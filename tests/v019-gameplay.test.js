@@ -25,8 +25,13 @@ function testUnlimitedRandomDominoPurchasesMovedToShop(){
   assert.strictEqual(game.openShop(),true);
   const bought=[];
   for(let i=0;i<5;i++){
+    const occupied=s.hand.findIndex(Boolean);
+    assert.notStrictEqual(occupied,-1,'fixture needs a physical Hand tile to move aside');
+    s.reserve.unshift(s.hand[occupied]);s.hand[occupied]=null;
     const r=game.buyShopRandomTile();
-    assert.strictEqual(r.ok,true,`Shop random domino purchase ${i+1} should succeed`);
+    assert.strictEqual(r.ok,true,`Shop random domino purchase ${i+1} should succeed when Hand has space`);
+    assert.strictEqual(r.delivery,'hand','every Shop tile purchase must enter Hand first');
+    assert(s.hand.some(tile=>tile?.id===r.tile.id),'purchased tile must occupy the free Hand slot');
     bought.push(r.tile.id);
   }
   assert.strictEqual(new Set(bought).size,5,'every purchased domino must be a new physical tile instance');

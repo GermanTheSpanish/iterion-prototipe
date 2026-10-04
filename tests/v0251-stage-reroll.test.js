@@ -71,11 +71,11 @@ function readyAdvance(g,roundIndex){const s=g.state();s.round=roundIndex;s.clear
   const g=game(2716),debug=g.debugText();
   assert.match(debug,/Tools: move=0, reroll=0, freeReroll=1, undo=0/);
   assert.match(debug,/R1 FREE REROLL \+1/);
-  const economy=Help.rulebookSections().find(section=>section.id==='economy');
-  assert(economy,'Economy section must exist');
+  const sections=Help.rulebookSections(),economy=sections.find(section=>section.id==='economy'),hand=sections.find(section=>section.id==='hand');
+  assert(economy,'Economy section must exist');assert(hand,'Hand section must exist');
   assert.match(economy.rulesDescription,/Every round grants one free Reroll/);
-  assert.match(economy.rulesDescription,/before stored Rerolls/);
-  assert.match(economy.rulesDescription,/refreshes to one rather than accumulating/);
+  assert.match(hand.rulesDescription,/spent before stored Rerolls/);
+  assert.match(hand.rulesDescription,/does not stack into the next round/);
 }
 
 {

@@ -8,7 +8,8 @@ function fixture(seed=2401){
   const s=game.state();
   E.setBoardSize(30,40);s.boardStage=4;s.round=14;
   s.consumables={move:2,reroll:3,undo:2};
-  assert(game.openShop());const bought=game.buyShopRandomTile();assert(bought.ok);assert(game.closeShop());
+  const free=s.hand.findIndex(t=>t&&!(t.a===t.b&&t.a>0)),slot=free>=0?free:s.hand.findIndex(Boolean);assert(slot>=0);s.reserve.unshift(s.hand[slot]);s.hand[slot]=null;
+  assert(game.openShop());const bought=game.buyShopRandomTile();assert(bought.ok);assert.equal(bought.delivery,'hand');assert(game.closeShop());
   const i=s.hand.findIndex(t=>t&&t.a===t.b&&t.a>0);
   assert(i>=0);
   const ctx=game.beginPlacement(i,game.candidatesForIndex(i)[0]);assert(ctx.ok);

@@ -20,6 +20,7 @@ function testEmergencyShopPurchasesSurviveUndo(){
 
   const undoBuy=game.buyTool('undo',1);
   assert.strictEqual(undoBuy.ok,true);
+  const free=s.hand.findIndex(Boolean);assert(free>=0);s.reserve.unshift(s.hand[free]);s.hand[free]=null;
   assert.strictEqual(game.openShop(),true);
   const tileBuy=game.buyShopRandomTile();
   assert.strictEqual(tileBuy.ok,true);
@@ -46,7 +47,7 @@ function testEmergencyShopPurchasesSurviveUndo(){
 function testPatchUxContracts(){
   const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
   const data=read('data.js'),ui=read('ui.js'),help=read('help.js'),mods=read('mods.js');
-  assert.match(data,/VERSION:'0\.65\.1'/);
+  assert.match(data,/VERSION:'0\.66\.0'/);
   assert.match(ui,/close\.textContent='CLOSE'/,'Data panel must have an internal close control');
   assert.match(ui,/className='runDataText'/,'Data panel must expose selectable run text');
   assert.match(ui,/board\.style\.backgroundImage='none'/,'visible board grid must be disabled');

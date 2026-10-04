@@ -28,4 +28,4 @@ const partial=E.validatePlacement(tile(4),5,6,0,0,[horizontal]);
 assert.equal(partial.ok,false);
 assert.equal(partial.reason,'off-centre-double-port');
 
-console.log('v0.65.1 placement feel and parallel-double regressions passed');
+console.log('v0.66.0 placement feel and parallel-double regressions passed');

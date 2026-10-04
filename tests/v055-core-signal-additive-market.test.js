@@ -12,7 +12,7 @@ function piece(a,b,x,y,rr,id){
 }
 const events=(result,type)=>(result.events||[]).filter(event=>event.type===type);
 
-assert.equal(D.VERSION,'0.65.1');
+assert.equal(D.VERSION,'0.66.0');
 assert.equal(D.ENGINE_VERSION,'0.21.0-peaks-ridge-v1');
 assert.equal(D.CORE_SIGNAL_PURCHASE_COST,8);
 assert.equal(D.CORE_SIGNAL_PURCHASE_STEP,3);
@@ -89,7 +89,7 @@ const ui=fs.readFileSync(path.join(root,'ui.js'),'utf8');
 const late=fs.readFileSync(path.join(root,'ui-late-polish.js'),'utf8');
 assert.match(ui,/data-market-signal/);
 assert.match(ui,/SIGNAL \+1/);
-assert.match(ui,/CORE \+\$\{x\.signal\.coreCharge\}/);
-assert.match(late,/id==='signal'/);
+assert.match(ui,/CORE I · \+\$\{coreCharge\}/,'Signal inspector must show the current Core charge separately from starting Signal');
+assert.match(late,/marketOffer\[data-market-offer\]/,'late polish must decorate Signal through the generic Market offer path');assert.doesNotMatch(late,/id==='signal'/,'Signal must not require a presentation-only special case');
 
 console.log('v0.55 additive Core Signal + Market Signal upgrade regressions passed');

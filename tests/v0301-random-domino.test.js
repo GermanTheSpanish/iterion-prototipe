@@ -3,12 +3,14 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.65.1');
+assert.strictEqual(D.VERSION,'0.66.0');
+
+function makeHandSpace(s){const i=s.hand.findIndex(Boolean);assert(i>=0);s.reserve.unshift(s.hand[i]);s.hand[i]=null;return i}
 
 function purchase(seed){
   E.setBoardSize(18,24);
   const game=Game.createGame(E,{seed,FIRST_TILE_MUST_BE_DOUBLE:false,STARTING_COINS:50,TARGETS:Array(15).fill(1e15)}),s=game.state();
-  assert.strictEqual(game.openShop(),true);
+  const slot=makeHandSpace(s);assert.strictEqual(game.openShop(),true);
   const beforeRng=s.rngState,result=game.buyShopRandomTile();
   assert.strictEqual(result.ok,true);
   assert.match(result.tile.id,/^g2-d[0-6]-[0-6]$/);
@@ -16,8 +18,9 @@ function purchase(seed){
     {source:result.tile.source,generation:result.tile.generation,powerMultiplier:result.tile.powerMultiplier},
     {source:'power-set',generation:2,powerMultiplier:2}
   );
-  assert.strictEqual(result.delivery,'reserve');
-  assert.strictEqual(s.reserve[0].id,result.tile.id,'a full hand receives the tile as the next physical draw');
+  assert.strictEqual(result.delivery,'hand');
+  assert.strictEqual(s.hand[slot].id,result.tile.id,'a Shop purchase must occupy the prepared Hand slot');
+  assert.strictEqual(s.reserve.some(t=>t.id===result.tile.id),false,'Shop purchase must not be delivered directly to reserve');
   assert.strictEqual(s.setGeneration,1,'buying RANDOM DOMINO must not unlock the next generation');
   assert.strictEqual(game.availableTileCount(),28,'the advanced tile must not extend the current generation');
   assert.notStrictEqual(s.rngState,beforeRng);
@@ -57,7 +60,7 @@ function purchase(seed){
   E.setBoardSize(18,24);
   const game=Game.createGame(E,{seed:304,FIRST_TILE_MUST_BE_DOUBLE:false,STARTING_COINS:50,STARTING_UNDO_CONSUMABLES:1,TARGETS:Array(15).fill(1e15)}),s=game.state();
   const ctx=game.beginPlacement(0,game.candidatesForIndex(0)[0]);assert.strictEqual(ctx.ok,true);game.finishPlacement(ctx);
-  assert.strictEqual(game.openShop(),true);const bought=game.buyShopRandomTile();assert.strictEqual(bought.ok,true);game.closeShop();
+  makeHandSpace(s);assert.strictEqual(game.openShop(),true);const bought=game.buyShopRandomTile();assert.strictEqual(bought.ok,true);game.closeShop();
   assert.strictEqual(game.useUndo().ok,true);
   const restored=game.state();
   assert.strictEqual(restored.set.filter(t=>t.id===bought.tile.id).length,1,'Undo preserves the purchased physical tile');
@@ -65,4 +68,4 @@ function purchase(seed){
   assert.strictEqual(restored.rngState,s.rngState,'Undo preserves RNG consumed by the purchase');
 }
 
-console.log('v0.65.1 RANDOM DOMINO regression tests passed');
+console.log('v0.66.0 RANDOM DOMINO regression tests passed');

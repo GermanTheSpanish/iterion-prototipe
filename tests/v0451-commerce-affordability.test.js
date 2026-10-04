@@ -6,30 +6,32 @@ function create(seed,coins){
   E.setBoardSize(18,24);
   return G.createGame(E,{seed,STARTING_COINS:coins,FIRST_TILE_MUST_BE_DOUBLE:false,TARGETS:Array(15).fill(1e15)});
 }
+function makeHandSpace(game){const s=game.state(),index=s.hand.findIndex(Boolean);if(index>=0){const tile=s.hand[index];s.hand[index]=null;s.reserve.unshift(tile)}}
 function prepareMarket(game,round=2){
   const s=game.state(),tile=s.set.find(t=>t.id==='d1-2'),piece=E.pieceFrom(tile,4,4,0,0,1);piece.tile={...tile};
   s.pieces=[piece];s.placedTileIds=[tile.id];s.round=round;s.cleared=true;s.running=false;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false;s.shopType=null;s.nextShopType='market';s.intermissionResolved=false;return s
 }
 
 {
-  const game=create(45101,0),s=game.state(),availability=game.shopPurchaseAvailability();
-  assert.equal(availability.hasAny,true,'fresh Tile Shop should have real inventory');
-  assert.equal(availability.canAffordAny,false);
-  assert.equal(availability.blockedByCoins,true);
-  assert.equal(game.openShop(),false,'normal Shop must not open when no item is affordable');
-  const close=s.events.at(-1);assert.equal(close.type,'shop-close');assert.equal(close.shop,'shop');assert.equal(close.reason,'insufficient-coins');assert.equal(close.opened,false);
-  assert.equal(s.shopOpen,false);
-  assert.equal(game.openShop({allowUnaffordable:true}),true,'tutorial-only bypass may still present the real Shop');
+  const game=create(45101,0),s=game.state(),full=game.shopPurchaseAvailability();
+  assert.equal(full.hasAny,true,'fresh Tile Shop should have real inventory');
+  assert.equal(full.blockedByHand,true,'full Hand is a distinct physical purchase blocker');
+  assert.equal(game.openShop(),true,'full Hand may still open Shop so offers remain inspectable');
   game.closeShop();
+  makeHandSpace(game);const availability=game.shopPurchaseAvailability();
+  assert.equal(availability.canAffordAny,false);assert.equal(availability.blockedByCoins,true);
+  assert.equal(game.openShop(),false,'with Hand space but no affordable item the Shop remains closed');
+  const close=s.events.at(-1);assert.equal(close.type,'shop-close');assert.equal(close.shop,'shop');assert.equal(close.reason,'insufficient-coins');assert.equal(close.opened,false);
+  assert.equal(game.openShop({allowUnaffordable:true}),true,'tutorial-only bypass may still present the real Shop');game.closeShop();
 }
 
 {
-  const game=create(45102,1),s=game.state();
+  const game=create(45102,1),s=game.state();makeHandSpace(game);
   assert.equal(game.openShop(),true,'the cheapest affordable Shop item keeps the Shop open');
   const bought=game.buyShopRandomTile();assert.equal(bought.ok,true);assert.equal(bought.cost,1);
-  assert.equal(bought.shopClosedReason,'insufficient-coins','Shop closes immediately once the remaining balance cannot buy anything');
-  assert.equal(s.shopOpen,false);
-  const close=[...s.events].reverse().find(e=>e.type==='shop-close'&&e.shop==='shop');assert.equal(close.reason,'insufficient-coins');
+  assert.equal(bought.shopClosedReason,null,'a purchase that refills the last Hand slot keeps Shop open for inspection');
+  assert.equal(s.shopOpen,true);const after=game.shopPurchaseAvailability();assert.equal(after.blockedByHand,true);assert.equal(after.coins,0);
+  assert.equal(game.closeShop(),true);
 }
 
 {
