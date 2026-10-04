@@ -524,9 +524,9 @@
   }
 
   function renderInspector(){
-    const state=GAME.state(),model=H.inspectTile(state,auxOverlay.tileId)||auxOverlay.model,b=model.baseTile,m=model.currentMachineState;
-    auxOverlay.model=model;overlayTitle.textContent=`[${b.a}|${b.b}]`;
-    const properties=[b.isDouble?'Double':'Standard domino',b.containsZero?'Contains zero':null,model.power?`POWER ×${model.power.powerMultiplier}`:null].filter(Boolean).join(' · ');
+    const state=GAME.state(),model=H.inspectTile(state,auxOverlay.tileId)||auxOverlay.model,b=model.baseTile,m=model.currentMachineState,adapter=b.special==='adapter';
+    auxOverlay.model=model;overlayTitle.textContent=adapter&&!b.adapterResolved?'ADAPTER':`[${b.a}|${b.b}]`;
+    const properties=[adapter?'Adapter':b.isDouble?'Double':'Standard domino',b.containsZero?'Contains zero':null,model.power?`POWER ×${model.power.powerMultiplier}`:null].filter(Boolean).join(' · ');
     const debugId=viewRun?`<div class="inspectDebug">ID ${escapeHtml(b.id)}</div>`:'';
     const modifierHtml=model.modifiers.length?model.modifiers.map(mod=>modifierGuideHtml(mod)).join(''):'<p class="inspectEmpty">No modifier is attached to this physical tile.</p>';
     const starLabel=m.upgradeTier?`★${m.upgradeTier} · can pay +${m.starCoins}c when activated`:'No stars · +0c';
@@ -535,13 +535,47 @@
     const foundationState=m.foundationAge==null?null:`FOUNDATION · survived ${m.foundationAge} Market${m.foundationAge===1?'':'s'} · tier +${m.foundationTier||1}c`,mintState=m.mintAvailable==null?null:`MINT · ${m.mintAvailable?'ready this Round':'already paid this Round'}`,bankState=m.bankMultiplier==null?null:`BANK · current wallet ×${m.bankMultiplier}`,brokerState=m.brokerDiscountStored==null?null:`BROKER · ${m.brokerPrepared?'primed · skip next Mod purchase':m.brokerDiscountStored?'stored −'+m.brokerDiscountStored+'c':'activate before Market'}`;
     const stateRows=[starLabel,bestLabel,`Recorded Move activations: ${m.activations||0}`,bankState,brokerState,foundationState,mintState,longRun?longRunState:m.upgradeTier?'Normal star rule · only the highest activated tier pays.':'Round-clearing overkill can add stars to this physical tile.'].filter(Boolean);
     const mutationHtml=mutationInspectorHtml(auxOverlay.tileId,state);
-    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero"><strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span></div>${debugId}<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div></section>${powerInspectorHtml(model.power)}${circuitInspectorHtml(model.circuit)}<section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section>${mutationHtml}<section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
+    const baseHero=adapter&&!b.adapterResolved?'<strong>[•|•]</strong><span>ADAPTER · UNRESOLVED</span>':`<strong>[${b.a}|${b.b}]</strong><span>${escapeHtml(properties)}</span>`,opPair=adapter&&!b.adapterResolved?'<div class="opPair"><span>• copies one touched value</span><span>• copies the other</span></div>':`<div class="opPair"><span>${b.a}: ${operationLabel(b.operations[0])}</span><span>${b.b}: ${operationLabel(b.operations[1])}</span></div>`,adapterHtml=adapter?`<section class="inspectSection"><div class="inspectLabel">Adapter</div><strong>${b.adapterResolved?'LOCKED':'READY'}</strong><p>${b.adapterResolved?'This physical Adapter has permanently become ['+b.a+'|'+b.b+']. Matching and scoring now use those values normally.':'Place it only where both halves touch existing physical ends. Each half copies the value it touches, then the values lock permanently.'}</p><div class="stateRows"><span>PHASE · ${escapeHtml(String(b.adapterPhase||'').toUpperCase())}</span><span>LIMIT · 1 PURCHASE PER PHASE</span></div></section>`:'';
+    overlayBody.innerHTML=`<div class="inspector"><section class="inspectSection"><div class="inspectLabel">Base Tile</div><div class="inspectHero">${baseHero}</div>${debugId}${opPair}</section>${adapterHtml}${powerInspectorHtml(model.power)}${circuitInspectorHtml(model.circuit)}<section class="inspectSection"><div class="inspectLabel">Modifiers</div>${modifierHtml}</section>${mutationHtml}<section class="inspectSection"><div class="inspectLabel">Current Machine State</div><div class="stateRows">${stateRows.map(row=>`<span>${escapeHtml(row)}</span>`).join('')}</div></section></div>`;
     overlayBody.querySelectorAll('[data-mutation-action]').forEach(button=>button.onclick=()=>applyInspectorMutation(button.dataset.mutationAction));
     overlayPrimary.textContent='CLOSE';overlayPrimary.onclick=closeAuxOverlay;
   }
+  function openShopOfferInspector(kind,tile=null){
+    returnFocus=document.activeElement;press.cancel();auxOverlay={type:'shop-offer-inspector',kind,tile:tile?{...tile}:null};renderAuxOverlay()
+  }
+  function renderShopOfferInspector(){
+    const x=GAME.snapshot(),kind=auxOverlay.kind,tile=auxOverlay.tile,phase=(x.shop?.adapter?.phase||'landing').toUpperCase();
+    if(kind==='adapter'){
+      const info=x.shop?.adapter;overlayTitle.textContent='ADAPTER';
+      overlayBody.innerHTML=`<div class="inspector commerceInspector"><section class="inspectSection"><div class="inspectHero"><strong>[•|•]</strong><span>SPECIAL PHYSICAL TILE</span></div><div class="stateRows"><span>${escapeHtml(phase)} · ${info?.purchased?'USED':'AVAILABLE'}</span><span>PRICE · ${info?.price??GAME.shopAdapterPrice?.()}c</span><span>PURCHASE → HAND</span></div></section><section class="inspectSection"><div class="inspectLabel">Rule</div><p>Place it only between two existing physical ends. Each half copies the value it touches, then those values become permanent.</p></section><section class="inspectSection"><div class="inspectLabel">Limit</div><p>One Adapter can be purchased in Landing, one in Endless and one in Infinite. Unused allowance does not carry forward.</p></section></div>`
+    }else if(kind==='random'){
+      overlayTitle.textContent='RANDOM DOMINO';const generation=x.shop?.tileOfferGeneration||2,power=x.shop?.tileOffers?.[0]?.tile?.powerMultiplier||1;
+      overlayBody.innerHTML=`<div class="inspector commerceInspector"><section class="inspectSection"><div class="inspectHero"><strong>?</strong><span>SET ${generation} · POWER ×${power}</span></div><div class="stateRows"><span>PRICE · ${x.shop?.randomTilePrice}c</span><span>PURCHASE → HAND</span></div></section><section class="inspectSection"><div class="inspectLabel">Rule</div><p>Draws one unclaimed physical domino from the next POWER set. Visible Shop offers remain reserved and cannot be drawn by Random.</p></section></div>`
+    }else{
+      if(!tile){closeAuxOverlay();return}overlayTitle.textContent=`[${tile.a}|${tile.b}]`;const power=powerMultiplier(tile),ops=[H.operationFor(tile.a,false,tile.a===tile.b,power),H.operationFor(tile.b,false,tile.a===tile.b,power)];
+      overlayBody.innerHTML=`<div class="inspector commerceInspector"><section class="inspectSection"><div class="inspectHero"><strong>[${tile.a}|${tile.b}]</strong><span>${power>1?`POWER ×${power}`:'STANDARD'} · PHYSICAL TILE</span></div><div class="opPair"><span>${tile.a}: ${operationLabel(ops[0])}</span><span>${tile.b}: ${operationLabel(ops[1])}</span></div><div class="stateRows"><span>PRICE · ${GAME.shopTileOfferPrice()}c</span><span>PURCHASE → HAND</span></div></section><section class="inspectSection"><div class="inspectLabel">Supply</div><p>Buying this exact tile removes its physical ID from the future POWER set so it cannot appear twice.</p></section></div>`
+    }
+    overlayPrimary.textContent='BACK';overlayPrimary.onclick=closeAuxOverlay
+  }
+  function openMarketOfferInspector(id){
+    returnFocus=document.activeElement;press.cancel();auxOverlay={type:'market-offer-inspector',id};renderAuxOverlay()
+  }
+  function renderMarketOfferInspector(){
+    const id=auxOverlay.id;
+    if(id==='signal'){
+      const info=GAME.marketSignalUpgradeInfo?.();overlayTitle.textContent='SIGNAL +1';
+      overlayBody.innerHTML=`<div class="inspector commerceInspector"><section class="inspectSection"><div class="inspectHero"><strong>START +1</strong><span>PERMANENT THIS RUN</span></div><div class="stateRows"><span>START ${info?.current??0} → ${info?.next??0}</span><span>CORE +${info?.coreCharge??0}</span><span>PRICE · ${info?.price??'—'}c</span></div></section><section class="inspectSection"><div class="inspectLabel">Rule</div><p>Raises starting Signal by 1 for the rest of this run. Core charge is unchanged by this purchase.</p></section></div>`
+    }else{
+      const info=GAME.marketOfferInfo(id),mod=info?.mod,guide=mod&&(mod.guidance||MG?.get?.(id));if(!mod){closeAuxOverlay();return}
+      overlayTitle.textContent=(mod.displayName||mod.name||id).toUpperCase();
+      const target=mod.target==='machine'?'MACHINE':`COMPATIBLE · ${info.targetCount}`,build=guide?.build||mod.shortDescription||mod.description||'',reward=guide?.reward||mod.shortDescription||'',note=guide?.note||'',diagram=MG?.diagramHtml?.(id,false)||'';
+      overlayBody.innerHTML=`<div class="inspector commerceInspector"><section class="inspectSection"><div class="inspectHero"><strong>${escapeHtml(reward)}</strong><span>${escapeHtml(target)} · ${info.price}c</span></div>${diagram}</section><section class="inspectSection"><div class="inspectLabel">Build</div><p>${escapeHtml(build)}</p></section><section class="inspectSection"><div class="inspectLabel">Reward</div><p><strong>${escapeHtml(reward)}</strong></p>${note?`<p class="inspectEmpty">${escapeHtml(note)}</p>`:''}</section><section class="inspectSection"><details class="modExactRule"><summary>Exact rule</summary><p>${escapeHtml(mod.rulesDescription||mod.description||'')}</p></details></section></div>`
+    }
+    overlayPrimary.textContent='BACK';overlayPrimary.onclick=closeAuxOverlay
+  }
   function renderAuxOverlay(){
     if(!auxOverlay)return;resetOverlay();overlay.classList.add('aux');if(auxOverlay.type==='mode-inspector'||auxOverlay.type==='monoid-inspector')overlay.classList.add('entryInspectorOverlay');modalEl.classList.add('auxModal');overlay.onclick=e=>{if(e.target===overlay)closeAuxOverlay()};
-    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else if(auxOverlay.type==='core-inspector')renderCoreInspector();else if(auxOverlay.type==='void-inspector')renderVoidInspector();else if(auxOverlay.type==='signal-inspector')renderSignalInspector();else if(auxOverlay.type==='mode-inspector')renderModeInspector();else if(auxOverlay.type==='monoid-inspector')renderMonoidInspector();else renderInspector();
+    if(auxOverlay.type==='rulebook')renderRulebook();else if(auxOverlay.type==='score')renderScoreDetails();else if(auxOverlay.type==='tool-buy')renderToolPurchase();else if(auxOverlay.type==='core-inspector')renderCoreInspector();else if(auxOverlay.type==='void-inspector')renderVoidInspector();else if(auxOverlay.type==='signal-inspector')renderSignalInspector();else if(auxOverlay.type==='mode-inspector')renderModeInspector();else if(auxOverlay.type==='monoid-inspector')renderMonoidInspector();else if(auxOverlay.type==='shop-offer-inspector')renderShopOfferInspector();else if(auxOverlay.type==='market-offer-inspector')renderMarketOfferInspector();else renderInspector();
     if(!overlay.contains(document.activeElement)){if(!returnFocus)returnFocus=document.activeElement;const focusTarget=auxOverlay.type==='void-inspector'?overlayBody.querySelector('.voidInspectorWord'):overlayPrimary;focusTarget?.focus()}
   }
 
