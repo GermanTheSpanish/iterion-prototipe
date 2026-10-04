@@ -13,9 +13,9 @@ assert.match(source,/color:var\(--circuit-pip,#fff\)!important/,'Circuit Mod let
 assert.match(source,/modFaceReveal/,'Board Mod reveal should have a lightweight face-flip transition');
 assert.match(source,/domino\.compactPreview>\.half\{width:100%!important/,'Compact halves must fit their own domino, not inherit hand widths');
 assert.match(source,/domino\.compactPreview>\.half>\.spips\{inset:16%!important;opacity:1!important/,'Compact pips must remain centred and fully opaque');
-assert.match(source,/shopOfferInspect \.domino\.compactPreview\{width:40px!important;height:auto!important/,'Tile Shop pieces must use the current Hand width');
-assert.match(source,/shopOfferInspect \.domino\.compactPreview>\.half\{width:38px!important;height:38px!important/,'Tile Shop halves must use the current Hand half geometry');
-assert.match(source,/shopOfferInspect \.domino\.compactPreview>\.half\{width:32px!important;height:30px!important/,'Short-screen Tile Shop geometry must mirror the short-screen Hand');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview\{width:30px!important;height:auto!important[^}]*aspect-ratio:1\/2!important/,'Tile Shop pieces must use the rendered Hand geometry');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview>\.half\{width:100%!important;height:50%!important/,'Tile Shop halves must follow the Hand half geometry');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview\{width:26px!important\}/,'Short-screen Tile Shop width must mirror the short-screen Hand');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.match(ui,/mini\(t,'normal',true\)/,'Commerce physical tiles use the shared compact renderer');
 assert.match(ui,/mini\(shopRevealTile,'reveal',true\)/,'Shop reveals use the same compact renderer');
