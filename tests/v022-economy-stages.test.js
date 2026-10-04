@@ -35,7 +35,7 @@ function forceClear(roundIndex){
   return{E,game,s}
 }
 
-  assert.strictEqual(Data.VERSION,'0.66.0');
+  assert.strictEqual(Data.VERSION,'0.67.0');
 assert.strictEqual(Data.STAGE_SIZE,3);
 assert.deepStrictEqual(Data.BOARD_SIZES,[[18,24],[21,28],[24,32],[27,36],[30,40]]);
 assert.strictEqual(Data.SHOP_CHANCE,undefined,'random inter-round Shop scheduling must be removed');
