@@ -94,8 +94,16 @@
     .compactCommerceModal .shopCompactOffer{display:grid!important;grid-template-rows:auto auto auto auto;align-items:center;justify-items:center;gap:5px;min-width:0;padding:8px 5px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important}
     .compactCommerceModal .shopCompactOffer>strong{font-size:10px;line-height:1;letter-spacing:.05em}
     .compactCommerceModal .shopCompactOffer>small{font-size:8px;line-height:1;color:var(--muted);text-align:center}
-    .compactCommerceModal .shopOfferInspect{appearance:none;border:0;background:transparent;color:inherit;padding:0;min-width:44px;min-height:44px;display:grid;place-items:center}
+    /* Tile Shop physical pieces inherit the Hand geometry exactly: 40px body, 38px halves.
+       Board pieces stay grid-owned; only presentation miniatures are normalised here. */
+    .compactCommerceModal .shopOfferInspect{appearance:none;border:0;background:transparent;color:inherit;padding:0;min-width:44px;min-height:84px;display:grid;place-items:center}
+    .compactCommerceModal .shopOfferInspect .marketTile{display:grid;place-items:center;min-width:0;padding:0!important;background:transparent!important;gap:0!important}
+    .compactCommerceModal .shopOfferInspect .marketTile small{display:none!important}
+    .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:40px!important;height:auto!important;max-height:none!important;margin:auto!important}
+    .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:38px!important;height:38px!important;min-height:38px!important;max-height:38px!important;flex:0 0 38px!important}
     .compactCommerceModal .shopCompactOffer .shopBuy{width:100%!important;min-width:0!important;min-height:38px!important;padding:5px 3px!important;font-size:9px!important}
+    .compactCommerceModal .exactShopOffer{grid-template-rows:84px 38px!important;gap:7px;padding:7px 4px!important}
+    .compactCommerceModal .exactShopOffer>strong,.compactCommerceModal .exactShopOffer>small{display:none!important}
     .compactCommerceModal .adapterShopOffer.isUsed{opacity:.5}
     .compactCommerceModal .marketOfferGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
     .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:auto minmax(28px,auto) auto 44px;gap:6px!important;padding:10px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
@@ -119,6 +127,10 @@
       .commerceModal .marketPhysicalContext{gap:9px!important}
       .commerceModal .marketContextTiles .marketTile .domino{width:24px!important;height:46px!important}
       .commerceModal .marketOfferAction,.commerceModal .marketOfferAction .shopBuy{width:106px!important}
+      .compactCommerceModal .shopOfferInspect{min-height:70px}
+      .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:34px!important}
+      .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:32px!important;height:32px!important;min-height:32px!important;max-height:32px!important;flex-basis:32px!important}
+      .compactCommerceModal .exactShopOffer{grid-template-rows:70px 38px!important}
     }
   `;
   doc.head.appendChild(style);
