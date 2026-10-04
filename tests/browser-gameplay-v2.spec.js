@@ -110,17 +110,36 @@ test('stable placement target survives a small release slip toward its neighbour
     const points=candidates.map(c=>{const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);return{c,x:(p.rect.minx+p.rect.maxx)/2/E.G*r.width,y:(p.rect.miny+p.rect.maxy)/2/E.H*r.height}});
     const nearest=(x,y)=>points.reduce((best,p)=>{const d=Math.hypot(p.x-x,p.y-y);return!best||d<best.d?{p,d}:best},null).p;
     for(let a=0;a<points.length;a++)for(let b=0;b<points.length;b++){
-      if(a===b)continue;const A=points[a],B=points[b],d=Math.hypot(B.x-A.x,B.y-A.y);if(d<18||d>40)continue;
-      const ux=(B.x-A.x)/d,uy=(B.y-A.y)/d,slip=Math.min(21,d/2+2),rx=A.x+ux*slip,ry=A.y+uy*slip,n=nearest(rx,ry);
+      if(a===b)continue;const A=points[a],B=points[b],d=Math.hypot(B.x-A.x,B.y-A.y);if(d<16||d>22)continue;
+      const ux=(B.x-A.x)/d,uy=(B.y-A.y)/d,slip=Math.min(11,d/2+1),rx=A.x+ux*slip,ry=A.y+uy*slip,n=nearest(rx,ry);
       if(n!==B)continue;
       return{index:i,a:A.c,b:B.c,start:{x:r.left+A.x,y:r.top+A.y+(D.DRAG_Y_OFFSET||0)},release:{x:r.left+rx,y:r.top+ry+(D.DRAG_Y_OFFSET||0)},distance:d,slip};
     }
     return null
   });
-  expect(probe).toBeTruthy();expect(probe.slip).toBeLessThanOrEqual(22);
+  expect(probe).toBeTruthy();expect(probe.slip).toBeLessThanOrEqual(12);
   const sx=tileBox.x+tileBox.width/2,sy=tileBox.y+tileBox.height/2;
-  await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx+16,sy,{steps:2});await page.mouse.move(probe.start.x,probe.start.y,{steps:6});await page.waitForTimeout(190);await page.mouse.move(probe.release.x,probe.release.y);await page.mouse.up();
+  await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx+16,sy,{steps:2});await page.mouse.move(probe.start.x,probe.start.y,{steps:6});await page.waitForTimeout(140);await page.mouse.move(probe.release.x,probe.release.y);await page.mouse.up();
   await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length),{timeout:12000}).toBe(1);
   const placed=await page.evaluate(()=>{const p=window.__monoidGame.state().pieces[0];return{x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr}});
   expect(placed).toEqual({x:probe.a.x,y:probe.a.y,rr:probe.a.rr});
+});
+
+
+test('intentional drag across the snap tolerance switches to the neighbouring placement',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await startFramesFixture(page);
+  const tile=page.locator('#hand .tile:not(.unplayable)').first(),tileBox=await tile.boundingBox();expect(tileBox).toBeTruthy();
+  const probe=await page.evaluate(()=>{
+    const g=window.__monoidGame,E=window.IterionEngine,D=window.IterionData,s=g.state(),i=s.hand.findIndex((tile,index)=>tile&&g.candidatesForIndex(index).length),tile=s.hand[i],candidates=g.candidatesForIndex(i),r=document.querySelector('#board').getBoundingClientRect();
+    const points=candidates.map(c=>{const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);return{c,x:(p.rect.minx+p.rect.maxx)/2/E.G*r.width,y:(p.rect.miny+p.rect.maxy)/2/E.H*r.height}});
+    for(let a=0;a<points.length;a++)for(let b=0;b<points.length;b++){if(a===b)continue;const A=points[a],B=points[b],d=Math.hypot(B.x-A.x,B.y-A.y);if(d<16||d>40)continue;return{index:i,a:A.c,b:B.c,start:{x:r.left+A.x,y:r.top+A.y+(D.DRAG_Y_OFFSET||0)},end:{x:r.left+B.x,y:r.top+B.y+(D.DRAG_Y_OFFSET||0)},distance:d}}
+    return null
+  });
+  expect(probe).toBeTruthy();expect(probe.distance).toBeGreaterThan(12);
+  const sx=tileBox.x+tileBox.width/2,sy=tileBox.y+tileBox.height/2;
+  await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx+16,sy,{steps:2});await page.mouse.move(probe.start.x,probe.start.y,{steps:6});await page.waitForTimeout(140);await page.mouse.move(probe.end.x,probe.end.y,{steps:5});await page.mouse.up();
+  await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length),{timeout:12000}).toBe(1);
+  const placed=await page.evaluate(()=>{const p=window.__monoidGame.state().pieces[0];return{x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr}});
+  expect(placed).toEqual({x:probe.b.x,y:probe.b.y,rr:probe.b.rr});
 });
