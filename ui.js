@@ -17,7 +17,7 @@
   const inspectorHoldSuppressed=new WeakSet();
   const performanceSamples=[];
   let entryState='title',tutorial=null,activeRun=null;
-  let handFx=Array(D.HAND_SIZE).fill('normal'),ouroborosSelection=null;
+  let handFx=Array(Math.max(D.HAND_SIZE,D.SHOP_HAND_MAX||D.HAND_SIZE)).fill('normal'),ouroborosSelection=null;
   const MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
   const PLACEMENT_LOCK_MS=100,PLACEMENT_LOCK_TOLERANCE_PX=12;
   let drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null,grabOffsetX:0,grabOffsetY:0,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
@@ -360,7 +360,8 @@
     const fire=document.createElement('button');fire.className='ouroborosAction ouroborosFire';fire.type='button';fire.textContent='FIRE';fire.disabled=!piece||uiBusy;fire.setAttribute('aria-label','Fire signal from selected Ouroboros tile');fire.onclick=()=>fireOuroborosSelection();handEl.appendChild(fire)
   }
   function renderHand(){
-    const s=GAME.state();handEl.innerHTML='';if(s.ouroborosMode){renderOuroborosHand();return}
+    const s=GAME.state();handEl.innerHTML='';if(s.ouroborosMode){handEl.classList.remove('handOverflow');delete handEl.dataset.handCount;renderOuroborosHand();return}
+    const handCount=s.hand.filter(Boolean).length,normalSize=GAME.handSizeForRound();handEl.classList.toggle('handOverflow',handCount>normalSize);handEl.dataset.handCount=String(handCount);
     const canGrade=!s.pendingCircuit&&!s.pendingModPlacement&&!uiBusy&&!s.running&&!s.cleared&&!s.blocked&&!s.shopOpen&&!s.needsReroll;
     const mask=canGrade?GAME.legalHandMask():s.hand.map(Boolean);
     for(let i=0;i<s.hand.length;i++){
@@ -609,8 +610,8 @@
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
   }
   function showShop(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),availability=GAME.shopPurchaseAvailability(),randomCost=GAME.shopRandomPrice(),tileOffers=x.shop?.tileOffers||[],adapter=x.shop?.adapter||GAME.adapterShopInfo?.(),offerGeneration=x.shop?.tileOfferGeneration||Math.max(2,(s.setGeneration||1)+1),strain=s.systemStrain||0,handSpace=!!x.shop?.handSpace;overlayTitle.textContent='TILE SHOP';modalEl.classList.add('commerceModal','compactCommerceModal');
-    const randomPreview=shopRevealTile?mini(shopRevealTile,'reveal',true):mini({a:0,b:0},'back',true),handState=handSpace?'PURCHASE → HAND':'HAND FULL';
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),availability=GAME.shopPurchaseAvailability(),randomCost=GAME.shopRandomPrice(),tileOffers=x.shop?.tileOffers||[],adapter=x.shop?.adapter||GAME.adapterShopInfo?.(),offerGeneration=x.shop?.tileOfferGeneration||Math.max(2,(s.setGeneration||1)+1),strain=s.systemStrain||0,handSpace=!!x.shop?.handSpace,handCount=x.shop?.handCount??s.hand.filter(Boolean).length,handLimit=x.shop?.handLimit??D.SHOP_HAND_MAX??8;overlayTitle.textContent='TILE SHOP';modalEl.classList.add('commerceModal','compactCommerceModal');
+    const randomPreview=shopRevealTile?mini(shopRevealTile,'reveal',true):mini({a:0,b:0},'back',true),handState=handSpace?`PURCHASE → HAND · ${handCount}/${handLimit}`:`HAND FULL · ${handCount}/${handLimit}`;
     const tileOfferHtml=tileOffers.length?tileOffers.map(info=>{const t=info.tile,disabled=!handSpace||s.coins<info.price;return `<div class="shopTileOffer shopCompactOffer exactShopOffer"><button type="button" class="shopOfferInspect" data-shop-inspect="tile" data-shop-tile-id="${t.id}" aria-label="Domino ${t.a}|${t.b}. Tap to inspect.">${marketTileHtml(t)}</button><button class="shopBuy" data-shop-tile-offer="${t.id}" ${disabled?'disabled':''}>${!handSpace?'HAND FULL':`BUY · ${info.price}c`}</button></div>`}).join(''):'<p class="inspectEmpty">No next-set tiles remain.</p>';
     const adapterDisabled=!adapter?.available||!handSpace||s.coins<(adapter?.price??Infinity),adapterState=adapter?.purchased?'USED THIS PHASE':!handSpace?'HAND FULL':adapter?.available?`BUY · ${adapter.price}c`:'UNAVAILABLE';
     const adapterHtml=`<div class="shopTileOffer shopCompactOffer adapterShopOffer ${adapter?.purchased?'isUsed':''}"><button type="button" class="shopOfferInspect" data-shop-inspect="adapter" aria-label="Tap to inspect Adapter">${mini({id:'adapter-preview',a:null,b:null,source:'special',special:'adapter'},'normal',true)}</button><strong>ADAPTER</strong><button id="shopAdapterBuy" class="shopBuy" ${adapterDisabled?'disabled':''}>${adapterState}</button><small>${String(adapter?.phase||'landing').toUpperCase()} · 1/PHASE</small></div>`;
