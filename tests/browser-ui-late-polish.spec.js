@@ -125,7 +125,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261004.4');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261004.5');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -192,4 +192,23 @@ test('Phase A compacts primary numbers at 50K and thickens the score instrument 
   const menu=await page.locator('#menuButton').boundingBox();expect(Math.abs(menu.x+menu.width/2-187.5)).toBeLessThan(1);
   expect(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+});
+
+
+test('Tile Shop purchases fit an eight-tile overflow Hand on compact phones',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.evaluate(()=>{const s=window.__monoidGame.state();s.coins=200;const button=document.getElementById('shopButton');button.disabled=false;button.click()});
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');
+  await expect(page.locator('#overlayBody')).toContainText('PURCHASE → HAND · 5/8');
+  for(let i=0;i<3;i++)await page.locator('[data-shop-tile-offer]').first().click();
+  await expect(page.locator('#hand .domino')).toHaveCount(8);
+  await expect(page.locator('#overlayBody')).toContainText('HAND FULL · 8/8');
+  const layout=await page.evaluate(()=>{
+    const rail=document.querySelector('.handRail').getBoundingClientRect(),hand=document.getElementById('hand'),touchSlots=[...hand.querySelectorAll('.handSlot[data-hand-touch="true"]')],slots=[...hand.querySelectorAll('.handSlot')].map(el=>el.getBoundingClientRect()),touchRects=touchSlots.map(el=>el.getBoundingClientRect());
+    return{count:slots.length,touchCount:touchRects.length,overflow:hand.classList.contains('handOverflow'),railTop:rail.top,railBottom:rail.bottom,slotTop:Math.min(...slots.map(r=>r.top)),slotBottom:Math.max(...slots.map(r=>r.bottom)),minTouch:Math.min(...touchRects.map(r=>Math.min(r.width,r.height))),scrolls:document.documentElement.scrollHeight>innerHeight||document.documentElement.scrollWidth>innerWidth}
+  });
+  expect(layout.count).toBe(8);expect(layout.touchCount).toBe(8);expect(layout.overflow).toBe(true);expect(layout.slotTop).toBeGreaterThanOrEqual(layout.railTop-1);expect(layout.slotBottom).toBeLessThanOrEqual(layout.railBottom+1);expect(layout.minTouch).toBeGreaterThanOrEqual(44);expect(layout.scrolls).toBe(false)
 });

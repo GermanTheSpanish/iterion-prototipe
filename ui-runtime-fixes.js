@@ -136,6 +136,22 @@
       .handRail .tile{width:48px!important;padding:0!important}
       .handRail .domino{width:40px!important;border-radius:6px!important}
       .handRail .domino>.half{width:38px!important;height:38px!important;max-height:none!important}
+      .hand.handOverflow{justify-content:flex-start!important}
+      .hand.handOverflow .handSlot[data-hand-touch="true"]{box-sizing:border-box!important;width:100%!important;min-width:44px!important;align-self:stretch!important}
+      .hand.handOverflow[data-hand-count="6"]{gap:4px!important}
+      .hand.handOverflow[data-hand-count="6"] .handSlot{height:62px!important;min-height:62px!important;flex-basis:62px!important}
+      .hand.handOverflow[data-hand-count="6"] .domino>.half{width:29px!important;height:29px!important}
+      .hand.handOverflow[data-hand-count="6"] .domino{width:31px!important}
+      .hand.handOverflow[data-hand-count="7"]{gap:3px!important}
+      .hand.handOverflow[data-hand-count="7"] .handSlot{height:53px!important;min-height:53px!important;flex-basis:53px!important}
+      .hand.handOverflow[data-hand-count="7"] .domino>.half{width:25px!important;height:25px!important}
+      .hand.handOverflow[data-hand-count="7"] .domino{width:27px!important}
+      .hand.handOverflow[data-hand-count="8"]{gap:2px!important}
+      .hand.handOverflow[data-hand-count="8"] .handSlot{height:46px!important;min-height:46px!important;flex-basis:46px!important}
+      .hand.handOverflow[data-hand-count="8"] .domino>.half{width:22px!important;height:22px!important}
+      .hand.handOverflow[data-hand-count="8"] .domino{width:24px!important}
+      .hand.handOverflow .tile{box-sizing:border-box!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;min-height:44px!important;max-height:44px!important;flex-shrink:0!important;align-self:center!important}
+      .hand.handOverflow .spip{width:3px!important;height:3px!important}
 
       .bottomBar{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto auto!important;gap:10px!important;align-items:stretch!important;min-height:0!important;padding-top:10px!important}
       .hint{display:block!important;min-height:22px!important;margin:0!important;overflow:visible!important;text-align:center!important;font-size:14px!important;font-weight:400!important;line-height:1.25!important;color:#67645f!important;-webkit-line-clamp:unset!important}
@@ -193,7 +209,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20261004.4';
+    const BUILD_ID='20261004.5';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);
