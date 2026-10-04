@@ -106,16 +106,35 @@
     .compactCommerceModal .exactShopOffer>strong,.compactCommerceModal .exactShopOffer>small{display:none!important}
     .compactCommerceModal .adapterShopOffer.isUsed{opacity:.5}
     .compactCommerceModal .marketOfferGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
-    .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:auto minmax(28px,auto) auto 44px;gap:6px!important;padding:10px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
+    .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:auto 42px minmax(18px,auto) auto 44px;gap:5px!important;padding:9px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
     .compactCommerceModal .marketInspectTarget{appearance:none;border:0;background:transparent;color:inherit;padding:0;width:100%;display:flex;align-items:baseline;justify-content:space-between;gap:8px;text-align:left}
     .compactCommerceModal .marketInspectTarget strong{font-size:13px!important;line-height:1.05!important;letter-spacing:.035em}
     .compactCommerceModal .marketInspectTarget span{font-size:13px!important;line-height:1!important;white-space:nowrap}
-    .compactCommerceModal .marketOfferPayoff{font-size:13px;line-height:1.15;font-weight:800;overflow-wrap:anywhere}
+    .compactCommerceModal .marketOfferVisual{display:flex;align-items:center;justify-content:center;min-width:0;height:42px;overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .compactCommerceModal .marketOfferVisual .modDiagram.compact{height:40px!important;margin:0!important;border:0!important;overflow:hidden!important}
+    .compactCommerceModal .marketSignalVisual{gap:7px;font-size:9px;letter-spacing:.035em}.compactCommerceModal .marketSignalVisual b{font-size:10px;font-weight:850}.compactCommerceModal .marketSignalVisual i{font-style:normal;color:var(--muted)}
+    .compactCommerceModal .marketOfferPayoff{font-size:11px;line-height:1.12;font-weight:780;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
     .compactCommerceModal .marketOfferMeta{font-size:8px;line-height:1.15;letter-spacing:.08em;color:var(--muted)}
     .compactCommerceModal .marketOfferMeta.invalid{opacity:.55}
     .compactCommerceModal .marketCompactOffer>.shopBuy{width:100%!important;min-height:44px!important;margin:0!important;padding:7px!important;font-size:10px!important}
     .compactCommerceModal .marketChoiceTitle{margin:2px 0!important;font-size:9px!important;letter-spacing:.12em!important}
     .compactCommerceModal .shopFoot{margin-top:0!important;padding-top:4px;font-size:8px!important;line-height:1.2!important;letter-spacing:.05em}
+
+    #progressionRewardDialog{width:min(390px,calc(100vw - 24px));max-width:none;margin:auto;padding:0;border:1px solid var(--ink);border-radius:5px;background:var(--paper);color:var(--ink);box-shadow:none}
+    #progressionRewardDialog::backdrop{background:rgba(10,10,9,.82)}
+    .progressionRewardCard{display:grid;justify-items:center;gap:12px;padding:28px 24px 22px;text-align:center}
+    .progressionRewardEyebrow{font-size:10px;font-weight:850;line-height:1;letter-spacing:.22em;color:var(--muted)}
+    .progressionRewardCard h2{margin:0!important;font-size:clamp(30px,10vw,42px)!important;font-weight:760!important;line-height:.95!important;letter-spacing:.035em!important}
+    .progressionRewardVisual{display:grid;place-items:center;width:100%;height:126px;margin:4px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden}
+    .progressionRewardVisual>.modDiagram{width:100%;height:108px!important;margin:0!important;border:0!important}
+    .progressionRewardDomino{display:flex;flex-direction:column;width:56px;height:108px;border:2px solid currentColor;border-radius:7px;background:var(--paper);box-shadow:2px 4px 10px rgba(0,0,0,.08)}
+    .progressionRewardDomino>span{position:relative;flex:1}.progressionRewardDomino>span+span{border-top:2px solid currentColor}.progressionRewardDomino em{position:absolute;inset:13%;font-style:normal}
+    .progressionRewardDomino i{position:absolute;width:6px;height:6px;border-radius:50%;background:currentColor;transform:translate(-50%,-50%)}
+    .progressionRewardRule{max-width:300px;font-size:15px;line-height:1.25;font-weight:760}
+    .progressionRewardMeta{margin:0!important;max-width:310px;font-size:10px!important;line-height:1.35!important;font-weight:700;letter-spacing:.1em;color:var(--muted)!important}
+    .progressionRewardContinue{width:100%;min-height:52px;margin-top:4px;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--paper);font-size:13px;font-weight:800;letter-spacing:.12em}
+    @media(max-height:700px){.progressionRewardCard{gap:8px;padding:20px 18px 16px}.progressionRewardVisual{height:92px}.progressionRewardVisual>.modDiagram{height:82px!important}.progressionRewardDomino{width:42px;height:82px}.progressionRewardDomino i{width:5px;height:5px}.progressionRewardCard h2{font-size:29px!important}.progressionRewardContinue{min-height:48px}}
+    @media(prefers-reduced-motion:reduce){#progressionRewardDialog{scroll-behavior:auto}}
     @media(max-width:390px),(max-height:700px){
       .wordmark{width:clamp(104px,28vw,120px)!important;font-size:13px!important}
       .app .piece>.tileModMark{font-size:12px!important}.app .domino>.tileModMark{font-size:17px!important}
@@ -133,6 +152,48 @@
     }
   `;
   doc.head.appendChild(style);
+
+  const REWARD_MODES=Object.freeze({
+    classic:{name:'CLASSIC',pips:0,description:'Classic → Endless → Infinite'},
+    eyes:{name:'THE EYES',pips:1,description:'1|1 · Signal 6'},
+    frames:{name:'THE FRAMES',pips:2,description:'2|2 · Signal 4'},
+    river:{name:'THE RIVER',pips:3,description:'3|3 · Signal 3'},
+    loom:{name:'THE LOOM',pips:4,description:'4|4 · Signal 2'},
+    peaks:{name:'THE PEAKS',pips:5,description:'5|5 · Signal 2'},
+    islands:{name:'THE ISLANDS',pips:6,description:'6|6 · Build from Cores'}
+  });
+  const REWARD_PIPS={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
+  const rewardQueue=[];
+  let rewardDialog=null,rewardActive=false,rewardReturnFocus=null;
+  const rewardPips=value=>(REWARD_PIPS[value]||[]).map(([x,y])=>`<i style="left:${x}%;top:${y}%"></i>`).join('');
+  function modeRewardVisual(mode){const spec=REWARD_MODES[mode]||REWARD_MODES.classic,p=rewardPips(spec.pips);return `<div class="progressionRewardDomino" aria-hidden="true"><span><em>${p}</em></span><span><em>${p}</em></span></div>`}
+  function ensureRewardDialog(){
+    if(rewardDialog)return rewardDialog;
+    rewardDialog=doc.createElement('dialog');rewardDialog.id='progressionRewardDialog';rewardDialog.setAttribute('aria-labelledby','progressionRewardTitle');rewardDialog.innerHTML='<article class="progressionRewardCard"><div class="progressionRewardEyebrow"></div><h2 id="progressionRewardTitle"></h2><div class="progressionRewardVisual"></div><strong class="progressionRewardRule"></strong><p class="progressionRewardMeta"></p><button type="button" class="progressionRewardContinue">CONTINUE</button></article>';doc.body.appendChild(rewardDialog);
+    rewardDialog.querySelector('.progressionRewardContinue').addEventListener('click',()=>rewardDialog.close());
+    rewardDialog.addEventListener('close',()=>{rewardActive=false;const target=rewardReturnFocus;rewardReturnFocus=null;if(target?.isConnected)target.focus();showNextReward()});
+    return rewardDialog
+  }
+  function modeRewardItems(detail){
+    const unlocked=Array.isArray(detail?.unlockedModes)?detail.unlockedModes:[],completed=Array.isArray(detail?.completedModes)?detail.completedModes:[],completedName=completed.length?(REWARD_MODES[completed.at(-1)]?.name||String(completed.at(-1)).toUpperCase()):null;
+    if(unlocked.length)return unlocked.map(mode=>({kind:'mode',mode,completedName}));
+    if(completed.length){const mode=completed.at(-1);return[{kind:'completion',mode,completedName:null}]}
+    return[]
+  }
+  function enqueueProgressionReward(detail){rewardQueue.push(...modeRewardItems(detail));showNextReward()}
+  function enqueueModReward(id){const mod=root.IterionMods?.get?.(id),guide=MG?.get?.(id);if(!mod)return;rewardQueue.push({kind:'mod',id,mod,guide});showNextReward()}
+  function showNextReward(){
+    if(rewardActive||!rewardQueue.length)return;const item=rewardQueue.shift(),dialog=ensureRewardDialog(),eyebrow=dialog.querySelector('.progressionRewardEyebrow'),title=dialog.querySelector('#progressionRewardTitle'),visual=dialog.querySelector('.progressionRewardVisual'),rule=dialog.querySelector('.progressionRewardRule'),meta=dialog.querySelector('.progressionRewardMeta');
+    rewardReturnFocus=doc.activeElement;rewardActive=true;
+    if(item.kind==='mod'){
+      eyebrow.textContent='NEW MOD DISCOVERED';title.textContent=item.mod.displayName||item.mod.name||item.id.toUpperCase();visual.innerHTML=MG?.diagramHtml?.(item.id,false)||`<div class="modDiagram modDiagramLine"><b>${item.mod.collectionCode||item.id.slice(0,2).toUpperCase()}</b></div>`;rule.textContent=item.guide?.market||item.mod.shortDescription||'';meta.textContent='ADDED TO MOD COLLECTION';
+    }else{
+      const spec=REWARD_MODES[item.mode]||{name:String(item.mode||'MODE').toUpperCase(),pips:0,description:''};eyebrow.textContent=item.kind==='completion'?'MODE COMPLETE':'NEW MODE UNLOCKED';title.textContent=spec.name;visual.innerHTML=modeRewardVisual(item.mode);rule.textContent=spec.description;meta.textContent=item.kind==='completion'?'MILESTONE COMPLETE':item.completedName?`${item.completedName} COMPLETE · AVAILABLE FROM GAME SELECTION`:'AVAILABLE FROM GAME SELECTION';
+    }
+    if(!dialog.open)dialog.showModal();dialog.querySelector('.progressionRewardContinue').focus()
+  }
+  root.addEventListener('monoid:mod-unlocked',event=>enqueueModReward(event.detail?.id));
+  const pendingRewards=Array.isArray(root.__monoidProgressionRewardQueue)?root.__monoidProgressionRewardQueue.splice(0):[];for(const reward of pendingRewards)enqueueProgressionReward(reward);
 
   function decorateWordmark(){
     const wordmark=doc.querySelector('.wordmark');if(!wordmark)return;
@@ -186,6 +247,6 @@
   function schedule(){if(queued)return;queued=true;requestAnimationFrame(sync)}
   new MutationObserver(schedule).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','aria-label','hidden']});
   root.addEventListener('resize',schedule);root.addEventListener('pageshow',schedule);
-  root.MonoidLatePolish=Object.freeze({BUILD_ID,MAX_MARKET_TILES,EXTREME_THRESHOLD,scientific,displayValue,sync});
+  root.MonoidLatePolish=Object.freeze({BUILD_ID,MAX_MARKET_TILES,EXTREME_THRESHOLD,scientific,displayValue,sync,enqueueProgressionReward,enqueueModReward});
   sync()
 })(window);
