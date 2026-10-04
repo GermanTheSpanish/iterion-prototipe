@@ -14,7 +14,7 @@ function piece(a,b,x,y,rr,id){
 }
 const events=(result,type)=>(result.events||[]).filter(event=>event.type===type);
 
-assert.equal(D.VERSION,'0.65.0');
+assert.equal(D.VERSION,'0.65.1');
 assert.equal(D.CORE_SIGNAL_MARKET_STEP,1);
 assert.equal(D.CORE_SIGNAL_PURCHASE_COST,8);
 assert.equal(D.CORE_SIGNAL_PURCHASE_STEP,3);
