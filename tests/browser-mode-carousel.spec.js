@@ -31,6 +31,15 @@ test('MONOID wordmark opens a real dictionary inspector without entering selecti
   await expect(page.locator('#modeCarouselFrame')).toBeVisible()
 });
 
+test('Game Selection MONOID wordmark opens Inspector on tap',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.locator('#titleCard').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.locator('#selectionTitle').click();
+  await expect(page.locator('#overlay')).toHaveClass(/show/);await expect(page.locator('#overlayTitle')).toHaveText('MONOID');
+  await expect(page.locator('#overlayBody')).toContainText('1. Mathematics.');
+});
+
 test('locked mode tiles remain inspectable and explain both unlock and completion conditions',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','fresh'));
   await page.setViewportSize({width:375,height:667});
@@ -41,8 +50,7 @@ test('locked mode tiles remain inspectable and explain both unlock and completio
   await page.evaluate(()=>window.__monoidModes.select(6));
   await expect(page.locator('#modeName')).toHaveText('LOCKED');
   await expect(page.locator('#startRun')).toBeDisabled();
-  const slide=page.locator('.modeSlide[data-mode="islands"]'),box=await slide.boundingBox();expect(box).toBeTruthy();
-  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(560);await page.mouse.up();
+  const slide=page.locator('.modeSlide[data-mode="islands"]');await slide.click();
   await expect(page.locator('#overlay')).toHaveClass(/show/);
   await expect(page.locator('#overlayTitle')).toHaveText('THE ISLANDS');
   await expect(page.locator('#overlayBody')).toContainText('LOCKED');
