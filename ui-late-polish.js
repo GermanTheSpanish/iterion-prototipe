@@ -91,7 +91,7 @@
     .compactCommerceModal .shopHero{margin:0!important;padding:0 0 8px!important}
     .compactCommerceModal .shopOfferGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
     .compactCommerceModal .shopTileOfferGrid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
-    .compactCommerceModal .shopCompactOffer{display:grid!important;grid-template-rows:auto auto auto auto;align-items:center;justify-items:center;gap:5px;min-width:0;padding:8px 5px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important}
+    .compactCommerceModal .shopCompactOffer{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto auto auto auto;align-items:center;justify-items:center;gap:5px;min-width:0;padding:8px 5px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important}
     .compactCommerceModal .shopCompactOffer>strong{font-size:10px;line-height:1;letter-spacing:.05em}
     .compactCommerceModal .shopCompactOffer>small{font-size:8px;line-height:1;color:var(--muted);text-align:center}
     /* Tile Shop physical pieces inherit the Hand geometry exactly: 40px body, 38px halves.
