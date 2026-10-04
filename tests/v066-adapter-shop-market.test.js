@@ -50,12 +50,15 @@ assert.equal(D.SHOP_ADAPTER_TILE_COST,8);
 }
 
 {
-  const game=create(6602),s=game.state(),before={coins:s.coins,inflation:s.inflation,set:s.set.length,reserve:s.reserve.length};
-  assert.equal(game.shopPurchaseAvailability().blockedByHand,true,'fresh full Hand blocks physical purchases');
-  assert.equal(game.openShop(),true,'full Hand may still open Shop for inspection');
-  const blocked=game.buyShopRandomTile();
-  assert.equal(blocked.ok,false);assert.equal(blocked.reason,'hand-full');
-  assert.deepEqual({coins:s.coins,inflation:s.inflation,set:s.set.length,reserve:s.reserve.length},before,'blocked purchase changes no economy or inventory');
+  const game=create(6602),s=game.state(),before=s.hand.filter(Boolean).length;
+  const availability=game.shopPurchaseAvailability();
+  assert.equal(availability.blockedByHand,false,'fresh full base Hand still allows purchase overflow');
+  assert.equal(availability.handCount,5);assert.equal(availability.handLimit,8);
+  assert.equal(game.openShop(),true);
+  const bought=game.buyShopRandomTile();
+  assert.equal(bought.ok,true);assert.equal(bought.delivery,'hand');assert.equal(bought.delivery,'hand');
+  assert.equal(s.hand.filter(Boolean).length,before+1,'full Hand expands temporarily for a physical purchase');
+  assert.equal(s.hand.find(t=>t?.id===bought.tile.id)?.shopPinned,true,'purchased tile is pinned against Reroll until used');
   game.closeShop();
 }
 
