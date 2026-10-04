@@ -22,6 +22,11 @@ function mockEngine(){
   }
 }
 
+function makeHandSpace(s){
+  const index=s.hand.findIndex(Boolean);if(index<0)return;
+  const tile=s.hand[index];s.hand[index]=null;s.reserve.unshift(tile)
+}
+
 function forceClear(roundIndex){
   const E=mockEngine(),game=Game.createGame(E,{seed:123,STARTING_COINS:100});
   const s=game.state();s.round=roundIndex;s.roundTurn=1;s.running=true;s.cleared=false;s.blocked=false;s.failureReason=null;
@@ -55,7 +60,7 @@ assert.strictEqual(forceClear(14).s.nextShopType,'none','final round must not sc
   assert.strictEqual(game.canOpenShop(),true,'Shop must be available during active play');
   assert.strictEqual(game.openShop(),true);
   const setBefore=s.set.length,availableBefore=game.availableTileCount();
-  const buy=game.buyShopRandomTile();
+  makeHandSpace(s);const buy=game.buyShopRandomTile();
   assert.strictEqual(buy.ok,true);
   assert.strictEqual(buy.cost,1);
   assert.strictEqual(s.set.length,setBefore+1,'Shop random purchase creates a new physical tile');
@@ -92,7 +97,7 @@ assert.strictEqual(forceClear(14).s.nextShopType,'none','final round must not sc
 {
   const E=mockEngine(),game=Game.createGame(E,{seed:9,STARTING_COINS:100});
   const s=game.state();
-  game.openShop();game.buyShopRandomTile();game.closeShop();
+  makeHandSpace(s);game.openShop();game.buyShopRandomTile();game.closeShop();
   assert.strictEqual(s.inflation,1);
   s.cleared=true;s.round=2;s.nextShopType='market';s.intermissionResolved=false;
   assert.strictEqual(game.openIntermission(),true);
