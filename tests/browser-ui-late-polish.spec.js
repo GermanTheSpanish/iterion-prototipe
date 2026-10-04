@@ -127,8 +127,12 @@ test('mode and Mod unlocks use a dedicated reward reveal on compact phones',asyn
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish?.enqueueProgressionReward)).toBe(true);
+  await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.locator('#menuButton').click();
   await page.evaluate(()=>window.MonoidLatePolish.enqueueProgressionReward({completedModes:['eyes'],unlockedModes:['frames']}));
   const reward=page.locator('#progressionRewardDialog');
+  await expect(reward).not.toBeVisible();
+  await page.locator('#closeMenu').click();
   await expect(reward).toBeVisible();
   await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('NEW MODE UNLOCKED');
   await expect(reward.locator('#progressionRewardTitle')).toHaveText('THE FRAMES');

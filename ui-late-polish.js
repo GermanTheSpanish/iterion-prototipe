@@ -180,10 +180,16 @@
     if(completed.length){const mode=completed.at(-1);return[{kind:'completion',mode,completedName:null}]}
     return[]
   }
+  function progressionRewardSurfaceReady(){
+    const overlay=$('overlay'),menu=$('gameMenu'),entry=$('entryFlow');
+    if(entry&&!entry.hidden)return false;
+    if(overlay?.classList.contains('show')||menu?.open)return false;
+    return !doc.querySelector('dialog[open]:not(#progressionRewardDialog)')
+  }
   function enqueueProgressionReward(detail){rewardQueue.push(...modeRewardItems(detail));showNextReward()}
   function enqueueModReward(id){const mod=root.IterionMods?.get?.(id),guide=MG?.get?.(id);if(!mod)return;rewardQueue.push({kind:'mod',id,mod,guide});showNextReward()}
   function showNextReward(){
-    if(rewardActive||!rewardQueue.length)return;const item=rewardQueue.shift(),dialog=ensureRewardDialog(),eyebrow=dialog.querySelector('.progressionRewardEyebrow'),title=dialog.querySelector('#progressionRewardTitle'),visual=dialog.querySelector('.progressionRewardVisual'),rule=dialog.querySelector('.progressionRewardRule'),meta=dialog.querySelector('.progressionRewardMeta');
+    if(rewardActive||!rewardQueue.length||!progressionRewardSurfaceReady())return;const item=rewardQueue.shift(),dialog=ensureRewardDialog(),eyebrow=dialog.querySelector('.progressionRewardEyebrow'),title=dialog.querySelector('#progressionRewardTitle'),visual=dialog.querySelector('.progressionRewardVisual'),rule=dialog.querySelector('.progressionRewardRule'),meta=dialog.querySelector('.progressionRewardMeta');
     rewardReturnFocus=doc.activeElement;rewardActive=true;
     if(item.kind==='mod'){
       eyebrow.textContent='NEW MOD DISCOVERED';title.textContent=item.mod.displayName||item.mod.name||item.id.toUpperCase();visual.innerHTML=MG?.diagramHtml?.(item.id,false)||`<div class="modDiagram modDiagramLine"><b>${item.mod.collectionCode||item.id.slice(0,2).toUpperCase()}</b></div>`;rule.textContent=item.guide?.market||item.mod.shortDescription||'';meta.textContent='ADDED TO MOD COLLECTION';
@@ -243,9 +249,9 @@
     root.__MONOID_BUILD=BUILD_ID;const text=`v${root.IterionData?.VERSION||'dev'} · build ${BUILD_ID}`;for(const el of[$('devBuildStamp'),doc.querySelector('.menuBuildStamp')])if(el&&el.textContent!==text)el.textContent=text
   }
   let queued=false;
-  function sync(){queued=false;decorateWordmark();decorateMarket();syncExtremeNumbers();syncBuildStamp()}
+  function sync(){queued=false;decorateWordmark();decorateMarket();syncExtremeNumbers();syncBuildStamp();showNextReward()}
   function schedule(){if(queued)return;queued=true;requestAnimationFrame(sync)}
-  new MutationObserver(schedule).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','aria-label','hidden']});
+  new MutationObserver(schedule).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','aria-label','hidden','open']});
   root.addEventListener('resize',schedule);root.addEventListener('pageshow',schedule);
   root.MonoidLatePolish=Object.freeze({BUILD_ID,MAX_MARKET_TILES,EXTREME_THRESHOLD,scientific,displayValue,sync,enqueueProgressionReward,enqueueModReward});
   sync()

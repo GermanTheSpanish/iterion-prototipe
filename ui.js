@@ -90,10 +90,10 @@
     if(!detail?.unlockedModes?.length&&!detail?.completedModes?.length)return;
     queueMicrotask(()=>{if(typeof window.MonoidLatePolish?.enqueueProgressionReward==='function')window.MonoidLatePolish.enqueueProgressionReward(detail);else(window.__monoidProgressionRewardQueue||(window.__monoidProgressionRewardQueue=[])).push(detail)})
   }
-  function persistGame(){
+  function persistGame(options={}){
     if(tutorial)return GAME.snapshot();
     const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],payload=JSON.stringify(GAME.exportState());
-    if(unlockedModes.length||completedModes.length)queueProgressionReward({unlockedModes:[...unlockedModes],completedModes:[...completedModes]});
+    if(!options.suppressProgressionReward&&(unlockedModes.length||completedModes.length))queueProgressionReward({unlockedModes:[...unlockedModes],completedModes:[...completedModes]});
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
       localStorage.setItem(ACTIVE_RUN_KEY,payload);
@@ -146,7 +146,7 @@
     clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;if(!continueSaved)await archiveSavedRun('new-run');const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
     localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;window.__monoidSelectedMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
-    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem(TUTORIAL_KEY,'made');persistGame();handFx.fill('normal');showGame()
+    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem(TUTORIAL_KEY,'made');persistGame({suppressProgressionReward:true});handFx.fill('normal');showGame()
   }
   const tutorialCopy=[
     'Place the double. Every machine opens with one.',
@@ -378,7 +378,7 @@
   function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal','compactCommerceModal','outcomeModal','voidInspectorModal');overlay.onclick=null;overlayBody.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(){clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+D.OUTCOME_SCREEN_DELAY_MS;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},D.OUTCOME_SCREEN_DELAY_MS+25)}
-  async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame();handFx.fill('normal');hideOverlay();render();resumePlaytest()}
+  async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
