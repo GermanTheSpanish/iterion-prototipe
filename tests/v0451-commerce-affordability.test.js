@@ -29,9 +29,9 @@ function prepareMarket(game,round=2){
   const game=create(45102,1),s=game.state();makeHandSpace(game);
   assert.equal(game.openShop(),true,'the cheapest affordable Shop item keeps the Shop open');
   const bought=game.buyShopRandomTile();assert.equal(bought.ok,true);assert.equal(bought.cost,1);
-  assert.equal(bought.shopClosedReason,'insufficient-coins','Shop closes immediately once the remaining balance cannot buy anything');
-  assert.equal(s.shopOpen,false);
-  const close=[...s.events].reverse().find(e=>e.type==='shop-close'&&e.shop==='shop');assert.equal(close.reason,'insufficient-coins');
+  assert.equal(bought.shopClosedReason,null,'a purchase that refills the last Hand slot keeps Shop open for inspection');
+  assert.equal(s.shopOpen,true);const after=game.shopPurchaseAvailability();assert.equal(after.blockedByHand,true);assert.equal(after.coins,0);
+  assert.equal(game.closeShop(),true);
 }
 
 {
