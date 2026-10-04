@@ -83,6 +83,31 @@
     .commerceModal .shopFoot{margin-top:8px!important;font-size:10px!important;line-height:1.3!important;color:var(--muted)!important}
     body.endlessPalette .commerceModal .marketOffer.marketStructuredOffer{background:transparent!important;border-color:var(--line)!important}
     body.endlessPalette .commerceModal .marketOfferAction .shopBuy{border-color:var(--line)!important;background:transparent!important;color:var(--ink)!important}
+    .wildPip,.swildPip{position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);font:900 16px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
+    .swildPip{font-size:13px}
+    .specialTileMark{position:absolute;left:50%;top:50%;z-index:10;transform:translate(-50%,-50%);padding:1px 2px;background:inherit;color:var(--ink);font:850 7px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.04em;pointer-events:none}
+    .piece>.specialTileMark{font-size:6px}
+    .compactCommerceModal .bigShop{display:grid;gap:10px}
+    .compactCommerceModal .shopHero{margin:0!important;padding:0 0 8px!important}
+    .compactCommerceModal .shopOfferGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .compactCommerceModal .shopTileOfferGrid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+    .compactCommerceModal .shopCompactOffer{display:grid!important;grid-template-rows:auto auto auto auto;align-items:center;justify-items:center;gap:5px;min-width:0;padding:8px 5px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important}
+    .compactCommerceModal .shopCompactOffer>strong{font-size:10px;line-height:1;letter-spacing:.05em}
+    .compactCommerceModal .shopCompactOffer>small{font-size:8px;line-height:1;color:var(--muted);text-align:center}
+    .compactCommerceModal .shopOfferInspect{appearance:none;border:0;background:transparent;color:inherit;padding:0;min-width:44px;min-height:44px;display:grid;place-items:center}
+    .compactCommerceModal .shopCompactOffer .shopBuy{width:100%!important;min-width:0!important;min-height:38px!important;padding:5px 3px!important;font-size:9px!important}
+    .compactCommerceModal .adapterShopOffer.isUsed{opacity:.5}
+    .compactCommerceModal .marketOfferGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+    .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:auto minmax(28px,auto) auto 44px;gap:6px!important;padding:10px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
+    .compactCommerceModal .marketInspectTarget{appearance:none;border:0;background:transparent;color:inherit;padding:0;width:100%;display:flex;align-items:baseline;justify-content:space-between;gap:8px;text-align:left}
+    .compactCommerceModal .marketInspectTarget strong{font-size:13px!important;line-height:1.05!important;letter-spacing:.035em}
+    .compactCommerceModal .marketInspectTarget span{font-size:13px!important;line-height:1!important;white-space:nowrap}
+    .compactCommerceModal .marketOfferPayoff{font-size:13px;line-height:1.15;font-weight:800;overflow-wrap:anywhere}
+    .compactCommerceModal .marketOfferMeta{font-size:8px;line-height:1.15;letter-spacing:.08em;color:var(--muted)}
+    .compactCommerceModal .marketOfferMeta.invalid{opacity:.55}
+    .compactCommerceModal .marketCompactOffer>.shopBuy{width:100%!important;min-height:44px!important;margin:0!important;padding:7px!important;font-size:10px!important}
+    .compactCommerceModal .marketChoiceTitle{margin:2px 0!important;font-size:9px!important;letter-spacing:.12em!important}
+    .compactCommerceModal .shopFoot{margin-top:0!important;padding-top:4px;font-size:8px!important;line-height:1.2!important;letter-spacing:.05em}
     @media(max-width:390px),(max-height:700px){
       .wordmark{width:clamp(104px,28vw,120px)!important;font-size:13px!important}
       .app .piece>.tileModMark{font-size:12px!important}.app .domino>.tileModMark{font-size:17px!important}
@@ -140,57 +165,7 @@
   }
   function decorateMarket(){
     const overlay=$('overlay'),title=$('overlayTitle');if(!overlay?.classList.contains('show')||title?.textContent.trim()!=='MARKET')return;
-    const game=root.__monoidGame;if(!game?.marketOfferInfo)return;
-    const assigned=assignedTiles(),endless=!!game.state?.().endlessMode;
-    const foot=overlay.querySelector('.shopFoot');
-    const footCopy=`Buy SIGNAL +1 or one Mod. Tile Mods then choose a highlighted compatible tile. Hold a Modded tile to inspect BUILD, REWARD and live status. One purchase max · Inflation +1.${endless?' System Strain also affects Market prices.':''}`;
-    if(foot&&foot.textContent!==footCopy)foot.textContent=footCopy;
-
-    doc.querySelectorAll('.marketOffer[data-market-offer]').forEach(offer=>{
-      if(offer.classList.contains('marketStructuredOffer'))return;
-      const id=offer.dataset.marketOffer,head=offer.querySelector(':scope > .marketOfferHead'),desc=offer.querySelector(':scope > p'),target=offer.querySelector(':scope > .marketTarget'),button=offer.querySelector(':scope > .shopBuy');
-      if(id==='signal'){
-        if(!head||!button)return;
-        const description=desc||doc.createElement('p');description.className='marketOfferDescription';
-        const context=doc.createElement('div');context.className='marketContextRow';
-        const physical=doc.createElement('div');physical.className='marketPhysicalContext';const upgrade=doc.createElement('div');upgrade.className='marketMachineTag';upgrade.innerHTML='<strong>START +1</strong><small>PERMANENT THIS RUN</small>';physical.appendChild(upgrade);
-        const action=doc.createElement('div');action.className='marketOfferAction';action.appendChild(button);if(button.disabled){const note=doc.createElement('small');note.className='marketActionReason';note.textContent='NOT ENOUGH COINS';action.appendChild(note)}
-        context.append(physical,action);target?.remove();offer.replaceChildren(head,description,context);offer.classList.add('marketStructuredOffer');return
-      }
-      const info=game.marketOfferInfo(id),mod=info?.mod,guide=MG?.get?.(id);
-      if(!head||!button||!info||!mod)return;
-
-      const description=desc||doc.createElement('p');description.className='marketOfferDescription';
-      description.textContent=guide?guide.market:(OFFER_COPY[id]||mod.shortDescription||mod.description||'');
-      if(id==='long-run'&&endless)description.textContent+=' Up to 7 qualifying Moves in Endless.';
-      const visual=doc.createElement('div');visual.className='marketModDiagram';visual.innerHTML=MG?.diagramHtml?.(id,true)||'';
-
-      const context=doc.createElement('div');context.className='marketContextRow';
-      const physical=doc.createElement('div');physical.className='marketPhysicalContext';
-      if(mod.target==='machine'){
-        const machine=doc.createElement('div');machine.className='marketMachineTag';
-        machine.innerHTML=`<strong>MACHINE</strong>${endless?'<small>7 FULL PAYOUTS IN ENDLESS</small>':''}`;
-        physical.appendChild(machine)
-      }else{
-        const code=offerLabel(id),assignedList=assigned.get(code)||[];
-        if(assignedList.length){
-          const assignedGroup=makeContextGroup(id==='zero-port'&&assignedList.length>1?'LINKED':'INSTALLED','marketAssignedGroup');
-          for(const assignedTile of assignedList){
-            const clone=assignedTile.cloneNode(true);clone.classList.add('marketAssignedTile');clone.querySelector('small')?.remove();assignedGroup.tiles.appendChild(clone)
-          }
-          physical.appendChild(assignedGroup.group)
-        }
-        const count=Number(info.targetCount)||0,compatible=makeContextGroup(count>0?`COMPATIBLE · ${count}`:'NO VALID TARGET','marketPoolGroup');
-        physical.appendChild(compatible.group)
-      }
-
-      const action=doc.createElement('div');action.className='marketOfferAction';action.appendChild(button);
-      const reason=actionReason(offer,info,button);if(reason){const note=doc.createElement('small');note.className='marketActionReason';note.textContent=reason;action.appendChild(note)}
-      context.append(physical,action);
-      target?.remove();
-      offer.replaceChildren(head,description,visual,context);
-      offer.classList.remove('marketPolishedOffer');offer.classList.add('marketStructuredOffer')
-    })
+    doc.querySelectorAll('.marketOffer[data-market-offer]').forEach(offer=>{offer.classList.add('marketStructuredOffer','marketCompactOffer');offer.classList.remove('marketPolishedOffer')})
   }
   function syncBuildStamp(){
     root.__MONOID_BUILD=BUILD_ID;const text=`v${root.IterionData?.VERSION||'dev'} · build ${BUILD_ID}`;for(const el of[$('devBuildStamp'),doc.querySelector('.menuBuildStamp')])if(el&&el.textContent!==text)el.textContent=text
