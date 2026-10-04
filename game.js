@@ -28,8 +28,9 @@ function createGame(E,opts={}){
     s.shopTileOfferGeneration=generation;s.shopTileOffers=candidates.slice(0,cfg.SHOP_TILE_OFFER_COUNT||4);
     return s.shopTileOffers
   }
-  const cloneTile=t=>{if(!t)return null;const out={id:t.id,a:t.a,b:t.b,upgrade:t.upgrade||0,source:t.source||'base'};if((t.generation||1)>1)out.generation=t.generation;if((t.powerMultiplier||1)>1)out.powerMultiplier=t.powerMultiplier;return out};
-  const isZero=t=>!!t&&(t.a===0||t.b===0),countZero=a=>a.filter(isZero).length,isDouble=t=>!!t&&t.a===t.b;
+  const cloneTile=t=>{if(!t)return null;const out={id:t.id,a:t.a,b:t.b,upgrade:t.upgrade||0,source:t.source||'base'};if((t.generation||1)>1)out.generation=t.generation;if((t.powerMultiplier||1)>1)out.powerMultiplier=t.powerMultiplier;if(t.special)out.special=t.special;if(t.adapterResolved)out.adapterResolved=true;if(t.adapterPhase)out.adapterPhase=t.adapterPhase;return out};
+  const isAdapter=t=>!!t&&t.special==='adapter',isUnresolvedAdapter=t=>isAdapter(t)&&!t.adapterResolved;
+  const isZero=t=>!!t&&(t.a===0||t.b===0),countZero=a=>a.filter(isZero).length,isDouble=t=>!!t&&Number.isInteger(t.a)&&t.a===t.b;
   const TILE_MOD_FIELDS=Object.freeze({
     'double-double':'doubleDoubleTileId','double-echo':'doubleEchoTileId','triple-double':'tripleDoubleTileId','parity-exchange':'parityExchangeTileId','corner':'cornerTileId','long-line':'longLineTileId','overload':'overloadTileId','recall':'recallTileId','pair':'pairTileId','bridge':'bridgeTileId','pivot':'pivotTileId','broker':'brokerTileId','hinge':'hingeTileId','bank':'bankTileId','foundation':'foundationTileId','knot':'knotTileId','mint':'mintTileId'
   });
@@ -678,7 +679,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,brokerTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,foundationTileId:null,knotTileId:null,mintTileId:null,marketCount:0,signalUpgrades:0,brokerPreparedMarket:false,brokerDiscountStored:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{pivot:null},recallUsedStage:null,cores:[],voids:[],coreProgressMilestones:[],islandRootPieceId:null,islandSignalBonus:0};
+    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,adapterPurchasedPhases:[],boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,brokerTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,foundationTileId:null,knotTileId:null,mintTileId:null,marketCount:0,signalUpgrades:0,brokerPreparedMarket:false,brokerDiscountStored:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{pivot:null},recallUsedStage:null,cores:[],voids:[],coreProgressMilestones:[],islandRootPieceId:null,islandSignalBonus:0};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
     startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);s.voids=voidLayoutForMode(s.gameMode,seed);ensureOpeningCoreApproaches('layout');if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});if(['frames','river','loom','peaks','islands'].includes(s.gameMode))s.events.push({type:'mode-geometry-layout',mode:s.gameMode,items:deepClone(modeGeometryItems()),visibleIds:modeGeometryItems().filter(item=>geometryItemVisible(item)).map(item=>item.id)});return s
   }
@@ -699,7 +700,7 @@ function createGame(E,opts={}){
     return{enabled:true,rootPieceId,componentCount:state.components.length,dormantComponentCount:Math.max(0,state.components.length-(activeIndex==null?0:1)),activePieceIds,dormantPieceIds,signalBonus:Math.max(0,Number(s.islandSignalBonus)||0),cores}
   }
   function islandCoreAnchorPlacements(tile){
-    if(!islandsMode()||!tile)return[];
+    if(!islandsMode()||!tile||isUnresolvedAdapter(tile))return[];
     const connected=new Set((coreShadowTelemetry(s.pieces).cores||[]).filter(core=>(core.connectedLinks||[]).length).map(core=>core.id)),cell=Math.max(1,Number(E.S)||2),out=[],seen=new Set();
     for(const core of [...(s.cores||[])].filter(core=>geometryItemVisible(core)).sort((a,b)=>String(a.id).localeCompare(String(b.id)))){
       if(connected.has(core.id))continue;
@@ -1012,11 +1013,11 @@ function createGame(E,opts={}){
     if(s.placedTileIds.includes(tile.id))return{ok:false,reason:'tile-already-in-machine'};
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
     const validation=modePlacementValidation(tile,c);if(!validation.ok)return validation;
-    const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...cloneTile(tile)};const analysis=islandPlacementAnalysis(p,s.pieces),islandSignalAdded=analysis.linkedDormantCount*Math.max(0,Number(cfg.ISLAND_LINK_SIGNAL_STEP)||2),prospectiveIslandBonus=Math.max(0,Number(s.islandSignalBonus)||0)+islandSignalAdded,pieces=[...s.pieces,p],topologyBreaks=topologyBreaksForPieces(pieces),trigger=tile.a+tile.b;
+    const placedTile=cloneTile(validation.validation?.resolvedTile||tile),p=E.pieceFrom(placedTile,c.x,c.y,0,c.rr,s.idc+1);p.tile={...placedTile};const analysis=islandPlacementAnalysis(p,s.pieces),islandSignalAdded=analysis.linkedDormantCount*Math.max(0,Number(cfg.ISLAND_LINK_SIGNAL_STEP)||2),prospectiveIslandBonus=Math.max(0,Number(s.islandSignalBonus)||0)+islandSignalAdded,pieces=[...s.pieces,p],topologyBreaks=topologyBreaksForPieces(pieces),trigger=placedTile.a+placedTile.b;
     let sim;if(islandsMode()&&analysis.dormant)sim={output:0,outputExact:SCORE.exact(0),events:[{type:'island-dormant',piece:p.id,coreId:validation.islandAnchorCoreId||null}],reason:'island-dormant',rebounds:0,search:{starts:0,leaves:1,expanded:0}};else sim=pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,pieces,signalOptionsForPieces(pieces,trigger,{islandSignalBonus:prospectiveIslandBonus}));
     if(islandSignalAdded>0)sim={...sim,events:[...(sim.events||[]),{type:'island-link',piece:p.id,linkedComponents:analysis.linkedDormantCount,signalAdded:islandSignalAdded,signalBonus:prospectiveIslandBonus}]};
     const resonance=C.resonance(sim.output??0,sim.events,pieces,s.circuitRanks,cfg,sim.outputExact??SCORE.exact(sim.output??0));
-    return{ok:true,handIndex:i,tile:cloneTile(tile),placement:{x:c.x,y:c.y,z:0,rr:c.rr},trigger,selectionOutput:sim.output??0,selectionOutputExact:sim.outputExact??SCORE.exact(sim.output??0),output:resonance.output,outputExact:resonance.outputExact,sim,resonance,topologyBreaks,islandDormant:islandsMode()&&analysis.dormant,islandAnchorCoreId:validation.islandAnchorCoreId||null,islandLinkCount:analysis.linkedDormantCount,islandSignalAdded,prospectiveIslandBonus}
+    return{ok:true,handIndex:i,tile:cloneTile(placedTile),placement:{x:c.x,y:c.y,z:0,rr:c.rr},trigger,selectionOutput:sim.output??0,selectionOutputExact:sim.outputExact??SCORE.exact(sim.output??0),output:resonance.output,outputExact:resonance.outputExact,sim,resonance,topologyBreaks,islandDormant:islandsMode()&&analysis.dormant,islandAnchorCoreId:validation.islandAnchorCoreId||null,islandLinkCount:analysis.linkedDormantCount,islandSignalAdded,prospectiveIslandBonus}
   }
 
   function decisionTelemetry(chosenIndex,chosenCandidate,options={}){
@@ -1048,6 +1049,7 @@ function createGame(E,opts={}){
     if(!s.pieces.length&&cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!isDouble(tile))return{ok:false,reason:'first-double'};
     const validation=modePlacementValidation(tile,c);if(!validation.ok)return validation;
     const undoFrame=captureUndoFrame();
+    const resolvedTile=validation.validation?.resolvedTile;if(resolvedTile){const materialized=cloneTile(resolvedTile);Object.assign(tile,materialized);const owned=s.set.find(t=>t.id===tile.id);if(owned&&owned!==tile)Object.assign(owned,materialized)}
     s.running=true;
     const p=E.pieceFrom(tile,c.x,c.y,0,c.rr,++s.idc);p.tile={...cloneTile(tile)};
     const analysis=islandPlacementAnalysis(p,s.pieces),islandSignalAdded=analysis.linkedDormantCount*Math.max(0,Number(cfg.ISLAND_LINK_SIGNAL_STEP)||2);
@@ -1254,7 +1256,7 @@ function createGame(E,opts={}){
         else if(e.delivery==='hand'&&freeSlot>=0)frame.hand[freeSlot]=tile;
         else frame.reserve.unshift(tile)
       }
-      if(e.type==='tile-buy'&&e.mode==='offer')frame.shopTileOffers=(frame.shopTileOffers||[]).filter(t=>t.id!==e.tile?.id)
+      if(e.type==='tile-buy'&&e.mode==='offer')frame.shopTileOffers=(frame.shopTileOffers||[]).filter(t=>t.id!==e.tile?.id);if(e.type==='tile-buy'&&e.mode==='adapter'&&e.phase){if(!Array.isArray(frame.adapterPurchasedPhases))frame.adapterPurchasedPhases=[];if(!frame.adapterPurchasedPhases.includes(e.phase))frame.adapterPurchasedPhases.push(e.phase)}
     }
     const beforeCoins=Number(frame.coins)||0,shortfall=Math.max(0,spend-beforeCoins);
     frame.coins=Math.max(0,beforeCoins-spend);
@@ -1310,12 +1312,24 @@ function createGame(E,opts={}){
   }
   function shopRandomPrice(){return inflationCost(cfg.SHOP_RANDOM_TILE_COST||1)}
   function shopTileOfferPrice(){return inflationCost(cfg.SHOP_TILE_OFFER_COST||2)}
+  function shopAdapterPrice(){return inflationCost(cfg.SHOP_ADAPTER_TILE_COST||8)}
+  function shopPhase(){return infinitePhase()?'infinite':s.endlessMode?'endless':'landing'}
+  function shopHandHasSpace(){return Array.isArray(s.hand)&&s.hand.some(tile=>!tile)}
+  function adapterPurchasedForPhase(phase=shopPhase()){return Array.isArray(s.adapterPurchasedPhases)&&s.adapterPurchasedPhases.includes(phase)}
+  function adapterShopInfo(){
+    const phase=shopPhase(),available=!s.ouroborosMode&&!adapterPurchasedForPhase(phase),price=shopAdapterPrice(),handSpace=shopHandHasSpace();
+    return{phase,available,price,handSpace,canBuy:available&&handSpace&&s.coins>=price,purchased:adapterPurchasedForPhase(phase)}
+  }
+  function createAdapterTile(phase=shopPhase()){
+    const generation=Math.max(1,Number(s.setGeneration)||1),powerMultiplier=generationPower(generation),tile={id:`adapter-${phase}-${++s.tileSerial}`,a:null,b:null,upgrade:0,source:'special',special:'adapter',adapterResolved:false,adapterPhase:phase};
+    if(generation>1)tile.generation=generation;if(powerMultiplier>1)tile.powerMultiplier=powerMultiplier;return tile
+  }
   function shopPurchaseAvailability(){
-    const offers=ensureShopTileOffers(),generation=nextSetGeneration(),existing=new Set(s.set.map(t=>t.id)),reserved=new Set(offers.map(t=>t.id)),generationAvailable=generation<=maxSetGeneration()&&!s.ouroborosMode;
+    const offers=ensureShopTileOffers(),generation=nextSetGeneration(),existing=new Set(s.set.map(t=>t.id)),reserved=new Set(offers.map(t=>t.id)),generationAvailable=generation<=maxSetGeneration()&&!s.ouroborosMode,handSpace=shopHandHasSpace(),adapter=adapterShopInfo();
     const randomAvailable=generationAvailable&&makePowerSet(generation).some(t=>!existing.has(t.id)&&!reserved.has(t.id)),exactOffers=generationAvailable?offers.filter(t=>!existing.has(t.id)):[],randomPrice=shopRandomPrice(),tileOfferPrice=shopTileOfferPrice();
-    const canAffordRandom=randomAvailable&&s.coins>=randomPrice,canAffordOffer=exactOffers.length>0&&s.coins>=tileOfferPrice,hasAny=randomAvailable||exactOffers.length>0,canAffordAny=canAffordRandom||canAffordOffer,prices=[];
-    if(randomAvailable)prices.push(randomPrice);if(exactOffers.length)prices.push(tileOfferPrice);
-    return{hasAny,canAffordAny,blockedByCoins:hasAny&&!canAffordAny,randomAvailable,tileOfferCount:exactOffers.length,randomPrice,tileOfferPrice,cheapestPrice:prices.length?Math.min(...prices):null,coins:s.coins}
+    const canAffordRandom=handSpace&&randomAvailable&&s.coins>=randomPrice,canAffordOffer=handSpace&&exactOffers.length>0&&s.coins>=tileOfferPrice,canAffordAdapter=adapter.canBuy,hasAny=randomAvailable||exactOffers.length>0||adapter.available,canAffordAny=canAffordRandom||canAffordOffer||canAffordAdapter,blockedByHand=hasAny&&!handSpace,prices=[];
+    if(randomAvailable)prices.push(randomPrice);if(exactOffers.length)prices.push(tileOfferPrice);if(adapter.available)prices.push(adapter.price);
+    return{hasAny,canAffordAny,blockedByCoins:hasAny&&!blockedByHand&&!canAffordAny,blockedByHand,handSpace,randomAvailable,tileOfferCount:exactOffers.length,adapter,randomPrice,tileOfferPrice,cheapestPrice:prices.length?Math.min(...prices):null,coins:s.coins}
   }
   function brokerDiscountAmount(){return Math.max(0,Math.min(Math.max(0,Number(s.brokerDiscountStored)||0),Math.max(0,Number(cfg.BROKER_DISCOUNT_MAX)||6)))}
   function discountedMarketCost(base){return Math.max(0,inflationCost(base)-brokerDiscountAmount())}
@@ -1333,7 +1347,7 @@ function createGame(E,opts={}){
     const availability=shopPurchaseAvailability();if(!availability.hasAny)return false;if(!options?.allowUnaffordable&&availability.blockedByCoins){s.events.push({type:'shop-close',round:s.round+1,shop:'shop',reason:'insufficient-coins',opened:false,coins:s.coins,inflation:s.inflation,available:availableTileCount(),cheapestPrice:availability.cheapestPrice});return false}
     const tileOffers=ensureShopTileOffers();
     s.shopOpen=true;s.shopType='shop';s.shopOffers=[];
-    s.events.push({type:'shop-open',round:s.round+1,shop:'shop',offers:[],tileOffers:tileOffers.map(t=>t.id),coins:s.coins,inflation:s.inflation,available:availableTileCount()});return true
+    s.events.push({type:'shop-open',round:s.round+1,shop:'shop',offers:[],tileOffers:tileOffers.map(t=>t.id),adapter:adapterShopInfo(),coins:s.coins,inflation:s.inflation,available:availableTileCount()});return true
   }
   function closeShopState(reason='continue'){
     s.events.push({type:'shop-close',round:s.round+1,shop:'shop',reason,coins:s.coins,inflation:s.inflation,available:availableTileCount()});
@@ -1353,12 +1367,11 @@ function createGame(E,opts={}){
     const tile=candidates[Math.floor(rnd()*candidates.length)];s.set.push(tile);return tile
   }
   function deliverPurchasedTile(tile){
-    const slot=s.hand.findIndex(t=>!t);
-    if(slot>=0){s.hand[slot]=tile;if(isZero(tile))s.roundZero.drawn++;return{location:'hand',slot}}
-    s.reserve.unshift(tile);return{location:'reserve',slot:null}
+    const slot=s.hand.findIndex(t=>!t);if(slot<0)return null;
+    s.hand[slot]=tile;if(isZero(tile))s.roundZero.drawn++;return{location:'hand',slot}
   }
   function buyShopRandomTile(){
-    if(!s.shopOpen||s.shopType!=='shop')return{ok:false,reason:'shop'};
+    if(!s.shopOpen||s.shopType!=='shop')return{ok:false,reason:'shop'};if(!shopHandHasSpace())return{ok:false,reason:'hand-full'};
     const cost=shopRandomPrice();if(s.coins<cost)return{ok:false,reason:'coins'};
     const tile=claimNextGenerationTile();if(!tile)return{ok:false,reason:'no-tiles'};
     const delivery=deliverPurchasedTile(tile),purchase=applyPurchase(cost);
@@ -1368,7 +1381,7 @@ function createGame(E,opts={}){
     return{ok:true,tile:cloneTile(tile),delivery:delivery.location,cost,inflation:s.inflation,shopClosedReason}
   }
   function buyShopTileOffer(tileId){
-    if(!s.shopOpen||s.shopType!=='shop')return{ok:false,reason:'shop'};
+    if(!s.shopOpen||s.shopType!=='shop')return{ok:false,reason:'shop'};if(!shopHandHasSpace())return{ok:false,reason:'hand-full'};
     const offers=ensureShopTileOffers(),index=offers.findIndex(t=>t.id===tileId);if(index<0)return{ok:false,reason:'offer'};
     const cost=shopTileOfferPrice();if(s.coins<cost)return{ok:false,reason:'coins'};
     if(s.set.some(t=>t.id===tileId))return{ok:false,reason:'owned'};
@@ -1378,6 +1391,16 @@ function createGame(E,opts={}){
     s.events.push({type:'tile-buy',round:s.round+1,shop:'shop',mode:'offer',tile:cloneTile(tile),delivery:delivery.location,baseCost:cfg.SHOP_TILE_OFFER_COST||2,cost,coins:s.coins,...purchase});
     const affordability=shopPurchaseAvailability(),shopClosedReason=affordability.blockedByCoins?'insufficient-coins':null;if(shopClosedReason)closeShopState(shopClosedReason);
     return{ok:true,tile:cloneTile(tile),delivery:delivery.location,cost,inflation:s.inflation,shopClosedReason}
+  }
+  function buyShopAdapter(){
+    if(!s.shopOpen||s.shopType!=='shop')return{ok:false,reason:'shop'};if(!shopHandHasSpace())return{ok:false,reason:'hand-full'};
+    const info=adapterShopInfo();if(!info.available)return{ok:false,reason:'phase-limit'};if(s.coins<info.price)return{ok:false,reason:'coins'};
+    const tile=createAdapterTile(info.phase);s.set.push(tile);const delivery=deliverPurchasedTile(tile);if(!delivery)return{ok:false,reason:'hand-full'};
+    if(!Array.isArray(s.adapterPurchasedPhases))s.adapterPurchasedPhases=[];s.adapterPurchasedPhases.push(info.phase);
+    const purchase=applyPurchase(info.price);if(s.blocked&&s.failureReason==='no-tiles'){s.blocked=false;s.failureReason=null;s.needsReroll=false}
+    s.events.push({type:'tile-buy',round:s.round+1,shop:'shop',mode:'adapter',phase:info.phase,tile:cloneTile(tile),delivery:delivery.location,baseCost:cfg.SHOP_ADAPTER_TILE_COST||8,cost:info.price,coins:s.coins,...purchase});
+    const affordability=shopPurchaseAvailability(),shopClosedReason=affordability.blockedByCoins?'insufficient-coins':null;if(shopClosedReason)closeShopState(shopClosedReason);
+    return{ok:true,tile:cloneTile(tile),phase:info.phase,delivery:delivery.location,cost:info.price,inflation:s.inflation,shopClosedReason}
   }
 
   function marketMods(){return M.all().filter(m=>m.market)}
@@ -1610,7 +1633,7 @@ function createGame(E,opts={}){
       parityExchangeTileId:s.parityExchangeTileId||null,cornerTileId:s.cornerTileId||null,longLineTileId:s.longLineTileId||null,overloadTileId:s.overloadTileId||null,recallTileId:s.recallTileId||null,pairTileId:s.pairTileId||null,bridgeTileId:s.bridgeTileId||null,pivotTileId:s.pivotTileId||null,brokerTileId:s.brokerTileId||null,hingeTileId:s.hingeTileId||null,hingeState:deepClone(s.hingeState),bankTileId:s.bankTileId||null,foundationTileId:s.foundationTileId||null,knotTileId:s.knotTileId||null,mintTileId:s.mintTileId||null,
       longRun:s.mods.includes('long-run'),setSize:s.set.length,set:s.set.map(cloneTile),placedTileIds:[...s.placedTileIds],availableTileCount:availableTileCount(),machinePersistent:!!cfg.PERSIST_MACHINE_BETWEEN_ROUNDS,
       rerollsLeft:(s.freeReroll||0)+(s.consumables.reroll||0),canUndo:canUndo(),
-      shop:{nextType:s.nextShopType,resolved:s.intermissionResolved,open:s.shopOpen,type:s.shopType,offers:[...s.shopOffers],randomTilePrice:shopRandomPrice(),tileOfferGeneration:s.shopTileOfferGeneration||nextSetGeneration(),tileOffers:ensureShopTileOffers().map(t=>({tile:cloneTile(t),price:shopTileOfferPrice()})),doubleDoublePrice:marketDoubleDoublePrice(),marketOffers:s.shopOffers.map(id=>{const info=marketOfferInfo(id);return{id,category:info.mod?.category||null,price:info.price,targetCount:info.targetCount,locked:info.locked,offerWeight:info.offerWeight,brokerDiscount:info.brokerDiscount||0,assignedTileIds:[...info.assignedTileIds]}}),marketSignal:marketSignalUpgradeInfo()},
+      shop:{nextType:s.nextShopType,resolved:s.intermissionResolved,open:s.shopOpen,type:s.shopType,offers:[...s.shopOffers],handSpace:shopHandHasSpace(),randomTilePrice:shopRandomPrice(),tileOfferGeneration:s.shopTileOfferGeneration||nextSetGeneration(),tileOffers:ensureShopTileOffers().map(t=>({tile:cloneTile(t),price:shopTileOfferPrice()})),adapter:adapterShopInfo(),doubleDoublePrice:marketDoubleDoublePrice(),marketOffers:s.shopOffers.map(id=>{const info=marketOfferInfo(id);return{id,category:info.mod?.category||null,price:info.price,targetCount:info.targetCount,locked:info.locked,offerWeight:info.offerWeight,brokerDiscount:info.brokerDiscount||0,assignedTileIds:[...info.assignedTileIds]}}),marketSignal:marketSignalUpgradeInfo()},
       tileModState:{marketCount:s.marketCount||0,foundationAssignedMarket:Number.isInteger(s.foundationAssignedMarket)?s.foundationAssignedMarket:null,foundationLastPayoutMarket:Number.isInteger(s.foundationLastPayoutMarket)?s.foundationLastPayoutMarket:null,foundationProgress:foundationAgeForTile(s.foundationTileId),foundationTier:foundationMaturity().tier,brokerPreparedMarket:!!s.brokerPreparedMarket,brokerDiscountStored:brokerDiscountAmount(),mintPaidRound:Number.isInteger(s.mintPaidRound)?s.mintPaidRound+1:null,hinge:deepClone(s.hingeState),mutationUseRound:deepClone(s.mutationUseRound||{}),recallUsedStage:Number.isInteger(s.recallUsedStage)?s.recallUsedStage:null},
       zeroStats:{...s.roundZero},hand:s.hand.filter(Boolean).map(cloneTile),reserve:s.reserve.map(cloneTile),
       board:s.pieces.map(p=>({id:p.id,tileId:p.tile.id,a:p.tile.a,b:p.tile.b,upgrade:p.tile.upgrade||0,source:p.tile.source||'base',generation:p.tile.generation||1,powerMultiplier:p.tile.powerMultiplier||1,modifiers:tileModIdsForTile(p.tile.id),x:p.cubes[0].x,y:p.cubes[0].y,z:0,rr:p.rr})),
@@ -1723,7 +1746,7 @@ function createGame(E,opts={}){
   function exportState(){return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:persistedState()}}
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
-    s=deepClone(raw);const savedScoreExact=s.scoreExact!=null&&Number(s.scoreExact)===Number(s.score)?s.scoreExact:null,savedBestExact=s.bestExact!=null&&Number(s.bestExact)===Number(s.best)?s.bestExact:null;s.scoreExact=SCORE.exact(s.score||0,savedScoreExact);s.score=SCORE.approx(s.scoreExact);s.bestExact=SCORE.exact(s.best||0,savedBestExact);s.best=SCORE.approx(s.bestExact);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.voids))s.voids=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(!Number.isFinite(Number(s.islandSignalBonus))||Number(s.islandSignalBonus)<0)s.islandSignalBonus=0;if(s.islandRootPieceId==null)s.islandRootPieceId=null;if(s.gameMode==='classic'){s.cores=[];s.voids=[];s.coreProgressMilestones=[]}else if(s.gameMode==='eyes')s.voids=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.signalUpgrades))s.signalUpgrades=0;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
+    s=deepClone(raw);const savedScoreExact=s.scoreExact!=null&&Number(s.scoreExact)===Number(s.score)?s.scoreExact:null,savedBestExact=s.bestExact!=null&&Number(s.bestExact)===Number(s.best)?s.bestExact:null;s.scoreExact=SCORE.exact(s.score||0,savedScoreExact);s.score=SCORE.approx(s.scoreExact);s.bestExact=SCORE.exact(s.best||0,savedBestExact);s.best=SCORE.approx(s.bestExact);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.voids))s.voids=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(!Number.isFinite(Number(s.islandSignalBonus))||Number(s.islandSignalBonus)<0)s.islandSignalBonus=0;if(s.islandRootPieceId==null)s.islandRootPieceId=null;if(s.gameMode==='classic'){s.cores=[];s.voids=[];s.coreProgressMilestones=[]}else if(s.gameMode==='eyes')s.voids=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.adapterPurchasedPhases))s.adapterPurchasedPhases=[];s.adapterPurchasedPhases=[...new Set(s.adapterPurchasedPhases.filter(phase=>['landing','endless','infinite'].includes(phase)))];if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.signalUpgrades))s.signalUpgrades=0;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
     const legacyEconomyMods={frame:'broker',resonator:'bank'},legacyFields={frameTileId:'brokerTileId',resonatorTileId:'bankTileId'};for(const [oldField,newField] of Object.entries(legacyFields))if(!s[newField]&&s[oldField])s[newField]=s[oldField];if(s.pendingModPlacement?.mod&&legacyEconomyMods[s.pendingModPlacement.mod])s.pendingModPlacement.mod=legacyEconomyMods[s.pendingModPlacement.mod];
     if(!s.pivotTileId&&s.mirrorTileId)s.pivotTileId=s.mirrorTileId;if(s.pendingModPlacement?.mod==='mirror')s.pendingModPlacement.mod='pivot';
     const legacyMutationMods={twin:'recall',gate:'pivot'},legacyMutationFields={twinTileId:'recallTileId',gateTileId:'pivotTileId'};for(const [oldField,newField] of Object.entries(legacyMutationFields))if(!s[newField]&&s[oldField])s[newField]=s[oldField];if(s.pendingModPlacement?.mod&&legacyMutationMods[s.pendingModPlacement.mod])s.pendingModPlacement.mod=legacyMutationMods[s.pendingModPlacement.mod];
@@ -1741,7 +1764,7 @@ function createGame(E,opts={}){
     return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,coreCoverageTelemetry,islandTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,previewOuroborosFire,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopPurchaseAvailability,marketDoubleDoublePrice,marketModPrice,marketSignalPrice,marketSignalUpgradeInfo,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,openIntermission,buyMarketSignal,buyMarketMod,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,coreCoverageTelemetry,islandTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,previewOuroborosFire,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopAdapterPrice,shopPurchaseAvailability,adapterShopInfo,marketDoubleDoublePrice,marketModPrice,marketSignalPrice,marketSignalUpgradeInfo,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,buyShopAdapter,openIntermission,buyMarketSignal,buyMarketMod,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
