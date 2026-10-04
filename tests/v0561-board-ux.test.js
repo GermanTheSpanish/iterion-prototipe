@@ -33,4 +33,4 @@ assert.match(runtime,/\.signalHud\{[^}]*pointer-events:auto!important[^}]*touch-
 assert.match(runtime,/\.signalHudIcon\{[^}]*clip-path:polygon/);
 assert.match(runtime,/\.board\{[^}]*box-shadow:0 4px 12px rgba\(25,23,19,\.10\)!important/);
 
-console.log('v0.65.0 board touch, Void inspector and placement-lock regressions passed');
+console.log('v0.65.1 board touch, Void inspector and placement-lock regressions passed');
