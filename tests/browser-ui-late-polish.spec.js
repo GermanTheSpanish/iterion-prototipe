@@ -112,8 +112,8 @@ test('Shop stays compact, buys to Hand and delegates Adapter rules to Inspector'
   const exactCopy=await page.locator('.exactShopOffer').allTextContents();expect(exactCopy.every(text=>!/\[\d\|\d\]/.test(text))).toBe(true);
   const preview=page.locator('.randomTilePreview .domino');await expect(preview).toHaveClass(/compactPreview/);await expect(preview).toHaveClass(/back/);
   expect(await preview.locator('.half').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
-  const adapter=page.locator('[data-shop-inspect="adapter"]');await expect(adapter.locator('.domino')).toHaveClass(/compactPreview/);await expect(adapter).toContainText('•');
-  const box=await adapter.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+  const adapter=page.locator('[data-shop-inspect="adapter"]');await expect(adapter.locator('.domino')).toHaveClass(/compactPreview/);await expect(adapter.locator('.adapterQuestion')).toHaveCount(2);await expect(adapter).toContainText('?');
+  await adapter.click();
   await expect(page.locator('#overlayTitle')).toHaveText('ADAPTER');await expect(page.locator('#overlayBody')).toContainText('Place it only between two existing physical ends');await expect(page.locator('#overlayBody')).toContainText('One Adapter can be purchased in Landing');await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');
   await page.locator('#shopRandomBuy').click();await expect(page.locator('.randomTilePreview .domino')).toHaveClass(/reveal/);
@@ -125,7 +125,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261004.3');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261004.4');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -139,13 +139,13 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await expect(dd.locator('.marketOfferMeta')).toContainText('INSTALLED · COMPATIBLE · 5');
   await expect(page.locator('[data-market-offer="double-echo"] .marketOfferMeta')).toContainText('COMPATIBLE · 5');
   await expect(page.locator('[data-market-offer="long-run"] .marketOfferMeta')).toHaveText('MACHINE');
-  await expect(page.locator('.shopFoot')).toContainText('HOLD AN OFFER TO INSPECT');
+  await expect(page.locator('.shopFoot')).toContainText('TAP AN OFFER TO INSPECT');
 
   const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));
   expect(buttonBoxes.every(b=>b.w>80&&b.h>=44)).toBe(true);
   const overflow=await page.locator('.commerceModal').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth}));expect(overflow.sw).toBeLessThanOrEqual(overflow.cw+1);
 
-  const inspect=dd.locator('[data-market-inspect="double-double"]'),box=await inspect.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+  const inspect=dd.locator('[data-market-inspect="double-double"]');await inspect.click();
   await expect(page.locator('#overlayTitle')).toHaveText('DOUBLE DOUBLE');await expect(page.locator('#overlayBody')).toContainText('Build');await expect(page.locator('#overlayBody')).toContainText('Reward');await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
 

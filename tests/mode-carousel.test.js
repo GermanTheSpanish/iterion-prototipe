@@ -58,12 +58,16 @@ assert.match(src,/\.modeSlide\.isRemote\{visibility:hidden;pointer-events:none\}
 assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circular seam rebasing must happen offscreen without crossing the window');
 assert.match(src,/modeAvailable=mode=>/,'runtime availability must be profile-aware');
 assert.match(src,/startRun\.disabled=!available/,'Start must remain disabled for a profile-locked mode');
+assert.match(src,/aria-disabled',item\.kind==='locked'\?'true':'false'/,'profile-locked modes remain tappable for Inspector while the unavailable placeholder stays disabled');
 assert.match(src,/__monoidInspectMode/,'mode tiles must bridge long-press inspection into the main UI');
 assert.match(src,/startInspectHold/,'mode carousel must distinguish a hold from navigation');
 assert.match(src,/LONG_PRESS_MS/,'mode inspection should share the game long-press timing');
-assert.match(src,/Hold to inspect/,'mode controls should expose inspection affordance to assistive labels');
+assert.match(src,/Tap to inspect/,'selected mode controls should expose tap inspection to assistive labels');
+assert.match(src,/if\(offset===0\)[\s\S]*__monoidInspectMode/,'tapping the centred mode must open its Inspector');
+assert.match(src,/isTap=Math\.abs\(dx\)<6&&Math\.abs\(projected\)<10/,'pointerup must distinguish a tap from physical carousel dragging');
+assert.match(src,/isTap&&tapOffset===0[\s\S]*__monoidInspectMode/,'a true pointer tap on the centred tile must reach Inspector before click suppression');
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20261004\.3/);
+assert.match(gesture,/mode-carousel\.js\?v=20261004\.4/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');
