@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20261004\.1'/);
+assert.match(source,/BUILD_ID='20261004\.2'/);
 assert.match(source,/\.compactCommerceModal \.marketOfferGrid\{display:grid!important;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'Market must use a compact two-column card grid');
 assert.match(source,/\.compactCommerceModal \.shopTileOfferGrid\{display:grid!important;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/,'Tile Shop must keep four next-set pieces visible without prose rows');
 assert.match(source,/marketOfferPayoff/);assert.match(source,/min-height:44px/,'Market actions must retain mobile touch height');
