@@ -27,7 +27,7 @@ assert.match(ui,/tutorial\.exitPending=true/,'exit during an asynchronous tutori
 assert.match(ui,/if\(exitPending\)\{leaveTutorial\(false\);return\}/);
 assert.match(ui,/shopBtn\.disabled=!!tutorial/);assert.match(ui,/rerollBtn\.disabled=!!tutorial/);assert.match(ui,/menuButton\.disabled=!!tutorial/);
 assert.match(ui,/GAME\.openShop\(\)/,'the final Basics tutorial step must open the real Shop state');
-assert.match(ui,/tutorial\?\.step===5/);assert.match(ui,/Market appears only between stages/);
+assert.match(ui,/tutorial\?\.step===5/);assert.match(ui,/This is the real Tile Shop\./,'the final Basics step must explain the real Tile Shop');
 assert.match(ui,/if\(!tutorial&&\(game\.state\(\)\.cleared\|\|game\.state\(\)\.blocked\)\)armOutcomeDelay/,'normal outcome timing must not replace tutorial completion');
 
 const normal=G.createGame(E,{seed:3101});
