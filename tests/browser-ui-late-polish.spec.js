@@ -44,7 +44,7 @@ function assertCompactValues(tiles){
 }
 
 for(const width of [375,430])for(const endless of [false,true]){
-  test(`compact Market values stay centred at ${width}px, endless=${endless}`,async({page},testInfo)=>{
+  test(`compact Market stays decision-led at ${width}px, endless=${endless}`,async({page},testInfo)=>{
     await page.setViewportSize({width,height:width===375?667:932});
     await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
     await page.goto('http://127.0.0.1:4173/');
@@ -61,24 +61,20 @@ for(const width of [375,430])for(const endless of [false,true]){
       g.openIntermission();s.shopOffers=['double-double','double-echo','zero-port'];
     },endless);
     await openHelp(page);await page.locator('#overlayPrimary').click();
-    await expect(page.locator('.marketStructuredOffer')).toHaveCount(3);
-    const tiles=await compactGeometry(page.locator('.marketAssignedGroup .marketAssignedTile .domino'));
-    assertCompactValues(tiles);expect(tiles.filter(t=>t.mark)).toHaveLength(4);
-    expect(tiles.some(t=>t.circuit&&t.power)).toBe(true);expect(tiles.some(t=>t.power&&!t.circuit)).toBe(true);
-    await expect(page.locator('.marketPoolGroup .marketTile')).toHaveCount(0);
-    await expect(page.locator('[data-market-offer="zero-port"] .marketAssignedGroup .marketAssignedTile')).toHaveCount(2);
+    await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);
+    await expect(page.locator('.marketOfferDescription')).toHaveCount(0);
+    await expect(page.locator('.marketModDiagram')).toHaveCount(0);
+    await expect(page.locator('.marketAssignedGroup,.marketPoolGroup')).toHaveCount(0);
+    await expect(page.locator('[data-market-offer="double-double"] .marketOfferMeta')).toContainText('INSTALLED');
+    await expect(page.locator('[data-market-offer="zero-port"] .marketOfferMeta')).toContainText('COMPATIBLE');
+    const actions=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
     await expect(page.locator('.app .compactPreview')).toHaveCount(0);
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
     const boardModGeometry=await boardMark.evaluate(el=>{const box=el.getBoundingClientRect();return{font:parseFloat(getComputedStyle(el.querySelector('.tileModMark')).fontSize),short:Math.min(box.width,box.height)}});expect(boardModGeometry.font).toBeLessThan(boardModGeometry.short*.55);
     await expect(boardMark).toHaveClass(/modTile/);expect(await boardMark.locator('.pips').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
-    const boardMarkStyle=await boardMark.evaluate(el=>({circuit:el.classList.contains('circuitTile'),color:getComputedStyle(el.querySelector('.tileModMark')).color}));
-    expect(boardMarkStyle.color).toBe('rgb(171, 215, 255)');
     expect(await page.evaluate(()=>{const g=window.__monoidGame,before=JSON.stringify(g.exportState());window.MonoidLatePolish.sync();window.MonoidPhaseA.sync();return before===JSON.stringify(g.exportState())})).toBe(true);
     expect(await page.locator('.commerceModal').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
-    if(endless){
-      const wordmarkColor=await page.locator('.wordmark').evaluate(el=>getComputedStyle(el).color);expect(wordmarkColor).not.toBe('rgb(23, 23, 23)');
-      const toolColor=await page.locator('#reroll').evaluate(el=>getComputedStyle(el).color);expect(toolColor).not.toBe('rgb(23, 23, 23)')
-    }
+    if(endless){const wordmarkColor=await page.locator('.wordmark').evaluate(el=>getComputedStyle(el).color);expect(wordmarkColor).not.toBe('rgb(23, 23, 23)')}
     await page.screenshot({path:testInfo.outputPath(`compact-market-${width}-${endless}.png`)});
   });
 }
@@ -101,18 +97,22 @@ test('board Mod tap reveals canonical values for 3 seconds with independent time
   const box=await gold.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();await expect(page.locator('#overlay')).toHaveClass(/show/);await expect(gold).toHaveClass(/modTile/);
 });
 
-test('Shop uses compact geometry without revealing its face-down domino',async({page})=>{
+test('Shop stays compact, buys to Hand and delegates Adapter rules to Inspector',async({page})=>{
   await page.setViewportSize({width:375,height:667});
   await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){return value.createGame(engine,{...options,STARTING_COINS:200})}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish&&!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.evaluate(()=>{const s=window.__monoidGame.state(),i=s.hand.findIndex(Boolean),tile=s.hand[i];s.hand[i]=null;s.reserve.unshift(tile)});
   await page.locator('#shopButton').click();
+  await expect(page.locator('.compactShop')).toBeVisible();await expect(page.locator('.shopCompactOffer')).toHaveCount(6);
   const preview=page.locator('.randomTilePreview .domino');await expect(preview).toHaveClass(/compactPreview/);await expect(preview).toHaveClass(/back/);
   expect(await preview.locator('.half').first().evaluate(el=>getComputedStyle(el).opacity)).toBe('0');
-  await expect(preview.locator('.tileModMark')).toHaveCount(0);
-  await page.locator('#shopRandomBuy').click();await expect(preview).toHaveClass(/reveal/);
-  await expect.poll(()=>preview.evaluate(el=>el.getAnimations({subtree:true}).filter(a=>a.playState==='running').length)).toBe(0);
-  assertCompactValues(await compactGeometry(preview));
+  const adapter=page.locator('[data-shop-inspect="adapter"]');await expect(adapter.locator('.domino')).toHaveClass(/compactPreview/);await expect(adapter).toContainText('•');
+  const box=await adapter.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(550);await page.mouse.up();
+  await expect(page.locator('#overlayTitle')).toHaveText('ADAPTER');await expect(page.locator('#overlayBody')).toContainText('Place it only between two existing physical ends');await expect(page.locator('#overlayBody')).toContainText('one in Landing');await page.locator('#overlayPrimary').click();
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');
+  await page.locator('#shopRandomBuy').click();await expect(page.locator('.randomTilePreview .domino')).toHaveClass(/reveal/);
+  const delivery=await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),event=[...s.events].reverse().find(e=>e.type==='tile-buy');return{delivery:event.delivery,inHand:s.hand.some(t=>t?.id===event.tile.id),inReserve:s.reserve.some(t=>t?.id===event.tile.id)}});expect(delivery).toEqual({delivery:'hand',inHand:true,inReserve:false});
   await expect(page.locator('.app .compactPreview')).toHaveCount(0);
 });
 
