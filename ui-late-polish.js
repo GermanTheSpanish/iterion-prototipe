@@ -96,13 +96,13 @@
     .compactCommerceModal .shopCompactOffer>small{font-size:8px;line-height:1;color:var(--muted);text-align:center}
     /* Tile Shop physical pieces inherit the Hand geometry exactly: 40px body, 38px halves.
        Board pieces stay grid-owned; only presentation miniatures are normalised here. */
-    .compactCommerceModal .shopOfferInspect{appearance:none;border:0;background:transparent;color:inherit;padding:0;min-width:44px;min-height:84px;display:grid;place-items:center}
+    .compactCommerceModal .shopOfferInspect{appearance:none;border:0;background:transparent;color:inherit;padding:0;min-width:44px;min-height:68px;display:grid;place-items:center}
     .compactCommerceModal .shopOfferInspect .marketTile{display:grid;place-items:center;min-width:0;padding:0!important;background:transparent!important;gap:0!important;transform:none!important;transform-origin:center!important;margin-right:0!important}
     .compactCommerceModal .shopOfferInspect .marketTile small{display:none!important}
-    .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:40px!important;height:auto!important;max-height:none!important;margin:auto!important}
-    .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:38px!important;height:38px!important;min-height:38px!important;max-height:38px!important;flex:0 0 38px!important}
+    .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:30px!important;height:auto!important;max-width:100%!important;max-height:none!important;aspect-ratio:1/2!important;box-sizing:border-box!important;margin:auto!important}
+    .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:100%!important;height:50%!important;min-height:0!important;max-height:none!important;flex:1 1 50%!important;box-sizing:border-box!important}
     .compactCommerceModal .shopCompactOffer .shopBuy{width:100%!important;min-width:0!important;min-height:38px!important;padding:5px 3px!important;font-size:9px!important}
-    .compactCommerceModal .exactShopOffer{grid-template-rows:84px 38px!important;gap:7px;padding:7px 4px!important}
+    .compactCommerceModal .exactShopOffer{grid-template-rows:68px 38px!important;gap:7px;padding:7px 4px!important}
     .compactCommerceModal .exactShopOffer>strong,.compactCommerceModal .exactShopOffer>small{display:none!important}
     .compactCommerceModal .adapterShopOffer.isUsed{opacity:.5}
     .compactCommerceModal .marketOfferGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
@@ -127,10 +127,9 @@
       .commerceModal .marketPhysicalContext{gap:9px!important}
       .commerceModal .marketContextTiles .marketTile .domino{width:24px!important;height:46px!important}
       .commerceModal .marketOfferAction,.commerceModal .marketOfferAction .shopBuy{width:106px!important}
-      .compactCommerceModal .shopOfferInspect{min-height:66px}
-      .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:34px!important}
-      .compactCommerceModal .shopOfferInspect .domino.compactPreview>.half{width:32px!important;height:30px!important;min-height:30px!important;max-height:30px!important;flex-basis:30px!important}
-      .compactCommerceModal .exactShopOffer{grid-template-rows:66px 38px!important}
+      .compactCommerceModal .shopOfferInspect{min-height:60px}
+      .compactCommerceModal .shopOfferInspect .domino.compactPreview{width:26px!important}
+      .compactCommerceModal .exactShopOffer{grid-template-rows:60px 38px!important}
     }
   `;
   doc.head.appendChild(style);
