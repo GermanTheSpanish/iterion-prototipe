@@ -61,7 +61,8 @@ assert.match(src,/startRun\.disabled=!available/,'Start must remain disabled for
 assert.match(src,/__monoidInspectMode/,'mode tiles must bridge long-press inspection into the main UI');
 assert.match(src,/startInspectHold/,'mode carousel must distinguish a hold from navigation');
 assert.match(src,/LONG_PRESS_MS/,'mode inspection should share the game long-press timing');
-assert.match(src,/Hold to inspect/,'mode controls should expose inspection affordance to assistive labels');
+assert.match(src,/Tap to inspect/,'selected mode controls should expose tap inspection to assistive labels');
+assert.match(src,/if\(offset===0\)[\s\S]*__monoidInspectMode/,'tapping the centred mode must open its Inspector');
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
 assert.match(gesture,/mode-carousel\.js\?v=20261004\.3/);
