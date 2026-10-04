@@ -15,7 +15,8 @@ assert.match(ui,/escapeHtml\(mod\.displayName\|\|mod\.name\)/,'Market must rende
 assert.doesNotMatch(ui,/data-dd-id|doubleDoubleGridHtml/);
 assert.match(ui,/GAME\.buyMarketMod\(id\)/,'Market UI must use the generic modifier purchase API');
 assert.match(ui,/mod\.displayName\|\|mod\.name/,'Market result copy must use modifier metadata');
-assert.match(ui,/SUPPLY \$\{supply\} · \$\{nextMarket\}/);
+assert.match(ui,/class="marketOfferGrid"/,'Market must retain a compact offer decision surface');
+assert.match(ui,/HOLD AN OFFER TO INSPECT · ONE PURCHASE · INFLATION \+1/,'Market must expose the essential purchase rule without verbose supply prose');
 assert.match(game,/openingProtectionActive/);
 assert.match(game,/type:'opening-protection'/);
 assert.match(game,/ensureOpeningContinuation\('reroll'\)/);
