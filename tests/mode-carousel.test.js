@@ -65,6 +65,6 @@ assert.match(src,/Tap to inspect/,'selected mode controls should expose tap insp
 assert.match(src,/if\(offset===0\)[\s\S]*__monoidInspectMode/,'tapping the centred mode must open its Inspector');
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20261004\.3/);
+assert.match(gesture,/mode-carousel\.js\?v=20261004\.4/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');
