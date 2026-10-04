@@ -175,7 +175,7 @@
   function cancelTutorialDrag(){if(!drag.active)return;press.cancel();drag.float?.remove();drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null};renderBoard();renderHand()}
   function requestTutorialExit(){if(!tutorial)return;if(drag.active)cancelTutorialDrag();if(uiBusy||GAME.state().running){tutorial.exitPending=true;$('leaveTutorial').disabled=true;return}leaveTutorial(false)}
 
-  function dots(n,s=false){return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
+  function dots(n,s=false){if(!Number.isInteger(n)||!P[n])return`<b class="${s?'swildPip':'wildPip'}" aria-hidden="true">•</b>`;return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function tileView(t){return V.tileViewModel(t,GAME.state())}
   function clearModFaceReveals(){for(const timer of modFaceRevealTimers.values())clearTimeout(timer);modFaceRevealTimers.clear();modFaceRevealUntil.clear()}
   function modFaceRevealed(tileId){const until=modFaceRevealUntil.get(tileId)||0;if(until<=performance.now()){if(until)modFaceRevealUntil.delete(tileId);return false}return true}
@@ -188,12 +188,13 @@
   function circuitRank(t){return tileView(t).circuitRank}
   function circuitClass(t){const rank=circuitRank(t);return rank?` circuitTile circuitRank${rank}`:''}
   function circuitMark(t){const rank=circuitRank(t);return rank?`<i class="circuitRankMark">${D.CIRCUIT_RANKS[rank-1].roman}</i>`:''}
+  function specialTileMark(t){return t?.special==='adapter'?'<i class="specialTileMark" aria-hidden="true">AD</i>':''}
   function circuitInspectorHtml(c){return c?`<section class="inspectSection"><div class="inspectLabel">Circuit</div><strong>RANK ${c.roman} · ${c.color.toUpperCase()}</strong><p>Resonance: +${c.bonus*100}%<br>Activates once per Move.</p></section>`:''}
   function powerInspectorHtml(power){return power?`<section class="inspectSection"><div class="inspectLabel">POWER SET</div><strong>SET ${power.generation} · ×${power.powerMultiplier}</strong><p>Printed values, matching and parity stay unchanged. Scoring operations use ×${power.powerMultiplier} magnitude.</p></section>`:''}
   function upgradeDot(t){const tier=tierFor(t);return tier?`<i class="upgradeDot u${tier}" aria-hidden="true"></i>`:''}
   function tileModMarks(t){const marks=tileView(t).modifiers;return marks.map((mark,i)=>`<i class="tileModMark ${mark.className}" style="--mod-offset:${i-(marks.length-1)/2};--mod-shift:${(i-(marks.length-1)/2)*5}px" aria-hidden="true"><span>${mark.label[0]}</span><span>${mark.label[1]}</span></i>`).join('')}
-  function mini(t,fx='normal',compact=false){const cls=(fx==='back'?' back':fx==='reveal'?' reveal':'')+(compact?' compactPreview':''),mark=fx==='back'?'':upgradeDot(t)+tileModMarks(t)+circuitMark(t)+powerMark(t);return`<div class="domino${cls}${powerClass(t)}${circuitClass(t)}${modClass(t)}"><div class="half${t?.a===0?' zeroEndpoint':''}"><div class="spips">${dots(t?.a??0,true)}</div></div><div class="half${t?.b===0?' zeroEndpoint':''}"><div class="spips">${dots(t?.b??0,true)}</div></div>${mark}</div>`}
-  function marketTileHtml(t,label=''){return`<span class="marketTile" aria-label="Domino ${t.a}|${t.b}${label?` · ${label}`:''}">${mini(t,'normal',true)}${label?`<small>${escapeHtml(label)}</small>`:''}</span>`}
+  function mini(t,fx='normal',compact=false){const cls=(fx==='back'?' back':fx==='reveal'?' reveal':'')+(compact?' compactPreview':''),mark=fx==='back'?'':upgradeDot(t)+tileModMarks(t)+circuitMark(t)+powerMark(t)+specialTileMark(t);return`<div class="domino${cls}${powerClass(t)}${circuitClass(t)}${modClass(t)}"><div class="half${t?.a===0?' zeroEndpoint':''}"><div class="spips">${dots(t?.a??0,true)}</div></div><div class="half${t?.b===0?' zeroEndpoint':''}"><div class="spips">${dots(t?.b??0,true)}</div></div>${mark}</div>`}
+  function marketTileHtml(t,label=''){const name=t?.special==='adapter'&&!t.adapterResolved?'Adapter':`Domino ${t.a}|${t.b}`;return`<span class="marketTile" aria-label="${name}${label?` · ${label}`:''}">${mini(t,'normal',true)}${label?`<small>${escapeHtml(label)}</small>`:''}</span>`}
   function renderMachineModStatus(model){machineModStatusEl.hidden=!model.visible;if(!model.visible){machineModStatusEl.innerHTML='';return}machineModStatusEl.innerHTML=`<span>LONG CHAIN</span><i><b style="width:${model.ratio*100}%"></b></i>`;machineModStatusEl.setAttribute('aria-label',model.ariaLabel)}
   const MODE_PIP_POSITIONS=Object.freeze({1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]});
   function renderModeIndicator(model){
@@ -205,7 +206,7 @@
     modeIndicatorEl.classList.toggle('hasPips',halves.length>0);modeIndicatorEl.classList.toggle('hasInfinityBridge',between);modeIndicatorEl.innerHTML=pipGroup+trailingPhase;modeIndicatorEl.setAttribute('aria-label',model.ariaLabel||'Game mode')
   }
   function ordered(p){return[...p.cubes].sort((a,b)=>p.axis==='H'?a.x-b.x:a.y-b.y)}
-  function pieceEl(p,cls='piece'){const d=document.createElement('div'),revealed=tileView(p.tile).modifiers.length>0&&modFaceRevealed(p.tile.id);d.className=cls+' '+(p.axis==='H'?'h':'v')+powerClass(p.tile)+circuitClass(p.tile)+(revealed?' modFaceRevealed':modClass(p.tile));d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube${c.v===0?' zeroEndpoint':''}" data-half="${c.half}"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+(revealed?'':tileModMarks(p.tile))+circuitMark(p.tile)+powerMark(p.tile);return d}
+  function pieceEl(p,cls='piece'){const d=document.createElement('div'),revealed=tileView(p.tile).modifiers.length>0&&modFaceRevealed(p.tile.id);d.className=cls+' '+(p.axis==='H'?'h':'v')+powerClass(p.tile)+circuitClass(p.tile)+(revealed?' modFaceRevealed':modClass(p.tile));d.dataset.tileId=p.tile.id;d.style.left=px(p.rect.minx);d.style.top=py(p.rect.miny);d.style.width=px(p.rect.maxx-p.rect.minx);d.style.height=py(p.rect.maxy-p.rect.miny);d.innerHTML=ordered(p).map(c=>`<div class="cube${c.v===0?' zeroEndpoint':''}" data-half="${c.half}"><div class="pips">${dots(c.v)}</div></div>`).join('')+upgradeDot(p.tile)+(revealed?'':tileModMarks(p.tile))+circuitMark(p.tile)+powerMark(p.tile)+specialTileMark(p.tile);return d}
   function toast(t){toastEl.textContent=t;toastEl.classList.add('show');setTimeout(()=>toastEl.classList.remove('show'),1300)}
   function boardMessage(text,ms=900){const d=document.createElement('div');d.className='boardMessage';d.textContent=text;board.appendChild(d);setTimeout(()=>d.remove(),ms)}
   function addBoardCenterTicks(){
@@ -348,7 +349,7 @@
       if(topologyBreak){el.classList.add('topologyBreakWarning');el.setAttribute('aria-label',`${el.getAttribute('aria-label')} Placement will remove ${topologyBreak.label}.`);const warning=document.createElement('i');warning.className='topologyBreakMark';warning.textContent=`LOSE ${topologyBreak.label}`;warning.setAttribute('aria-hidden','true');el.appendChild(warning)}
       board.appendChild(el)
     });
-    if(drag.active&&drag.candidate){const c=drag.candidate,p=E.pieceFrom(drag.tile,c.x,c.y,0,c.rr,(s.idc||0)+1);p.tile={...drag.tile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');board.appendChild(candidate);renderRoutePreview(p)}
+    if(drag.active&&drag.candidate){const c=drag.candidate,previewTile=c.resolvedTile||drag.tile,p=E.pieceFrom(previewTile,c.x,c.y,0,c.rr,(s.idc||0)+1);p.tile={...previewTile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');board.appendChild(candidate);renderRoutePreview(p)}
     else if(s.ouroborosMode&&!uiBusy&&!auxOverlay){if(!ouroborosSelection){const selected=s.pieces.find(p=>p.tile.id===s.anchorId)||s.pieces.at(-1)||null;ouroborosSelection=selected?.tile.id||null}const preview=ouroborosSelection?GAME.previewOuroborosFire?.(ouroborosSelection):null;if(preview?.ok)renderRoutePreview(preview.p,preview,'ouroboros')}
     board.classList.toggle('dragging',drag.active)
   }
@@ -366,7 +367,7 @@
       const t=s.hand[i],slot=document.createElement('div');slot.className='handSlot';
       if(handFx[i]==='hidden'||(drag.active&&drag.index===i)){handEl.appendChild(slot);continue}
       if(handFx[i]==='back'){const shell=document.createElement('div');shell.innerHTML=mini(t||{a:0,b:0},'back');slot.appendChild(shell.firstChild);handEl.appendChild(slot);continue}
-      if(t){const power=powerMultiplier(t),b=document.createElement('button');b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy||!!s.pendingCircuit||!!s.pendingModPlacement;b.setAttribute('aria-disabled',b.disabled?'true':'false');b.setAttribute('aria-label',`Domino ${t.a}|${t.b}.${power>1?` POWER ×${power}.`:''}${mask[i]?'':' No legal placement.'} Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});slot.appendChild(b)}
+      if(t){const power=powerMultiplier(t),b=document.createElement('button');b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy||!!s.pendingCircuit||!!s.pendingModPlacement;b.setAttribute('aria-disabled',b.disabled?'true':'false');b.setAttribute('aria-label',`${t.special==='adapter'&&!t.adapterResolved?'Adapter. Adapts to two existing ends.':`Domino ${t.a}|${t.b}.`}${power>1?` POWER ×${power}.`:''}${mask[i]?'':' No legal placement.'} Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});slot.appendChild(b)}
       handEl.appendChild(slot)
     }
   }
