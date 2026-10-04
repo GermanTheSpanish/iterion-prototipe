@@ -13,10 +13,15 @@ assert.match(source,/color:var\(--circuit-pip,#fff\)!important/,'Circuit Mod let
 assert.match(source,/modFaceReveal/,'Board Mod reveal should have a lightweight face-flip transition');
 assert.match(source,/domino\.compactPreview>\.half\{width:100%!important/,'Compact halves must fit their own domino, not inherit hand widths');
 assert.match(source,/domino\.compactPreview>\.half>\.spips\{inset:16%!important;opacity:1!important/,'Compact pips must remain centred and fully opaque');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview\{width:40px!important;height:auto!important/,'Tile Shop pieces must use the current Hand width');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview>\.half\{width:38px!important;height:38px!important/,'Tile Shop halves must use the current Hand half geometry');
+assert.match(source,/shopOfferInspect \.domino\.compactPreview>\.half\{width:32px!important;height:30px!important/,'Short-screen Tile Shop geometry must mirror the short-screen Hand');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.match(ui,/mini\(t,'normal',true\)/,'Commerce physical tiles use the shared compact renderer');
 assert.match(ui,/mini\(shopRevealTile,'reveal',true\)/,'Shop reveals use the same compact renderer');
 assert.match(ui,/mini\(\{a:0,b:0\},'back',true\)/,'Face-down Shop previews keep the compact mode');
+assert.match(ui,/shopTileOffer shopCompactOffer exactShopOffer/,'Visible next-set tiles need the centred Shop composition');
+assert.doesNotMatch(ui,/shopCompactOffer"><button[^\n]+<strong>\[\$\{t\.a\}\|\$\{t\.b\}\]<\/strong>/,'Visible Shop tiles must not repeat their printed values as text');
 assert.match(ui,/openShopOfferInspector/);assert.match(ui,/openMarketOfferInspector/,'Shop and Market must route exact explanations through Inspector');
 assert.match(ui,/HOLD AN OFFER TO INSPECT/);assert.match(ui,/compactCommerceModal/);
 assert.match(ui,/MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map\(\),modFaceRevealTimers=new Map\(\)/,'Each Mod tile reveal needs independent ephemeral timing');
