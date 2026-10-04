@@ -52,7 +52,7 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
     assert.strictEqual(s.score,0);assert.strictEqual(s.best,57863119300);assert.strictEqual(s.coins,165);assert.strictEqual(s.inflation,8);
     assert.deepStrictEqual(s.zeroPortTileIds,[],'source run has no Zero Port; do not invent one for QA');
     assert.deepStrictEqual(s.hand.map(t=>t.id),['g2-d0-2','g2-d0-1','g2-d1-3','g2-d1-1','g2-d1-5']);
-    assert.deepStrictEqual(game.handPlacementDiagnostics().map(x=>x.legalPlacements),[9,12,16,12,22]);
+    assert.deepStrictEqual(game.handPlacementDiagnostics().map(x=>x.legalPlacements),[9,12,16,13,22]); // [1|1] regains its full-side parallel-double placement
     assert.deepStrictEqual(s.circuitRanks,{'d3-3':4,'d4-5':2,'d2-2':5});
     assert.strictEqual(s.circuitSignatures.length,6);assert.strictEqual(s.wins.length,13);assert.strictEqual(s.anchorId,'g2-d3-5');
     assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});assert.strictEqual(s.freeReroll,1)
