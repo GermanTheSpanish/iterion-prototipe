@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.65.1');
+assert.strictEqual(D.VERSION,'0.66.0');
 assert.strictEqual(D.SHOP_TILE_OFFER_COUNT,4);
 assert.strictEqual(D.SHOP_TILE_OFFER_COST,2);
 
@@ -102,4 +102,4 @@ function makeHandSpace(game){
   assert.match(ui,/PURCHASE → HAND/,'Shop surface must state direct Hand delivery');
 }
 
-console.log('v0.65.1 next-set Shop tile offer regression tests passed');
+console.log('v0.66.0 next-set Shop tile offer regression tests passed');
