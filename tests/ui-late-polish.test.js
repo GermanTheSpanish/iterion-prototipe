@@ -4,6 +4,7 @@ const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8
 assert.match(source,/BUILD_ID='20261004\.3'/);
 assert.match(source,/\.compactCommerceModal \.marketOfferGrid\{display:grid!important;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'Market must use a compact two-column card grid');
 assert.match(source,/\.compactCommerceModal \.shopTileOfferGrid\{display:grid!important;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/,'Tile Shop must keep four next-set pieces visible without prose rows');
+assert.match(source,/\.compactCommerceModal \.shopCompactOffer\{display:grid!important;grid-template-columns:1fr!important/,'Tile Shop cards must override the legacy side-by-side layout and centre the physical tile');
 assert.match(source,/marketOfferPayoff/);assert.match(source,/min-height:44px/,'Market actions must retain mobile touch height');
 assert.doesNotMatch(source,/offer\.replaceChildren\(head,description,visual,context\)/,'Late polish must not re-inject the verbose legacy Market structure');
 assert.doesNotMatch(source,/description\.textContent=guide\?guide\.market:/,'Market descriptions belong in Inspector, not late-polish cards');
