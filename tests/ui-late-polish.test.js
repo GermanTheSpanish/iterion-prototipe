@@ -24,7 +24,10 @@ assert.match(ui,/mini\(\{a:0,b:0\},'back',true\)/,'Face-down Shop previews keep 
 assert.match(ui,/shopTileOffer shopCompactOffer exactShopOffer/,'Visible next-set tiles need the centred Shop composition');
 assert.doesNotMatch(ui,/shopCompactOffer"><button[^\n]+<strong>\[\$\{t\.a\}\|\$\{t\.b\}\]<\/strong>/,'Visible Shop tiles must not repeat their printed values as text');
 assert.match(ui,/openShopOfferInspector/);assert.match(ui,/openMarketOfferInspector/,'Shop and Market must route exact explanations through Inspector');
-assert.match(ui,/HOLD AN OFFER TO INSPECT/);assert.match(ui,/compactCommerceModal/);
+assert.match(ui,/TAP AN OFFER TO INSPECT/);assert.match(ui,/compactCommerceModal/);
+assert.match(ui,/function bindInspectorTap\(element,open\)/,'Non-game commerce surfaces need one reusable tap Inspector binding');
+assert.match(ui,/adapterQuestion[^>]*>\?<\/b>/,'Unresolved Adapter halves must render question marks instead of normal-looking pips');
+assert.match(ui,/\[\?\|\?\]/,'Adapter Inspector must use the same unresolved question-mark identity');
 assert.match(ui,/MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map\(\),modFaceRevealTimers=new Map\(\)/,'Each Mod tile reveal needs independent ephemeral timing');
 assert.match(ui,/else if\(meta\.kind==='board'\)revealModFace\(meta\.tileId\)/,'Short board taps should reveal Mod faces without replacing long-press Inspector');
 assert.match(ui,/revealed\?' modFaceRevealed':modClass\(p\.tile\)/,'Revealed Mods must render through the canonical front-face classes');
