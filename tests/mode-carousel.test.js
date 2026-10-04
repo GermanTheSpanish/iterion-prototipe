@@ -68,6 +68,6 @@ assert.match(src,/isTap=Math\.abs\(dx\)<6&&Math\.abs\(projected\)<10/,'pointerup
 assert.match(src,/isTap&&tapOffset===0[\s\S]*__monoidInspectMode/,'a true pointer tap on the centred tile must reach Inspector before click suppression');
 assert.match(src,/ACTIVE_MODE_KEY/);
 const gesture=fs.readFileSync(path.join(__dirname,'..','gesture.js'),'utf8');
-assert.match(gesture,/mode-carousel\.js\?v=20261004\.4/);
+assert.match(gesture,/mode-carousel\.js\?v=20261004\.5/);
 assert.match(gesture,/data-monoid-modes/);
 console.log('mode carousel adaptive physical settle regression tests passed');
