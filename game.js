@@ -1321,8 +1321,7 @@ function createGame(E,opts={}){
     return{phase,available,price,handSpace,canBuy:available&&handSpace&&s.coins>=price,purchased:adapterPurchasedForPhase(phase)}
   }
   function createAdapterTile(phase=shopPhase()){
-    const generation=Math.max(1,Number(s.setGeneration)||1),powerMultiplier=generationPower(generation),tile={id:`adapter-${phase}-${++s.tileSerial}`,a:null,b:null,upgrade:0,source:'special',special:'adapter',adapterResolved:false,adapterPhase:phase};
-    if(generation>1)tile.generation=generation;if(powerMultiplier>1)tile.powerMultiplier=powerMultiplier;return tile
+    return{id:`adapter-${phase}-${++s.tileSerial}`,a:null,b:null,upgrade:0,source:'special',special:'adapter',adapterResolved:false,adapterPhase:phase}
   }
   function shopPurchaseAvailability(){
     const offers=ensureShopTileOffers(),generation=nextSetGeneration(),existing=new Set(s.set.map(t=>t.id)),reserved=new Set(offers.map(t=>t.id)),generationAvailable=generation<=maxSetGeneration()&&!s.ouroborosMode,handSpace=shopHandHasSpace(),adapter=adapterShopInfo();
@@ -1603,7 +1602,7 @@ function createGame(E,opts={}){
   function recoveryOptions(){
     const failure=s.needsReroll?'no-legal-moves':s.failureReason,shopAvailable=canOpenShop(),undo=canUndo();
     const ownedReroll=canUseReroll(),ownedMove=failure==='placement-limit'&&canUseMove();
-    const toolReroll=canBuyTool('reroll')&&toolPurchaseQuote('reroll',1).canAfford,toolMove=canBuyTool('move')&&toolPurchaseQuote('move',1).canAfford,shopTile=shopAvailable&&s.coins>=shopRandomPrice();
+    const toolReroll=canBuyTool('reroll')&&toolPurchaseQuote('reroll',1).canAfford,toolMove=canBuyTool('move')&&toolPurchaseQuote('move',1).canAfford,shopTile=shopAvailable&&shopHandHasSpace()&&s.coins>=shopRandomPrice();
     const shopRescue=failure==='no-tiles'?shopTile:false,toolRescue=failure==='placement-limit'?toolMove:false,rerollRescue=failure==='no-legal-moves'?toolReroll:false;
     const recoverable=failure==='no-legal-moves'?rerollRescue:failure==='placement-limit'?(ownedMove||undo||toolRescue):failure==='no-tiles'?(undo||shopRescue):undo;
     return{recoverable,undo,ownedReroll,ownedMove,shopAvailable,shopRescue,toolRescue,rerollRescue,toolReroll,toolMove,shopTile,prices:{reroll:toolPrice('reroll'),move:toolPrice('move'),undo:toolPrice('undo'),randomTile:shopRandomPrice()}}
