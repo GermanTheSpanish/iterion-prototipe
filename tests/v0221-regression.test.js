@@ -20,6 +20,7 @@ function testEmergencyShopPurchasesSurviveUndo(){
 
   const undoBuy=game.buyTool('undo',1);
   assert.strictEqual(undoBuy.ok,true);
+  const free=s.hand.findIndex(Boolean);assert(free>=0);s.reserve.unshift(s.hand[free]);s.hand[free]=null;
   assert.strictEqual(game.openShop(),true);
   const tileBuy=game.buyShopRandomTile();
   assert.strictEqual(tileBuy.ok,true);
