@@ -62,8 +62,8 @@ for(const width of [375,430])for(const endless of [false,true]){
     },endless);
     await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);
-    await expect(page.locator('.marketOfferDescription')).toHaveCount(0);
-    await expect(page.locator('.marketModDiagram')).toHaveCount(0);
+    await expect(page.locator('.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
+    await expect(page.locator('.marketOfferVisual .modDiagram')).toHaveCount(3);
     await expect(page.locator('.marketAssignedGroup,.marketPoolGroup')).toHaveCount(0);
     await expect(page.locator('[data-market-offer="double-double"] .marketOfferMeta')).toContainText('INSTALLED');
     await expect(page.locator('[data-market-offer="zero-port"] .marketOfferMeta')).toContainText('COMPATIBLE');
@@ -121,11 +121,44 @@ test('Shop stays compact, buys to Hand and delegates Adapter rules to Inspector'
   await expect(page.locator('.app .compactPreview')).toHaveCount(0);
 });
 
+
+test('mode and Mod unlocks use a dedicated reward reveal on compact phones',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.goto('http://127.0.0.1:4173/');
+  await expect.poll(()=>page.evaluate(()=>!!window.MonoidLatePolish?.enqueueProgressionReward)).toBe(true);
+  await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.locator('#menuButton').click();
+  await page.evaluate(()=>window.MonoidLatePolish.enqueueProgressionReward({completedModes:['eyes'],unlockedModes:['frames']}));
+  const reward=page.locator('#progressionRewardDialog');
+  await expect(reward).not.toBeVisible();
+  await page.locator('#closeMenu').click();
+  await expect(reward).toBeVisible();
+  await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('NEW MODE UNLOCKED');
+  await expect(reward.locator('#progressionRewardTitle')).toHaveText('THE FRAMES');
+  await expect(reward.locator('.progressionRewardRule')).toHaveText('2|2 · Signal 4');
+  await expect(reward.locator('.progressionRewardMeta')).toContainText('THE EYES COMPLETE');
+  await expect(reward.locator('.progressionRewardMeta')).toContainText('GAME SELECTION');
+  await expect(reward.locator('.progressionRewardDomino i')).toHaveCount(4);
+  const modeLayout=await reward.evaluate(el=>{const r=el.getBoundingClientRect(),b=el.querySelector('.progressionRewardContinue').getBoundingClientRect();return{top:r.top,bottom:r.bottom,height:innerHeight,button:b.height,scrolls:document.documentElement.scrollHeight>innerHeight||document.documentElement.scrollWidth>innerWidth}});
+  expect(modeLayout.top).toBeGreaterThanOrEqual(0);expect(modeLayout.bottom).toBeLessThanOrEqual(modeLayout.height);expect(modeLayout.button).toBeGreaterThanOrEqual(44);expect(modeLayout.scrolls).toBe(false);
+  await reward.locator('.progressionRewardContinue').click();await expect(reward).not.toBeVisible();
+
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id:'pivot'}})));
+  await expect(reward).toBeVisible();
+  await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('NEW MOD DISCOVERED');
+  await expect(reward.locator('#progressionRewardTitle')).toHaveText('PIVOT');
+  await expect(reward.locator('.progressionRewardVisual .modDiagram')).toHaveCount(1);
+  await expect(reward.locator('.progressionRewardRule')).toHaveText('Rotate around either half.');
+  await expect(reward.locator('.progressionRewardMeta')).toHaveText('ADDED TO MOD COLLECTION');
+  await reward.locator('.progressionRewardContinue').click()
+});
+
 test('late mobile polish keeps MONOID centred and Market uses compact Inspector-led cards',async({page})=>{
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261004.5');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261005.1');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -134,12 +167,15 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await openHelp(page);await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
   await expect.poll(()=>page.locator('.marketStructuredOffer.marketCompactOffer').count()).toBe(3);
   await expect(page.locator('.marketAssignments,.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
+  await expect(page.locator('.marketOfferVisual .modDiagram')).toHaveCount(3);
 
   const dd=page.locator('[data-market-offer="double-double"]');
   await expect(dd.locator('.marketOfferMeta')).toContainText('INSTALLED · COMPATIBLE · 5');
   await expect(page.locator('[data-market-offer="double-echo"] .marketOfferMeta')).toContainText('COMPATIBLE · 5');
   await expect(page.locator('[data-market-offer="long-run"] .marketOfferMeta')).toHaveText('MACHINE');
-  await expect(page.locator('.shopFoot')).toContainText('TAP AN OFFER TO INSPECT');
+  await expect(page.locator('[data-market-offer="long-run"] .marketOfferPayoff')).toHaveText('10+ tiles: every ★ pays.');
+  await expect(page.locator('[data-market-offer="long-run"] .marketOfferVisual')).toContainText('ALL ★ PAY');
+  await expect(page.locator('.shopFoot')).toContainText('TAP = DETAILS');
 
   const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));
   expect(buttonBoxes.every(b=>b.w>80&&b.h>=44)).toBe(true);
@@ -171,6 +207,7 @@ test('Market keeps compact cards and touch targets on 375px phones',async({page}
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const actions=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
   await expect(page.locator('.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
+  await expect(page.locator('.marketOfferVisual .modDiagram')).toHaveCount(3);
   await expect(page.locator('.marketCompactOffer').first().locator('.marketOfferPayoff')).toBeVisible();
   await expect(page.locator('.marketCompactOffer').first().locator('.marketInspectTarget')).toBeVisible()
 });

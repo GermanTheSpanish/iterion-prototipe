@@ -47,7 +47,7 @@ function testEmergencyShopPurchasesSurviveUndo(){
 function testPatchUxContracts(){
   const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
   const data=read('data.js'),ui=read('ui.js'),help=read('help.js'),mods=read('mods.js');
-  assert.match(data,/VERSION:'0\.67\.0'/);
+  assert.match(data,/VERSION:'0\.68\.0'/);
   assert.match(ui,/close\.textContent='CLOSE'/,'Data panel must have an internal close control');
   assert.match(ui,/className='runDataText'/,'Data panel must expose selectable run text');
   assert.match(ui,/board\.style\.backgroundImage='none'/,'visible board grid must be disabled');
