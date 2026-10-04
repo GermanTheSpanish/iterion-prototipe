@@ -368,7 +368,7 @@
       const t=s.hand[i],slot=document.createElement('div');slot.className='handSlot';
       if(handFx[i]==='hidden'||(drag.active&&drag.index===i)){handEl.appendChild(slot);continue}
       if(handFx[i]==='back'){const shell=document.createElement('div');shell.innerHTML=mini(t||{a:0,b:0},'back');slot.appendChild(shell.firstChild);handEl.appendChild(slot);continue}
-      if(t){const power=powerMultiplier(t),b=document.createElement('button');b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy||!!s.pendingCircuit||!!s.pendingModPlacement;b.setAttribute('aria-disabled',b.disabled?'true':'false');b.setAttribute('aria-label',`${t.special==='adapter'&&!t.adapterResolved?'Adapter. Adapts to two existing ends.':`Domino ${t.a}|${t.b}.`}${power>1?` POWER ×${power}.`:''}${mask[i]?'':' No legal placement.'} Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});slot.appendChild(b)}
+      if(t){const power=powerMultiplier(t),b=document.createElement('button'),startPress=e=>beginTilePress(e,{kind:'hand',index:i,tileId:t.id,allowDrag:true});b.className='tile'+(mask[i]?'':' unplayable');b.disabled=uiBusy||!!s.pendingCircuit||!!s.pendingModPlacement;b.setAttribute('aria-disabled',b.disabled?'true':'false');b.setAttribute('aria-label',`${t.special==='adapter'&&!t.adapterResolved?'Adapter. Adapts to two existing ends.':`Domino ${t.a}|${t.b}.`}${power>1?` POWER ×${power}.`:''}${mask[i]?'':' No legal placement.'} Hold to inspect.`);b.innerHTML=mini(t,handFx[i]);b.onpointerdown=e=>{e.stopPropagation();startPress(e)};slot.onpointerdown=e=>{if(b.disabled)return;startPress(e)};slot.dataset.handTouch='true';slot.appendChild(b)}
       handEl.appendChild(slot)
     }
   }
