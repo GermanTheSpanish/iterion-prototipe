@@ -150,7 +150,9 @@
       .hand.handOverflow[data-hand-count="8"] .handSlot{height:46px!important;min-height:46px!important;flex-basis:46px!important}
       .hand.handOverflow[data-hand-count="8"] .domino>.half{width:22px!important;height:22px!important}
       .hand.handOverflow[data-hand-count="8"] .domino{width:24px!important}
-      .hand.handOverflow .tile{box-sizing:border-box!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;min-height:44px!important;max-height:44px!important;flex-shrink:0!important;align-self:center!important}
+      .hand.handOverflow .handSlot{position:relative!important;overflow:visible!important}
+      .hand.handOverflow .handSlot[data-hand-touch="true"]::before{content:""!important;position:absolute!important;z-index:4!important;left:50%!important;top:50%!important;width:44px!important;height:44px!important;transform:translate(-50%,-50%)!important;pointer-events:auto!important}
+      .hand.handOverflow .tile{position:relative!important;z-index:5!important;box-sizing:border-box!important;flex-shrink:0!important;align-self:center!important}
       .hand.handOverflow .spip{width:3px!important;height:3px!important}
 
       .bottomBar{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto auto!important;gap:10px!important;align-items:stretch!important;min-height:0!important;padding-top:10px!important}
