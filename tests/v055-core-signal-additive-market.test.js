@@ -90,6 +90,6 @@ const late=fs.readFileSync(path.join(root,'ui-late-polish.js'),'utf8');
 assert.match(ui,/data-market-signal/);
 assert.match(ui,/SIGNAL \+1/);
 assert.match(ui,/CORE I · \+\$\{coreCharge\}/,'Signal inspector must show the current Core charge separately from starting Signal');
-assert.match(late,/id==='signal'/);
+assert.match(late,/marketOffer\[data-market-offer\]/,'late polish must decorate Signal through the generic Market offer path');assert.doesNotMatch(late,/id==='signal'/,'Signal must not require a presentation-only special case');
 
 console.log('v0.55 additive Core Signal + Market Signal upgrade regressions passed');
