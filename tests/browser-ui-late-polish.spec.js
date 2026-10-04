@@ -193,3 +193,22 @@ test('Phase A compacts primary numbers at 50K and thickens the score instrument 
   expect(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 });
+
+
+test('Tile Shop purchases fit an eight-tile overflow Hand on compact phones',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.evaluate(()=>{const s=window.__monoidGame.state();s.coins=200;const button=document.getElementById('shopButton');button.disabled=false;button.click()});
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');
+  await expect(page.locator('#overlayBody')).toContainText('PURCHASE → HAND · 5/8');
+  for(let i=0;i<3;i++)await page.locator('[data-shop-tile-offer]').first().click();
+  await expect(page.locator('#hand .domino')).toHaveCount(8);
+  await expect(page.locator('#overlayBody')).toContainText('HAND FULL · 8/8');
+  const layout=await page.evaluate(()=>{
+    const rail=document.querySelector('.handRail').getBoundingClientRect(),hand=document.getElementById('hand'),slots=[...hand.querySelectorAll('.handSlot')].map(el=>el.getBoundingClientRect()),tiles=[...hand.querySelectorAll('.tile')].map(el=>el.getBoundingClientRect());
+    return{count:slots.length,overflow:hand.classList.contains('handOverflow'),railTop:rail.top,railBottom:rail.bottom,slotTop:Math.min(...slots.map(r=>r.top)),slotBottom:Math.max(...slots.map(r=>r.bottom)),minTouch:Math.min(...tiles.map(r=>Math.min(r.width,r.height))),scrolls:document.documentElement.scrollHeight>innerHeight||document.documentElement.scrollWidth>innerWidth}
+  });
+  expect(layout.count).toBe(8);expect(layout.overflow).toBe(true);expect(layout.slotTop).toBeGreaterThanOrEqual(layout.railTop-1);expect(layout.slotBottom).toBeLessThanOrEqual(layout.railBottom+1);expect(layout.minTouch).toBeGreaterThanOrEqual(44);expect(layout.scrolls).toBe(false)
+});
