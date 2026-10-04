@@ -137,6 +137,7 @@
       .handRail .domino{width:40px!important;border-radius:6px!important}
       .handRail .domino>.half{width:38px!important;height:38px!important;max-height:none!important}
       .hand.handOverflow{justify-content:flex-start!important}
+      .hand.handOverflow .handSlot[data-hand-touch="true"]{box-sizing:border-box!important;width:100%!important;min-width:44px!important;align-self:stretch!important}
       .hand.handOverflow[data-hand-count="6"]{gap:4px!important}
       .hand.handOverflow[data-hand-count="6"] .handSlot{height:62px!important;min-height:62px!important;flex-basis:62px!important}
       .hand.handOverflow[data-hand-count="6"] .domino>.half{width:29px!important;height:29px!important}
