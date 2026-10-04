@@ -19,7 +19,7 @@
   let entryState='title',tutorial=null,activeRun=null;
   let handFx=Array(D.HAND_SIZE).fill('normal'),ouroborosSelection=null;
   const MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
-  const PLACEMENT_LOCK_MS=140,PLACEMENT_LOCK_TOLERANCE_PX=22;
+  const PLACEMENT_LOCK_MS=100,PLACEMENT_LOCK_TOLERANCE_PX=12;
   let drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null,grabOffsetX:0,grabOffsetY:0,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   function explicitRoutePreviewMode(){

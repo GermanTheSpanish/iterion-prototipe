@@ -4,7 +4,7 @@ const path=require('node:path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const ui=read('ui.js'),theme=read('ui-theme.css'),runtime=read('ui-runtime-fixes.js'),html=read('index.html');
 
-assert.match(ui,/PLACEMENT_LOCK_MS=140,PLACEMENT_LOCK_TOLERANCE_PX=22/);
+assert.match(ui,/PLACEMENT_LOCK_MS=100,PLACEMENT_LOCK_TOLERANCE_PX=12/);
 assert.match(ui,/function latchedPlacementCandidate\(raw,e,now=performance\.now\(\)\)/);
 assert.match(ui,/const raw=nearest\(e\.clientX,e\.clientY\),o=drag\.candidate,c=latchedPlacementCandidate\(raw,e\)/);
 assert.match(ui,/if\(dwell>=PLACEMENT_LOCK_MS&&Math\.hypot\(dx,dy\)<=PLACEMENT_LOCK_TOLERANCE_PX\)/);
@@ -33,4 +33,4 @@ assert.match(runtime,/\.signalHud\{[^}]*pointer-events:auto!important[^}]*touch-
 assert.match(runtime,/\.signalHudIcon\{[^}]*clip-path:polygon/);
 assert.match(runtime,/\.board\{[^}]*box-shadow:0 4px 12px rgba\(25,23,19,\.10\)!important/);
 
-console.log('v0.65.0 board touch, Void inspector and placement-lock regressions passed');
+console.log('v0.65.1 board touch, Void inspector and placement-lock regressions passed');
