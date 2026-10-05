@@ -9,14 +9,26 @@
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
   const V=window.IterionPresentation,MG=window.MonoidModGuidance,BATCH_STORE=window.MonoidPlaytestBatchStore?.create(),PT=window.MonoidPlaytestTelemetry?.create({storage:localStorage,...(PROFILE?.telemetryOptions?.()||{})}),gameMenu=$('gameMenu'),menuButton=$('menuButton'),modeIndicatorEl=$('modeIndicator');
-  const app=document.querySelector('.app'),entryFlow=$('entryFlow'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),selectionTitle=$('selectionTitle'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
+  const app=document.querySelector('.app'),entryFlow=$('entryFlow'),bootSelector=$('bootSelector'),titleCard=$('titleCard'),gameSelection=$('gameSelection'),selectionTitle=$('selectionTitle'),firstRunChoice=$('firstRunChoice'),continueRun=$('continueRun'),tutorialPanel=$('tutorialPanel'),tutorialStep=$('tutorialStep'),tutorialInstruction=$('tutorialInstruction');
   let returnFocus=null;
   const circuitChoice=$('circuitChoice');
   const board=$('board'),signalHudEl=$('signalHud'),scoreEl=$('score'),targetEl=$('target'),stageEl=$('stagestat'),roundEl=$('roundstat'),movesEl=$('moves'),tilesEl=$('tilesleft'),stageRoundEl=$('stageRound'),boardSizeEl=$('boardsize'),handEl=$('hand'),hint=$('hint'),shopBtn=$('shopButton'),moveBtn=$('moveTool'),rerollBtn=$('reroll'),undoBtn=$('undoTool'),resetBtn=$('reset'),helpBtn=$('helpButton'),viewBtn=$('viewrun'),copyBtn=$('copyrun'),runlog=$('runlog'),toastEl=$('toast'),overlay=$('overlay'),modalEl=overlay.querySelector('.modal'),overlayTitle=$('overlayTitle'),overlayBody=$('overlayBody'),overlayPrimary=$('overlayPrimary'),overlaySecondary=$('overlaySecondary'),overlayTertiary=$('overlayTertiary'),coinEl=$('coins'),versionEl=$('version'),machineModStatusEl=$('machineModStatus'),routePreviewSetting=$('routePreviewSetting'),routePreviewHelp=$('routePreviewHelp');
   let viewRun=false,outcomeOverlayNotBefore=0,outcomeTimer=0,uiBusy=false,auxOverlay=null,shopRevealTile=null,persistenceFault=false,framesRevealRunId=null,framesRevealEventCursor=0,framesRevealFx=[];
   const inspectorHoldSuppressed=new WeakSet();
   const performanceSamples=[];
-  let entryState='title',tutorial=null,activeRun=null;
+  let entryState='boot',tutorial=null,activeRun=null;
+  const BOOT_PASS_KEY='monoid.bootPass.v1';
+  function bootBypass(){
+    const params=new URL(location.href).searchParams,force=params.get('boot')==='1',host=String(location.hostname||'').toLowerCase(),local=host==='localhost'||host==='127.0.0.1'||host==='::1',qa=params.has('qa')||params.has('qaReturn'),entryBypass=localStorage.getItem('iterion.entryBypass.v1')==='true',pass=sessionStorage.getItem(BOOT_PASS_KEY),context=PROFILE?.currentContext?.()||'player';
+    if(pass===context){sessionStorage.removeItem(BOOT_PASS_KEY);return true}
+    return !force&&(local||qa||entryBypass)
+  }
+  function initialiseEntry(){
+    const showBoot=!!bootSelector&&!bootBypass();entryState=showBoot?'boot':'title';if(bootSelector)bootSelector.hidden=!showBoot;titleCard.hidden=showBoot;gameSelection.hidden=true;entryFlow.hidden=false
+  }
+  function chooseBootContext(context){
+    if(!PROFILE?.setContext)return;PROFILE.setContext(context,{reset:context==='fresh'});sessionStorage.setItem(BOOT_PASS_KEY,context);const url=new URL(location.href);url.searchParams.delete('boot');location.replace(url.href)
+  }
   let handFx=Array(Math.max(D.HAND_SIZE,D.SHOP_HAND_MAX||D.HAND_SIZE)).fill('normal'),ouroborosSelection=null;
   const MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
   const PLACEMENT_LOCK_MS=100,PLACEMENT_LOCK_TOLERANCE_PX=12;
@@ -952,8 +964,10 @@
   shopBtn.onclick=openPermanentShop;moveBtn.onclick=activateMove;rerollBtn.onclick=activateReroll;undoBtn.onclick=activateUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;closeMenu();newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=()=>{closeMenu();copyRun()};viewBtn.onclick=()=>{closeMenu();viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
   bindInspectorHold(titleCard,openMonoidInspector);bindInspectorHold(selectionTitle,openMonoidInspector);bindInspectorHold(menuButton,openMonoidInspector);
   if(selectionTitle){selectionTitle.tabIndex=0;selectionTitle.setAttribute('role','button');selectionTitle.setAttribute('aria-label','MONOID. Tap or press Enter to inspect the definition.');selectionTitle.onclick=e=>{e.preventDefault();e.stopPropagation();openMonoidInspector()};selectionTitle.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openMonoidInspector()}}}
-  titleCard.onclick=e=>{if(consumeInspectorHoldClick(titleCard,e))return;e.preventDefault();e.stopPropagation();showSelection()};
-  titleCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showSelection()}};
+  function enterFromTitle(){if(PROFILE?.currentContext?.()==='fresh'){window.__monoidSelectedMode='classic';localStorage.setItem(ACTIVE_MODE_KEY,'classic');startNormal(false);return}showSelection()}
+  titleCard.onclick=e=>{if(consumeInspectorHoldClick(titleCard,e))return;e.preventDefault();e.stopPropagation();enterFromTitle()};
+  titleCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();enterFromTitle()}};
+  bootSelector?.querySelectorAll('[data-boot-context]').forEach(button=>button.addEventListener('click',()=>chooseBootContext(button.dataset.bootContext)));
   $('learnMonoid').onclick=startTutorial;$('replayTutorial').onclick=startTutorial;$('startRun').onclick=()=>{if(storedState()&&!confirm('Replace the saved run with a new run?'))return;startNormal(false)};continueRun.onclick=()=>startNormal(true);$('modeClassic').onclick=()=>storedState()?startNormal(true):startNormal(false);$('leaveTutorial').onclick=requestTutorialExit;$('gameSelectionButton').onclick=()=>{closeMenu();showSelection()};
-  if(localStorage.getItem('iterion.entryBypass.v1')==='true')startNormal(false);else{app.inert=true;render()}
+  if(localStorage.getItem('iterion.entryBypass.v1')==='true')startNormal(false);else{app.inert=true;initialiseEntry();render()}
 })();

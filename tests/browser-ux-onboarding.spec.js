@@ -60,7 +60,7 @@ test('SYSTEMS sandbox never overwrites a saved normal run',async({page})=>{
 });
 
 test('first real run briefing is board-led, state-neutral and shown once',async({page})=>{
-  await page.setViewportSize({width:375,height:667});await enterSelection(page);await page.locator('#startRun').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('firstBrief');await expect(page.locator('#monoidBoardCoach')).toContainText('BUILD. ROUTE. SCORE.');const before=await page.evaluate(()=>window.__monoidGame.exportState());await page.locator('[data-ux-action="start-first"]').click();await expect(page.locator('#monoidBoardCoach')).toBeHidden();expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(before);expect(await page.evaluate(()=>localStorage.getItem('monoid.firstRunBriefing.v1'))).toBe('seen')
+  await page.setViewportSize({width:375,height:667});await enterSelection(page);await page.locator('#startRun').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('firstBrief');await expect(page.locator('#monoidBoardCoach')).toContainText('BUILD A MACHINE');await expect(page.locator('#monoidBoardCoach')).toContainText('Hold any tile to INSPECT it.');const before=await page.evaluate(()=>window.__monoidGame.exportState());await page.locator('[data-ux-action="start-first"]').click();await expect(page.locator('#monoidBoardCoach')).toBeHidden();expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(before);expect(await page.evaluate(()=>localStorage.getItem('monoid.firstRunBriefing.v1'))).toBe('seen')
 });
 
 

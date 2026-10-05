@@ -1,6 +1,11 @@
 const{test,expect}=require('@playwright/test');
 const BASE='http://127.0.0.1:4173/';
 
+async function placeOpeningTile(page){
+  const target=await page.evaluate(()=>{const g=window.__monoidGame,E=window.IterionEngine,D=window.IterionData,s=g.state(),i=s.hand.findIndex(t=>t&&t.a===t.b),tile=s.hand[i],candidate=g.candidatesForIndex(i)[0],r=document.querySelector('#board').getBoundingClientRect();if(i<0||!tile||!candidate)return null;const p=E.pieceFrom(tile,candidate.x,candidate.y,0,candidate.rr,-1);return{i,x:r.left+((p.rect.minx+p.rect.maxx)/2/E.G)*r.width,y:r.top+((p.rect.miny+p.rect.maxy)/2/E.H)*r.height+(D.DRAG_Y_OFFSET||0)}});expect(target).toBeTruthy();
+  const tile=page.locator('#hand .handSlot').nth(target.i).locator('.tile'),box=await tile.boundingBox();expect(box).toBeTruthy();const sx=box.x+box.width/2,sy=box.y+box.height/2;await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx+18,sy,{steps:2});await page.mouse.move(target.x,target.y,{steps:8});await page.mouse.up();await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length),{timeout:12000}).toBe(1);await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().running),{timeout:12000}).toBe(false)
+}
+
 async function openSelection(page){
   await page.locator('#titleCard').click();
   await expect(page.locator('#gameSelection')).toBeVisible();
@@ -72,10 +77,35 @@ test('player, dev and fresh contexts keep progression and saves isolated',async(
   await page.waitForLoadState('domcontentloaded');
   await expect.poll(()=>page.evaluate(()=>window.MonoidProfile?.contextInfo?.().context)).toBe('fresh');
 
-  await openSelection(page);
-  expect(await page.evaluate(()=>window.__monoidModes.isAvailable('classic'))).toBe(true);
-  expect(await page.evaluate(()=>window.__monoidModes.isAvailable('eyes'))).toBe(false);
   expect(await page.evaluate(()=>localStorage.getItem('monoid.ctx.fresh.iterion.activeRun.v1'))).toBeNull();
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(playerSave);
   expect(await page.evaluate(()=>window.MonoidProfile.contextInfo().profile.unlockedModes)).toEqual(['classic']);
+  expect(await page.evaluate(()=>window.__monoidModes.isAvailable('classic'))).toBe(true);
+  expect(await page.evaluate(()=>window.__monoidModes.isAvailable('eyes'))).toBe(false);
+  await page.locator('#titleCard').click();
+  await expect(page.locator('.app')).toBeVisible();
+  await expect(page.locator('#gameSelection')).toBeHidden();
+  expect(await page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('classic');
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem('monoid.ctx.fresh.iterion.activeRun.v1'))).not.toBeNull();
+});
+
+
+test('boot selector isolates profiles and Fresh starts guided Classic',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(BASE+'?boot=1');
+  await expect(page.locator('#bootSelector')).toBeVisible();await expect(page.locator('#titleCard')).toBeHidden();
+  await expect(page.locator('[data-boot-context="dev"]')).toContainText('ALL UNLOCKED');
+  await expect(page.locator('[data-boot-context="player"]')).toContainText('CURRENT SAVE');
+  await expect(page.locator('[data-boot-context="fresh"]')).toContainText('RESET SANDBOX');
+  await page.locator('[data-boot-context="dev"]').click();await page.waitForLoadState('domcontentloaded');
+  await expect.poll(()=>page.evaluate(()=>window.MonoidProfile?.currentContext?.())).toBe('dev');await expect(page.locator('#titleCard')).toBeVisible();await expect(page.locator('#bootSelector')).toBeHidden();
+  expect(await page.evaluate(()=>window.MonoidProfile.ensureProfile().unlockedModes)).toEqual(['classic','eyes','frames','river','loom','peaks','islands']);
+
+  await page.evaluate(()=>localStorage.setItem('monoid.ctx.fresh.iterion.activeRun.v1','STALE'));
+  await page.goto(BASE+'?boot=1');await expect(page.locator('#bootSelector')).toBeVisible();await page.locator('[data-boot-context="fresh"]').click();await page.waitForLoadState('domcontentloaded');
+  await expect.poll(()=>page.evaluate(()=>window.MonoidProfile?.currentContext?.())).toBe('fresh');expect(await page.evaluate(()=>localStorage.getItem('monoid.ctx.fresh.iterion.activeRun.v1'))).toBeNull();
+  await page.locator('#titleCard').click();await expect(page.locator('.app')).toBeVisible();await expect(page.locator('#gameSelection')).toBeHidden();
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('BUILD A MACHINE');await expect(page.locator('#monoidBoardCoach')).toContainText('Hold any tile to INSPECT it.');
+  await page.locator('#monoidBoardCoach [data-ux-action="start-first"]').click();await placeOpeningTile(page);
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('INSPECT');await expect(page.locator('#monoidBoardCoach')).toContainText('Hold any tile to see its rules and state.');
 });

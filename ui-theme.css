@@ -305,10 +305,10 @@ body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;back
 .boardCoachLayer.firstBrief,.boardCoachLayer.endlessBrief,.boardCoachLayer.modeReveal{align-items:center;padding:14px;background:rgba(247,247,244,.94);pointer-events:auto;touch-action:manipulation}
 .boardCoachLayer.tour .boardCoachCard{background:var(--paper);border:1px solid var(--line);padding:12px}
 .boardCoachLayer.firstBrief .boardCoachCard,.boardCoachLayer.endlessBrief .boardCoachCard,.boardCoachLayer.modeReveal .boardCoachCard{background:transparent;border:0;padding:10px}
-.boardCoachLayer.modeOrient,.boardCoachLayer.modeDiscovery,.boardCoachLayer.modePayoff{align-items:flex-end;padding:10px 10px 14px;background:transparent;pointer-events:none}
-.boardCoachLayer.modeOrient .boardCoachCard,.boardCoachLayer.modeDiscovery .boardCoachCard,.boardCoachLayer.modePayoff .boardCoachCard{width:min(88%,320px);padding:10px 12px;border-color:rgba(21,21,21,.22);background:rgba(247,247,244,.92);backdrop-filter:blur(3px)}
-.boardCoachLayer.modeOrient .boardCoachCard h2,.boardCoachLayer.modeDiscovery .boardCoachCard h2,.boardCoachLayer.modePayoff .boardCoachCard h2{font-size:clamp(17px,5vw,21px)}
-.boardCoachLayer.modeOrient .boardCoachCard p,.boardCoachLayer.modeDiscovery .boardCoachCard p,.boardCoachLayer.modePayoff .boardCoachCard p{margin-top:6px;font-size:clamp(13px,3.7vw,16px);line-height:1.22}
+.boardCoachLayer.modeOrient,.boardCoachLayer.modeDiscovery,.boardCoachLayer.modePayoff,.boardCoachLayer.classicGuide{align-items:flex-end;padding:10px 10px 14px;background:transparent;pointer-events:none}
+.boardCoachLayer.modeOrient .boardCoachCard,.boardCoachLayer.modeDiscovery .boardCoachCard,.boardCoachLayer.modePayoff .boardCoachCard,.boardCoachLayer.classicGuide .boardCoachCard{width:min(88%,320px);padding:10px 12px;border-color:rgba(21,21,21,.22);background:rgba(247,247,244,.92);backdrop-filter:blur(3px)}
+.boardCoachLayer.modeOrient .boardCoachCard h2,.boardCoachLayer.modeDiscovery .boardCoachCard h2,.boardCoachLayer.modePayoff .boardCoachCard h2,.boardCoachLayer.classicGuide .boardCoachCard h2{font-size:clamp(17px,5vw,21px)}
+.boardCoachLayer.modeOrient .boardCoachCard p,.boardCoachLayer.modeDiscovery .boardCoachCard p,.boardCoachLayer.modePayoff .boardCoachCard p,.boardCoachLayer.classicGuide .boardCoachCard p{margin-top:6px;font-size:clamp(13px,3.7vw,16px);line-height:1.22}
 body.monoidModeOrientActive #board .piece{opacity:.24!important;transition:opacity .18s ease}
 body.monoidModeOrientActive #board .coreNode{opacity:.36;transition:opacity .18s ease,box-shadow .18s ease}
 body.monoidModeOrientActive #board .boardVoid{opacity:.32;transition:opacity .18s ease,box-shadow .18s ease}
