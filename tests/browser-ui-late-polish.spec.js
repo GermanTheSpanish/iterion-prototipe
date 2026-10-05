@@ -66,8 +66,12 @@ for(const width of [375,430])for(const endless of [false,true]){
     await expect(page.locator('.marketOfferMark')).toHaveCount(3);
     await expect(page.locator('.marketAssignedGroup,.marketPoolGroup')).toHaveCount(0);
     await expect(page.locator('[data-market-offer="double-double"]')).toHaveAttribute('data-market-kind','tile');
-    await expect(page.locator('[data-market-offer="double-double"] .marketTileModMark')).toHaveText('DD');
-    await expect(page.locator('[data-market-offer="zero-port"] .marketTileModMark')).toHaveText('ZP');
+    const ddMarketMark=page.locator('[data-market-offer="double-double"] .marketTileModMark'),zpMarketMark=page.locator('[data-market-offer="zero-port"] .marketTileModMark');
+    await expect(ddMarketMark).toHaveText('DD');await expect(zpMarketMark).toHaveText('ZP');
+    await expect(ddMarketMark.locator(':scope > span')).toHaveCount(2);await expect(zpMarketMark.locator(':scope > span')).toHaveCount(2);
+    await expect(ddMarketMark.locator(':scope > span').nth(0)).toHaveText('D');await expect(ddMarketMark.locator(':scope > span').nth(1)).toHaveText('D');
+    await expect(zpMarketMark.locator(':scope > span').nth(0)).toHaveText('Z');await expect(zpMarketMark.locator(':scope > span').nth(1)).toHaveText('P');
+    const marketHalfWidths=await ddMarketMark.locator(':scope > span').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().width));expect(Math.abs(marketHalfWidths[0]-marketHalfWidths[1])).toBeLessThan(1);
     const actions=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
     await expect(page.locator('.app .compactPreview')).toHaveCount(0);
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
@@ -174,7 +178,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261005.5');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261005.6');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);

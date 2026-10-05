@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20261005.5',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20261005.6',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -120,7 +120,7 @@
     .compactCommerceModal .marketOfferIdentity{appearance:none;border:0;background:transparent;color:inherit;padding:4px 2px;width:100%;min-width:0;display:grid;grid-template-rows:minmax(38px,auto) 42px;align-content:center;justify-items:center;gap:8px;text-align:center}
     .compactCommerceModal .marketOfferName{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;font-size:16px!important;line-height:1.02!important;letter-spacing:.025em;text-align:center;text-wrap:balance;overflow-wrap:anywhere}
     .compactCommerceModal .marketOfferMark{display:grid;place-items:center;box-sizing:border-box;font-size:15px!important;line-height:1!important;font-weight:850;letter-spacing:.04em}
-    .compactCommerceModal .marketTileModMark{width:64px;min-width:64px;height:32px;padding:0 8px;border:1.5px solid #171715;border-radius:4px;background:linear-gradient(to right,#171715 0,#171715 calc(50% - .5px),#56534e calc(50% - .5px),#56534e calc(50% + .5px),#171715 calc(50% + .5px),#171715 100%);color:#f8f5ed;box-shadow:0 2px 4px rgba(17,17,15,.12)}
+    .compactCommerceModal .marketTileModMark{width:64px;min-width:64px;height:32px;padding:0;border:1.5px solid #171715;border-radius:4px;background:#171715;color:#f8f5ed;box-shadow:0 2px 4px rgba(17,17,15,.12);grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:1fr!important;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif!important;font-weight:950!important;letter-spacing:-.06em!important}.compactCommerceModal .marketTileModMark>span{display:grid;place-items:center;width:100%;height:100%;min-width:0;font:inherit;line-height:1}.compactCommerceModal .marketTileModMark>span+span{border-left:1px solid #56534e}
     .compactCommerceModal .marketMachineModMark{width:44px;min-width:44px;height:36px;padding:0;border:1.5px solid currentColor;border-radius:4px;background:transparent;color:inherit}
     .compactCommerceModal .marketOfferSignalMark{display:grid;place-items:center;width:64px;height:36px}
     .marketSignalBolt{display:block;width:22px;height:34px;flex:none;background:#68655f;clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%);-webkit-clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%)}
