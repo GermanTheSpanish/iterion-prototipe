@@ -109,13 +109,17 @@
     .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:minmax(88px,1fr) 44px;gap:8px!important;padding:10px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
     .compactCommerceModal .marketOfferIdentity{appearance:none;border:0;background:transparent;color:inherit;padding:4px 2px;width:100%;min-width:0;display:grid;grid-template-rows:minmax(38px,auto) 42px;align-content:center;justify-items:center;gap:8px;text-align:center}
     .compactCommerceModal .marketOfferName{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;font-size:16px!important;line-height:1.02!important;letter-spacing:.025em;text-align:center;text-wrap:balance;overflow-wrap:anywhere}
-    .compactCommerceModal .marketOfferMark{display:grid;place-items:center;min-width:42px;height:36px;padding:0 8px;border:1.5px solid currentColor;border-radius:4px;font-size:15px!important;line-height:1!important;font-weight:850;letter-spacing:.04em}
+    .compactCommerceModal .marketOfferMark{display:grid;place-items:center;box-sizing:border-box;font-size:15px!important;line-height:1!important;font-weight:850;letter-spacing:.04em}
+    .compactCommerceModal .marketTileModMark{width:64px;min-width:64px;height:32px;padding:0 8px;border:1.5px solid #171715;border-radius:4px;background:linear-gradient(to right,#171715 0,#171715 calc(50% - .5px),#56534e calc(50% - .5px),#56534e calc(50% + .5px),#171715 calc(50% + .5px),#171715 100%);color:#f8f5ed;box-shadow:0 2px 4px rgba(17,17,15,.12)}
+    .compactCommerceModal .marketMachineModMark{width:44px;min-width:44px;height:36px;padding:0;border:1.5px solid currentColor;border-radius:4px;background:transparent;color:inherit}
+    .compactCommerceModal .marketOfferSignalMark{display:grid;place-items:center;width:64px;height:36px}
+    .marketSignalBolt{display:block;width:22px;height:34px;flex:none;background:#68655f;clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%);-webkit-clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%)}
     .compactCommerceModal .marketCompactOffer>.shopBuy{width:100%!important;min-height:44px!important;margin:0!important;padding:7px!important;font-size:10px!important;letter-spacing:.03em}
     .compactCommerceModal .marketCompactOffer>.shopBuy:disabled{opacity:.45}
     .compactCommerceModal .marketChoiceTitle{margin:2px 0!important;font-size:9px!important;letter-spacing:.12em!important}
     .compactCommerceModal .shopFoot{margin-top:0!important;padding-top:4px;font-size:8px!important;line-height:1.2!important;letter-spacing:.05em}
 
-    .marketInspectorHero{align-items:center!important}.marketInspectorCode{display:grid!important;place-items:center;min-width:54px;height:44px;padding:0 10px;border:2px solid currentColor;border-radius:5px;font-size:18px!important;letter-spacing:.05em}
+    .marketInspectorHero{align-items:center!important}.marketInspectorCode{font-size:18px!important;letter-spacing:.05em}.marketInspectorHero .marketTileModMark{width:72px;min-width:72px;height:36px;font-size:16px!important}.marketInspectorHero .marketMachineModMark{width:48px;min-width:48px;height:40px;font-size:16px!important}.marketInspectorSignalMark{display:grid;place-items:center;width:54px;height:44px}.marketInspectorSignalMark .marketSignalBolt{width:24px;height:38px}
     .marketInspectorDemoSection{overflow:hidden}.marketInspectorDemo{display:grid;place-items:center;min-height:104px;overflow:hidden}.marketInspectorDemo>.modDiagram{width:100%;height:94px!important;margin:0!important;border:0!important}
     .marketInspectorSignalDemo{grid-template-columns:auto 32px auto;gap:10px;font-size:22px;font-weight:850}.marketInspectorSignalDemo i{font-style:normal;color:var(--muted)}
     .marketInspectorDemo .modCore,.marketInspectorDemo .modDiagramLine>b,.marketInspectorSignalDemo>b{animation:marketInspectorPulse 2.4s ease-in-out infinite}
@@ -156,7 +160,7 @@
       .machineModStatus{width:min(160px,58%)!important}.machineModStatus>span{font-size:8px!important}
       .commerceModal .marketOffer.marketStructuredOffer{padding:8px!important}
       .compactCommerceModal .marketOfferName{font-size:15px!important}
-      .compactCommerceModal .marketOfferMark{min-width:38px;height:34px;font-size:14px!important}
+      .compactCommerceModal .marketTileModMark{width:58px;min-width:58px;height:30px;font-size:14px!important}.compactCommerceModal .marketMachineModMark{width:40px;min-width:40px;height:34px;font-size:14px!important}.compactCommerceModal .marketOfferSignalMark{width:58px;height:34px}.compactCommerceModal .marketOfferSignalMark .marketSignalBolt{width:20px;height:31px}
       .commerceModal .marketOfferDescription{font-size:12px!important;line-height:1.26!important;margin:5px 0 8px!important}
       .commerceModal .marketContextRow{grid-template-columns:minmax(0,1fr) 106px!important;gap:8px!important}
       .commerceModal .marketPhysicalContext{gap:9px!important}
