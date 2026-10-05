@@ -158,7 +158,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261005.2');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261005.3');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -183,6 +183,8 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
 
   const inspect=dd.locator('[data-market-inspect="double-double"]');await inspect.click();
   await expect(page.locator('#overlayTitle')).toHaveText('DOUBLE DOUBLE');await expect(page.locator('.marketInspectorCode')).toHaveText('DD');await expect(page.locator('.marketInspectorDemo .modDiagram')).toHaveCount(1);await expect(page.locator('#overlayBody')).toContainText('Build');await expect(page.locator('#overlayBody')).toContainText('Reward');await page.locator('#overlayPrimary').click();
+  await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
+  await page.locator('[data-market-inspect="double-echo"]').click();await expect(page.locator('#overlayTitle')).toHaveText('DOUBLE ECHO');await expect(page.locator('.marketInspectorDemo.hasScene .modExample-double-echo')).toBeVisible();await expect(page.locator('.modExample-double-echo .modExampleTile')).toHaveCount(4);await expect(page.locator('.modExample-double-echo .modExampleOutcome')).toHaveText('MAIN + ECHO');const demoBox=await page.locator('.marketInspectorDemo.hasScene').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth,sh:el.scrollHeight,ch:el.clientHeight}));expect(demoBox.sw).toBeLessThanOrEqual(demoBox.cw+1);expect(demoBox.sh).toBeLessThanOrEqual(demoBox.ch+1);await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
 
   await page.locator('[data-market-offer="double-double"]>.shopBuy').click();
