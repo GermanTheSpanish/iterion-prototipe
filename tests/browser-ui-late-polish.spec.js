@@ -256,6 +256,27 @@ test('Phase A compacts primary numbers at 50K and thickens the score instrument 
 });
 
 
+
+test('Adapter stays visible and tappable when a full Hand grows to six tiles',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.setViewportSize({width:375,height:667});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.addStyleTag({content:'.bottomBar{display:grid!important;grid-template-columns:minmax(0,1fr) 244px!important}.handRail{width:244px!important;min-width:244px!important}.hand{flex-direction:row!important;height:92px!important}'});
+  await page.evaluate(()=>{const s=window.__monoidGame.state();s.coins=200;const button=document.getElementById('shopButton');button.disabled=false;button.click()});
+  await expect(page.locator('#overlayTitle')).toHaveText('TILE SHOP');
+  await expect(page.locator('#overlayBody')).toContainText('PURCHASE → HAND · 5/8');
+  await page.locator('#shopAdapterBuy').click();
+  await expect(page.locator('#overlayBody')).toContainText('PURCHASE → HAND · 6/8');
+  await page.locator('#overlayPrimary').click();
+  const adapter=page.locator('#hand .tile[aria-label^="Adapter."]');await expect(adapter).toBeVisible();
+  const layout=await page.evaluate(()=>{
+    const hand=document.getElementById('hand'),hr=hand.getBoundingClientRect(),slots=[...hand.querySelectorAll('.handSlot[data-hand-touch="true"]')],rects=slots.map(el=>el.getBoundingClientRect()),adapter=[...slots].find(el=>el.querySelector('.tile[aria-label^="Adapter."]')),ar=adapter?.getBoundingClientRect(),hit=ar?document.elementFromPoint(ar.left+ar.width/2,ar.top+ar.height/2):null;
+    return{count:rects.length,overflow:hand.classList.contains('handOverflow'),handCount:hand.dataset.handCount,left:Math.min(...rects.map(r=>r.left)),right:Math.max(...rects.map(r=>r.right)),handLeft:hr.left,handRight:hr.right,adapterVisible:!!ar&&ar.left>=hr.left-1&&ar.right<=hr.right+1,adapterHit:!!adapter&&!!hit&&adapter.contains(hit)}
+  });
+  expect(layout.count).toBe(6);expect(layout.overflow).toBe(true);expect(layout.handCount).toBe('6');expect(layout.left).toBeGreaterThanOrEqual(layout.handLeft-1);expect(layout.right).toBeLessThanOrEqual(layout.handRight+1);expect(layout.adapterVisible).toBe(true);expect(layout.adapterHit).toBe(true)
+});
+
 test('Tile Shop purchases fit an eight-tile overflow Hand on compact phones',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.setViewportSize({width:375,height:667});

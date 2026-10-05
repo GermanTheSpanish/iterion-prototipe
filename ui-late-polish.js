@@ -29,6 +29,20 @@
     @keyframes modFaceReveal{0%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
     @media(prefers-reduced-motion:reduce){.app .piece.modFaceRevealed{animation:none!important}}
     .modifierTutorGameTile .domino>.tileModMark{font-size:23px!important;font-weight:950!important;color:rgba(17,17,17,.96)!important}
+
+    /* Hand overflow: preserve every purchased physical tile on compact horizontal rails.
+       Vertical right-hand layouts keep their existing stack. */
+    .handRail{container-type:inline-size}
+    @container (min-width:180px){
+      .bottomBar .hand.handOverflow{display:grid!important;align-content:center!important;justify-content:stretch!important;gap:2px!important;width:100%!important}
+      .bottomBar .hand.handOverflow[data-hand-count="6"]{grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-template-rows:44px!important}
+      .bottomBar .hand.handOverflow[data-hand-count="7"],.bottomBar .hand.handOverflow[data-hand-count="8"]{grid-template-columns:repeat(4,minmax(44px,1fr))!important;grid-auto-rows:44px!important}
+      .bottomBar .hand.handOverflow .handSlot{box-sizing:border-box!important;width:auto!important;min-width:0!important;max-width:none!important;height:44px!important;min-height:44px!important;flex:none!important;align-items:center!important;justify-content:center!important}
+      .bottomBar .hand.handOverflow .tile{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:none!important;height:44px!important;min-height:44px!important;max-height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important}
+      .bottomBar .hand.handOverflow[data-hand-count="6"] .tile{min-width:38px!important}
+      .bottomBar .hand.handOverflow[data-hand-count="7"] .tile,.bottomBar .hand.handOverflow[data-hand-count="8"] .tile{min-width:44px!important}
+    }
+
     /* Compact commerce previews: equal halves, centred values, secondary seam code.
        Board/hand miniatures do not opt into this mode. Keep material and tier edges. */
     .domino.compactPreview{height:62px}
