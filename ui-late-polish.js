@@ -106,19 +106,25 @@
     .compactCommerceModal .exactShopOffer>strong,.compactCommerceModal .exactShopOffer>small{display:none!important}
     .compactCommerceModal .adapterShopOffer.isUsed{opacity:.5}
     .compactCommerceModal .marketOfferGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
-    .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:auto 42px minmax(18px,auto) auto 44px;gap:5px!important;padding:9px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
-    .compactCommerceModal .marketInspectTarget{appearance:none;border:0;background:transparent;color:inherit;padding:0;width:100%;display:flex;align-items:baseline;justify-content:space-between;gap:8px;text-align:left}
-    .compactCommerceModal .marketInspectTarget strong{font-size:13px!important;line-height:1.05!important;letter-spacing:.035em}
-    .compactCommerceModal .marketInspectTarget span{font-size:13px!important;line-height:1!important;white-space:nowrap}
-    .compactCommerceModal .marketOfferVisual{display:flex;align-items:center;justify-content:center;min-width:0;height:42px;overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-    .compactCommerceModal .marketOfferVisual .modDiagram.compact{height:40px!important;margin:0!important;border:0!important;overflow:hidden!important}
-    .compactCommerceModal .marketSignalVisual{gap:7px;font-size:9px;letter-spacing:.035em}.compactCommerceModal .marketSignalVisual b{font-size:10px;font-weight:850}.compactCommerceModal .marketSignalVisual i{font-style:normal;color:var(--muted)}
-    .compactCommerceModal .marketOfferPayoff{font-size:11px;line-height:1.12;font-weight:780;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-    .compactCommerceModal .marketOfferMeta{font-size:8px;line-height:1.15;letter-spacing:.08em;color:var(--muted)}
-    .compactCommerceModal .marketOfferMeta.invalid{opacity:.55}
-    .compactCommerceModal .marketCompactOffer>.shopBuy{width:100%!important;min-height:44px!important;margin:0!important;padding:7px!important;font-size:10px!important}
+    .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:minmax(88px,1fr) 44px;gap:8px!important;padding:10px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
+    .compactCommerceModal .marketOfferIdentity{appearance:none;border:0;background:transparent;color:inherit;padding:4px 2px;width:100%;min-width:0;display:grid;grid-template-rows:minmax(38px,auto) 42px;align-content:center;justify-items:center;gap:8px;text-align:center}
+    .compactCommerceModal .marketOfferName{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;font-size:16px!important;line-height:1.02!important;letter-spacing:.025em;text-align:center;text-wrap:balance;overflow-wrap:anywhere}
+    .compactCommerceModal .marketOfferMark{display:grid;place-items:center;min-width:42px;height:36px;padding:0 8px;border:1.5px solid currentColor;border-radius:4px;font-size:15px!important;line-height:1!important;font-weight:850;letter-spacing:.04em}
+    .compactCommerceModal .marketCompactOffer>.shopBuy{width:100%!important;min-height:44px!important;margin:0!important;padding:7px!important;font-size:10px!important;letter-spacing:.03em}
+    .compactCommerceModal .marketCompactOffer>.shopBuy:disabled{opacity:.45}
     .compactCommerceModal .marketChoiceTitle{margin:2px 0!important;font-size:9px!important;letter-spacing:.12em!important}
     .compactCommerceModal .shopFoot{margin-top:0!important;padding-top:4px;font-size:8px!important;line-height:1.2!important;letter-spacing:.05em}
+
+    .marketInspectorHero{align-items:center!important}.marketInspectorCode{display:grid!important;place-items:center;min-width:54px;height:44px;padding:0 10px;border:2px solid currentColor;border-radius:5px;font-size:18px!important;letter-spacing:.05em}
+    .marketInspectorDemoSection{overflow:hidden}.marketInspectorDemo{display:grid;place-items:center;min-height:104px;overflow:hidden}.marketInspectorDemo>.modDiagram{width:100%;height:94px!important;margin:0!important;border:0!important}
+    .marketInspectorSignalDemo{grid-template-columns:auto 32px auto;gap:10px;font-size:22px;font-weight:850}.marketInspectorSignalDemo i{font-style:normal;color:var(--muted)}
+    .marketInspectorDemo .modCore,.marketInspectorDemo .modDiagramLine>b,.marketInspectorSignalDemo>b{animation:marketInspectorPulse 2.4s ease-in-out infinite}
+    .marketInspectorDemo .modNode,.marketInspectorDemo .modDiagramLine>i,.marketInspectorSignalDemo>i{animation:marketInspectorTrace 2.4s ease-in-out infinite}
+    .marketInspectorDemo .modNode.e,.marketInspectorDemo .modDiagramLine>b:last-child,.marketInspectorSignalDemo>b:last-child{animation-delay:.8s}
+    .marketInspectorDemo .modNode.s{animation-delay:1s}.marketInspectorDemo .modNode.w{animation-delay:1.2s}.marketInspectorDemo .modNode.n{animation-delay:.6s}
+    @keyframes marketInspectorPulse{0%,20%,100%{opacity:.35;transform:scale(.96)}45%,70%{opacity:1;transform:scale(1.04)}}
+    @keyframes marketInspectorTrace{0%,18%,100%{opacity:.22}42%,72%{opacity:1}}
+    @media(prefers-reduced-motion:reduce){.marketInspectorDemo *{animation:none!important}.marketInspectorDemo .modCore,.marketInspectorDemo .modNode,.marketInspectorDemo .modDiagramLine>*,.marketInspectorSignalDemo>*{opacity:1!important;transform:none!important}}
 
     #progressionRewardDialog{width:min(390px,calc(100vw - 24px));max-width:none;margin:auto;padding:0;border:1px solid var(--ink);border-radius:5px;background:var(--paper);color:var(--ink);box-shadow:none}
     #progressionRewardDialog::backdrop{background:rgba(10,10,9,.82)}
@@ -139,8 +145,9 @@
       .wordmark{width:clamp(104px,28vw,120px)!important;font-size:13px!important}
       .app .piece>.tileModMark{font-size:12px!important}.app .domino>.tileModMark{font-size:17px!important}
       .machineModStatus{width:min(160px,58%)!important}.machineModStatus>span{font-size:8px!important}
-      .commerceModal .marketOffer.marketStructuredOffer{padding:10px 0!important}
-      .commerceModal .marketStructuredOffer>.marketOfferHead strong{font-size:14px!important}.commerceModal .marketStructuredOffer>.marketOfferHead span{font-size:15px!important}
+      .commerceModal .marketOffer.marketStructuredOffer{padding:8px!important}
+      .compactCommerceModal .marketOfferName{font-size:15px!important}
+      .compactCommerceModal .marketOfferMark{min-width:38px;height:34px;font-size:14px!important}
       .commerceModal .marketOfferDescription{font-size:12px!important;line-height:1.26!important;margin:5px 0 8px!important}
       .commerceModal .marketContextRow{grid-template-columns:minmax(0,1fr) 106px!important;gap:8px!important}
       .commerceModal .marketPhysicalContext{gap:9px!important}

@@ -62,11 +62,11 @@ for(const width of [375,430])for(const endless of [false,true]){
     },endless);
     await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);
-    await expect(page.locator('.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
-    await expect(page.locator('.marketOfferVisual .modDiagram')).toHaveCount(3);
+    await expect(page.locator('.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
+    await expect(page.locator('.marketOfferMark')).toHaveCount(3);
     await expect(page.locator('.marketAssignedGroup,.marketPoolGroup')).toHaveCount(0);
-    await expect(page.locator('[data-market-offer="double-double"] .marketOfferMeta')).toContainText('INSTALLED');
-    await expect(page.locator('[data-market-offer="zero-port"] .marketOfferMeta')).toContainText('COMPATIBLE');
+    await expect(page.locator('[data-market-offer="double-double"] .marketOfferMark')).toHaveText('DD');
+    await expect(page.locator('[data-market-offer="zero-port"] .marketOfferMark')).toHaveText('ZP');
     const actions=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
     await expect(page.locator('.app .compactPreview')).toHaveCount(0);
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
@@ -166,23 +166,23 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame,s=g.state(),E=window.IterionEngine;const ids=['d1-1','d2-2','d3-3','d4-4','d5-5','d6-6'];s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=80;s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+(i%3)*6,4+Math.floor(i/3)*8,0,i%2?1:0,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.doubleDoubleTileId='d3-3';s.doubleEchoTileId=null;s.zeroPortTileIds=[];s.circuitRanks={'d3-3':1};s.hand=s.hand.map(t=>s.placedTileIds.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!s.placedTileIds.includes(t.id));g.openIntermission();s.shopOffers=['double-double','double-echo','long-run']});
   await openHelp(page);await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
   await expect.poll(()=>page.locator('.marketStructuredOffer.marketCompactOffer').count()).toBe(3);
-  await expect(page.locator('.marketAssignments,.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
-  await expect(page.locator('.marketOfferVisual .modDiagram')).toHaveCount(3);
+  await expect(page.locator('.marketAssignments,.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
+  await expect(page.locator('.marketOfferMark')).toHaveCount(3);
 
   const dd=page.locator('[data-market-offer="double-double"]');
-  await expect(dd.locator('.marketOfferMeta')).toContainText('INSTALLED · COMPATIBLE · 5');
-  await expect(page.locator('[data-market-offer="double-echo"] .marketOfferMeta')).toContainText('COMPATIBLE · 5');
-  await expect(page.locator('[data-market-offer="long-run"] .marketOfferMeta')).toHaveText('MACHINE');
-  await expect(page.locator('[data-market-offer="long-run"] .marketOfferPayoff')).toHaveText('10+ tiles: every ★ pays.');
-  await expect(page.locator('[data-market-offer="long-run"] .marketOfferVisual')).toContainText('ALL ★ PAY');
+  await expect(dd.locator('.marketOfferName')).toHaveText('DOUBLE DOUBLE');
+  await expect(dd.locator('.marketOfferMark')).toHaveText('DD');
+  await expect(page.locator('[data-market-offer="double-echo"] .marketOfferMark')).toHaveText('DE');
+  await expect(page.locator('[data-market-offer="long-run"] .marketOfferMark')).toHaveText('LC');
+  await expect(page.locator('[data-market-offer="long-run"]')).toHaveAttribute('data-market-machine','true');
   await expect(page.locator('.shopFoot')).toContainText('TAP = DETAILS');
 
-  const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));
-  expect(buttonBoxes.every(b=>b.w>80&&b.h>=44)).toBe(true);
+  const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{text:n.textContent.trim(),w:r.width,h:r.height}}));
+  expect(buttonBoxes.every(b=>b.w>80&&b.h>=44&&/· \d+c$/.test(b.text))).toBe(true);
   const overflow=await page.locator('.commerceModal').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth}));expect(overflow.sw).toBeLessThanOrEqual(overflow.cw+1);
 
   const inspect=dd.locator('[data-market-inspect="double-double"]');await inspect.click();
-  await expect(page.locator('#overlayTitle')).toHaveText('DOUBLE DOUBLE');await expect(page.locator('#overlayBody')).toContainText('Build');await expect(page.locator('#overlayBody')).toContainText('Reward');await page.locator('#overlayPrimary').click();
+  await expect(page.locator('#overlayTitle')).toHaveText('DOUBLE DOUBLE');await expect(page.locator('.marketInspectorCode')).toHaveText('DD');await expect(page.locator('.marketInspectorDemo .modDiagram')).toHaveCount(1);await expect(page.locator('#overlayBody')).toContainText('Build');await expect(page.locator('#overlayBody')).toContainText('Reward');await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
 
   await page.locator('[data-market-offer="double-double"]>.shopBuy').click();
@@ -206,9 +206,9 @@ test('Market keeps compact cards and touch targets on 375px phones',async({page}
   await openHelp(page);await page.locator('#overlayPrimary').click();await expect.poll(()=>page.locator('.marketStructuredOffer').count()).toBe(3);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const actions=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
-  await expect(page.locator('.marketOfferDescription,.marketModDiagram')).toHaveCount(0);
-  await expect(page.locator('.marketOfferVisual .modDiagram')).toHaveCount(3);
-  await expect(page.locator('.marketCompactOffer').first().locator('.marketOfferPayoff')).toBeVisible();
+  await expect(page.locator('.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
+  await expect(page.locator('.marketOfferMark')).toHaveCount(3);
+  await expect(page.locator('.marketCompactOffer').first().locator('.marketOfferName')).toBeVisible();
   await expect(page.locator('.marketCompactOffer').first().locator('.marketInspectTarget')).toBeVisible()
 });
 
