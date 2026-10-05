@@ -34,8 +34,7 @@
        Vertical right-hand layouts keep their existing stack. */
     .handRail{container-type:inline-size}
     @container (min-width:180px){
-      .bottomBar .hand.handOverflow{display:grid!important;align-content:center!important;justify-content:stretch!important;gap:2px!important;width:100%!important}
-      .bottomBar .hand.handOverflow[data-hand-count="6"]{grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-template-rows:44px!important}
+      .bottomBar .hand.handOverflow[data-hand-count="6"]{display:grid!important;align-content:center!important;justify-content:stretch!important;gap:2px!important;width:100%!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-template-rows:44px!important}
       .bottomBar .hand.handOverflow[data-hand-count="6"] .handSlot[data-hand-touch="true"]{box-sizing:border-box!important;width:auto!important;min-width:0!important;max-width:none!important;height:44px!important;min-height:44px!important;flex:none!important;align-items:center!important;justify-content:center!important}
       .bottomBar .hand.handOverflow[data-hand-count="6"] .tile{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:none!important;height:44px!important;min-height:44px!important;max-height:44px!important;display:flex!important;align-items:center!important;justify-content:center!important}
     }
