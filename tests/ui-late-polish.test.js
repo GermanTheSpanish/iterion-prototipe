@@ -1,11 +1,11 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20261005\.1'/);
+assert.match(source,/BUILD_ID='20261005\.2'/);
 assert.match(source,/\.compactCommerceModal \.marketOfferGrid\{display:grid!important;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'Market must use a compact two-column card grid');
 assert.match(source,/\.compactCommerceModal \.shopTileOfferGrid\{display:grid!important;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/,'Tile Shop must keep four next-set pieces visible without prose rows');
 assert.match(source,/\.compactCommerceModal \.shopCompactOffer\{display:grid!important;grid-template-columns:1fr!important/,'Tile Shop cards must override the legacy side-by-side layout and centre the physical tile');
-assert.match(source,/marketOfferPayoff/);assert.match(source,/marketOfferVisual/,'Market cards must carry a visual Mod diagram band');assert.match(source,/progressionRewardDialog/,'Unlocks need a dedicated reward surface');assert.match(source,/min-height:44px/,'Market actions must retain mobile touch height');
+assert.match(source,/marketOfferName/,'Market cards need a dominant centred Mod name');assert.match(source,/marketOfferMark/,'Market cards need the same Mod initials used on assigned tiles');assert.doesNotMatch(source,/\.compactCommerceModal \.marketOfferPayoff/,'Market cards must not carry explanatory payoff copy');assert.doesNotMatch(source,/\.compactCommerceModal \.marketOfferVisual/,'Market cards must not carry full diagrams');assert.match(source,/marketInspectorDemo/,'Market Inspector needs the animated example surface');assert.match(source,/progressionRewardDialog/,'Unlocks need a dedicated reward surface');assert.match(source,/min-height:44px/,'Market actions must retain mobile touch height');
 assert.doesNotMatch(source,/offer\.replaceChildren\(head,description,visual,context\)/,'Late polish must not re-inject the verbose legacy Market structure');
 assert.doesNotMatch(source,/description\.textContent=guide\?guide\.market:/,'Market descriptions belong in Inspector, not late-polish cards');
 assert.match(source,/offer\.classList\.add\('marketStructuredOffer','marketCompactOffer'\)/,'Late polish may tag compact cards but must not rebuild gameplay UI');
@@ -24,7 +24,7 @@ assert.match(ui,/mini\(\{a:0,b:0\},'back',true\)/,'Face-down Shop previews keep 
 assert.match(ui,/shopTileOffer shopCompactOffer exactShopOffer/,'Visible next-set tiles need the centred Shop composition');
 assert.doesNotMatch(ui,/shopCompactOffer"><button[^\n]+<strong>\[\$\{t\.a\}\|\$\{t\.b\}\]<\/strong>/,'Visible Shop tiles must not repeat their printed values as text');
 assert.match(ui,/openShopOfferInspector/);assert.match(ui,/openMarketOfferInspector/,'Shop and Market must route exact explanations through Inspector');
-assert.match(ui,/guide\?\.market/,'Market cards must use the concise canonical Mod copy');assert.match(ui,/MG\?\.diagramHtml\?\./,'Market cards must reuse canonical Mod diagrams');assert.match(ui,/queueProgressionReward/,'Mode progression must feed the dedicated reward reveal');assert.match(ui,/persistGame\(\{suppressProgressionReward:true\}\)/,'Starting or restoring a run must not fabricate a fresh reward reveal');assert.match(source,/progressionRewardSurfaceReady/,'Reward reveals must defer behind active game surfaces');
+assert.doesNotMatch(ui,/class="marketOfferPayoff"/,'Market cards must leave payoff copy to Inspector');assert.match(ui,/class="marketOfferMark"/,'Market cards must expose canonical Mod initials');assert.match(ui,/MG\?\.diagramHtml\?\./,'Market Inspector must reuse canonical Mod diagrams');assert.match(ui,/queueProgressionReward/,'Mode progression must feed the dedicated reward reveal');assert.match(ui,/persistGame\(\{suppressProgressionReward:true\}\)/,'Starting or restoring a run must not fabricate a fresh reward reveal');assert.match(source,/progressionRewardSurfaceReady/,'Reward reveals must defer behind active game surfaces');
 assert.match(ui,/TAP AN OFFER TO INSPECT/);assert.match(ui,/compactCommerceModal/);
 assert.match(ui,/function bindInspectorTap\(element,open\)/,'Non-game commerce surfaces need one reusable tap Inspector binding');
 assert.match(ui,/adapterQuestion[^>]*>\?<\/b>/,'Unresolved Adapter halves must render question marks instead of normal-looking pips');

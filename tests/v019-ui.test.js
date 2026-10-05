@@ -3,10 +3,10 @@ const fs=require('fs');
 const path=require('path');
 const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(ui,/escapeHtml\(mod\.displayName\|\|mod\.name\)/,'Market UI must render offered modifier names from the registry');
+assert.match(ui,/name=mod\.displayName\|\|mod\.name/,'Market UI must derive offered modifier names from the registry');assert.match(ui,/class="marketOfferName">\$\{escapeHtml\(name\)\}/,'Market UI must render that canonical name prominently');
 assert.match(ui,/data-shop-inspect="random"/,'Shop must expose the Random physical tile as an inspectable compact offer');
 assert.match(ui,/Draws one unclaimed physical domino from the next POWER set\./,'Random Shop rules must remain available in Inspector');
-assert.match(ui,/TAP = DETAILS · BUY ONE · INFLATION \+1/,'Market must keep inspection, one-purchase and inflation rules visible in compact copy');
+assert.match(ui,/TAP A MOD = DETAILS · BUY ONE · INFLATION \+1/,'Market must keep inspection, one-purchase and inflation rules visible in compact copy');
 assert.match(ui,/tileModMarks/,'Physical tile modifiers must have a visual marker renderer');
 assert.match(ui,/function magnitude\(v\)/);
 // Deliberate UI redesign: pacing/lifetime depend on activation count, not magnitude.
