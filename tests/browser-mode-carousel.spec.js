@@ -41,7 +41,7 @@ test('Game Selection MONOID wordmark opens Inspector on tap',async({page})=>{
 });
 
 test('locked mode tiles remain inspectable and explain both unlock and completion conditions',async({page})=>{
-  await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','fresh'));
+  await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','player'));
   await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');
   await page.waitForFunction(()=>!!window.__monoidModes&&!!window.MonoidProfile?.modeProgress);
