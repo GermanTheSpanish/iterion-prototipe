@@ -65,8 +65,9 @@ for(const width of [375,430])for(const endless of [false,true]){
     await expect(page.locator('.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
     await expect(page.locator('.marketOfferMark')).toHaveCount(3);
     await expect(page.locator('.marketAssignedGroup,.marketPoolGroup')).toHaveCount(0);
-    await expect(page.locator('[data-market-offer="double-double"] .marketOfferMark')).toHaveText('DD');
-    await expect(page.locator('[data-market-offer="zero-port"] .marketOfferMark')).toHaveText('ZP');
+    await expect(page.locator('[data-market-offer="double-double"]')).toHaveAttribute('data-market-kind','tile');
+    await expect(page.locator('[data-market-offer="double-double"] .marketTileModMark')).toHaveText('DD');
+    await expect(page.locator('[data-market-offer="zero-port"] .marketTileModMark')).toHaveText('ZP');
     const actions=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
     await expect(page.locator('.app .compactPreview')).toHaveCount(0);
     const boardMark=page.locator('#board .piece:has(.tileModMark)').first();
@@ -154,11 +155,26 @@ test('mode and Mod unlocks use a dedicated reward reveal on compact phones',asyn
   await reward.locator('.progressionRewardContinue').click()
 });
 
+
+test('Market category language distinguishes Signal, Tile Mods and Machine Mods',async({page})=>{
+  await page.setViewportSize({width:375,height:667});
+  await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
+  await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await page.evaluate(()=>{const g=window.__monoidGame||window.__nomonGame,s=g.state(),E=window.IterionEngine,ids=['d2-2','d3-3','d4-4','d5-5'];s.gameMode='eyes';s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=80;s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=E.pieceFrom(t,2+i*4,4,0,1,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.hand=s.hand.map(t=>ids.includes(t?.id)?null:t);s.reserve=s.reserve.filter(t=>!ids.includes(t.id));g.openIntermission();s.shopOffers=['bridge','triple-double','long-run']});
+  await openHelp(page);await page.locator('#overlayPrimary').click();await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
+  const signal=page.locator('[data-market-offer="signal"]');await expect(signal).toHaveAttribute('data-market-kind','signal');await expect(signal.locator('.marketSignalBolt')).toHaveCount(1);
+  const bridge=page.locator('[data-market-offer="bridge"]');await expect(bridge).toHaveAttribute('data-market-kind','tile');await expect(bridge.locator('.marketTileModMark')).toHaveText('BR');
+  const triple=page.locator('[data-market-offer="triple-double"]');await expect(triple).toHaveAttribute('data-market-kind','tile');await expect(triple.locator('.marketTileModMark')).toHaveText('TD');
+  const machine=page.locator('[data-market-offer="long-run"]');await expect(machine).toHaveAttribute('data-market-kind','machine');await expect(machine.locator('.marketMachineModMark')).toHaveText('LC');
+  const visuals=await page.locator('.marketOfferIdentity').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));expect(visuals.every(v=>v.w>90&&v.h>=80)).toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true)
+});
+
 test('late mobile polish keeps MONOID centred and Market uses compact Inspector-led cards',async({page})=>{
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261005.3');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261005.4');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(118);expect(wordmark.width).toBeLessThanOrEqual(132);
@@ -168,6 +184,10 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await expect.poll(()=>page.locator('.marketStructuredOffer.marketCompactOffer').count()).toBe(3);
   await expect(page.locator('.marketAssignments,.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
   await expect(page.locator('.marketOfferMark')).toHaveCount(3);
+  await expect(page.locator('[data-market-offer="double-double"] .marketTileModMark')).toHaveText('DD');
+  await expect(page.locator('[data-market-offer="double-echo"] .marketTileModMark')).toHaveText('DE');
+  await expect(page.locator('[data-market-offer="long-run"]')).toHaveAttribute('data-market-kind','machine');
+  await expect(page.locator('[data-market-offer="long-run"] .marketMachineModMark')).toHaveText('LC');
 
   const dd=page.locator('[data-market-offer="double-double"]');
   await expect(dd.locator('.marketOfferName')).toHaveText('DOUBLE DOUBLE');
@@ -210,6 +230,8 @@ test('Market keeps compact cards and touch targets on 375px phones',async({page}
   const actions=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().height));expect(actions.every(h=>h>=44)).toBe(true);
   await expect(page.locator('.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
   await expect(page.locator('.marketOfferMark')).toHaveCount(3);
+  await expect(page.locator('[data-market-offer="double-double"] .marketTileModMark')).toBeVisible();
+  await expect(page.locator('[data-market-offer="long-run"] .marketMachineModMark')).toBeVisible();
   await expect(page.locator('.marketCompactOffer').first().locator('.marketOfferName')).toBeVisible();
   await expect(page.locator('.marketCompactOffer').first().locator('.marketInspectTarget')).toBeVisible()
 });
