@@ -175,7 +175,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await expect(page.locator('[data-market-offer="double-echo"] .marketOfferMark')).toHaveText('DE');
   await expect(page.locator('[data-market-offer="long-run"] .marketOfferMark')).toHaveText('LC');
   await expect(page.locator('[data-market-offer="long-run"]')).toHaveAttribute('data-market-machine','true');
-  await expect(page.locator('.shopFoot')).toContainText('TAP = DETAILS');
+  await expect(page.locator('.shopFoot')).toContainText('TAP A MOD = DETAILS');
 
   const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{text:n.textContent.trim(),w:r.width,h:r.height}}));
   expect(buttonBoxes.every(b=>b.w>80&&b.h>=44&&/· \d+c$/.test(b.text))).toBe(true);
