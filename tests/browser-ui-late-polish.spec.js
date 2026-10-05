@@ -184,6 +184,8 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   const inspect=dd.locator('[data-market-inspect="double-double"]');await inspect.click();
   await expect(page.locator('#overlayTitle')).toHaveText('DOUBLE DOUBLE');await expect(page.locator('.marketInspectorCode')).toHaveText('DD');await expect(page.locator('.marketInspectorDemo .modDiagram')).toHaveCount(1);await expect(page.locator('#overlayBody')).toContainText('Build');await expect(page.locator('#overlayBody')).toContainText('Reward');await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
+  await page.locator('[data-market-inspect="double-echo"]').click();await expect(page.locator('#overlayTitle')).toHaveText('DOUBLE ECHO');await expect(page.locator('.marketInspectorDemo.hasScene .modExample-double-echo')).toBeVisible();await expect(page.locator('.modExample-double-echo .modExampleTile')).toHaveCount(4);await expect(page.locator('.modExample-double-echo .modExampleOutcome')).toHaveText('MAIN + ECHO');const demoBox=await page.locator('.marketInspectorDemo.hasScene').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth,sh:el.scrollHeight,ch:el.clientHeight}));expect(demoBox.sw).toBeLessThanOrEqual(demoBox.cw+1);expect(demoBox.sh).toBeLessThanOrEqual(demoBox.ch+1);await page.locator('#overlayPrimary').click();
+  await expect(page.locator('#overlayTitle')).toHaveText('MARKET');
 
   await page.locator('[data-market-offer="double-double"]>.shopBuy').click();
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);

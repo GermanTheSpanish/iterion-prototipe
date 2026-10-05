@@ -35,6 +35,26 @@
     const map={'double-double':'<b>[DD]</b><i>→</i><b>BOTH HALVES</b>','double-echo':'<b>[DE]</b><i>→</i><b>MAIN + ECHO</b>','zero-port':'<b>[ZP]</b><i>⇢</i><b>[ZP]</b>','parity':'<b>ODD +</b><i>·</i><b>EVEN ×</b>','triple-double':'<b>1 IN</b><i>→</i><b>3 OUT</b>','diode':'<b>IN</b><i>→</i><b>OUT</b>','return':'<b>DEAD END</b><i>↩</i><b>NEXT EXIT</b>','merge':'<b>A + B</b><i>→</i><b>1 SIGNAL</b>','hinge':'<b>STATE A</b><i>↔</i><b>STATE B</b>','recall':'<b>BOARD</b><i>→</i><b>HAND + MOVE</b>','pivot':'<b>ANCHOR</b><i>↷</i><b>90° / 180°</b>','scrap':'<b>NEIGHBOUR</b><i>→</i><b>REMOVE</b>','swap':'<b>A</b><i>↔</i><b>B</b>','broker':'<b>SKIP MOD</b><i>→</i><b>BANK −2c</b>','spend':'<b>&lt;5c</b><i>→</i><b>×3</b>','bank':'<b>10c ×2</b><i>→</i><b>20c ×3</b>','toll':'<b>ARM · −1c</b><i>→</i><b>REPEAT</b>','foundation':'<b>+1c</b><i>→</i><b>+2c → +3c</b>','mirror':'<b>ANCHOR</b><i>↔</i><b>180°</b>','mint':'<b>FIRST SCORE</b><i>→</i><b>+1c</b>','long-chain':'<b>10+ TILES</b><i>→</i><b>ALL ★ PAY</b>'};
     return '<div class="modDiagram modDiagramLine'+cls+'" role="img" aria-label="'+escapeHtml(g.market)+'">'+(map[g.visual]||'<b>'+escapeHtml(g.code)+'</b>')+'</div>';
   }
+  const DEMOS={
+    'bridge':{source:'v065-bridge',caption:'3-TILE BRIDGE · FIRST HIT',result:'×2 · +2 SIGNAL',aria:'A 1|2 tile routes through a 2|3 Bridge into 3|4. Bridge doubles its operation and adds two Signal on the first hit.',tiles:[[1,2,16,30,'h'],[2,3,50,30,'h','BR'],[3,4,84,30,'h']],paths:['M5 30 H95']},
+    'corner':{source:'mod-guidance-corner',caption:'2 PERPENDICULAR NEIGHBOURS',result:'×3',aria:'A 2|3 Corner has exactly two physical neighbours at a right angle and gains times three.',tiles:[[2,2,18,34,'h'],[2,3,50,34,'h','CR'],[3,3,64,9,'v']],paths:['M7 34 H58','M58 34 V8']},
+    'long-line':{source:'canonical-long-line',caption:'5-TILE PHYSICAL LINE',result:'×3',aria:'Five dominoes form one straight physical line. The Long Line tile reaches the five tile tier and gains times three.',dense:true,tiles:[[1,2,10,30,'h'],[2,2,30,30,'h'],[2,3,50,30,'h','LN'],[3,4,70,30,'h'],[4,5,90,30,'h']],paths:['M3 30 H97']},
+    'overload':{source:'canonical-overload-cross',caption:'4 PHYSICAL CONNECTIONS',result:'×4',aria:'An Overload double has physical neighbours on all four sides, so its multiplier reaches times four.',tiles:[[4,4,50,30,'v','OV'],[4,1,50,7,'v'],[4,2,75,30,'h'],[4,3,50,53,'v'],[4,5,25,30,'h']],paths:['M8 30 H92','M50 4 V56']},
+    'triple-double':{source:'canonical-triple-double-cross',caption:'FIRST HIT · 1 IN → 3 OUT',result:'3 BRANCHES',aria:'A non-zero Triple Double has a complete four-neighbour cross. The first incoming signal continues through the chosen exit and clones through the other three exits.',tiles:[[3,3,50,30,'v','TD'],[3,1,50,7,'v'],[3,2,75,30,'h'],[3,4,50,53,'v'],[3,5,25,30,'h']],paths:['M5 30 H50','M50 30 H95','M50 30 V4','M50 30 V56'],split:true},
+    'zero-port':{source:'canonical-zero-port-pair',caption:'PAIR 2 ZEROS · TELEPORT',result:'ZP → ZP',aria:'The signal enters one Zero Port and reappears at the paired Zero Port instead of rebounding.',tiles:[[2,0,22,30,'h','ZP'],[0,5,78,30,'h','ZP']],paths:['M3 30 H33','M67 30 H97'],portal:'M33 30 C44 7 56 7 67 30'},
+    'double-echo':{source:'canonical-double-echo',caption:'FIRST ACTIVATION',result:'MAIN + ECHO',aria:'The first activation of a Double Echo sends the main signal forward and one Echo down the chosen downstream route.',tiles:[[2,4,18,30,'h'],[4,4,48,30,'v','DE'],[4,5,79,18,'h'],[4,6,79,44,'h']],paths:['M4 30 H48','M48 30 C58 28 64 20 94 18','M48 30 C58 32 64 42 94 44'],split:true},
+    'pivot':{source:'v065-pivot',caption:'ANCHOR ONE HALF · ROTATE OTHER',result:'90° / 180°',aria:'A 2|3 Pivot keeps the matching half anchored and rotates the other half to a legal 90 or 180 degree position.',tiles:[[2,2,31,30,'v'],[2,3,55,30,'h','PV'],[2,3,43,47,'v','PV','ghost']],paths:[],arc:'M43 30 A18 18 0 0 1 43 48'}
+  };
+  function demoTileHtml(tile){
+    const[a,b,x,y,orientation,mark,state]=tile,classes=['modExampleTile',orientation,mark?'mod':'',state||''].filter(Boolean).join(' ');
+    return '<span class="'+classes+'" style="--x:'+x+';--y:'+y+'" aria-hidden="true"><i>'+a+'</i><i>'+b+'</i>'+(mark?'<b>'+escapeHtml(mark)+'</b>':'')+'</span>'
+  }
+  function demoHtml(id){
+    const scene=DEMOS[id];if(!scene)return'';
+    const routes=(scene.paths||[]).map((d,i)=>'<path class="modExampleRoute '+(scene.split&&i>0?'branch':'main')+'" pathLength="1" d="'+d+'"></path>').join('');
+    const portal=scene.portal?'<path class="modExamplePortal" pathLength="1" d="'+scene.portal+'"></path>':'',arc=scene.arc?'<path class="modExampleArc" pathLength="1" d="'+scene.arc+'"></path>':'';
+    return '<div class="modExample '+(scene.dense?'dense ':'')+'modExample-'+escapeHtml(id)+'" data-demo-source="'+escapeHtml(scene.source)+'" role="img" aria-label="'+escapeHtml(scene.aria)+'"><div class="modExampleBoard"><svg viewBox="0 0 100 60" preserveAspectRatio="none" aria-hidden="true">'+routes+portal+arc+'</svg>'+scene.tiles.map(demoTileHtml).join('')+'<strong class="modExampleOutcome">'+escapeHtml(scene.result)+'</strong></div><small class="modExampleCaption">'+escapeHtml(scene.caption)+'</small></div>'
+  }
   function pieceFor(state,tileId){return(state&&state.pieces||[]).find(p=>p&&p.tile&&p.tile.id===tileId)||null}
   function result(stateName,label,detail){return Object.freeze({state:stateName,label,detail})}
   function active(yes,label,detail){return result(yes?'active':'inactive',yes?label:'INACTIVE',detail)}
@@ -61,5 +81,5 @@
     if(id==='long-run')return result('machine','MACHINE MOD','Activates on a route of 10+ unique tiles.');
     return result('ready','INSTALLED','');
   }
-  return Object.freeze({get,all:()=>Object.keys(G).map(get),diagramHtml,status});
+  return Object.freeze({get,all:()=>Object.keys(G).map(get),diagramHtml,demoHtml,status});
 });

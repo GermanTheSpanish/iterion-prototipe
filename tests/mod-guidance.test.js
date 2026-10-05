@@ -10,6 +10,8 @@ for(const guide of G.all()){
   assert.match(G.diagramHtml(guide.id,false),/modDiagram/,guide.id+' needs a schematic');
 }
 for(const id of ['diode','terminal','toll','scrap','spend','merge','return','swap','mirror'])assert.equal(G.get(id),null);
+for(const id of ['bridge','triple-double','pivot','zero-port','double-echo','overload','corner','long-line']){const demo=G.demoHtml(id);assert.match(demo,/class="modExample /,id+' needs a physical micro-scene');assert.match(demo,/modExampleTile/,id+' demo must show physical dominoes');assert.match(demo,/data-demo-source=/,id+' demo must identify its protected fixture/topology source')}
+assert.equal(G.demoHtml('bank'),'','non-scene Mods must fall back to the canonical schematic');
 assert.equal(G.get('corner').reward,'Its operation becomes ×3.');assert.match(G.get('corner').build,/right angle/i);assert.doesNotMatch(G.get('corner').build,/route/i);
 assert.match(G.get('long-line').build,/physical line/i);assert.match(G.get('pair').reward,/Both dominoes/i);assert.match(G.get('bridge').reward,/\+2 Signal/);
 
