@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUiExtrasInstalled)return;
   root.__monoidUiExtrasInstalled=true;
 
-  const BUILD_ID='20261005.2',MG=root.MonoidModGuidance;
+  const BUILD_ID='20261005.3',MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
