@@ -315,6 +315,9 @@ body.monoidModeOrientActive #board .boardVoid{opacity:.32;transition:opacity .18
 body.monoidModeOrientActive #board .coreNode.modeOnboardingCore,body.monoidModeOrientActive #board .boardVoid.modeOnboardingVoid{opacity:1}
 .boardVoid.modeOnboardingVoid{z-index:14!important;box-shadow:inset 0 0 12px rgba(0,0,0,.16),inset 0 0 0 1px rgba(21,21,21,.16),0 0 0 3px rgba(247,247,244,.78),0 0 0 5px rgba(21,21,21,.16)}
 .coreNode.modeOnboardingCore{z-index:14!important;box-shadow:0 0 0 3px rgba(247,247,244,.78),0 0 0 5px rgba(21,21,21,.22);animation:modeOnboardingPulse 900ms ease-in-out infinite alternate}
+.modeOnboardingCoreCharge{position:absolute;z-index:2;left:50%;top:-22px;display:inline-flex;align-items:center;gap:3px;min-height:16px;padding:2px 4px;border:1px solid rgba(21,21,21,.72);background:rgba(247,247,244,.96);color:#151515;font:800 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;white-space:nowrap;pointer-events:none;transform:translateX(-50%)}
+.modeOnboardingCoreCharge i{display:inline-block;width:5px;height:9px;background:#68655f;clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%);-webkit-clip-path:polygon(58% 0,18% 55%,48% 55%,35% 100%,84% 40%,55% 40%)}
+.modeOnboardingCoreCharge b{font:inherit;color:inherit}
 @keyframes modeOnboardingPulse{from{transform:scale(1)}to{transform:scale(1.06)}}
 @media(prefers-reduced-motion:reduce){.coreNode.modeOnboardingCore{animation:none!important}body.monoidModeOrientActive #board .piece,body.monoidModeOrientActive #board .coreNode{transition:none!important}}
 .boardCoachLayer.tour .boardCoachActions{grid-template-columns:auto 1fr;align-items:center}
