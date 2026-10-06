@@ -35,7 +35,7 @@ assert.match(ux,/discoveryTitle:'LEAD'/);assert.match(ux,/First Core sets the ru
 assert.match(ux,/payoffTitle:'CORE LINKED'/);assert.match(ux,/Core adds Signal\./);
 assert.match(css,/monoidModeOrientActive/);assert.match(css,/modeOnboardingCore/);
 assert.doesNotMatch(ui,/CONNECT A CORE · FIRST CORE REACHED LEADS THE MOVE/);
-assert.match(ui,/function chooseBootContext/);assert.match(ui,/bootSurface/);assert.match(ui,/function enterFromTitle/);assert.match(ui,/function signalHudAvailable/);assert.match(ui,/TARGET BROKEN/);assert.match(ui,/classicMarketPyramid/);assert.match(ui,/advanceRound\(\)/);assert.match(ui,/PROFILE\?\.currentContext\?\.\(\)==='fresh'[\s\S]*startNormal\(false\);return\}showSelection\(\)/,'Fresh profile must enter a real Classic run from the splash');
+assert.match(ui,/function chooseBootContext/);assert.match(ui,/bootSurface/);assert.match(ui,/function enterFromTitle/);assert.match(ui,/function signalHudAvailable/);assert.match(ui,/ROUND COMPLETE/);assert.match(ui,/CLASSIC COMPLETE/);assert.match(ui,/classicMarketPyramid/);assert.match(ui,/advanceRound\(\)/);assert.match(ui,/PROFILE\?\.currentContext\?\.\(\)==='fresh'[\s\S]*startNormal\(false\);return\}showSelection\(\)/,'Fresh profile must enter a real Classic run from the splash');
 assert.match(ux,/shake left ↔ right to rotate it/);
 assert.match(ux,/Connect the 2 wherever you want/);
 assert.match(ux,/EXTEND THE ARM/);
