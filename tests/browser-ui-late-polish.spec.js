@@ -201,8 +201,8 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await expect(page.locator('[data-market-offer="long-run"]')).toHaveAttribute('data-market-machine','true');
   await expect(page.locator('.shopFoot')).toContainText('TAP A MOD = DETAILS');
 
-  const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{text:n.textContent.trim(),w:r.width,h:r.height}}));
-  expect(buttonBoxes.every(b=>b.w>80&&b.h>=44&&/· \d+c$/.test(b.text))).toBe(true);
+  const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect(),value=n.querySelector('.currencyValue')?.textContent.trim();return{text:n.textContent.trim(),value,hasCurrency:!!n.querySelector('.currencyMark'),w:r.width,h:r.height}}));
+  expect(buttonBoxes.every(b=>b.w>80&&b.h>=44&&b.hasCurrency&&/^\d+$/.test(b.value||''))).toBe(true);
   const overflow=await page.locator('.commerceModal').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth}));expect(overflow.sw).toBeLessThanOrEqual(overflow.cw+1);
 
   const inspect=dd.locator('[data-market-inspect="double-double"]');await inspect.click();
