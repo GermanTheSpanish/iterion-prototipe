@@ -49,7 +49,7 @@ function prepareMarket(game,round=2){
 
 {
   const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8'),tutorial=fs.readFileSync(path.join(__dirname,'..','tutorial-controller.js'),'utf8');
-  assert.match(ui,/MARKET CLOSED · INSUFFICIENT COINS/);assert.match(ui,/TILE SHOP CLOSED · INSUFFICIENT COINS/);
+  assert.match(ui,/MARKET CLOSED · INSUFFICIENT FUNDS/);assert.match(ui,/TILE SHOP CLOSED/);assert.match(ui,/INSUFFICIENT FUNDS/);
   assert.match(tutorial,/allowUnaffordable:true/,'BASICS may show the Shop pedagogically even if its sandbox balance is empty');
 }
 
