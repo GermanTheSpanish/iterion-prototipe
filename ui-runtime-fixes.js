@@ -320,7 +320,7 @@
       .gameHeader #menuButton{
         width:auto!important;min-width:58px!important;height:44px!important;min-height:44px!important;
         padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;
-        color:var(--ink)!important;font-size:14px!important;font-weight:750!important;line-height:44px!important;
+        color:var(--ink)!important;font-size:19px!important;font-weight:750!important;line-height:44px!important;
         letter-spacing:.07em!important;text-align:right!important;box-shadow:none!important
       }
       .gameHeader #helpButton{pointer-events:none!important}
