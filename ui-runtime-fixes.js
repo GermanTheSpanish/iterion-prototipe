@@ -196,7 +196,7 @@
       const undoHtml=`UNDO<small>${state.consumables?.undo||0}</small>`,shopHtml=`SHOP<small>${state.coins||0} coins</small>`;
       if(move&&move.innerHTML!==moveHtml)move.innerHTML=moveHtml;if(reroll&&reroll.innerHTML!==rerollHtml)reroll.innerHTML=rerollHtml;if(undo&&undo.innerHTML!==undoHtml)undo.innerHTML=undoHtml;if(shop&&shop.innerHTML!==shopHtml)shop.innerHTML=shopHtml
     }
-    function syncMenu(){const menu=$('menuButton');if(menu&&menu.textContent!=='MONOID')menu.textContent='MONOID'}
+    function syncMenu(){const menu=$('menuButton');if(!menu)return;if(menu.textContent!=='MONOID')menu.textContent='MONOID';menu.style.setProperty('font-size','clamp(17px,4.5vw,19px)','important')}
     let queued=false;
     function sync(){queued=false;ensureBoardMarks();ensureMenuHelp();syncMenu();syncActionLabels()}
     function schedule(){if(queued)return;queued=true;root.requestAnimationFrame(sync)}
