@@ -14,7 +14,7 @@
   style.textContent=`
     /* Header: MONOID is centred against the phone, not against its neighbours. */
     .gameHeader{position:relative!important;justify-content:flex-end!important}
-    .wordmark{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:clamp(120px,33vw,142px)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;font-size:14px!important;font-weight:780!important;letter-spacing:0!important;white-space:nowrap!important;pointer-events:none}
+    .wordmark{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:clamp(120px,33vw,142px)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;font-size:19px!important;font-weight:780!important;letter-spacing:0!important;white-space:nowrap!important;pointer-events:none}
     .wordmark>span{display:block;line-height:1}
     .headerActions{position:relative!important;z-index:2!important}
     .gameHeader .helpButton,#menuButton{min-width:44px!important;height:44px!important;min-height:44px!important}
@@ -169,7 +169,7 @@
     @media(max-height:700px){.progressionRewardCard{gap:8px;padding:20px 18px 16px}.progressionRewardVisual{height:92px}.progressionRewardVisual>.modDiagram{height:82px!important}.progressionRewardDomino{width:42px;height:82px}.progressionRewardDomino i{width:5px;height:5px}.progressionRewardCard h2{font-size:29px!important}.progressionRewardContinue{min-height:48px}}
     @media(prefers-reduced-motion:reduce){#progressionRewardDialog{scroll-behavior:auto}}
     @media(max-width:390px),(max-height:700px){
-      .wordmark{width:clamp(112px,31vw,128px)!important;font-size:13px!important}
+      .wordmark{width:clamp(112px,31vw,128px)!important;font-size:17px!important}
       .app .piece>.tileModMark{font-size:12px!important}.app .domino>.tileModMark{font-size:17px!important}
       .machineModStatus{width:min(160px,58%)!important}.machineModStatus>span{font-size:8px!important}
       .commerceModal .marketOffer.marketStructuredOffer{padding:8px!important}
