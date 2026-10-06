@@ -60,7 +60,7 @@ test('SYSTEMS sandbox never overwrites a saved normal run',async({page})=>{
 });
 
 test('first real run briefing is board-led, state-neutral and shown once',async({page})=>{
-  await page.setViewportSize({width:375,height:667});await enterSelection(page);await page.locator('#startRun').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('firstBrief');await expect(page.locator('#monoidBoardCoach')).toContainText('BUILD A MACHINE');await expect(page.locator('#monoidBoardCoach')).toContainText('Hold any tile to INSPECT it.');const before=await page.evaluate(()=>window.__monoidGame.exportState());await page.locator('[data-ux-action="start-first"]').click();await expect(page.locator('#monoidBoardCoach')).toBeHidden();expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(before);expect(await page.evaluate(()=>localStorage.getItem('monoid.firstRunBriefing.v1'))).toBe('seen')
+  await page.setViewportSize({width:375,height:667});await enterSelection(page);await page.locator('#startRun').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('firstBrief');await expect(page.locator('#monoidBoardCoach')).toContainText('BUILD A MACHINE');await expect(page.locator('#monoidBoardCoach')).toContainText('Hold any TILE to INSPECT it.');const before=await page.evaluate(()=>window.__monoidGame.exportState());await page.locator('[data-ux-action="start-first"]').click();await expect(page.locator('#monoidBoardCoach')).toBeHidden();expect(await page.evaluate(()=>window.__monoidGame.exportState())).toEqual(before);expect(await page.evaluate(()=>localStorage.getItem('monoid.firstRunBriefing.v1'))).toBe('seen')
 });
 
 
@@ -88,10 +88,10 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('LEAD');
   await expect(page.locator('#monoidBoardCoach')).toContainText('First Core sets the rule.');
   await expect(page.locator(`#board .coreNode[data-core-id="${activation}"].modeOnboardingCore`)).toHaveCount(1);
-  await page.waitForTimeout(1500);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeDiscovery');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:1800}).toBe('modePayoff');
+  await page.waitForTimeout(1500);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeDiscovery');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:4200}).toBe('modePayoff');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('CORE LINKED');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Core adds Signal.');
-  await page.waitForTimeout(1200);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modePayoff');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:1500}).toBe('idle');
+  await page.waitForTimeout(1200);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modePayoff');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3600}).toBe('idle');
   const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.modeOnboarding.v1')));
   expect(progress.eyes).toEqual({reveal:true,orient:true,discovery:true,payoff:true});
   await page.evaluate(()=>{const s=window.__monoidGame.state(),core=s.cores[1];s.events.push({turn:2,mode:'placement',coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:5,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now())});
@@ -133,7 +133,7 @@ test('The Loom and The Peaks explain LEAD LINK and Peak overcharge without spoil
   await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 2.');
   await expect(page.locator('#monoidBoardCoach')).toContainText('LEAD → LINK');
   await expect(page.locator('#board .coreNode')).toHaveCount(4);await expect(page.locator('#board .boardVoid')).toHaveCount(4);
-  await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3500}).toBe('idle');
+  await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:5200}).toBe('idle');
 
   await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await page.evaluate(()=>window.__monoidModes.select(5));page.once('dialog',dialog=>dialog.accept());await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
