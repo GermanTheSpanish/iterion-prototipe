@@ -6,7 +6,7 @@
   if(!app||!board||!boardShell||!overlay||!modal)return;
 
   const PROFILE=root.MonoidProfile,scopeKey=key=>PROFILE?.storageKey?.(key)||key;
-  const TOUR_KEY=scopeKey('monoid.uiTour.v1'),FIRST_BRIEF_KEY=scopeKey('monoid.firstRunBriefing.v1'),CLASSIC_GUIDE_KEY=scopeKey('monoid.classicGuide.v1'),MODE_ONBOARDING_KEY=scopeKey('monoid.modeOnboarding.v1'),MODE_INTRO_KEY=scopeKey('monoid.modeIntro.v2'),ACTIVE_RUN_KEY=scopeKey('iterion.activeRun.v1'),SYSTEMS_POWER_ID='g2-d1-2';
+  const TOUR_KEY=scopeKey('monoid.uiTour.v1'),FIRST_BRIEF_KEY=scopeKey('monoid.firstRunBriefing.v1'),CLASSIC_GUIDE_KEY=scopeKey('monoid.classicGuide.v1'),CLASSIC_EVENT_GUIDE_KEY=scopeKey('monoid.classicEventGuide.v1'),FRESH_OPENING_KEY=scopeKey('monoid.freshClassicOpening.v1'),MODE_ONBOARDING_KEY=scopeKey('monoid.modeOnboarding.v1'),MODE_INTRO_KEY=scopeKey('monoid.modeIntro.v2'),ACTIVE_RUN_KEY=scopeKey('iterion.activeRun.v1'),SYSTEMS_POWER_ID='g2-d1-2',COACH_TIME_SCALE=2,CLASSIC_COACH_MS=2400*COACH_TIME_SCALE;
   const MODE_ONBOARDING=Object.freeze({
     eyes:Object.freeze({id:'eyes',kicker:'THE EYES · 1|1',name:'THE EYES',reveal:'Signal starts at 6.\\nCores add to it.\nEach Market: +1 Core charge.',orientTitle:'REACH A CORE',orient:'Reach a Core before the Signal dies.',discoveryTitle:'LEAD',discovery:'First Core sets the rule.',payoffTitle:'CORE LINKED',payoff:'Core adds Signal.'}),
     frames:Object.freeze({id:'frames',kicker:'THE FRAMES · 2|2',name:'THE FRAMES',reveal:'Signal starts at 4.\\nRoute through Cores to extend it.\nEach Market expands the Core network.',orientTitle:'READ THE FRAME',orient:'Voids block placement. Route through a Core before Signal dies.',discoveryTitle:'LEAD',discovery:'First Core still sets the rule.',payoffTitle:'FRAME LINKED',payoff:'Core adds Signal. Voids stay permanent.'}),
@@ -24,7 +24,7 @@
   const coach=document.createElement('section');
   coach.id='monoidBoardCoach';coach.className='boardCoachLayer';coach.hidden=true;coach.setAttribute('role','dialog');coach.setAttribute('aria-live','polite');
   document.body.appendChild(coach);
-  let coachKey='',pendingEndlessAction=null,pendingForcedModeIntro=false,syncQueued=false,lastTutorialGame=null,rotationStart=0,modeCoachTimer=0,classicGuideTimer=0,lastModeActivationKey='';
+  let coachKey='',pendingEndlessAction=null,pendingForcedModeIntro=false,syncQueued=false,lastTutorialGame=null,rotationStart=0,modeCoachTimer=0,classicGuideTimer=0,freshOpeningTimer=0,lastModeActivationKey='';
 
   const tour=[
     {title:'THE MACHINE',body:'This is your machine.\nEverything you build stays here.',target:()=>board},
@@ -90,9 +90,10 @@
   function showCoach(mode,key,kicker,title,body,actions=''){ux.mode=mode;coach.hidden=false;coach.className=`boardCoachLayer ${mode}`;const nextKey=`${mode}:${key}`;if(coachKey!==nextKey){coachKey=nextKey;coach.innerHTML=coachMarkup(kicker,title,body,actions)}syncCoachRect()}
   function clearModeCoachTimer(){if(modeCoachTimer){clearTimeout(modeCoachTimer);modeCoachTimer=0}}
   function clearClassicGuideTimer(){if(classicGuideTimer){clearTimeout(classicGuideTimer);classicGuideTimer=0}}
+  function clearFreshOpeningTimer(){if(freshOpeningTimer){clearTimeout(freshOpeningTimer);freshOpeningTimer=0}}
   function clearModeOnboardingVisuals(){document.body.classList.remove('monoidModeOrientActive');document.querySelectorAll('.coreNode.modeOnboardingCore').forEach(el=>el.classList.remove('modeOnboardingCore'));document.querySelectorAll('.boardVoid.modeOnboardingVoid').forEach(el=>el.classList.remove('modeOnboardingVoid'))}
   function applyModeCoreHighlight(coreId=null){document.querySelectorAll('.coreNode.modeOnboardingCore').forEach(el=>el.classList.remove('modeOnboardingCore'));const nodes=[...document.querySelectorAll('.coreNode')],targets=coreId?nodes.filter(el=>el.dataset.coreId===coreId):nodes;targets.forEach(el=>el.classList.add('modeOnboardingCore'))}
-  function hideCoach(nextMode='idle'){clearModeCoachTimer();clearClassicGuideTimer();clearModeOnboardingVisuals();coach.hidden=true;coachKey='';ux.mode=nextMode;if(nextMode!=='tour')ux.tourStep=null;clearHighlights();document.body.classList.remove('monoidTourActive')}
+  function hideCoach(nextMode='idle'){clearModeCoachTimer();clearClassicGuideTimer();clearFreshOpeningTimer();clearModeOnboardingVisuals();coach.hidden=true;coachKey='';ux.mode=nextMode;if(nextMode!=='tour')ux.tourStep=null;clearHighlights();document.body.classList.remove('monoidTourActive')}
 
   function renderTour(){const step=tour[ux.tourStep];if(!step)return finishTour();document.body.classList.add('monoidTourActive');highlight(step.target());showCoach('tour',ux.tourStep,`LEARN MONOID · ${ux.tourStep+1}/${tour.length}`,step.title,step.body,'<button data-ux-action="leave">LEAVE</button><span>TAP TO CONTINUE</span>')}
   function startTour(){ux.tourStep=0;renderTour()}
@@ -128,25 +129,45 @@
 
   function showModeReveal(modeId,{force=false}={}){const config=MODE_ONBOARDING[modeId];if(!config||(!force&&modeIntroSeen(modeId))||app.hidden)return false;clearModeCoachTimer();clearModeOnboardingVisuals();ux.modeOnboarding={mode:modeId,step:'reveal',coreId:null};showCoach('modeReveal',modeId,config.kicker,config.name,config.reveal,'<button class="primary" data-ux-action="start-mode">PLAY</button>');return true}
   function finishModeOrient(){if(ux.mode!=='modeOrient')return;ux.modeOnboarding=null;hideCoach()}
-  function showModeOrient(modeId){const config=MODE_ONBOARDING[modeId];if(!config)return false;if(modeOnboardingSeen(modeId,'orient')){ux.modeOnboarding=null;hideCoach();return false}markModeOnboarding(modeId,'orient');clearModeCoachTimer();clearHighlights();document.body.classList.add('monoidModeOrientActive');applyModeCoreHighlight();if(['frames','river','loom','peaks'].includes(modeId))document.querySelectorAll('.boardVoid').forEach(el=>el.classList.add('modeOnboardingVoid'));ux.modeOnboarding={mode:modeId,step:'orient',coreId:null};showCoach('modeOrient',modeId,config.kicker,config.orientTitle,config.orient);modeCoachTimer=setTimeout(()=>{modeCoachTimer=0;finishModeOrient()},1800);return true}
-  function showModePayoff(modeId,activation){const config=MODE_ONBOARDING[modeId];if(!config||modeOnboardingSeen(modeId,'payoff')){ux.modeOnboarding=null;hideCoach();return false}markModeOnboarding(modeId,'payoff');clearModeCoachTimer();clearModeOnboardingVisuals();if(activation?.coreId)applyModeCoreHighlight(activation.coreId);ux.modeOnboarding={mode:modeId,step:'payoff',coreId:activation?.coreId||null};showCoach('modePayoff',`${modeId}:${activation?.coreId||'core'}`,config.kicker,config.payoffTitle,config.payoff);modeCoachTimer=setTimeout(()=>{modeCoachTimer=0;ux.modeOnboarding=null;hideCoach()},1050);return true}
-  function showModeDiscovery(modeId,activation){const config=MODE_ONBOARDING[modeId];if(!config||modeOnboardingSeen(modeId,'discovery'))return false;markModeOnboarding(modeId,'discovery');clearModeCoachTimer();clearModeOnboardingVisuals();if(activation?.coreId)applyModeCoreHighlight(activation.coreId);ux.modeOnboarding={mode:modeId,step:'discovery',coreId:activation?.coreId||null};showCoach('modeDiscovery',`${modeId}:${activation?.coreId||'core'}`,config.kicker,config.discoveryTitle,config.discovery);modeCoachTimer=setTimeout(()=>{modeCoachTimer=0;showModePayoff(modeId,activation)},1250);return true}
+  function showModeOrient(modeId){const config=MODE_ONBOARDING[modeId];if(!config)return false;if(modeOnboardingSeen(modeId,'orient')){ux.modeOnboarding=null;hideCoach();return false}markModeOnboarding(modeId,'orient');clearModeCoachTimer();clearHighlights();document.body.classList.add('monoidModeOrientActive');applyModeCoreHighlight();if(['frames','river','loom','peaks'].includes(modeId))document.querySelectorAll('.boardVoid').forEach(el=>el.classList.add('modeOnboardingVoid'));ux.modeOnboarding={mode:modeId,step:'orient',coreId:null};showCoach('modeOrient',modeId,config.kicker,config.orientTitle,config.orient);modeCoachTimer=setTimeout(()=>{modeCoachTimer=0;finishModeOrient()},1800*COACH_TIME_SCALE);return true}
+  function showModePayoff(modeId,activation){const config=MODE_ONBOARDING[modeId];if(!config||modeOnboardingSeen(modeId,'payoff')){ux.modeOnboarding=null;hideCoach();return false}markModeOnboarding(modeId,'payoff');clearModeCoachTimer();clearModeOnboardingVisuals();if(activation?.coreId)applyModeCoreHighlight(activation.coreId);ux.modeOnboarding={mode:modeId,step:'payoff',coreId:activation?.coreId||null};showCoach('modePayoff',`${modeId}:${activation?.coreId||'core'}`,config.kicker,config.payoffTitle,config.payoff);modeCoachTimer=setTimeout(()=>{modeCoachTimer=0;ux.modeOnboarding=null;hideCoach()},1050*COACH_TIME_SCALE);return true}
+  function showModeDiscovery(modeId,activation){const config=MODE_ONBOARDING[modeId];if(!config||modeOnboardingSeen(modeId,'discovery'))return false;markModeOnboarding(modeId,'discovery');clearModeCoachTimer();clearModeOnboardingVisuals();if(activation?.coreId)applyModeCoreHighlight(activation.coreId);ux.modeOnboarding={mode:modeId,step:'discovery',coreId:activation?.coreId||null};showCoach('modeDiscovery',`${modeId}:${activation?.coreId||'core'}`,config.kicker,config.discoveryTitle,config.discovery);modeCoachTimer=setTimeout(()=>{modeCoachTimer=0;showModePayoff(modeId,activation)},1250*COACH_TIME_SCALE);return true}
   function latestModeActivation(game,modeId=null){const events=game?.state?.().events||[];for(let index=events.length-1;index>=0;index--){const event=events[index]||{},activations=event.coreActivations||event.signal?.activations||event.signalShadow?.activations||[];if(activations.length){const activation=modeId==='peaks'?activations.find(item=>item?.peak):activations[0];if(activation)return{...activation,eventIndex:index,turn:event.turn??event.move??index}}}return null}
   function syncModeOnboarding(flow,game){const config=modeOnboardingConfig(game);if(flow.screen!=='game'||!game||!config||app.hidden)return;if(ux.mode==='modeOrient'){document.body.classList.add('monoidModeOrientActive');applyModeCoreHighlight();return}if(ux.mode==='modeDiscovery'||ux.mode==='modePayoff'){applyModeCoreHighlight(ux.modeOnboarding?.coreId||null);return}if(['modeReveal','firstBrief','endlessBrief','tour','tutorial'].includes(ux.mode))return;if(!modeIntroSeen(config.id)||modeOnboardingSeen(config.id,'discovery')||game.state().running||overlay.classList.contains('show')||ux.commerce)return;const activation=latestModeActivation(game,config.id);if(!activation)return;const key=`${game.state().runId||''}:${activation.turn}:${activation.coreId||''}`;if(key===lastModeActivationKey)return;lastModeActivationKey=key;showModeDiscovery(config.id,activation)}
-  function showFirstBrief(){if(localStorage.getItem(FIRST_BRIEF_KEY)==='seen'||app.hidden)return false;highlight(board);showCoach('firstBrief','rules','FIRST RUN','BUILD A MACHINE','Start with a Double.\nMatch equal numbers.\nReach TARGET before Moves run out.','<button class="primary" data-ux-action="start-first">START</button><small>Hold any tile to INSPECT it.</small>');return true}
+  function showFreshOpeningGuide(){
+    clearFreshOpeningTimer();freshOpeningTimer=setTimeout(()=>{freshOpeningTimer=0;const flow=gameFlow(),game=currentGame(),s=game?.state?.();if(PROFILE?.currentContext?.()!=='fresh'||flow.screen!=='game'||!s||(s.gameMode||'classic')!=='classic'||s.endlessMode||app.hidden||(s.pieces?.length||0)>0||overlay.classList.contains('show'))return;showCoach('classicOpening','first-tile','CLASSIC · START','FIRST TILE','Place a <strong>DOUBLE</strong> anywhere on the <strong>BOARD</strong>.');classicGuideTimer=setTimeout(()=>{classicGuideTimer=0;if(ux.mode==='classicOpening')hideCoach()},CLASSIC_COACH_MS)},700)
+  }
+  function showFirstBrief(){
+    if(localStorage.getItem(FIRST_BRIEF_KEY)==='seen'||app.hidden)return false;
+    if(PROFILE?.currentContext?.()==='fresh'){localStorage.setItem(FIRST_BRIEF_KEY,'seen');showFreshOpeningGuide();return true}
+    highlight(board);showCoach('firstBrief','rules','FIRST RUN','BUILD A MACHINE','Start with a <strong>DOUBLE</strong>.<br>Match equal <strong>NUMBERS</strong>.<br>Reach <strong>TARGET</strong> before <strong>MOVES</strong> run out.','<button class="primary" data-ux-action="start-first">START</button><small>Hold any <strong>TILE</strong> to <strong>INSPECT</strong> it.</small>');return true
+  }
   function classicGuideStep(){return Math.max(0,Number(localStorage.getItem(CLASSIC_GUIDE_KEY))||0)}
-  function showClassicGuide(step,title,body){
-    localStorage.setItem(CLASSIC_GUIDE_KEY,String(step+1));showCoach('classicGuide',step,`CLASSIC · ${step+1}/3`,title,body);classicGuideTimer=setTimeout(()=>{classicGuideTimer=0;if(ux.mode==='classicGuide')hideCoach()},2400)
+  function classicEventGuideState(){try{return JSON.parse(localStorage.getItem(CLASSIC_EVENT_GUIDE_KEY)||'{}')||{}}catch(_){return{}}}
+  function markClassicEventGuide(key){const state=classicEventGuideState();state[key]=true;localStorage.setItem(CLASSIC_EVENT_GUIDE_KEY,JSON.stringify(state))}
+  function showClassicGuide(step,title,body){localStorage.setItem(CLASSIC_GUIDE_KEY,String(step+1));showCoach('classicGuide',step,`CLASSIC · ${step+1}/3`,title,body);classicGuideTimer=setTimeout(()=>{classicGuideTimer=0;if(ux.mode==='classicGuide')hideCoach()},CLASSIC_COACH_MS)}
+  function showClassicEventGuide(key,title,body){markClassicEventGuide(key);showCoach('classicGuide',`event:${key}`,'CLASSIC · DISCOVERY',title,body);classicGuideTimer=setTimeout(()=>{classicGuideTimer=0;if(ux.mode==='classicGuide')hideCoach()},CLASSIC_COACH_MS)}
+  function classicSignalFacts(s){
+    let zero=false,split=false;
+    for(const event of s.events||[]){if(Number(event?.rebounds)>0)zero=true;const trace=event?.signal?.trace||event?.signalShadow?.trace||event?.trace||[];if(trace.some(item=>item?.type==='rebound'))zero=true;if(trace.some(item=>item?.type==='signal-fork'))split=true;if(zero&&split)break}
+    return{zero,split}
   }
   function syncClassicGuide(flow,game){
     const fresh=PROFILE?.currentContext?.()==='fresh',s=game?.state?.(),eligible=fresh&&flow.screen==='game'&&s&&(s.gameMode||'classic')==='classic'&&!s.endlessMode&&!app.hidden;
-    if(!eligible){if(ux.mode==='classicGuide')hideCoach();return}
-    if(localStorage.getItem(FIRST_BRIEF_KEY)!=='seen'||overlay.classList.contains('show')||s.running||ux.commerce||!['idle','classicGuide'].includes(ux.mode))return;
-    if(ux.mode==='classicGuide')return;
-    const step=classicGuideStep(),pieces=s.pieces?.length||0,wins=s.wins?.length||0;
-    if(step===0&&pieces>=1){showClassicGuide(0,'INSPECT','Hold any tile to see its rules and state.');return}
-    if(step===1&&pieces>=2){showClassicGuide(1,'SIGNAL','Every placement sends a Signal.\nEVEN + · ODD × · ZERO rebounds.');return}
-    if(step===2&&wins>=1)showClassicGuide(2,'MACHINE STAYS','The board stays between rounds.\nKeep building the same machine.')
+    if(!eligible){if(ux.mode==='classicGuide'||ux.mode==='classicOpening')hideCoach();return}
+    const pieces=s.pieces?.length||0,wins=s.wins?.length||0;
+    if(pieces>=1){localStorage.setItem(FRESH_OPENING_KEY,'done');if(ux.mode==='classicOpening')hideCoach()}
+    if(localStorage.getItem(FIRST_BRIEF_KEY)!=='seen'||overlay.classList.contains('show')||s.running||ux.commerce||!['idle','classicGuide','classicOpening'].includes(ux.mode))return;
+    if(ux.mode==='classicGuide'||ux.mode==='classicOpening')return;
+    const step=classicGuideStep();
+    if(step===0&&pieces>=1){showClassicGuide(0,'TARGET','Reach <strong>TARGET</strong> before <strong>MOVES</strong> run out.');return}
+    if(step===1&&pieces>=1){showClassicGuide(1,'INSPECT','Hold any <strong>TILE</strong> to open its <strong>INSPECTOR</strong>.');return}
+    if(step===2&&pieces>=2){showClassicGuide(2,'SIGNAL','Each placement fires the <strong>SIGNAL</strong>.<br><strong>EVEN</strong> adds · <strong>ODD</strong> multiplies.');return}
+    if(step<3)return;
+    const seen=classicEventGuideState(),facts=classicSignalFacts(s);
+    if(facts.zero&&!seen.zero){showClassicEventGuide('zero','ZERO','A <strong>ZERO</strong> rebounds the <strong>SIGNAL</strong> back through the machine.');return}
+    if(facts.split&&!seen.split){showClassicEventGuide('split','T-SPLIT','A <strong>T-SPLIT</strong> sends the <strong>SIGNAL</strong> down two routes.<br>Both outputs are added together.');return}
+    if(wins>=1&&!seen.machine)showClassicEventGuide('machine','MACHINE STAYS','Your <strong>MACHINE</strong> stays between rounds.<br>Keep building it.')
   }
   function showRunBriefing({forceModeIntro=false}={}){const config=modeOnboardingConfig();pendingForcedModeIntro=!!(forceModeIntro&&config);if(showFirstBrief())return true;const force=pendingForcedModeIntro;pendingForcedModeIntro=false;return config?showModeReveal(config.id,{force}):false}
   function acknowledgeFirstBrief(){localStorage.setItem(FIRST_BRIEF_KEY,'seen');const config=modeOnboardingConfig(),force=pendingForcedModeIntro;pendingForcedModeIntro=false;hideCoach();if(config&&(force||!modeIntroSeen(config.id)))setTimeout(()=>showModeReveal(config.id,{force}),0)}

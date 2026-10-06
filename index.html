@@ -44,7 +44,7 @@ body{position:fixed;inset:0;background:var(--bg)}
 <style>
 /* Critical screen boundaries also work while the presentation stylesheet loads. */
 .app[hidden],.entryFlow[hidden],.entryScreen[hidden]{display:none!important}
-.entryFlow{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:#0b0b0a;overflow:hidden}
+.entryFlow{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:#0b0b0a;overflow:hidden}html.bootSurface,body.bootSurface{background:#0b0b0a!important}
 .entryFlow:has(.titleCard:not([hidden])),.entryFlow:has(.gameSelection:not([hidden])){padding:0;background:#f7f7f4}
 .bootSelector{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:calc(34px + env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom));background:#0b0b0a;color:#f1f1e9;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .bootTerminal{width:min(100%,430px)}
