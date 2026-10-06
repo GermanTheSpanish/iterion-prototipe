@@ -15,7 +15,7 @@ assert.match(ui,/name=mod\.displayName\|\|mod\.name/,'Market must derive modifie
 assert.doesNotMatch(ui,/data-dd-id|doubleDoubleGridHtml/);
 assert.match(ui,/GAME\.buyMarketMod\(id\)/,'Market UI must use the generic modifier purchase API');
 assert.match(ui,/mod\.displayName\|\|mod\.name/,'Market result copy must use modifier metadata');
-assert.match(ui,/class="marketOfferGrid"/,'Market must retain a compact offer decision surface');
+assert.match(ui,/class="marketOfferGrid\$\{pyramid\?' classicMarketPyramid':''\}"/,'Market must retain a compact offer decision surface while allowing the Classic pyramid layout');
 assert.match(ui,/TAP A MOD = DETAILS · BUY ONE · INFLATION \+1/,'Market must expose the essential inspection, purchase and inflation rules without verbose prose');
 assert.match(game,/openingProtectionActive/);
 assert.match(game,/type:'opening-protection'/);
