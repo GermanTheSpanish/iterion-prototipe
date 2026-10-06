@@ -80,8 +80,11 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await expect(page.locator('#monoidBoardCoach')).toContainText('Reach a Core before the Signal dies.');
   await expect(page.locator('body')).toHaveClass(/monoidModeOrientActive/);
   await expect(page.locator('#board .coreNode.modeOnboardingCore')).toHaveCount(2);
+  const coreChargeBadges=page.locator('#board .coreNode.modeOnboardingCore .modeOnboardingCoreCharge');
+  await expect(coreChargeBadges).toHaveCount(2);expect(await coreChargeBadges.locator('b').allTextContents()).toEqual(['+6','+6']);
   await page.waitForTimeout(2000);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeOrient');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:2500}).toBe('idle');
   await expect(page.locator('body')).not.toHaveClass(/monoidModeOrientActive/);
+  await expect(page.locator('#board .modeOnboardingCoreCharge')).toHaveCount(0);
 
   const activation=await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),core=s.cores[0];s.events.push({turn:1,mode:'placement',signal:{activations:[{coreId:core.id,role:'lead',order:1,beforeSignal:7,afterSignal:24}]},coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:7,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now());return core.id});
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeDiscovery');
