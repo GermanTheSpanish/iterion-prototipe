@@ -149,7 +149,7 @@
   function showClassicEventGuide(key,title,body){markClassicEventGuide(key);showCoach('classicGuide',`event:${key}`,'CLASSIC · DISCOVERY',title,body);classicGuideTimer=setTimeout(()=>{classicGuideTimer=0;if(ux.mode==='classicGuide')hideCoach()},CLASSIC_COACH_MS)}
   function classicSignalFacts(s){
     let zero=false,split=false;
-    for(const event of s.events||[]){if(Number(event?.rebounds)>0)zero=true;const trace=event?.signal?.trace||event?.signalShadow?.trace||event?.trace||[];if(trace.some(item=>item?.type==='rebound'))zero=true;if(trace.some(item=>item?.type==='signal-fork'))split=true;if(zero&&split)break}
+    for(const event of s.events||[]){if(Number(event?.rebounds)>0)zero=true;if(Number(event?.signal?.splits)>0||event?.reason==='split-complete')split=true;const trace=event?.signal?.trace||event?.signalShadow?.trace||event?.trace||[];if(trace.some(item=>item?.type==='rebound'))zero=true;if(trace.some(item=>item?.type==='signal-fork'))split=true;if(zero&&split)break}
     return{zero,split}
   }
   function syncClassicGuide(flow,game){

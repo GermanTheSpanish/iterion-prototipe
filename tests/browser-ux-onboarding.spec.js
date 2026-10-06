@@ -80,7 +80,7 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await expect(page.locator('#monoidBoardCoach')).toContainText('Reach a Core before the Signal dies.');
   await expect(page.locator('body')).toHaveClass(/monoidModeOrientActive/);
   await expect(page.locator('#board .coreNode.modeOnboardingCore')).toHaveCount(2);
-  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3500}).toBe('idle');
+  await page.waitForTimeout(2000);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeOrient');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:2500}).toBe('idle');
   await expect(page.locator('body')).not.toHaveClass(/monoidModeOrientActive/);
 
   const activation=await page.evaluate(()=>{const g=window.__monoidGame,s=g.state(),core=s.cores[0];s.events.push({turn:1,mode:'placement',signal:{activations:[{coreId:core.id,role:'lead',order:1,beforeSignal:7,afterSignal:24}]},coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:7,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now());return core.id});
@@ -88,10 +88,10 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('LEAD');
   await expect(page.locator('#monoidBoardCoach')).toContainText('First Core sets the rule.');
   await expect(page.locator(`#board .coreNode[data-core-id="${activation}"].modeOnboardingCore`)).toHaveCount(1);
-  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('modePayoff');
+  await page.waitForTimeout(1500);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeDiscovery');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:1800}).toBe('modePayoff');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('CORE LINKED');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Core adds Signal.');
-  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('idle');
+  await page.waitForTimeout(1200);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modePayoff');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:1500}).toBe('idle');
   const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.modeOnboarding.v1')));
   expect(progress.eyes).toEqual({reveal:true,orient:true,discovery:true,payoff:true});
   await page.evaluate(()=>{const s=window.__monoidGame.state(),core=s.cores[1];s.events.push({turn:2,mode:'placement',coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:5,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now())});
