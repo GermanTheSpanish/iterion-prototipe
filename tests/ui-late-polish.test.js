@@ -29,7 +29,7 @@ assert.match(ui,/TAP AN OFFER TO INSPECT/);assert.match(ui,/compactCommerceModal
 assert.match(ui,/function bindInspectorTap\(element,open\)/,'Non-game commerce surfaces need one reusable tap Inspector binding');
 assert.match(ui,/adapterQuestion[^>]*>\?<\/b>/,'Unresolved Adapter halves must render question marks instead of normal-looking pips');
 assert.match(ui,/\[\?\|\?\]/,'Adapter Inspector must use the same unresolved question-mark identity');
-assert.match(ui,/MOD_FACE_REVEAL_MS=3000,modFaceRevealUntil=new Map\(\),modFaceRevealTimers=new Map\(\)/,'Each Mod tile reveal needs independent ephemeral timing');
+assert.match(ui,/MOD_FACE_REVEAL_MS=3000,[^;]*modFaceRevealUntil=new Map\(\),modFaceRevealTimers=new Map\(\)/,'Each Mod tile reveal needs independent ephemeral timing');
 assert.match(ui,/else if\(meta\.kind==='board'\)revealModFace\(meta\.tileId\)/,'Short board taps should reveal Mod faces without replacing long-press Inspector');
 assert.match(ui,/revealed\?' modFaceRevealed':modClass\(p\.tile\)/,'Revealed Mods must render through the canonical front-face classes');
 assert.match(ui,/\(revealed\?'':tileModMarks\(p\.tile\)\)/,'Revealed Mods must hide reverse lettering while their printed values are visible');
