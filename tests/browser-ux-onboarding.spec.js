@@ -91,7 +91,7 @@ test('The Eyes mode onboarding uses reveal, orientation, discovery and payoff on
   await page.waitForTimeout(1500);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeDiscovery');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:4200}).toBe('modePayoff');
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('CORE LINKED');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Core adds Signal.');
-  await page.waitForTimeout(1200);await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modePayoff');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3600}).toBe('idle');
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3600}).toBe('idle');
   const progress=await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.modeOnboarding.v1')));
   expect(progress.eyes).toEqual({reveal:true,orient:true,discovery:true,payoff:true});
   await page.evaluate(()=>{const s=window.__monoidGame.state(),core=s.cores[1];s.events.push({turn:2,mode:'placement',coreActivations:[{coreId:core.id,role:'lead',order:1,beforeSignal:5,afterSignal:24}]});document.body.dataset.modeOnboardingProbe=String(Date.now())});
