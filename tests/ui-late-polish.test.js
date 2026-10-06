@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','ui-late-polish.js'),'utf8');
-assert.match(source,/BUILD_ID='20261005\.7'/);
+assert.match(source,/BUILD_ID='20261006\.1'/);
 assert.match(source,/\.compactCommerceModal \.marketOfferGrid\{display:grid!important;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,'Market must use a compact two-column card grid');
 assert.match(source,/\.compactCommerceModal \.shopTileOfferGrid\{display:grid!important;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/,'Tile Shop must keep four next-set pieces visible without prose rows');
 assert.match(source,/\.compactCommerceModal \.shopCompactOffer\{display:grid!important;grid-template-columns:1fr!important/,'Tile Shop cards must override the legacy side-by-side layout and centre the physical tile');
@@ -41,7 +41,7 @@ assert.match(theme,/\.modeIndicatorHalf\{width:12px;height:12px[\s\S]*repeat\(3,
 assert.match(theme,/\.modePip\{width:3px;height:3px/,'Mode pips must remain legible on phone screens');
 assert.match(theme,/\.modeIndicatorInfinityBridge\{position:static;font-size:14px/,'Infinity must occupy the centre between mode halves');
 assert.match(source,/EXTREME_THRESHOLD=1e27/);assert.match(source,/toExponential\(2\)/,'Extreme Endless numbers must use scientific notation');
-assert.match(source,/width:clamp\(108px,29\.3vw,126px\)/,'MONOID header width should tune to the 14 Pro Max Dynamic Island reference');
+assert.match(source,/width:clamp\(120px,33vw,142px\)/,'MONOID header width should be visibly larger while remaining centred on the phone');assert.match(source,/font-size:19px!important/,'MONOID header type must be visibly larger than the previous 14px treatment');assert.match(fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'utf8'),/\.gameHeader #menuButton\{[\s\S]*font-size:19px!important/,'Runtime fixes must not shrink the MONOID wordmark after late polish');assert.match(fs.readFileSync(path.join(__dirname,'..','ui-runtime-fixes.js'),'utf8'),/setProperty\('justify-content','center','important'\)[\s\S]*setProperty\('gap','clamp\(6px,2vw,10px\)','important'\)/,'Runtime sync must centre the visible MONOID glyph group, not only its button box');assert.match(source,/marketOfferGrid\.classicMarketPyramid/,'Three-choice Markets must keep the 1-over-2 pyramid layout in the authoritative late-polish layer');
 assert.doesNotMatch(source,/IterionEngine|finishPlacement|buyMarketMod\s*=/,'Late polish must not redefine engine, placement or commerce behaviour');
 console.log('MONOID late UI polish source regression: ok');
 

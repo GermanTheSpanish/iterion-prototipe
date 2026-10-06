@@ -196,7 +196,7 @@
       const undoHtml=`UNDO<small>${state.consumables?.undo||0}</small>`,shopHtml=`SHOP<small>${state.coins||0} coins</small>`;
       if(move&&move.innerHTML!==moveHtml)move.innerHTML=moveHtml;if(reroll&&reroll.innerHTML!==rerollHtml)reroll.innerHTML=rerollHtml;if(undo&&undo.innerHTML!==undoHtml)undo.innerHTML=undoHtml;if(shop&&shop.innerHTML!==shopHtml)shop.innerHTML=shopHtml
     }
-    function syncMenu(){const menu=$('menuButton');if(menu&&menu.textContent!=='MONOID')menu.textContent='MONOID'}
+    function syncMenu(){const menu=$('menuButton');if(!menu)return;if(menu.textContent!=='MONOID')menu.textContent='MONOID';menu.style.setProperty('font-size','clamp(17px,4.5vw,19px)','important');menu.style.setProperty('justify-content','center','important');menu.style.setProperty('gap','clamp(6px,2vw,10px)','important');menu.style.setProperty('letter-spacing','0','important')}
     let queued=false;
     function sync(){queued=false;ensureBoardMarks();ensureMenuHelp();syncMenu();syncActionLabels()}
     function schedule(){if(queued)return;queued=true;root.requestAnimationFrame(sync)}
@@ -209,7 +209,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20261005.7';
+    const BUILD_ID='20261006.1';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);
@@ -320,7 +320,7 @@
       .gameHeader #menuButton{
         width:auto!important;min-width:58px!important;height:44px!important;min-height:44px!important;
         padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;
-        color:var(--ink)!important;font-size:14px!important;font-weight:750!important;line-height:44px!important;
+        color:var(--ink)!important;font-size:19px!important;font-weight:750!important;line-height:44px!important;
         letter-spacing:.07em!important;text-align:right!important;box-shadow:none!important
       }
       .gameHeader #helpButton{pointer-events:none!important}

@@ -105,7 +105,26 @@ test('boot selector isolates profiles and Fresh starts guided Classic',async({pa
   await page.goto(BASE+'?boot=1');await expect(page.locator('#bootSelector')).toBeVisible();await page.locator('[data-boot-context="fresh"]').click();await page.waitForLoadState('domcontentloaded');
   await expect.poll(()=>page.evaluate(()=>window.MonoidProfile?.currentContext?.())).toBe('fresh');expect(await page.evaluate(()=>localStorage.getItem('monoid.ctx.fresh.iterion.activeRun.v1'))).toBeNull();
   await page.locator('#titleCard').click();await expect(page.locator('.app')).toBeVisible();await expect(page.locator('#gameSelection')).toBeHidden();
-  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('BUILD A MACHINE');await expect(page.locator('#monoidBoardCoach')).toContainText('Hold any tile to INSPECT it.');
-  await page.locator('#monoidBoardCoach [data-ux-action="start-first"]').click();await placeOpeningTile(page);
-  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('INSPECT');await expect(page.locator('#monoidBoardCoach')).toContainText('Hold any tile to see its rules and state.');
+  await expect(page.locator('body')).toHaveClass(/freshClassicOpening/);await expect(page.locator('#board')).toBeVisible();
+  const openingHierarchy=await page.evaluate(()=>({header:getComputedStyle(document.querySelector('.gameHeader')).opacity,scoreStrip:getComputedStyle(document.querySelector('.scoreStrip')).opacity,meta:getComputedStyle(document.querySelector('.metaStrip')).opacity,hand:getComputedStyle(document.querySelector('.handRail')).visibility}));
+  expect(openingHierarchy).toEqual({header:'0',scoreStrip:'0',meta:'0',hand:'hidden'});
+  await page.waitForTimeout(850);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('FIRST TILE');await expect(page.locator('#monoidBoardCoach')).toContainText('Place a DOUBLE anywhere on the BOARD.');
+  expect(await page.locator('.handRail').evaluate(el=>getComputedStyle(el).visibility)).toBe('visible');
+  await placeOpeningTile(page);
+  await expect(page.locator('body')).not.toHaveClass(/freshClassicOpening/);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('TARGET');await expect(page.locator('#monoidBoardCoach')).toContainText('Reach TARGET before MOVES run out.');
+});
+
+
+test('Fresh Classic explains Zero and T-Split after the signal uses them',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','fresh'));
+  await page.goto(BASE);await page.locator('#titleCard').click();await expect(page.locator('.app')).toBeVisible();
+  await page.evaluate(()=>localStorage.setItem(window.MonoidProfile.storageKey('monoid.classicGuide.v1'),'3'));
+  await page.waitForTimeout(850);await placeOpeningTile(page);
+  await page.evaluate(()=>{const s=window.__monoidGame.state();s.events.push({type:'presentation-probe',signal:{trace:[{type:'rebound'}]}});document.body.dataset.classicGuideProbe=String(Date.now())});
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('ZERO');await expect(page.locator('#monoidBoardCoach')).toContainText('ZERO rebounds the SIGNAL');
+  await page.waitForTimeout(2600);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('ZERO');
+  await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('idle');
+  await page.evaluate(()=>{const s=window.__monoidGame.state();s.events.push({type:'presentation-probe',signal:{splits:1,trace:[{type:'signal-fork'}]}});document.body.dataset.classicGuideProbe=String(Date.now())});
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await expect(page.locator('#monoidBoardCoach')).toContainText('two routes');await expect(page.locator('#monoidBoardCoach')).toContainText('outputs are added together');
 });

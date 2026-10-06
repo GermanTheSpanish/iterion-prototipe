@@ -116,7 +116,7 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
     const layout=await page.evaluate(()=>{const board=document.querySelector('#board').getBoundingClientRect(),hand=document.querySelector('#hand').getBoundingClientRect();return{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,viewportWidth:innerWidth,viewportHeight:innerHeight,boardBottom:board.bottom,handTop:hand.top,handRight:hand.right,handBottom:hand.bottom}});expect(layout.width).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.height).toBeLessThanOrEqual(layout.viewportHeight);expect(layout.handTop).toBeGreaterThanOrEqual(layout.boardBottom);expect(layout.handRight).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.handBottom).toBeLessThanOrEqual(layout.viewportHeight);
     await page.evaluate(()=>{const g=window.__iterionTestGame,s=g.state();s.hand.fill(null);s.reserve=[];g.assessContinuation();g.save()});await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('#overlayTitle')).toHaveText('MACHINE STALLED');await expect(page.locator('#overlayBody')).toContainText('Classic complete');await expect(page.locator('#downloadFailedRun')).toHaveText('DOWNLOAD RUN .TXT');
-    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.69\.0_B-[0-9A-Z]{7}\.txt$/);
+    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.70\.0_B-[0-9A-Z]{7}\.txt$/);
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.standardComplete)).toBe(true);expect(errors).toEqual([]);
   });
 }
@@ -215,7 +215,7 @@ test('Two phase taps skip Cascade then Summary while gameplay controls stay iner
   const toolDuring=await page.evaluate(()=>({extra:window.__frictionGame.state().extraPlacements,coins:window.__frictionGame.state().coins,events:window.__frictionGame.state().events.length}));
   expect(toolDuring).toEqual(toolBefore);await expect(page.locator('#overlay')).not.toHaveClass(/show/);
   await page.waitForFunction(()=>!window.__monoidCascade?.active,{timeout:5000});await expect(page.locator('#overlay')).not.toHaveClass(/show/);
-  await expect(page.locator('#overlayTitle')).toHaveText('ROUND CLEAR',{timeout:2500});
+  await expect(page.locator('#overlayTitle')).toHaveText('TARGET BROKEN',{timeout:2500});
   const after=await page.evaluate(()=>({score:window.__frictionGame.state().score,turn:window.__frictionGame.state().turn,resolutions:window.__frictionGame.state().events.filter(e=>e.type==='signal-resolution').length,perf:window.__monoidPerformance.at(-1)}));
   expect(after.score).toBe(94);expect(after.turn).toBe(4);expect(after.resolutions).toBe(1);expect(after.perf.skip).toBe('cascade+summary')
 });
@@ -250,5 +250,13 @@ test('Terminal Infinite failure keeps the run debug download visible and functio
   expect(contrast.color).not.toBe(contrast.background);expect(contrast.textFill).not.toBe('transparent');
   const bounds=await page.locator('#overlayPrimary').boundingBox();expect(bounds).not.toBeNull();expect(bounds.y+bounds.height).toBeLessThanOrEqual(844);
   const downloadPromise=page.waitForEvent('download');await page.locator('#overlayPrimary').click();const download=await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.69\.0_B-[0-9A-Z]{7}\.txt$/);
+  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.70\.0_B-[0-9A-Z]{7}\.txt$/);
+});
+
+
+test('TARGET BROKEN advances on a screen tap without a primary button',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{localStorage.setItem('iterion.entryBypass.v1','true');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:70101}),s=g.state();s.round=0;s.cleared=true;s.intermissionResolved=true;s.nextShopType='none';s.score=42;s.scoreExact='42';s.wins=[{round:1,target:20,output:42,moves:1,reward:4,upgradeCoins:0}];window.__tapClearGame=g;return g}}}})});
+  await page.goto('http://127.0.0.1:4173/');await expect(page.locator('#overlayTitle')).toHaveText('TARGET BROKEN');await expect(page.locator('.roundAdvanceHint')).toHaveText('TAP TO CONTINUE');await expect(page.locator('#overlayPrimary')).toBeHidden();
+  await page.locator('#overlayBody').click();await expect.poll(()=>page.evaluate(()=>window.__tapClearGame.state().round)).toBe(1);await expect(page.locator('#overlay')).not.toHaveClass(/show/);
 });
