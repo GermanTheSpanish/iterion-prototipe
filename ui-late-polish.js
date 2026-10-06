@@ -272,7 +272,7 @@
     if(offer.classList.contains('purchasedOffer'))return'INSTALLED';
     if(offer.classList.contains('lockedOffer'))return'CHOICE USED';
     if(info.targetCount<1)return'NO VALID TARGET';
-    if(Number(s.coins)<Number(info.price))return'NOT ENOUGH COINS';
+    if(Number(s.coins)<Number(info.price))return'INSUFFICIENT FUNDS';
     return''
   }
   function decorateMarket(){
