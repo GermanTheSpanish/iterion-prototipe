@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20261006.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20261006.2',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -272,7 +272,7 @@
     if(offer.classList.contains('purchasedOffer'))return'INSTALLED';
     if(offer.classList.contains('lockedOffer'))return'CHOICE USED';
     if(info.targetCount<1)return'NO VALID TARGET';
-    if(Number(s.coins)<Number(info.price))return'NOT ENOUGH COINS';
+    if(Number(s.coins)<Number(info.price))return'INSUFFICIENT FUNDS';
     return''
   }
   function decorateMarket(){

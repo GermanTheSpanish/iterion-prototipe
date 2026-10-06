@@ -178,7 +178,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261006.1');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261006.2');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(120);expect(wordmark.width).toBeLessThanOrEqual(155);expect(parseFloat(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(19);
@@ -201,8 +201,8 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await expect(page.locator('[data-market-offer="long-run"]')).toHaveAttribute('data-market-machine','true');
   await expect(page.locator('.shopFoot')).toContainText('TAP A MOD = DETAILS');
 
-  const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{text:n.textContent.trim(),w:r.width,h:r.height}}));
-  expect(buttonBoxes.every(b=>b.w>80&&b.h>=44&&/· \d+c$/.test(b.text))).toBe(true);
+  const buttonBoxes=await page.locator('.marketCompactOffer>.shopBuy').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect(),value=n.querySelector('.currencyValue')?.textContent.trim();return{text:n.textContent.trim(),value,hasCurrency:!!n.querySelector('.currencyMark'),w:r.width,h:r.height}}));
+  expect(buttonBoxes.every(b=>b.w>80&&b.h>=44&&b.hasCurrency&&/^\d+$/.test(b.value||''))).toBe(true);
   const overflow=await page.locator('.commerceModal').evaluate(el=>({sw:el.scrollWidth,cw:el.clientWidth}));expect(overflow.sw).toBeLessThanOrEqual(overflow.cw+1);
 
   const inspect=dd.locator('[data-market-inspect="double-double"]');await inspect.click();
