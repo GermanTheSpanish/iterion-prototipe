@@ -14,9 +14,9 @@ assert.match(ui,/GAME\.canOpenShop\(\{allowUnaffordable:true\}\)/,'Tile Shop mus
 assert.match(ui,/TILE SHOP CLOSED/);assert.match(ui,/INSUFFICIENT FUNDS/);
 assert.doesNotMatch(late,/NOT ENOUGH COINS/);
 
-assert.match(css,/\.currencyMark\{[^}]*border:[^}]*solid currentColor[^}]*border-radius:50%/,'Currency mark needs a circular token');
-assert.match(css,/\.currencyMark::before\{[^}]*border-radius:50%[^}]*background:currentColor/,'Currency mark needs a central pip');
-assert.match(css,/\.currencyMark::after\{[^}]*left:50%[^}]*width:1\.5px[^}]*height:1\.2em[^}]*background:currentColor/,'Currency mark needs a vertical strike through the pip');
+assert.match(css,/\.currencyMark\{[^}]*border:0[^}]*border-radius:50%[^}]*background:currentColor[^}]*-webkit-mask:[^}]*transparent/,'Currency mark needs a solid circular token with a transparent vertical cut');
+assert.match(css,/\.currencyMark::before,\.currencyMark::after\{[^}]*content:none[^}]*display:none/,'Currency mark must not retain the old central pip or external strike');
+assert.match(ui,/\$\{prefix\}<span class="currencyValue">[\s\S]*?<i class="currencyMark"/,'Currency amounts must place the value before the token');
 assert.match(css,/roundRewardCascade/,'Round reward sources need cascade-like reveal timing');
 assert.match(css,/prefers-reduced-motion:reduce[^}]*[\s\S]*roundRewardRow/,'Round reward motion needs a reduced-motion fallback');
 
@@ -26,5 +26,7 @@ assert.match(ui,/label:'ROUND'/);assert.match(ui,/label:'QUICK CLEAR'/);assert.m
 assert.match(ui,/rewardBreakdown/,'Round payoff must read authoritative reward data rather than recalculate gameplay reward rules');
 assert.match(ui,/event\.type==='mint-coins'/,'Mint must be explained from the authoritative event log');
 assert.match(ui,/roundRewardInline/,'Post-cascade summary must expose earned funds before the result overlay');
+assert.match(ui,/roundRewardHeading">EARNED[\s\S]*roundRewardSources[\s\S]*roundRewardTotal[\s\S]*>TOTAL</,'Round payoff must list sources before a larger TOTAL');
+assert.match(ui,/roundRewardLeader/,'Round payoff rows must visually connect labels to amounts');
 assert.match(ui,/ROUND_REWARD_PREVIEW_MS/);
 console.log('MONOID economy symbol and round payoff presentation regressions passed');
