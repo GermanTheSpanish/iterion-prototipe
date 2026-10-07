@@ -203,7 +203,7 @@
     if(ux.tutorialKind==='systems'&&(ux.systemsPhase==='circuit'||ux.systemsPhase==='mod')&&handRail.contains(e.target)){e.preventDefault();e.stopImmediatePropagation()}
   },true);
 
-  root.addEventListener('monoid:endless-transition-started',()=>{pendingEndlessBriefAfterTransition=true;root.__monoidEndlessBriefPending=true;scheduleSync()});
+  root.addEventListener('monoid:endless-transition-started',()=>{if(localStorage.getItem('iterion.entryBypass.v1')==='true')return;pendingEndlessBriefAfterTransition=true;root.__monoidEndlessBriefPending=true;scheduleSync()});
   function maybeShowEndlessBriefAfterTransition(game){if(!pendingEndlessBriefAfterTransition||!game)return;const state=game.state(),snap=game.snapshot();if(!snap?.endless?.active||state.shopOpen||state.pendingModPlacement||state.pendingCircuit||overlay.classList.contains('show')||ux.commerce||ux.mode!=='idle')return;pendingEndlessBriefAfterTransition=false;showEndlessBrief(null,{entered:true})}
 
   function setText(el,text){if(el&&el.textContent.trim()!==text)el.textContent=text}
