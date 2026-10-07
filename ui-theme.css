@@ -303,13 +303,16 @@ body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;back
 .boardCoachActions span,.boardCoachActions small{display:block;color:var(--muted);font-size:10px;line-height:1.35;text-align:center;letter-spacing:.04em}
 .boardCoachLayer.tour{align-items:center;padding:14px;background:transparent;pointer-events:auto;touch-action:manipulation}
 .boardCoachLayer.firstBrief,.boardCoachLayer.modeReveal{align-items:center;padding:14px;background:rgba(247,247,244,.94);pointer-events:auto;touch-action:manipulation}
-.boardCoachLayer.endlessBrief{align-items:center;padding:14px;background:rgba(52,52,49,.97);color:#f4f3ed;pointer-events:auto;touch-action:manipulation;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.boardCoachLayer.endlessBrief{align-items:center;padding:14px;background:rgba(35,35,33,.985);color:#f4f3ed;pointer-events:auto;touch-action:manipulation;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);animation:endlessBridgeDissolve .9s cubic-bezier(.22,.65,.3,1) both}
 .boardCoachLayer.tour .boardCoachCard{background:var(--paper);border:1px solid var(--line);padding:12px}
 .boardCoachLayer.firstBrief .boardCoachCard,.boardCoachLayer.modeReveal .boardCoachCard{background:transparent;border:0;padding:10px}
-.boardCoachLayer.endlessBrief .boardCoachCard{background:transparent;border:0;padding:10px;color:#f4f3ed}
+.boardCoachLayer.endlessBrief .boardCoachCard{background:transparent;border:0;padding:10px;color:#f4f3ed;animation:endlessBridgeCopyIn .52s ease .32s both}
 .boardCoachLayer.endlessBrief .boardCoachKicker,.boardCoachLayer.endlessBrief .boardCoachActions span,.boardCoachLayer.endlessBrief .boardCoachActions small{color:#aaa9a1}
 .boardCoachLayer.endlessBrief .boardCoachActions button{border-color:#d5d3cb;color:#f4f3ed}
 .boardCoachLayer.endlessBrief .boardCoachActions button.primary{background:#f4f3ed;color:#1b1b19;border-color:#f4f3ed}
+@keyframes endlessBridgeDissolve{0%{background:rgba(247,247,244,.98);color:#151515}42%{background:rgba(110,110,105,.985);color:#f4f3ed}100%{background:rgba(35,35,33,.985);color:#f4f3ed}}
+@keyframes endlessBridgeCopyIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.boardCoachLayer.endlessBrief,.boardCoachLayer.endlessBrief .boardCoachCard{animation:none!important}}
 .boardCoachLayer.modeOrient,.boardCoachLayer.modeDiscovery,.boardCoachLayer.modePayoff,.boardCoachLayer.classicGuide{align-items:flex-end;padding:10px 10px 14px;background:transparent;pointer-events:none}
 .boardCoachLayer.modeOrient .boardCoachCard,.boardCoachLayer.modeDiscovery .boardCoachCard,.boardCoachLayer.modePayoff .boardCoachCard,.boardCoachLayer.classicGuide .boardCoachCard{width:min(88%,320px);padding:10px 12px;border-color:rgba(21,21,21,.22);background:rgba(247,247,244,.92);backdrop-filter:blur(3px)}
 .boardCoachLayer.modeOrient .boardCoachCard h2,.boardCoachLayer.modeDiscovery .boardCoachCard h2,.boardCoachLayer.modePayoff .boardCoachCard h2,.boardCoachLayer.classicGuide .boardCoachCard h2{font-size:clamp(17px,5vw,21px)}
@@ -566,17 +569,17 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .shopClosedState{display:grid;justify-items:center;gap:12px;padding:16px 0 8px}
 .shopClosedState>strong{font-size:clamp(17px,5vw,22px);font-weight:850;letter-spacing:.08em}
 .shopClosedState>span{color:var(--muted);font-size:13px}
-.roundReward{--round-reward-value-width:clamp(78px,23vw,98px);display:grid;gap:8px;margin:16px 0 6px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.roundReward{display:grid;gap:8px;margin:16px 0 6px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .roundRewardHeading{font-size:10px;font-weight:850;letter-spacing:.16em;color:var(--muted)}
 .roundRewardSources{display:grid;gap:5px}
-.roundRewardRow,.roundRewardTotal{display:grid;grid-template-columns:max-content minmax(24px,1fr) var(--round-reward-value-width);align-items:baseline;gap:7px;width:100%}
+.roundRewardRow,.roundRewardTotal{display:flex;align-items:baseline;gap:7px;width:100%}
 .roundRewardRow{min-height:20px;font-size:12px;opacity:0;transform:translateY(4px);animation:roundRewardCascade .52s ease forwards;animation-delay:calc(.76s + var(--reward-index,0)*.24s)}
-.roundRewardRow b{font-size:10px;letter-spacing:.08em;color:var(--muted)}
-.roundRewardLeader{align-self:center;width:100%;border-bottom:1px dotted color-mix(in srgb,var(--muted) 58%,transparent);transform:translateY(-1px)}
-.roundRewardRow .currencyAmount,.roundRewardTotal .currencyAmount{width:100%;justify-content:flex-end}
+.roundRewardRow b{font-size:10px;letter-spacing:.08em;color:var(--muted);flex:0 0 auto}
+.roundRewardLeader{align-self:center;flex:1 1 auto;min-width:18px;border-bottom:1px dotted color-mix(in srgb,var(--muted) 58%,transparent);transform:translateY(-1px)}
+.roundRewardRow .currencyAmount,.roundRewardTotal .currencyAmount{flex:0 0 auto;justify-content:flex-end}
 .roundRewardTotal{margin-top:4px;padding-top:9px;border-top:1px solid var(--line);opacity:0;transform:translateY(4px);animation:roundRewardCascade .56s ease var(--reward-total-delay,1.52s) forwards}
-.roundRewardTotal>span{font-size:10px;font-weight:900;letter-spacing:.16em;color:var(--muted)}
-.roundRewardTotal>strong{justify-self:stretch;font-size:clamp(25px,8vw,35px);font-weight:900;line-height:1}
+.roundRewardTotal>span{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--muted);flex:0 0 auto}
+.roundRewardTotal>strong{flex:0 0 auto;font-size:clamp(23px,6.7vw,30px);font-weight:900;line-height:1}
 .roundAdvanceModal #overlayTitle{animation:roundRewardCascade .48s ease both}
 .roundAdvanceModal .roundClearScore{opacity:0;animation:roundRewardCascade .56s ease .24s forwards}
 .roundAdvanceModal .roundRewardHeading{opacity:0;animation:roundRewardCascade .48s ease .56s forwards}
@@ -586,7 +589,7 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .roundRewardNote{min-height:34px!important;display:flex!important;align-items:center;justify-content:center;overflow:visible!important}
 .roundRewardInline{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 6px;font-size:11px;line-height:1.15}
 .roundRewardInline>b{font-size:9px;letter-spacing:.12em}
-.roundRewardInlineSources{width:100%;font-size:9px;color:var(--muted);letter-spacing:.025em}
+.roundRewardInlineSources{width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 5px;font-size:9px;color:var(--muted);letter-spacing:.025em}.roundRewardInlineSource{display:inline-flex;align-items:center;gap:3px}.roundRewardInlineSource .currencyMark{width:.7em;height:.7em;flex-basis:.7em}.roundRewardInlineSources>i{font-style:normal;opacity:.7}.toast .currencyAmount{display:inline-flex}.toast .currencyMark{width:.72em;height:.72em;flex-basis:.72em}
 body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:currentColor}
-@media(max-height:700px){.roundReward{margin-top:10px;padding:10px 0}.roundRewardTotal>strong{font-size:22px}.roundRewardRow{min-height:18px}.shopRailButton{letter-spacing:0!important}}
+@media(max-height:700px){.roundReward{margin-top:10px;padding:10px 0}.roundRewardTotal>span{font-size:11px}.roundRewardTotal>strong{font-size:22px}.roundRewardRow{min-height:18px}.shopRailButton{letter-spacing:0!important}}
 @media(prefers-reduced-motion:reduce){.roundAdvanceModal #overlayTitle,.roundAdvanceModal .roundClearScore,.roundAdvanceModal .roundRewardHeading,.roundAdvanceModal .roundRewardTotal,.roundRewardRow,.roundAdvanceModal .roundAdvanceHint{animation:none!important;opacity:1!important;transform:none!important}}
