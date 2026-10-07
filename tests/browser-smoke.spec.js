@@ -254,9 +254,10 @@ test('Terminal Infinite failure keeps the run debug download visible and functio
 });
 
 
-test('ROUND COMPLETE advances on a screen tap without a primary button',async({page})=>{
+test('ROUND COMPLETE first tap finishes reveal and second tap advances without a primary button',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>{localStorage.setItem('iterion.entryBypass.v1','true');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:70101}),s=g.state();s.round=0;s.cleared=true;s.intermissionResolved=true;s.nextShopType='none';s.score=42;s.scoreExact='42';s.wins=[{round:1,target:20,output:42,moves:1,reward:4,upgradeCoins:0}];window.__tapClearGame=g;return g}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect(page.locator('#overlayTitle')).toHaveText('ROUND COMPLETE');await expect(page.locator('.roundAdvanceHint')).toHaveText('TAP TO CONTINUE');await expect(page.locator('#overlayPrimary')).toBeHidden();
+  await page.locator('#overlayBody').click();expect(await page.evaluate(()=>window.__tapClearGame.state().round)).toBe(0);await expect(page.locator('.roundAdvanceModal')).toHaveClass(/roundRewardComplete/);await expect(page.locator('#overlay')).toHaveClass(/show/);
   await page.locator('#overlayBody').click();await expect.poll(()=>page.evaluate(()=>window.__tapClearGame.state().round)).toBe(1);await expect(page.locator('#overlay')).not.toHaveClass(/show/);
 });
