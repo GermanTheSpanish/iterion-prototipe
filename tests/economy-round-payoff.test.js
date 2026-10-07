@@ -35,6 +35,7 @@ assert.match(css,/\.roundRewardLeader\{[^}]*flex:1 1 auto[^}]*min-width:18px/,'R
 assert.match(css,/\.roundRewardTotal>span\{font-size:12px[^}]*font-weight:900/,'TOTAL label must carry more visual weight');
 assert.match(css,/\.roundRewardTotal>strong\{[^}]*font-size:clamp\(23px,6\.7vw,30px\)/,'TOTAL amount must be smaller than the previous oversized treatment');
 assert.match(ui,/roundRewardInlineSource/,'Inline earned sources must render the currency token for every source');
+assert.match(ui,/toast\(\`★ \$\{currencyHtml\(result\.upgradeCoins,\{signed:true\}\)\}\`,\{html:true\}\)/,'Star activation toast must identify its reward as currency');
 assert.match(css,/animation:roundRewardCascade \.52s ease forwards[^\n]*animation-delay:calc\(\.76s \+ var\(--reward-index,0\)\*\.24s\)/,'Reward cascade must use the slower Phase 2 timing');
 assert.match(ui,/function finishRoundAdvanceAnimation/);assert.match(ui,/getAnimations\?\.\(\{subtree:true\}\)/);assert.match(ui,/if\(finishRoundAdvanceAnimation\(\)\)return;proceed\(\)/,'First tap during payoff animation must fast-forward instead of advancing');
 assert.match(ui,/ROUND_REWARD_PREVIEW_MS/);
