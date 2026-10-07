@@ -215,8 +215,9 @@
     return[]
   }
   function progressionRewardSurfaceReady(){
-    const overlay=$('overlay'),menu=$('gameMenu'),entry=$('entryFlow');
+    const overlay=$('overlay'),menu=$('gameMenu'),entry=$('entryFlow'),game=root.__monoidGame,state=game?.state?.();
     if(entry&&!entry.hidden)return false;
+    if(root.__monoidEndlessBriefPending||root.__monoidUx?.mode==='endlessBrief'||state?.shopOpen||state?.pendingModPlacement||state?.pendingCircuit)return false;
     if(overlay?.classList.contains('show')||menu?.open)return false;
     return !doc.querySelector('dialog[open]:not(#progressionRewardDialog)')
   }
