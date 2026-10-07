@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20261007.2',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20261007.3',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -215,8 +215,9 @@
     return[]
   }
   function progressionRewardSurfaceReady(){
-    const overlay=$('overlay'),menu=$('gameMenu'),entry=$('entryFlow');
+    const overlay=$('overlay'),menu=$('gameMenu'),entry=$('entryFlow'),game=root.__monoidGame,state=game?.state?.();
     if(entry&&!entry.hidden)return false;
+    if(root.__monoidEndlessBriefPending||root.__monoidUx?.mode==='endlessBrief'||state?.shopOpen||state?.pendingModPlacement||state?.pendingCircuit)return false;
     if(overlay?.classList.contains('show')||menu?.open)return false;
     return !doc.querySelector('dialog[open]:not(#progressionRewardDialog)')
   }
