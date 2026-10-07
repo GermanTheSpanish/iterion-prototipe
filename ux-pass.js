@@ -24,7 +24,7 @@
   const coach=document.createElement('section');
   coach.id='monoidBoardCoach';coach.className='boardCoachLayer';coach.hidden=true;coach.setAttribute('role','dialog');coach.setAttribute('aria-live','polite');
   document.body.appendChild(coach);
-  let coachKey='',pendingEndlessAction=null,pendingForcedModeIntro=false,syncQueued=false,lastTutorialGame=null,rotationStart=0,modeCoachTimer=0,classicGuideTimer=0,freshOpeningTimer=0,lastModeActivationKey='';
+  let coachKey='',pendingEndlessAction=null,pendingEndlessBriefAfterTransition=false,pendingForcedModeIntro=false,syncQueued=false,lastTutorialGame=null,rotationStart=0,modeCoachTimer=0,classicGuideTimer=0,freshOpeningTimer=0,lastModeActivationKey='';
 
   const tour=[
     {title:'THE MACHINE',body:'This is your machine.\nEverything you build stays here.',target:()=>board},
@@ -173,9 +173,9 @@
   }
   function showRunBriefing({forceModeIntro=false}={}){const config=modeOnboardingConfig();pendingForcedModeIntro=!!(forceModeIntro&&config);if(showFirstBrief())return true;const force=pendingForcedModeIntro;pendingForcedModeIntro=false;return config?showModeReveal(config.id,{force}):false}
   function acknowledgeFirstBrief(){localStorage.setItem(FIRST_BRIEF_KEY,'seen');const config=modeOnboardingConfig(),force=pendingForcedModeIntro;pendingForcedModeIntro=false;hideCoach();if(config&&(force||!modeIntroSeen(config.id)))setTimeout(()=>showModeReveal(config.id,{force}),0)}
-  function showEndlessBrief(action){pendingEndlessAction=action;overlay.classList.add('monoidUxSuppressed');highlight(board);showCoach('endlessBrief','endless','ENDLESS','THE MACHINE CONTINUES.','You beat MONOID. There is no finish line now.\n\nTargets grow ×5 every round.\nYour machine, tiles, modifiers and balance carry on.\n\nWhen the set runs dry, stronger POWER tiles enter.','<button class="primary" data-ux-action="enter-endless">ENTER ENDLESS</button><button data-ux-action="back-endless">BACK</button>')}
-  function enterEndless(){const action=pendingEndlessAction;pendingEndlessAction=null;overlay.classList.remove('monoidUxSuppressed');hideCoach();if(action)action()}
-  function backEndless(){pendingEndlessAction=null;overlay.classList.remove('monoidUxSuppressed');hideCoach()}
+  function showEndlessBrief(action,{entered=false}={}){pendingEndlessAction=action;overlay.classList.add('monoidUxSuppressed');highlight(board);const actions=entered?'<button class="primary" data-ux-action="enter-endless">CONTINUE</button>':'<button class="primary" data-ux-action="enter-endless">ENTER ENDLESS</button><button data-ux-action="back-endless">BACK</button>';showCoach('endlessBrief','endless','ENDLESS','THE MACHINE CONTINUES.','You beat MONOID. There is no finish line now.\n\nTargets grow ×5 every round.\nYour machine, tiles, modifiers and balance carry on.\n\nWhen the set runs dry, stronger POWER tiles enter.',actions)}
+  function enterEndless(){const action=pendingEndlessAction;pendingEndlessAction=null;root.__monoidEndlessBriefPending=false;overlay.classList.remove('monoidUxSuppressed');hideCoach();if(action)action();requestAnimationFrame(()=>root.MonoidLatePolish?.sync?.())}
+  function backEndless(){pendingEndlessAction=null;pendingEndlessBriefAfterTransition=false;root.__monoidEndlessBriefPending=false;overlay.classList.remove('monoidUxSuppressed');hideCoach();requestAnimationFrame(()=>root.MonoidLatePolish?.sync?.())}
 
   const replayOriginal=replay?.onclick;
   function startSystemsTutorial(e){if(typeof replayOriginal!=='function')return;tutorialController.setNextKind('systems');replayOriginal.call(replay,e);requestAnimationFrame(scheduleSync)}
@@ -203,7 +203,8 @@
     if(ux.tutorialKind==='systems'&&(ux.systemsPhase==='circuit'||ux.systemsPhase==='mod')&&handRail.contains(e.target)){e.preventDefault();e.stopImmediatePropagation()}
   },true);
 
-  function wrapEndlessButton(){if(localStorage.getItem('iterion.entryBypass.v1')==='true')return;const snap=root.__monoidGame?.snapshot?.();if(!overlay.classList.contains('show')||overlay.dataset.action!=='enter-endless'||snap?.status!=='COMPLETE'||!snap?.endless?.available||snap?.endless?.active)return;const current=overlayPrimary.onclick;if(typeof current!=='function'||current.__monoidEndlessWrapper)return;const wrapper=function(e){e?.preventDefault?.();e?.stopPropagation?.();showEndlessBrief(()=>current.call(overlayPrimary,e))};wrapper.__monoidEndlessWrapper=true;overlayPrimary.onclick=wrapper}
+  root.addEventListener('monoid:endless-transition-started',()=>{pendingEndlessBriefAfterTransition=true;root.__monoidEndlessBriefPending=true;scheduleSync()});
+  function maybeShowEndlessBriefAfterTransition(game){if(!pendingEndlessBriefAfterTransition||!game)return;const state=game.state(),snap=game.snapshot();if(!snap?.endless?.active||state.shopOpen||state.pendingModPlacement||state.pendingCircuit||overlay.classList.contains('show')||ux.commerce||ux.mode!=='idle')return;pendingEndlessBriefAfterTransition=false;showEndlessBrief(null,{entered:true})}
 
   function setText(el,text){if(el&&el.textContent.trim()!==text)el.textContent=text}
   function enhanceCommerceCopy(title){
@@ -221,7 +222,7 @@
     if(flow.screen==='tutorial'&&game&&game!==lastTutorialGame){lastTutorialGame=game;ux.tutorialKind=tutorialController.kindFor(game)||'basics';ux.systemsPhase=ux.tutorialKind==='systems'?'circuit':null;ux.rotationSeen=false;rotationStart=game.state().rootRR||0;tutorialController.ensurePatch();if(ux.tutorialKind==='basics'){tutorialController.prepareHand(game,'d2-2');startTour()}else{hideCoach('tutorial');renderSystemsCoach()}}
     else if(flow.screen!=='tutorial'&&lastTutorialGame){lastTutorialGame=null;tutorialController.restorePatch();ux.tutorialKind=null;ux.systemsPhase=null;ux.rotationSeen=false}
     if(app.hidden&&ux.mode!=='idle'&&ux.mode!=='endlessBrief')hideCoach();
-    tutorialController.ensurePatch();syncPendingDraw();syncTutorialHandVisuals();syncTutorialHandLocks();syncSystemsPhase(game);wrapEndlessButton();syncCommerce();syncModeOnboarding(flow,game);
+    tutorialController.ensurePatch();syncPendingDraw();syncTutorialHandVisuals();syncTutorialHandLocks();syncSystemsPhase(game);syncCommerce();maybeShowEndlessBriefAfterTransition(game);syncModeOnboarding(flow,game);
     if(flow.screen==='game'&&PROFILE?.currentContext?.()==='fresh'&&localStorage.getItem(FIRST_BRIEF_KEY)!=='seen'&&ux.mode==='idle'&&!game?.state?.().running)showFirstBrief();
     syncClassicGuide(flow,game);
     if(flow.screen==='tutorial'&&ux.mode!=='tour')renderTutorialCoach();else if(flow.screen!=='tutorial'&&ux.mode==='tutorial')hideCoach();if(!coach.hidden)syncCoachRect()
