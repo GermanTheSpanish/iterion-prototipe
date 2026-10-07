@@ -423,9 +423,16 @@
     return{total,sources}
   }
   function roundIncomeHtml(last,{inline=false}={}){
-    const income=roundIncomeBreakdown(last),rows=income.sources.map((source,index)=>`<span class="roundRewardRow" style="--reward-index:${index}"><b>${escapeHtml(source.label)}</b><i class="roundRewardLeader" aria-hidden="true"></i>${currencyHtml(source.value,{signed:true})}</span>`).join(''),totalDelay=(.4+income.sources.length*.12).toFixed(2);
+    const income=roundIncomeBreakdown(last),rows=income.sources.map((source,index)=>`<span class="roundRewardRow" style="--reward-index:${index}"><b>${escapeHtml(source.label)}</b><i class="roundRewardLeader" aria-hidden="true"></i>${currencyHtml(source.value,{signed:true})}</span>`).join(''),totalDelay=(.8+income.sources.length*.24).toFixed(2);
     if(inline)return `<span class="roundRewardInline"><b>EARNED</b> ${currencyHtml(income.total,{signed:true,compactValue:true})}<span class="roundRewardInlineSources">${income.sources.map(source=>`${escapeHtml(source.label)} +${escapeHtml(source.value)}`).join(' · ')}</span></span>`;
     return `<section class="roundReward"><div class="roundRewardHeading">EARNED</div><div class="roundRewardSources">${rows}</div><div class="roundRewardTotal" style="--reward-total-delay:${totalDelay}s"><span>TOTAL</span><i class="roundRewardLeader" aria-hidden="true"></i><strong>${currencyHtml(income.total,{signed:true})}</strong></div></section>`
+  }
+  function finishRoundAdvanceAnimation(){
+    const animations=modalEl.getAnimations?.({subtree:true})?.filter(animation=>animation.playState==='running')||[];
+    if(!animations.length)return false;
+    animations.forEach(animation=>animation.finish());
+    modalEl.classList.add('roundRewardComplete');
+    return true
   }
   function ruleVisual(section){return section.visual?`<div class="ruleVisual">${escapeHtml(section.visual)}</div>`:''}
   function closeAuxOverlay(){const closingEntryInspector=auxOverlay?.type==='monoid-inspector'||auxOverlay?.type==='mode-inspector';auxOverlay=null;if(closingEntryInspector){inspectorHoldSuppressed.delete(titleCard);inspectorHoldSuppressed.delete(selectionTitle);inspectorHoldSuppressed.delete(menuButton)}render();(returnFocus?.isConnected?returnFocus:helpBtn).focus();returnFocus=null}
@@ -638,13 +645,13 @@
   }
   function startEndless(){clearOutcomeDelay();const eventCursor=GAME.state().events.length;if(!GAME.startEndless()){toast('Endless unavailable');return}const state=GAME.state(),marketClosed=state.events.slice(eventCursor).some(e=>e.type==='shop-close'&&e.shop==='market'&&e.reason==='insufficient-coins');syncPlaytestContext();if(state.shopOpen&&state.shopType==='market')PT?.openMarket({offers:[...state.shopOffers]});persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(marketClosed?`MARKET CLOSED · INSUFFICIENT FUNDS · ENDLESS ROUND ${state.round+1}`:state.shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${state.round+1}`)}
   function showClear(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1],target=GAME.target(),display=V.scoreDisplay(s.score,target),hero=compact(s.score),exact=fmt(s.score),exactLine=hero===exact?'':`<em>${escapeHtml(exact)}</em>`,scoreHero=`<div class="roundClearScore${display.overdrive?' overdrive':''}"><small>SCORE</small><strong>${escapeHtml(hero)}</strong>${exactLine}<span>TARGET ×${escapeHtml(display.multiplier)}</span></div>`;
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1],target=GAME.target(),display=V.scoreDisplay(s.score,target),hero=compact(s.score),exact=fmt(s.score),exactLine=hero===exact?'':`<em>${escapeHtml(exact)}</em>`,scoreHero=`<div class="roundClearScore${display.overdrive?' overdrive':''}"><small>SCORE</small><strong>${escapeHtml(hero)}</strong>${exactLine}<span class="roundClearTarget">TARGET ${escapeHtml(compact(target))} · ×${escapeHtml(display.multiplier)}</span></div>`;
     modalEl.classList.add('outcomeModal');overlayTitle.textContent=complete?'CLASSIC COMPLETE':'ROUND COMPLETE';
-    overlayBody.innerHTML=complete?`${scoreHero}<p>Classic complete · Target ${fmt(target)}</p>${summaryHtml()}<p class="shopFoot">Enter Endless with the same persistent machine. Targets continue scaling ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round.</p>`:`${scoreHero}${roundIncomeHtml(last)}<p class="roundClearMeta">TARGET ${escapeHtml(compact(target))}</p>`;
+    overlayBody.innerHTML=complete?`${scoreHero}<p>Classic complete.</p>${summaryHtml()}<p class="shopFoot">Enter Endless with the same persistent machine. Targets continue scaling ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round.</p>`:`${scoreHero}${roundIncomeHtml(last)}`;
     if(complete){overlay.dataset.action='enter-endless';overlayPrimary.textContent='ENTER ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
     modalEl.classList.add('roundAdvanceModal');const next=s.nextShopType,advanceLabel=next==='market'?'ENTER MARKET':endless?'CONTINUE ENDLESS':'CONTINUE';let advancing=false;
     const proceed=()=>{if(advancing)return;advancing=true;overlay.onclick=null;if(next==='none'){advanceRound();return}const beforeRound=GAME.state().round,eventCursor=GAME.state().events.length;if(GAME.openIntermission()){const state=GAME.state(),marketClosed=state.events.slice(eventCursor).some(e=>e.type==='shop-close'&&e.shop==='market'&&e.reason==='insufficient-coins');if(marketClosed&&!state.shopOpen&&state.round>beforeRound){syncPlaytestContext();persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(`MARKET CLOSED · INSUFFICIENT FUNDS · ROUND ${state.round+1}`);announceCoreProgress(state.events.slice(eventCursor));return}PT?.openMarket({offers:[...state.shopOffers]});persistGame();render();return}advancing=false;toast('Unavailable')};
-    overlayBody.insertAdjacentHTML('beforeend',`<p class="roundAdvanceHint">TAP TO ${advanceLabel}</p>`);overlayPrimary.style.display='none';overlay.onclick=e=>{if(e.target.closest('button'))return;proceed()};
+    overlayBody.insertAdjacentHTML('beforeend',`<p class="roundAdvanceHint">TAP TO ${advanceLabel}</p>`);overlayPrimary.style.display='none';overlay.onclick=e=>{if(e.target.closest('button'))return;if(finishRoundAdvanceAnimation())return;proceed()};
     if(GAME.canUndo()){overlaySecondary.style.display='inline-block';overlaySecondary.textContent=`UNDO · ${s.consumables.undo}`;overlaySecondary.onclick=useUndo}
   }
   function showShop(){
