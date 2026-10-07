@@ -410,7 +410,7 @@
   function escapeHtml(value){return`${value}`.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
   function currencyHtml(value,{signed=false,compactValue=false}={}){
     const numeric=Number(value)||0,negative=numeric<0,abs=Math.abs(numeric),prefix=signed?(negative?'−':'+'):(negative?'−':''),display=compactValue?compact(abs):fmt(abs),aria=`${prefix}${display} funds`;
-    return `<span class="currencyAmount" aria-label="${escapeHtml(aria)}">${prefix}<span class="currencyValue">${escapeHtml(display)}</span><i class="currencyMark" aria-hidden="true"></i></span>`
+    return `<span class="currencyAmount" aria-label="${escapeHtml(aria)}"><span class="currencyValue">${escapeHtml(prefix+display)}</span><i class="currencyMark" aria-hidden="true"></i></span>`
   }
   function roundIncomeBreakdown(last,state=GAME.state()){
     const breakdown=last?.rewardBreakdown||{},round=Number(last?.round)||Number(state.round)+1,events=(state.events||[]).filter(event=>Number(event?.round)===round),mint=events.filter(event=>event.type==='mint-coins').reduce((sum,event)=>sum+Math.max(0,Number(event.amount)||0),0),sources=[
