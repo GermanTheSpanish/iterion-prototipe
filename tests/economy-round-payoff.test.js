@@ -28,5 +28,10 @@ assert.match(ui,/event\.type==='mint-coins'/,'Mint must be explained from the au
 assert.match(ui,/roundRewardInline/,'Post-cascade summary must expose earned funds before the result overlay');
 assert.match(ui,/roundRewardHeading">EARNED[\s\S]*roundRewardSources[\s\S]*roundRewardTotal[\s\S]*>TOTAL</,'Round payoff must list sources before a larger TOTAL');
 assert.match(ui,/roundRewardLeader/,'Round payoff rows must visually connect labels to amounts');
+assert.match(ui,/class="roundClearTarget">TARGET \$\{escapeHtml\(compact\(target\)\)\} · ×\$\{escapeHtml\(display\.multiplier\)\}/,'Target value and multiplier must live inside the score block');
+assert.doesNotMatch(ui,/class="roundClearMeta"/,'Round payoff must not render a detached Target row below economy');
+assert.match(css,/--round-reward-value-width:clamp\(78px,23vw,98px\)/,'Reward rows and TOTAL must share one amount column width');
+assert.match(css,/animation:roundRewardCascade \.52s ease forwards[^\n]*animation-delay:calc\(\.76s \+ var\(--reward-index,0\)\*\.24s\)/,'Reward cascade must use the slower Phase 2 timing');
+assert.match(ui,/function finishRoundAdvanceAnimation/);assert.match(ui,/getAnimations\?\.\(\{subtree:true\}\)/);assert.match(ui,/if\(finishRoundAdvanceAnimation\(\)\)return;proceed\(\)/,'First tap during payoff animation must fast-forward instead of advancing');
 assert.match(ui,/ROUND_REWARD_PREVIEW_MS/);
 console.log('MONOID economy symbol and round payoff presentation regressions passed');
