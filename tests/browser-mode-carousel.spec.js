@@ -277,6 +277,7 @@ test('The Eyes makes the Stage 2 Core discovery a visible board event',async({pa
   await page.evaluate(()=>{const g=window.__monoidGame,s=g.state();s.round=2;s.cleared=true;s.blocked=false;s.running=false;s.nextShopType='none';s.intermissionResolved=true;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false});
   await page.locator('#menuButton').click();await page.locator('#menuHelpButton').click();await page.locator('#overlayPrimary').click();
   await expect(page.locator('#overlayTitle')).toHaveText('ROUND COMPLETE');
+  await page.locator('#overlayBody').click();await expect(page.locator('.roundAdvanceModal')).toHaveClass(/roundRewardComplete/);await expect(page.locator('#board .coreNode')).toHaveCount(2);
   await page.locator('#overlayBody').click();
   await expect(page.locator('#board .coreNode')).toHaveCount(3);
   await expect(page.locator('.boardMessage')).toContainText(/NEW CORE · (RELAY|RESERVOIR|DISTRIBUTOR|CONDUCTOR) I/);
