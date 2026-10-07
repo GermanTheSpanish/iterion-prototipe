@@ -306,7 +306,7 @@ body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;back
 .boardCoachLayer.endlessBrief{align-items:center;padding:14px;background:rgba(35,35,33,.985);color:#f4f3ed;pointer-events:auto;touch-action:manipulation;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);animation:endlessBridgeDissolve .9s cubic-bezier(.22,.65,.3,1) both}
 .boardCoachLayer.tour .boardCoachCard{background:var(--paper);border:1px solid var(--line);padding:12px}
 .boardCoachLayer.firstBrief .boardCoachCard,.boardCoachLayer.modeReveal .boardCoachCard{background:transparent;border:0;padding:10px}
-.boardCoachLayer.endlessBrief .boardCoachCard{background:transparent;border:0;padding:10px;color:#f4f3ed;animation:endlessBridgeCopyIn .52s ease .32s both}
+.boardCoachLayer.endlessBrief .boardCoachCard{background:transparent;border:0;padding:10px;color:#f4f3ed;animation:endlessBridgeCopyIn .52s ease .72s both}
 .boardCoachLayer.endlessBrief .boardCoachKicker,.boardCoachLayer.endlessBrief .boardCoachActions span,.boardCoachLayer.endlessBrief .boardCoachActions small{color:#aaa9a1}
 .boardCoachLayer.endlessBrief .boardCoachActions button{border-color:#d5d3cb;color:#f4f3ed}
 .boardCoachLayer.endlessBrief .boardCoachActions button.primary{background:#f4f3ed;color:#1b1b19;border-color:#f4f3ed}
