@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.71.2');
+assert.strictEqual(D.VERSION,'0.71.3');
 assert.strictEqual(D.ENGINE_VERSION,'0.21.0-peaks-ridge-v1');
 assert.strictEqual(D.LONG_RUN_UNIQUE_THRESHOLD,10);
 assert.strictEqual(D.MARKET_LONG_RUN_COST,8);

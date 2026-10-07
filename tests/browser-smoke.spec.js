@@ -78,7 +78,7 @@ test('UX large machine, compact scores and exact threshold',async({page},testInf
 
 test('Score overdrive switches to Target multiplier at 1000x and round clear preserves the absolute result',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>{let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(engine,options){const g=value.createGame(engine,{...options,seed:25309}),s=g.state(),target=g.target();s.score=target*1000;s.cleared=true;s.running=false;s.wins=[{reward:0,upgradeCoins:0}];s.nextShopType='none';window.__overdriveGame=g;return g}}}})});
-  await page.goto('http://127.0.0.1:4173/');await expect(page.locator('#score')).toHaveText('×1,000');await expect(page.locator('#scoreNote')).toHaveText('TARGET MULTIPLIER');await expect(page.locator('#scoreDetail')).toHaveClass(/scoreOverdrive/);expect(await page.locator('#score').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(179, 38, 30)');await expect(page.locator('.roundClearScore strong')).toHaveText('20,000');await expect(page.locator('.roundClearScore span')).toHaveText('TARGET ×1,000');expect(await page.locator('.roundClearScore strong').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(179, 38, 30)');await page.screenshot({path:testInfo.outputPath('score-overdrive.png')})
+  await page.goto('http://127.0.0.1:4173/');await expect(page.locator('#score')).toHaveText('×1,000');await expect(page.locator('#scoreNote')).toHaveText('TARGET MULTIPLIER');await expect(page.locator('#scoreDetail')).toHaveClass(/scoreOverdrive/);expect(await page.locator('#score').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(179, 38, 30)');await expect(page.locator('.roundClearScore strong')).toHaveText('20,000');await expect(page.locator('.roundClearTarget')).toHaveText('TARGET 20 · ×1,000');expect(await page.locator('.roundClearScore strong').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(179, 38, 30)');await page.screenshot({path:testInfo.outputPath('score-overdrive.png')})
 });
 
 test('UX real placement cascade, operation contrast and deferred Circuit choice',async({page},testInfo)=>{
@@ -116,7 +116,7 @@ for(const viewport of [{width:390,height:844},{width:375,height:667}]){
     const layout=await page.evaluate(()=>{const board=document.querySelector('#board').getBoundingClientRect(),hand=document.querySelector('#hand').getBoundingClientRect();return{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,viewportWidth:innerWidth,viewportHeight:innerHeight,boardBottom:board.bottom,handTop:hand.top,handRight:hand.right,handBottom:hand.bottom}});expect(layout.width).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.height).toBeLessThanOrEqual(layout.viewportHeight);expect(layout.handTop).toBeGreaterThanOrEqual(layout.boardBottom);expect(layout.handRight).toBeLessThanOrEqual(layout.viewportWidth);expect(layout.handBottom).toBeLessThanOrEqual(layout.viewportHeight);
     await page.evaluate(()=>{const g=window.__iterionTestGame,s=g.state();s.hand.fill(null);s.reserve=[];g.assessContinuation();g.save()});await openHelp(page);await page.locator('#overlayPrimary').click();
     await expect(page.locator('#overlayTitle')).toHaveText('MACHINE STALLED');await expect(page.locator('#overlayBody')).toContainText('Classic complete');await expect(page.locator('#downloadFailedRun')).toHaveText('DOWNLOAD RUN .TXT');
-    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.71\.2_B-[0-9A-Z]{7}\.txt$/);
+    const downloadPromise=page.waitForEvent('download');await page.locator('#downloadFailedRun').click();const download=await downloadPromise;expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.71\.3_B-[0-9A-Z]{7}\.txt$/);
     expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.standardComplete)).toBe(true);expect(errors).toEqual([]);
   });
 }
@@ -250,13 +250,14 @@ test('Terminal Infinite failure keeps the run debug download visible and functio
   expect(contrast.color).not.toBe(contrast.background);expect(contrast.textFill).not.toBe('transparent');
   const bounds=await page.locator('#overlayPrimary').boundingBox();expect(bounds).not.toBeNull();expect(bounds.y+bounds.height).toBeLessThanOrEqual(844);
   const downloadPromise=page.waitForEvent('download');await page.locator('#overlayPrimary').click();const download=await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.71\.2_B-[0-9A-Z]{7}\.txt$/);
+  expect(download.suggestedFilename()).toMatch(/^MONOID_PLAYTEST_v0\.71\.3_B-[0-9A-Z]{7}\.txt$/);
 });
 
 
-test('ROUND COMPLETE advances on a screen tap without a primary button',async({page})=>{
+test('ROUND COMPLETE first tap finishes reveal and second tap advances without a primary button',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>{localStorage.setItem('iterion.entryBypass.v1','true');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:70101}),s=g.state();s.round=0;s.cleared=true;s.intermissionResolved=true;s.nextShopType='none';s.score=42;s.scoreExact='42';s.wins=[{round:1,target:20,output:42,moves:1,reward:4,upgradeCoins:0}];window.__tapClearGame=g;return g}}}})});
   await page.goto('http://127.0.0.1:4173/');await expect(page.locator('#overlayTitle')).toHaveText('ROUND COMPLETE');await expect(page.locator('.roundAdvanceHint')).toHaveText('TAP TO CONTINUE');await expect(page.locator('#overlayPrimary')).toBeHidden();
+  await page.locator('#overlayBody').click();expect(await page.evaluate(()=>window.__tapClearGame.state().round)).toBe(0);await expect(page.locator('.roundAdvanceModal')).toHaveClass(/roundRewardComplete/);await expect(page.locator('#overlay')).toHaveClass(/show/);
   await page.locator('#overlayBody').click();await expect.poll(()=>page.evaluate(()=>window.__tapClearGame.state().round)).toBe(1);await expect(page.locator('#overlay')).not.toHaveClass(/show/);
 });
