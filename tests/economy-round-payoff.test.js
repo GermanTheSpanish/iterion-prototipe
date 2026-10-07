@@ -16,7 +16,7 @@ assert.doesNotMatch(late,/NOT ENOUGH COINS/);
 
 assert.match(css,/\.currencyMark\{[^}]*border:0[^}]*border-radius:50%[^}]*background:currentColor[^}]*-webkit-mask:[^}]*transparent/,'Currency mark needs a solid circular token with a transparent vertical cut');
 assert.match(css,/\.currencyMark::before,\.currencyMark::after\{[^}]*content:none[^}]*display:none/,'Currency mark must not retain the old central pip or external strike');
-assert.match(ui,/\$\{prefix\}<span class="currencyValue">[\s\S]*?<i class="currencyMark"/,'Currency amounts must place the value before the token');
+assert.match(ui,/<span class="currencyValue">\$\{escapeHtml\(prefix\+display\)\}<\/span><i class="currencyMark"/,'Currency amounts must keep the sign with the value and place the token last');
 assert.match(css,/roundRewardCascade/,'Round reward sources need cascade-like reveal timing');
 assert.match(css,/prefers-reduced-motion:reduce[^}]*[\s\S]*roundRewardRow/,'Round reward motion needs a reduced-motion fallback');
 
