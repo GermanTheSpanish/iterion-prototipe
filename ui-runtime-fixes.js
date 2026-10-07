@@ -193,7 +193,7 @@
       const move=$('moveTool'),reroll=$('reroll'),undo=$('undoTool'),shop=$('shopButton');
       const moveHtml=`${remaining} MOVES<small>ADD +1 · ${state.consumables?.move||0}</small>`;
       const rerollSub=state.freeReroll?'FREE':String(state.consumables?.reroll||0),rerollHtml=`REROLL<small>${rerollSub}</small>`;
-      const undoHtml=`UNDO<small>${state.consumables?.undo||0}</small>`,shopHtml=`TILE SHOP<small><span class="currencyAmount"><i class="currencyMark" aria-hidden="true"></i><span class="currencyValue">${state.coins||0}</span></span></small>`;
+      const undoHtml=`UNDO<small>${state.consumables?.undo||0}</small>`,shopHtml=`TILE SHOP<small><span class="currencyAmount"><span class="currencyValue">${state.coins||0}</span><i class="currencyMark" aria-hidden="true"></i></span></small>`;
       if(move&&move.innerHTML!==moveHtml)move.innerHTML=moveHtml;if(reroll&&reroll.innerHTML!==rerollHtml)reroll.innerHTML=rerollHtml;if(undo&&undo.innerHTML!==undoHtml)undo.innerHTML=undoHtml;if(shop&&shop.innerHTML!==shopHtml)shop.innerHTML=shopHtml
     }
     function syncMenu(){const menu=$('menuButton');if(!menu)return;if(menu.textContent!=='MONOID')menu.textContent='MONOID';menu.style.setProperty('font-size','clamp(17px,4.5vw,19px)','important');menu.style.setProperty('justify-content','center','important');menu.style.setProperty('gap','clamp(6px,2vw,10px)','important');menu.style.setProperty('letter-spacing','0','important')}
@@ -209,7 +209,7 @@
   function installPhaseA(){
     if(root.__monoidPhaseAInstalled)return;
     root.__monoidPhaseAInstalled=true;
-    const BUILD_ID='20261006.3';
+    const BUILD_ID='20261007.1';
     const COMPACT_THRESHOLD=50000;
     const UNITS=['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
     const $=id=>doc.getElementById(id);

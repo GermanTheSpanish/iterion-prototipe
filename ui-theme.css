@@ -302,9 +302,14 @@ body.monoidTourActive::before{content:"";position:fixed;inset:0;z-index:500;back
 .boardCoachActions button.primary{background:var(--ink);color:var(--paper)}
 .boardCoachActions span,.boardCoachActions small{display:block;color:var(--muted);font-size:10px;line-height:1.35;text-align:center;letter-spacing:.04em}
 .boardCoachLayer.tour{align-items:center;padding:14px;background:transparent;pointer-events:auto;touch-action:manipulation}
-.boardCoachLayer.firstBrief,.boardCoachLayer.endlessBrief,.boardCoachLayer.modeReveal{align-items:center;padding:14px;background:rgba(247,247,244,.94);pointer-events:auto;touch-action:manipulation}
+.boardCoachLayer.firstBrief,.boardCoachLayer.modeReveal{align-items:center;padding:14px;background:rgba(247,247,244,.94);pointer-events:auto;touch-action:manipulation}
+.boardCoachLayer.endlessBrief{align-items:center;padding:14px;background:rgba(52,52,49,.97);color:#f4f3ed;pointer-events:auto;touch-action:manipulation;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 .boardCoachLayer.tour .boardCoachCard{background:var(--paper);border:1px solid var(--line);padding:12px}
-.boardCoachLayer.firstBrief .boardCoachCard,.boardCoachLayer.endlessBrief .boardCoachCard,.boardCoachLayer.modeReveal .boardCoachCard{background:transparent;border:0;padding:10px}
+.boardCoachLayer.firstBrief .boardCoachCard,.boardCoachLayer.modeReveal .boardCoachCard{background:transparent;border:0;padding:10px}
+.boardCoachLayer.endlessBrief .boardCoachCard{background:transparent;border:0;padding:10px;color:#f4f3ed}
+.boardCoachLayer.endlessBrief .boardCoachKicker,.boardCoachLayer.endlessBrief .boardCoachActions span,.boardCoachLayer.endlessBrief .boardCoachActions small{color:#aaa9a1}
+.boardCoachLayer.endlessBrief .boardCoachActions button{border-color:#d5d3cb;color:#f4f3ed}
+.boardCoachLayer.endlessBrief .boardCoachActions button.primary{background:#f4f3ed;color:#1b1b19;border-color:#f4f3ed}
 .boardCoachLayer.modeOrient,.boardCoachLayer.modeDiscovery,.boardCoachLayer.modePayoff,.boardCoachLayer.classicGuide{align-items:flex-end;padding:10px 10px 14px;background:transparent;pointer-events:none}
 .boardCoachLayer.modeOrient .boardCoachCard,.boardCoachLayer.modeDiscovery .boardCoachCard,.boardCoachLayer.modePayoff .boardCoachCard,.boardCoachLayer.classicGuide .boardCoachCard{width:min(88%,320px);padding:10px 12px;border-color:rgba(21,21,21,.22);background:rgba(247,247,244,.92);backdrop-filter:blur(3px)}
 .boardCoachLayer.modeOrient .boardCoachCard h2,.boardCoachLayer.modeDiscovery .boardCoachCard h2,.boardCoachLayer.modePayoff .boardCoachCard h2,.boardCoachLayer.classicGuide .boardCoachCard h2{font-size:clamp(17px,5vw,21px)}
@@ -548,10 +553,9 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 
 
 /* 20261006 Economy + Round payoff */
-.currencyAmount{display:inline-flex;align-items:center;justify-content:center;gap:.28em;white-space:nowrap;font-variant-numeric:tabular-nums}
-.currencyMark{position:relative;display:inline-block;width:.86em;height:.86em;flex:0 0 .86em;border:1.5px solid currentColor;border-radius:50%;box-sizing:border-box;vertical-align:-.08em}
-.currencyMark::before{content:"";position:absolute;left:50%;top:50%;width:.25em;height:.25em;border-radius:50%;background:currentColor;transform:translate(-50%,-50%)}
-.currencyMark::after{content:"";position:absolute;left:50%;top:-.17em;width:1.5px;height:1.2em;border-radius:2px;background:currentColor;transform:translateX(-50%)}
+.currencyAmount{display:inline-flex;align-items:center;justify-content:center;gap:.22em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.currencyMark{position:relative;display:inline-block;width:.82em;height:.82em;flex:0 0 .82em;border:0;border-radius:50%;box-sizing:border-box;vertical-align:-.06em;background:currentColor;-webkit-mask:linear-gradient(90deg,#000 0 calc(50% - .075em),transparent calc(50% - .075em) calc(50% + .075em),#000 calc(50% + .075em) 100%);mask:linear-gradient(90deg,#000 0 calc(50% - .075em),transparent calc(50% - .075em) calc(50% + .075em),#000 calc(50% + .075em) 100%)}
+.currencyMark::before,.currencyMark::after{content:none;display:none}
 .currencyValue{font:inherit}
 .menuFunds{display:inline-flex;align-items:center}
 .shopRailButton{white-space:nowrap;letter-spacing:.035em!important}
@@ -563,18 +567,22 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .shopClosedState{display:grid;justify-items:center;gap:12px;padding:16px 0 8px}
 .shopClosedState>strong{font-size:clamp(17px,5vw,22px);font-weight:850;letter-spacing:.08em}
 .shopClosedState>span{color:var(--muted);font-size:13px}
-.roundReward{display:grid;gap:10px;margin:16px 0 6px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.roundRewardTotal{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
-.roundRewardTotal>span{font-size:10px;font-weight:850;letter-spacing:.16em;color:var(--muted)}
-.roundRewardTotal>strong{font-size:clamp(22px,7vw,32px);font-weight:850}
+.roundReward{display:grid;gap:8px;margin:16px 0 6px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.roundRewardHeading{font-size:10px;font-weight:850;letter-spacing:.16em;color:var(--muted)}
 .roundRewardSources{display:grid;gap:5px}
-.roundRewardRow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:20px;font-size:12px;opacity:0;transform:translateY(4px);animation:roundRewardCascade .26s ease forwards;animation-delay:calc(.44s + var(--reward-index,0)*.12s)}
+.roundRewardRow,.roundRewardTotal{display:grid;grid-template-columns:max-content minmax(24px,1fr) max-content;align-items:baseline;gap:7px;width:100%}
+.roundRewardRow{min-height:20px;font-size:12px;opacity:0;transform:translateY(4px);animation:roundRewardCascade .26s ease forwards;animation-delay:calc(.38s + var(--reward-index,0)*.12s)}
 .roundRewardRow b{font-size:10px;letter-spacing:.08em;color:var(--muted)}
+.roundRewardLeader{align-self:center;width:100%;border-bottom:1px dotted color-mix(in srgb,var(--muted) 58%,transparent);transform:translateY(-1px)}
+.roundRewardRow .currencyAmount{min-width:3.25em;justify-content:flex-end}
+.roundRewardTotal{margin-top:4px;padding-top:9px;border-top:1px solid var(--line);opacity:0;transform:translateY(4px);animation:roundRewardCascade .28s ease var(--reward-total-delay,.76s) forwards}
+.roundRewardTotal>span{font-size:10px;font-weight:900;letter-spacing:.16em;color:var(--muted)}
+.roundRewardTotal>strong{font-size:clamp(25px,8vw,35px);font-weight:900;line-height:1}
 .roundAdvanceModal #overlayTitle{animation:roundRewardCascade .24s ease both}
 .roundAdvanceModal .roundClearScore{opacity:0;animation:roundRewardCascade .28s ease .12s forwards}
-.roundAdvanceModal .roundRewardTotal{opacity:0;animation:roundRewardCascade .28s ease .32s forwards}
-.roundAdvanceModal .roundClearMeta{opacity:0;animation:roundRewardCascade .25s ease .82s forwards}
-.roundAdvanceModal .roundAdvanceHint{opacity:0;animation:roundRewardCascade .25s ease 1s forwards}
+.roundAdvanceModal .roundRewardHeading{opacity:0;animation:roundRewardCascade .24s ease .28s forwards}
+.roundAdvanceModal .roundClearMeta{opacity:0;animation:roundRewardCascade .25s ease 1.02s forwards}
+.roundAdvanceModal .roundAdvanceHint{opacity:0;animation:roundRewardCascade .25s ease 1.16s forwards}
 @keyframes roundRewardCascade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .roundRewardNote{min-height:34px!important;display:flex!important;align-items:center;justify-content:center;overflow:visible!important}
 .roundRewardInline{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 6px;font-size:11px;line-height:1.15}
@@ -582,4 +590,4 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .roundRewardInlineSources{width:100%;font-size:9px;color:var(--muted);letter-spacing:.025em}
 body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:currentColor}
 @media(max-height:700px){.roundReward{margin-top:10px;padding:10px 0}.roundRewardTotal>strong{font-size:22px}.roundRewardRow{min-height:18px}.shopRailButton{letter-spacing:0!important}}
-@media(prefers-reduced-motion:reduce){.roundAdvanceModal #overlayTitle,.roundAdvanceModal .roundClearScore,.roundAdvanceModal .roundRewardTotal,.roundRewardRow,.roundAdvanceModal .roundClearMeta,.roundAdvanceModal .roundAdvanceHint{animation:none!important;opacity:1!important;transform:none!important}}
+@media(prefers-reduced-motion:reduce){.roundAdvanceModal #overlayTitle,.roundAdvanceModal .roundClearScore,.roundAdvanceModal .roundRewardHeading,.roundAdvanceModal .roundRewardTotal,.roundRewardRow,.roundAdvanceModal .roundClearMeta,.roundAdvanceModal .roundAdvanceHint{animation:none!important;opacity:1!important;transform:none!important}}

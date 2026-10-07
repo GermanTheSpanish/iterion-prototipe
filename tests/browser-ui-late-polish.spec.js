@@ -178,7 +178,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261006.3');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261007.1');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(120);expect(wordmark.width).toBeLessThanOrEqual(155);expect(parseFloat(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(19);
@@ -303,10 +303,10 @@ test('Tile Shop purchases fit an eight-tile overflow Hand on compact phones',asy
 });
 
 
-test('54x72 Classic boards keep pips round and tile corners proportional',async({page})=>{
+test('54x72 Classic boards scale pips down with the physical tile',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>{localStorage.setItem('monoid.firstRunBriefing.v1','seen');let api;Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{api={...value,createGame(E,options){const g=value.createGame(E,{...options,seed:70054}),s=g.state();E.setBoardSize(54,72);const t=s.set.find(tile=>tile.id==='d6-6'),p=E.pieceFrom(t,24,30,0,0,1);p.tile={...t};s.pieces=[p];s.placedTileIds=[t.id];s.hand=s.hand.map(tile=>tile?.id===t.id?null:tile);s.reserve=s.reserve.filter(tile=>tile.id!==t.id);s.idc=1;s.turn=1;window.__largeBoardGame=g;return g}}}})});
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();await expect(page.locator('#board .piece')).toHaveCount(1);
-  const metrics=await page.locator('#board .piece').evaluate(el=>{const piece=getComputedStyle(el),pip=el.querySelector('.pip'),pr=pip.getBoundingClientRect(),br=document.querySelector('#board').getBoundingClientRect();return{radius:parseFloat(piece.borderTopLeftRadius),pipW:pr.width,pipH:pr.height,pipVar:document.querySelector('#board').style.getPropertyValue('--board-pip-size'),radiusVar:document.querySelector('#board').style.getPropertyValue('--board-tile-radius'),boardW:br.width}});
-  expect(metrics.boardW).toBeGreaterThan(200);expect(Math.abs(metrics.pipW-metrics.pipH)).toBeLessThan(.15);expect(metrics.pipW).toBeGreaterThanOrEqual(1.7);expect(metrics.radius).toBeGreaterThan(.6);expect(metrics.radius).toBeLessThanOrEqual(2.5);expect(metrics.pipVar).toMatch(/px$/);expect(metrics.radiusVar).toMatch(/px$/);
+  const metrics=await page.locator('#board .piece').evaluate(el=>{const piece=getComputedStyle(el),pip=el.querySelector('.pip'),pr=pip.getBoundingClientRect(),er=el.getBoundingClientRect(),br=document.querySelector('#board').getBoundingClientRect();return{radius:parseFloat(piece.borderTopLeftRadius),pipW:pr.width,pipH:pr.height,tileShort:Math.min(er.width,er.height),pipVar:document.querySelector('#board').style.getPropertyValue('--board-pip-size'),radiusVar:document.querySelector('#board').style.getPropertyValue('--board-tile-radius'),boardW:br.width}});
+  expect(metrics.boardW).toBeGreaterThan(200);expect(Math.abs(metrics.pipW-metrics.pipH)).toBeLessThan(.15);expect(metrics.pipW).toBeGreaterThanOrEqual(1.2);expect(metrics.pipW/metrics.tileShort).toBeLessThan(.15);expect(metrics.radius).toBeGreaterThan(.6);expect(metrics.radius).toBeLessThanOrEqual(2.5);expect(metrics.pipVar).toMatch(/px$/);expect(metrics.radiusVar).toMatch(/px$/);
 });

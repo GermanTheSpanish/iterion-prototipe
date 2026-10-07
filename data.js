@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.71.1',
+    VERSION:'0.71.2',
     ENGINE_VERSION:'0.21.0-peaks-ridge-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[

@@ -9,7 +9,7 @@ function piece(a,b,x,y,rr,id){const p=E.pieceFrom({a,b},x,y,0,rr,id);p.tile={id:
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 
 check('active Signal roster keeps distinct double and HINGE identities',()=>{
-  assert.equal(D.VERSION,'0.71.1');
+  assert.equal(D.VERSION,'0.71.2');
   assert.deepEqual(['double-double','double-echo','triple-double','hinge'].map(id=>M.get(id).category),Array(4).fill('signal'));
   assert.deepEqual(['double-double','double-echo','triple-double','hinge'].map(id=>M.get(id).collectionCode),['DD','DE','TD','HG']);
   for(const id of ['diode','return','merge','sequence','complement','relay','coupler'])assert.equal(M.get(id),null);
