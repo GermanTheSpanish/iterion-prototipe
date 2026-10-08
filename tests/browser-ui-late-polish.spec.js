@@ -61,7 +61,7 @@ for(const width of [375,430])for(const endless of [false,true]){
       g.openIntermission();s.shopOffers=['double-double','double-echo','zero-port'];
     },endless);
     await openHelp(page);await page.locator('#overlayPrimary').click();
-    await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);
+    await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);await expect(page.locator('.compactMarket .marketChoiceTitle')).toHaveText('CHOOSE ONE');const choiceGeometry=await page.locator('.compactMarket').evaluate(el=>{const title=el.querySelector('.marketChoiceTitle').getBoundingClientRect(),grid=el.querySelector('.marketOfferGrid').getBoundingClientRect(),topCard=el.querySelector('.marketCompactOffer').getBoundingClientRect();return{titleCenter:title.left+title.width/2,gridCenter:grid.left+grid.width/2,titleBottom:title.bottom,topCardTop:topCard.top}});expect(Math.abs(choiceGeometry.titleCenter-choiceGeometry.gridCenter)).toBeLessThan(1);expect(choiceGeometry.titleBottom).toBeLessThanOrEqual(choiceGeometry.topCardTop);
     await expect(page.locator('.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
     await expect(page.locator('.marketOfferMark')).toHaveCount(3);
     await expect(page.locator('.marketAssignedGroup,.marketPoolGroup')).toHaveCount(0);
@@ -178,7 +178,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261007.3');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261008.1');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(120);expect(wordmark.width).toBeLessThanOrEqual(155);expect(parseFloat(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(19);

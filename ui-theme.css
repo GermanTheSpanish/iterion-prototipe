@@ -144,9 +144,9 @@ button:focus-visible{outline:2px solid #151515;outline-offset:3px}
 .toolQuantityArrows button{width:46px;min-height:44px;padding:0;border:1px solid var(--line);background:var(--paper2);color:var(--ink);font-size:20px;font-weight:800}
 .toolQuantityArrows button:disabled{opacity:.35}
 .toolPurchaseTotal{display:flex;min-width:0;flex-direction:column;align-items:flex-end;justify-content:center;padding-left:6px;text-align:right}
-.toolPurchaseTotal span{font-size:10px;letter-spacing:.12em;color:var(--muted)}
-.toolPurchaseTotal strong{font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
-.toolPurchaseTotal small{margin-top:5px;font-size:11px;line-height:1.35;color:var(--muted)}
+.toolPurchaseTotal span{font-size:12px;font-weight:750;letter-spacing:.12em;color:var(--muted)}
+.toolPurchaseTotal strong{font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.toolPurchaseTotal small{margin-top:6px;font-size:13px;line-height:1.35;color:var(--muted)}
 .gameMenu{width:min(360px,calc(100% - 24px));padding:20px;border:1px solid var(--line);border-radius:6px;color:var(--ink);background:#fff;max-height:90dvh;overflow:auto}
 .gameMenu::backdrop{background:rgba(245,245,241,.9)}
 .menuHead{display:flex;justify-content:space-between;align-items:center}.menuHead h2{font-size:20px;margin:0}
@@ -236,7 +236,7 @@ body.endlessPalette .hand .domino.powerTile.circuitTile{background:var(--power-c
 @keyframes randomTileFlip{0%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
 .commerceModal .shopBuy{min-height:44px;font-size:13px;border-radius:6px;box-shadow:none}
 .commerceModal .shopBuy:disabled{opacity:.6;background:#f1f0ec;color:#5f5d56}
-.marketChoiceTitle{margin:16px 0 10px;font-size:12px;letter-spacing:.12em}
+.marketChoiceTitle{margin:16px 0 10px;font-size:12px;letter-spacing:.12em}.compactMarket .marketOfferGrid>.marketChoiceTitle{grid-column:1/-1;justify-self:center;width:max-content;margin:-8px 0 7px;padding:0 9px;background:var(--paper);font-weight:750;text-align:center}
 .marketOfferHead strong{font-size:15px;letter-spacing:.03em}.marketOfferHead span{font-size:16px!important;color:var(--ink)}
 .marketOffer p{font-size:13px;margin:8px 0;line-height:1.45}
 .marketTarget{font-size:12px!important;margin-bottom:10px}
@@ -369,7 +369,7 @@ body.monoidCommerceActive .commerceModal .marketDesc strong{grid-column:1;font-s
 body.monoidCommerceActive .commerceModal .marketDesc span{grid-column:1;margin:0!important;font-size:10.5px!important;line-height:1.2!important}
 body.monoidCommerceActive .commerceModal .marketDesc .shopBuy{grid-column:2;grid-row:1/3;margin:0!important;min-height:38px!important;padding:5px!important;font-size:10px!important}
 body.monoidCommerceActive .commerceModal .shopBuy{min-height:38px!important;padding:7px 8px!important;border-radius:3px!important;font-size:11px!important}
-body.monoidCommerceActive .commerceModal .marketChoiceTitle{margin:6px 0 4px!important;font-size:10px!important;text-align:left!important}
+body.monoidCommerceActive .commerceModal .marketChoiceTitle{margin:6px 0 4px!important;font-size:10px!important;text-align:left!important}body.monoidCommerceActive .commerceModal .compactMarket .marketOfferGrid>.marketChoiceTitle{grid-column:1/-1!important;justify-self:center!important;width:max-content!important;margin:-7px 0 4px!important;padding:0 8px!important;background:var(--paper)!important;font-size:11px!important;font-weight:750!important;text-align:center!important}
 body.monoidCommerceActive .commerceModal .marketAssignments{flex:0 0 auto}
 body.monoidCommerceActive .commerceModal .marketOfferGrid{display:grid!important;gap:3px!important;min-height:0}
 body.monoidCommerceActive .commerceModal .marketOffer{padding:5px 0!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important}
@@ -543,13 +543,20 @@ body.freshClassicOpening .board{background:#fff}
 .commerceModal .shopOfferInspect .domino,.commerceModal .marketTile .domino,.commerceModal .marketOfferMark{box-shadow:var(--tile-shadow)!important}
 body.endlessPalette .commerceModal .shopOfferInspect .domino,body.endlessPalette .commerceModal .marketTile .domino,body.endlessPalette .commerceModal .marketOfferMark,body.infinitePalette .commerceModal .shopOfferInspect .domino,body.infinitePalette .commerceModal .marketTile .domino,body.infinitePalette .commerceModal .marketOfferMark{box-shadow:0 0 0 1px rgba(255,255,255,.16),0 0 10px rgba(255,255,255,.18)!important}
 body.monoidCommerceActive .commerceModal .classicMarketPyramid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
-body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){grid-column:1/-1;width:calc((100% - 7px)/2)!important;max-width:calc((100% - 7px)/2)!important;justify-self:center!important;margin-inline:auto!important}
+body.monoidCommerceActive .commerceModal .classicMarketPyramid>.marketOffer:first-of-type{grid-column:1/-1;width:calc((100% - 7px)/2)!important;max-width:calc((100% - 7px)/2)!important;justify-self:center!important;margin-inline:auto!important}
 .roundAdvanceModal{cursor:pointer}
 .roundAdvanceModal .roundClearScore{margin-top:4px}
 .roundClearScore strong{font-size:clamp(38px,13vw,64px);line-height:.92}
-.roundClearScore em{display:block;margin-top:8px;font:500 10px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);overflow-wrap:anywhere;font-style:normal}
-.roundClearTarget{display:block;margin-top:5px;font:750 10px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);letter-spacing:.04em}
-.roundAdvanceHint{margin:20px 0 2px!important;padding-top:14px;border-top:1px solid var(--line);font:800 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;letter-spacing:.12em!important;text-align:center;color:var(--ink)!important}
+.roundAdvanceModal .roundClearScore>small{font-size:12px;font-weight:800}
+.roundClearScore em{display:block;margin-top:8px;font:550 11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);overflow-wrap:anywhere;font-style:normal}
+.roundClearScore .roundClearTarget{display:block;margin-top:5px;font:800 12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);letter-spacing:.04em}
+.scoreTrace{display:grid;gap:4px;margin-top:9px;padding-top:8px;border-top:1px dotted color-mix(in srgb,var(--muted) 46%,transparent);color:var(--ink)}
+.scoreTraceHeading{font:850 11px/1.1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;letter-spacing:.14em;color:var(--muted)}
+.scoreTraceLines{display:grid;gap:2px;min-width:0}
+.scoreTraceLine{min-width:0;font:700 11.5px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.015em;color:#55534e;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.scoreTraceJoin,.scoreTraceMerge,.scoreTraceScore,.scoreTraceCircuit{font-weight:850;color:var(--ink)}
+.scoreTraceOmitted{color:var(--muted);font-style:italic}
+.roundAdvanceHint{margin:20px 0 2px!important;padding-top:14px;border-top:1px solid var(--line);font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;letter-spacing:.12em!important;text-align:center;color:var(--ink)!important}
 @media(max-height:700px){#menuButton{font-size:17px!important}.roundClearScore strong{font-size:clamp(34px,11vw,52px)}}
 @media(prefers-reduced-motion:reduce){body.freshClassicOpening .boardShell,body.freshClassicOpening .handRail{animation:none!important;opacity:1;visibility:visible}}
 
@@ -570,15 +577,15 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .shopClosedState>strong{font-size:clamp(17px,5vw,22px);font-weight:850;letter-spacing:.08em}
 .shopClosedState>span{color:var(--muted);font-size:13px}
 .roundReward{display:grid;gap:8px;margin:16px 0 6px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.roundRewardHeading{font-size:10px;font-weight:850;letter-spacing:.16em;color:var(--muted)}
-.roundRewardSources{display:grid;gap:5px}
+.roundRewardHeading{font-size:12px;font-weight:850;letter-spacing:.16em;color:var(--muted)}
+.roundRewardSources{display:grid;gap:6px}
 .roundRewardRow,.roundRewardTotal{display:flex;align-items:baseline;gap:7px;width:100%}
-.roundRewardRow{min-height:20px;font-size:12px;opacity:0;transform:translateY(4px);animation:roundRewardCascade .52s ease forwards;animation-delay:calc(.76s + var(--reward-index,0)*.24s)}
-.roundRewardRow b{font-size:10px;letter-spacing:.08em;color:var(--muted);flex:0 0 auto}
+.roundRewardRow{min-height:22px;font-size:14px;opacity:0;transform:translateY(4px);animation:roundRewardCascade .52s ease forwards;animation-delay:calc(.76s + var(--reward-index,0)*.24s)}
+.roundRewardRow b{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--muted);flex:0 0 auto}
 .roundRewardLeader{align-self:center;flex:1 1 auto;min-width:18px;border-bottom:1px dotted color-mix(in srgb,var(--muted) 58%,transparent);transform:translateY(-1px)}
 .roundRewardRow .currencyAmount,.roundRewardTotal .currencyAmount{flex:0 0 auto;justify-content:flex-end}
 .roundRewardTotal{margin-top:4px;padding-top:9px;border-top:1px solid var(--line);opacity:0;transform:translateY(4px);animation:roundRewardCascade .56s ease var(--reward-total-delay,1.52s) forwards}
-.roundRewardTotal>span{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--muted);flex:0 0 auto}
+.roundRewardTotal>span{font-size:13px;font-weight:900;letter-spacing:.14em;color:var(--muted);flex:0 0 auto}
 .roundRewardTotal>strong{flex:0 0 auto;font-size:clamp(23px,6.7vw,30px);font-weight:900;line-height:1}
 .roundAdvanceModal #overlayTitle{animation:roundRewardCascade .48s ease both}
 .roundAdvanceModal .roundClearScore{opacity:0;animation:roundRewardCascade .56s ease .24s forwards}
@@ -591,5 +598,5 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .roundRewardInline>b{font-size:9px;letter-spacing:.12em}
 .roundRewardInlineSources{width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 5px;font-size:9px;color:var(--muted);letter-spacing:.025em}.roundRewardInlineSource{display:inline-flex;align-items:center;gap:3px}.roundRewardInlineSource .currencyMark{width:.7em;height:.7em;flex-basis:.7em}.roundRewardInlineSources>i{font-style:normal;opacity:.7}.toast .currencyAmount{display:inline-flex}.toast .currencyMark{width:.72em;height:.72em;flex-basis:.72em}
 body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:currentColor}
-@media(max-height:700px){.roundReward{margin-top:10px;padding:10px 0}.roundRewardTotal>span{font-size:11px}.roundRewardTotal>strong{font-size:22px}.roundRewardRow{min-height:18px}.shopRailButton{letter-spacing:0!important}}
+@media(max-height:700px){.scoreTrace{gap:2px;margin-top:6px;padding-top:6px}.scoreTraceHeading{font-size:10px}.scoreTraceLine{font-size:10px;line-height:1.25}.roundReward{margin-top:10px;padding:10px 0}.roundRewardHeading{font-size:11px}.roundRewardTotal>span{font-size:11px}.roundRewardTotal>strong{font-size:22px}.roundRewardRow{min-height:18px;font-size:12px}.roundRewardRow b{font-size:11px}.roundAdvanceHint{font-size:12px!important}.shopRailButton{letter-spacing:0!important}}
 @media(prefers-reduced-motion:reduce){.roundAdvanceModal #overlayTitle,.roundAdvanceModal .roundClearScore,.roundAdvanceModal .roundRewardHeading,.roundAdvanceModal .roundRewardTotal,.roundRewardRow,.roundAdvanceModal .roundAdvanceHint{animation:none!important;opacity:1!important;transform:none!important}}

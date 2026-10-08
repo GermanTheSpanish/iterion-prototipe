@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20261007.3',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20261008.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -117,7 +117,7 @@
     .compactCommerceModal .adapterShopOffer.isUsed{opacity:.5}
     .compactCommerceModal .marketOfferGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
     .compactCommerceModal .marketOfferGrid.classicMarketPyramid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
-    .compactCommerceModal .marketOfferGrid.classicMarketPyramid>.marketOffer:nth-child(1){grid-column:1/-1!important;width:calc((100% - 7px)/2)!important;max-width:calc((100% - 7px)/2)!important;justify-self:center!important;margin-inline:auto!important}
+    .compactCommerceModal .marketOfferGrid.classicMarketPyramid>.marketOffer:first-of-type{grid-column:1/-1!important;width:calc((100% - 7px)/2)!important;max-width:calc((100% - 7px)/2)!important;justify-self:center!important;margin-inline:auto!important}
     .compactCommerceModal .marketOffer.marketCompactOffer{display:grid!important;grid-template-rows:minmax(88px,1fr) 44px;gap:8px!important;padding:10px!important;border:1px solid var(--line)!important;border-radius:4px!important;background:transparent!important;min-width:0!important}
     .compactCommerceModal .marketOfferIdentity{appearance:none;border:0;background:transparent;color:inherit;padding:4px 2px;width:100%;min-width:0;display:grid;grid-template-rows:minmax(38px,auto) 42px;align-content:center;justify-items:center;gap:8px;text-align:center}
     .compactCommerceModal .marketOfferName{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;font-size:16px!important;line-height:1.02!important;letter-spacing:.025em;text-align:center;text-wrap:balance;overflow-wrap:anywhere}

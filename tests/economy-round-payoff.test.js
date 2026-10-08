@@ -29,10 +29,14 @@ assert.match(ui,/roundRewardInline/,'Post-cascade summary must expose earned fun
 assert.match(ui,/roundRewardHeading">EARNED[\s\S]*roundRewardSources[\s\S]*roundRewardTotal[\s\S]*>TOTAL</,'Round payoff must list sources before a larger TOTAL');
 assert.match(ui,/roundRewardLeader/,'Round payoff rows must visually connect labels to amounts');
 assert.match(ui,/class="roundClearTarget">TARGET \$\{escapeHtml\(compact\(target\)\)\} · ×\$\{escapeHtml\(display\.multiplier\)\}/,'Target value and multiplier must live inside the score block');
+assert.match(ui,/scoreTraceHtml\(\)/,'Round Complete must render the canonical Score Trace inside SCORE');
+assert.match(ui,/lastScoreTrace=V\.scoreTracePlan\(sim\.events\|\|\[\],trigger,sim\.output\?\?trigger,finalOutput\)/,'Score Trace must derive from the resolved cascade events, never reconstructed from board state');
+assert.match(css,/\.roundAdvanceModal \.roundClearScore>small\{font-size:12px/,'Secondary SCORE label must be comfortably legible');
+assert.match(css,/\.roundRewardHeading\{font-size:12px/);assert.match(css,/\.roundRewardRow b\{font-size:12px/);assert.match(css,/\.roundAdvanceHint\{[^}]*font:800 13px/);
 assert.doesNotMatch(ui,/class="roundClearMeta"/,'Round payoff must not render a detached Target row below economy');
 assert.match(css,/\.roundRewardRow,\.roundRewardTotal\{display:flex[^}]*gap:7px[^}]*width:100%/,'Reward rows and TOTAL must use the same flex geometry');
 assert.match(css,/\.roundRewardLeader\{[^}]*flex:1 1 auto[^}]*min-width:18px/,'Reward dotted leaders must flex all the way to each amount');
-assert.match(css,/\.roundRewardTotal>span\{font-size:12px[^}]*font-weight:900/,'TOTAL label must carry more visual weight');
+assert.match(css,/\.roundRewardTotal>span\{font-size:13px[^}]*font-weight:900/,'TOTAL label must carry more visual weight');
 assert.match(css,/\.roundRewardTotal>strong\{[^}]*font-size:clamp\(23px,6\.7vw,30px\)/,'TOTAL amount must be smaller than the previous oversized treatment');
 assert.match(ui,/roundRewardInlineSource/,'Inline earned sources must render the currency token for every source');
 assert.match(ui,/toast\(\`★ \$\{currencyHtml\(result\.upgradeCoins,\{signed:true\}\)\}\`,\{html:true\}\)/,'Star activation toast must identify its reward as currency');
