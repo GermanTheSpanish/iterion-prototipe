@@ -54,7 +54,7 @@
   }
   const cascadeControl={active:false,phase:'idle',skipCascade:false,skipSummary:false,lastTap:0,waiters:new Set()};
   const signalHudState={active:false,lanes:new Map(),rechargeTimer:0};
-  let cascadeSkipHintTimer=0;
+  let cascadeSkipHintTimer=0,lastScoreTrace=null;
   function clearCascadeSkipHint(){if(cascadeSkipHintTimer){clearTimeout(cascadeSkipHintTimer);cascadeSkipHintTimer=0}board.querySelector('.cascadeSkipHint')?.remove()}
   function armCascadeSkipHint(){
     clearCascadeSkipHint();if(tutorial)return;
@@ -427,6 +427,10 @@
     if(inline)return `<span class="roundRewardInline"><b>EARNED</b> ${currencyHtml(income.total,{signed:true,compactValue:true})}<span class="roundRewardInlineSources">${income.sources.map(source=>`<span class="roundRewardInlineSource">${escapeHtml(source.label)} ${currencyHtml(source.value,{signed:true})}</span>`).join('<i aria-hidden="true">·</i>')}</span></span>`;
     return `<section class="roundReward"><div class="roundRewardHeading">EARNED</div><div class="roundRewardSources">${rows}</div><div class="roundRewardTotal" style="--reward-total-delay:${totalDelay}s"><span>TOTAL</span><i class="roundRewardLeader" aria-hidden="true"></i><strong>${currencyHtml(income.total,{signed:true})}</strong></div></section>`
   }
+  function scoreTraceHtml(plan=lastScoreTrace){
+    const source=Array.isArray(plan?.lines)?plan.lines:[];if(!source.length)return'';let lines=source;if(source.length>7){const omitted=source.length-6;lines=[...source.slice(0,4),{kind:'omitted',omitted},...source.slice(-2)]}
+    return `<section class="scoreTrace" aria-label="Score trace"><div class="scoreTraceHeading">SCORE TRACE</div><div class="scoreTraceLines">${lines.map((line,index)=>line.kind==='omitted'?`<div class="scoreTraceLine scoreTraceOmitted" style="--trace-index:${index}">… ${line.omitted} MORE</div>`:`<div class="scoreTraceLine scoreTrace${escapeHtml(String(line.kind||'segment').replace(/(^|-)([a-z])/g,(_,a,b)=>b.toUpperCase()))}" style="--trace-index:${index}">${escapeHtml(V.scoreTraceLineText(line))}</div>`).join('')}</div></section>`
+  }
   function finishRoundAdvanceAnimation(){
     const animations=modalEl.getAnimations?.({subtree:true})?.filter(animation=>animation.playState==='running')||[];
     if(!animations.length)return false;
@@ -645,7 +649,7 @@
   }
   function startEndless(){clearOutcomeDelay();const eventCursor=GAME.state().events.length;if(!GAME.startEndless()){toast('Endless unavailable');return}window.dispatchEvent(new CustomEvent('monoid:endless-transition-started'));const state=GAME.state(),marketClosed=state.events.slice(eventCursor).some(e=>e.type==='shop-close'&&e.shop==='market'&&e.reason==='insufficient-coins');syncPlaytestContext();if(state.shopOpen&&state.shopType==='market')PT?.openMarket({offers:[...state.shopOffers]});persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(marketClosed?`MARKET CLOSED · INSUFFICIENT FUNDS · ENDLESS ROUND ${state.round+1}`:state.shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${state.round+1}`)}
   function showClear(){
-    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1],target=GAME.target(),display=V.scoreDisplay(s.score,target),hero=compact(s.score),exact=fmt(s.score),exactLine=hero===exact?'':`<em>${escapeHtml(exact)}</em>`,scoreHero=`<div class="roundClearScore${display.overdrive?' overdrive':''}"><small>SCORE</small><strong>${escapeHtml(hero)}</strong>${exactLine}<span class="roundClearTarget">TARGET ${escapeHtml(compact(target))} · ×${escapeHtml(display.multiplier)}</span></div>`;
+    resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=s.wins[s.wins.length-1],target=GAME.target(),display=V.scoreDisplay(s.score,target),hero=compact(s.score),exact=fmt(s.score),exactLine=hero===exact?'':`<em>${escapeHtml(exact)}</em>`,trace=scoreTraceHtml(),scoreHero=`<div class="roundClearScore${display.overdrive?' overdrive':''}"><small>SCORE</small><strong>${escapeHtml(hero)}</strong>${exactLine}<span class="roundClearTarget">TARGET ${escapeHtml(compact(target))} · ×${escapeHtml(display.multiplier)}</span>${trace}</div>`;
     modalEl.classList.add('outcomeModal');overlayTitle.textContent=complete?'CLASSIC COMPLETE':'ROUND COMPLETE';
     overlayBody.innerHTML=complete?`${scoreHero}<p>Classic complete.</p>${summaryHtml()}<p class="shopFoot">Enter Endless with the same persistent machine. Targets continue scaling ×${D.ENDLESS_TARGET_MULTIPLIER||5} every round.</p>`:`${scoreHero}${roundIncomeHtml(last)}`;
     if(complete){overlay.dataset.action='enter-endless';overlayPrimary.textContent='ENTER ENDLESS';overlayPrimary.onclick=startEndless;overlaySecondary.style.display='inline-block';overlaySecondary.textContent='COPY RUN DATA';overlaySecondary.onclick=copyRun;setNewRunButton(overlayTertiary);return}
@@ -673,7 +677,7 @@
     const signalOffer=x.shop?.marketSignal,offers=s.shopOffers.map(id=>GAME.marketOfferInfo(id)),offerCount=(signalOffer?.available?1:0)+offers.length,pyramid=offerCount===3;
     const signalOfferHtml=signalOffer?.available?`<section class="marketOffer marketCompactOffer" data-market-offer="signal" data-market-kind="signal"><button type="button" class="marketOfferIdentity marketInspectTarget" data-market-inspect="signal" aria-label="Signal. Plus one. Tap for details."><strong class="marketOfferName">SIGNAL</strong><span class="marketOfferSignalMark" aria-hidden="true"><i class="marketSignalBolt"></i></span></button><button class="shopBuy" data-market-signal ${s.coins<signalOffer.price?'disabled':''}>BUY · ${currencyHtml(signalOffer.price)}</button></section>`:'';
     const modHtml=offers.map(info=>{const mod=info.mod,noTarget=info.targetCount<1,assigned=(info.assignedTileIds||[]).length,relocate=info.id==='zero-port'?assigned===2:assigned>0,code=mod.collectionCode||info.id.slice(0,2).toUpperCase(),name=mod.displayName||mod.name,machine=mod.target==='machine',kind=machine?'machine':'tile',mark=marketOfferMarkHtml(code,machine),action=noTarget?'NO TARGET':relocate?'RELOCATE':'BUY';return `<section class="marketOffer marketCompactOffer" data-market-offer="${info.id}" data-market-target-count="${info.targetCount}" data-market-machine="${machine?'true':'false'}" data-market-kind="${kind}"><button type="button" class="marketOfferIdentity marketInspectTarget" data-market-inspect="${info.id}" aria-label="${escapeHtml(name)}. ${escapeHtml(code)}. ${machine?'Machine Mod':'Tile Mod'}. Tap for details."><strong class="marketOfferName">${escapeHtml(name)}</strong>${mark}</button><button class="shopBuy" data-market-mod="${info.id}" ${noTarget||s.coins<info.price?'disabled':''}>${action}${noTarget?'':` · ${currencyHtml(info.price)}`}</button></section>`}).join('');
-    overlayBody.innerHTML=`<div class="bigShop compactMarket"><div class="shopHero"><div><div class="label">CHOOSE ONE</div><strong>${currencyHtml(s.coins)}</strong><div class="shopInflation">INFLATION ${s.inflation}${x.endless?.active?` · STRAIN ${strain}`:''}</div></div><div class="label">NEXT BOARD<br>${nextSize[0]} × ${nextSize[1]}</div></div><div class="marketOfferGrid${pyramid?' classicMarketPyramid':''}">${signalOfferHtml}${modHtml||(!signalOfferHtml?'<p class="inspectEmpty">No valid Market choices.</p>':'')}</div><div class="shopFoot">TAP A MOD = DETAILS · BUY ONE · INFLATION +1</div></div>`;
+    overlayBody.innerHTML=`<div class="bigShop compactMarket"><div class="shopHero"><div><div class="label">BALANCE</div><strong>${currencyHtml(s.coins)}</strong><div class="shopInflation">INFLATION ${s.inflation}${x.endless?.active?` · STRAIN ${strain}`:''}</div></div><div class="label">NEXT BOARD<br>${nextSize[0]} × ${nextSize[1]}</div></div><div class="marketChoiceTitle">CHOOSE ONE</div><div class="marketOfferGrid${pyramid?' classicMarketPyramid':''}">${signalOfferHtml}${modHtml||(!signalOfferHtml?'<p class="inspectEmpty">No valid Market choices.</p>':'')}</div><div class="shopFoot">TAP A MOD = DETAILS · BUY ONE · INFLATION +1</div></div>`;
     overlayBody.querySelector('[data-market-signal]')?.addEventListener('click',()=>{const r=GAME.buyMarketSignal();if(!r.ok){toast(r.reason==='coins'?'INSUFFICIENT FUNDS':'Market choice locked');return}PT?.closeMarket({outcome:'buy:signal'});persistGame();toast(`SIGNAL ${r.beforeSignal} → ${r.afterSignal}`);advanceRound()});
     overlayBody.querySelectorAll('[data-market-mod]').forEach(b=>{b.onclick=()=>{const eventCursor=GAME.state().events.length,id=b.dataset.marketMod,r=GAME.buyMarketMod(id),mod=M.get(id);if(!r.ok){toast(r.reason==='coins'?'INSUFFICIENT FUNDS':r.reason==='no-target'?'No valid target':'Market choice locked');return}if(!r.pending)PT?.closeMarket({outcome:`buy:${id}`});persistGame();if(r.pending){toast(r.stage==='source'?`${mod.displayName||mod.name} · CHOOSE PORT TO MOVE`:`${mod.displayName||mod.name} · CHOOSE A TILE`);render();announceCoreProgress(GAME.state().events.slice(eventCursor));return}toast(`${mod.displayName||mod.name} installed`);announceCoreProgress(GAME.state().events.slice(eventCursor));advanceRound()}});
     overlayBody.querySelectorAll('[data-market-inspect]').forEach(el=>{const id=el.dataset.marketInspect;bindInspectorTap(el,()=>openMarketOfferInspector(id));el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openMarketOfferInspector(id)}}});
@@ -808,8 +812,8 @@
     setTimeout(()=>{owners.delete(token);if(![...owners.values()].includes(cls))el.classList.remove(cls);if(!owners.size){el.classList.remove('signalActive');activePulses.delete(el)}},V.effectLifetime(index));
   }
   function laneId(lane){return lane.family+(lane.path?'.'+lane.path:'')}
-  function laneLabel(lane){return(lane.family==='echo'?'ECHO':'MAIN')+(lane.path?' '+lane.path:'')}
-  function signalHudLaneLabel(key){const parts=String(key||'main').split('.'),path=parts.slice(1).join('');if(path)return path;if(parts[0]==='echo')return'E';return'M'}
+  function laneLabel(lane){return V.laneLabel(lane.family,lane.path)}
+  function signalHudLaneLabel(key){const parts=String(key||'main').split('.'),path=V.branchLabel(parts.slice(1).join('.'));if(path)return path;if(parts[0]==='echo')return'E';return'M'}
   function signalHudAvailable(){return(GAME.state().gameMode||'classic')!=='classic'}
   function renderSignalHud(){
     if(!signalHudEl)return;if(!signalHudAvailable()){signalHudState.active=false;signalHudState.lanes.clear();signalHudEl.hidden=true;const values=signalHudEl.querySelector('.signalHudValues');if(values)values.innerHTML='';return}
@@ -854,7 +858,7 @@
   }
   function showOperation(e,lastOp,lane,index){
     const half=V.operationHalf(e,lastOp),pp=pc(e.piece),cube=pp?.cubes.find(x=>x.half===half)||pp?.cubes[0];pulsePiece(pp,lane,index);if(!cube||e.value===0)return;
-    const kind=e.op==='multiply'?'multiply':'add',operation=e.type==='echo-copy'?'COPY':(kind==='multiply'?'×'+compact(e.factor):'+'+compact(e.add))+(e.doubleDouble?' DD':'');
+    const kind=e.op==='multiply'?'multiply':'add',operation=e.type==='echo-copy'?'COPY':V.scoreOperationLabel(e);
     return fx(cube.x+1,cube.y+1,operation,e.after,`operationFlash ${kind}`,index,lane.family==='echo'?'echoLane':lane.path.endsWith('B')?'lane1':'lane0',false,tutorial?560:V.CASCADE.operationFlashMs)
   }
   function showCascadeSubtotal(item){
@@ -896,30 +900,30 @@
     detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,target).note;setCascadeHighlight(allPieceIds,allPieceIds);
     cascadeControl.phase='final';board.dataset.cascadePhase='final';clearCascadeSkipHint();if(!tutorial)await cascadeWait(V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
   }
-  function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML='<span class="reboundArrow" aria-hidden="true">→</span><small>REBOUND</small>';d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
+  function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML=`<span class="reboundArrow" aria-hidden="true">→</span><small>${V.scoreStructuralLabel({type:'rebound'})}</small>`;d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
     let lastOp=null,index=startIndex,i=0;
     while(i<events.length){const e=events[i];
       if(e.type==='signal-fork'){
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
         splitSignalHud(lane,block.branches,e.signalBudgets);
-        if(pp){const splitLabel=e.distributorCoreId?'DISTRIBUTE':e.splitKind==='triple-double'?'TRIPLE DOUBLE':e.splitKind==='zero-port'?'ZERO PORT':'SPLIT';fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?`ECHO ${splitLabel}`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}
+        if(pp){const splitLabel=V.splitLabel(e);fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,lane.family==='echo'?`ECHO ${splitLabel}`:splitLabel,0,'signal cascadeStructural splitFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}
         await Promise.all(block.branches.map(branch=>animateSequence(branch.events,{family:lane.family,path:lane.path+(lane.path?'.':'')+V.armLabel(branch.arm)},index+1,startEcho)));
         joinSignalHud(lane,block.branches,block.join.signalRemaining);
-        const joinPiece=block.merged?pc(block.join.piece):pp;if(joinPiece){const d=fx((joinPiece.rect.minx+joinPiece.rect.maxx)/2,(joinPiece.rect.miny+joinPiece.rect.maxy)/2,block.merged?'MERGE':'JOIN',0,'signal cascadeStructural joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);d.dataset.family=lane.family;d.dataset.output=block.join.output;await cascadeWait(Math.max(220,V.cascadeDelay(index+1)),'cascade')}
+        const joinPiece=block.merged?pc(block.join.piece):pp;if(joinPiece){const joinLabel=(lane.family==='echo'?'ECHO ':'')+V.joinLabel(lane.path,block.branches,!!block.merged),d=fx((joinPiece.rect.minx+joinPiece.rect.maxx)/2,(joinPiece.rect.miny+joinPiece.rect.maxy)/2,joinLabel,0,'signal cascadeStructural joinFx',index+1,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);d.dataset.family=lane.family;d.dataset.output=block.join.output;await cascadeWait(Math.max(220,V.cascadeDelay(index+1)),'cascade')}
         i=block.next;index+=2;continue
       }
       if(e.type==='op'){lastOp=e;if(Number.isFinite(e.signalAfter))setSignalHudLane(lane,e.signalAfter);showOperation(e,lastOp,lane,index);if(events[i+1]?.type==='double-echo-start'){startEcho(events[i+1],index);i++}await cascadeWait(V.cascadeDelay(index),'cascade');index++;i++;continue}
       if(e.type==='zero-port'){
         const pp=pc(e.piece),c=pp?.cubes.find(x=>x.half===e.fromHalf)||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
-        if(c){fx(c.x+1,c.y+1,'ZERO PORT',0,'signal cascadeStructural zeroPortFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(140,V.cascadeDelay(index)/2),'cascade')}i++;continue
+        if(c){fx(c.x+1,c.y+1,V.scoreStructuralLabel(e),0,'signal cascadeStructural zeroPortFx',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(140,V.cascadeDelay(index)/2),'cascade')}i++;continue
       }
       if(e.type==='rebound'){
         const pp=pc(e.piece),entry=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.entryHalf):null,exit=pp&&lastOp?.piece===e.piece?pp.cubes.find(x=>x.half===lastOp.exitHalf):null,c=exit||pp?.cubes.find(x=>x.v===0)||pp?.cubes[0];
         if(c){const angle=entry&&exit?Math.atan2(entry.y-exit.y,entry.x-exit.x)*180/Math.PI:180;reboundFx(c.x+1,c.y+1,angle,index,lane.family==='echo'?'echoLane':'lane0');await cascadeWait(Math.max(160,V.cascadeDelay(index)),'cascade')}i++;continue
       }
       if(['diode-block','return','hinge-move','hinge-blocked','toll-spend'].includes(e.type)){
-        const pp=pc(e.piece),label=e.type==='diode-block'?'DIODE · BLOCK':e.type==='return'?'RETURN':e.type==='hinge-move'?'HINGE':e.type==='toll-spend'?'TOLL · SPEND':'HINGE · BLOCKED';
+        const pp=pc(e.piece),label=V.scoreStructuralLabel(e)||(e.type==='toll-spend'?'TOLL · SPEND':'');
         if(pp){fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,label,0,'signal cascadeStructural',index,lane.family==='echo'?'echoLane':'lane0',false,V.CASCADE.structuralFxMs);await cascadeWait(Math.max(150,V.cascadeDelay(index)/2),'cascade')}i++;continue
       }
       if(e.type==='core-activate'){
@@ -948,7 +952,7 @@
     return index
   }
   async function animate(p,trigger,sim,finalOutput=sim.output??trigger){
-    cascadeControl.phase='cascade';board.dataset.cascadePhase='cascade';renderBoard();startSignalHud(sim?.signalRuntime?.base??GAME.snapshot().signal.base);const dormantIsland=sim?.reason==='island-dormant';fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,dormantIsland?'ISLAND':`+${compact(trigger)}`,dormantIsland?0:trigger,dormantIsland?'signal cascadeStructural coreActivationFx':'operationFlash add',0,'',false,tutorial?640:V.CASCADE.operationFlashMs);await cascadeWait(V.cascadeDelay(0),'cascade');
+    lastScoreTrace=V.scoreTracePlan(sim.events||[],trigger,sim.output??trigger,finalOutput);cascadeControl.phase='cascade';board.dataset.cascadePhase='cascade';renderBoard();startSignalHud(sim?.signalRuntime?.base??GAME.snapshot().signal.base);const dormantIsland=sim?.reason==='island-dormant';fx((p.rect.minx+p.rect.maxx)/2,(p.rect.miny+p.rect.maxy)/2,dormantIsland?'ISLAND':`+${compact(trigger)}`,dormantIsland?0:trigger,dormantIsland?'signal cascadeStructural coreActivationFx':'operationFlash add',0,'',false,tutorial?640:V.CASCADE.operationFlashMs);await cascadeWait(V.cascadeDelay(0),'cascade');
     const plan=V.signalPlan(sim.events||[]);let echoTask=null;
     const startEcho=(e,index)=>{if(echoTask)return;const pp=pc(e.piece);if(pp)fx((pp.rect.minx+pp.rect.maxx)/2,(pp.rect.miny+pp.rect.maxy)/2,'ECHO',0,'signal cascadeStructural echoStart',index,'echoLane',false,V.CASCADE.structuralFxMs);echoTask=(async()=>{const lane={family:'echo',path:''};showOperation({type:'echo-copy',piece:e.piece,value:1,op:'add',add:0,after:e.startOutput},null,lane,index);await cascadeWait(V.cascadeDelay(index),'cascade');return animateSequence(plan.echo,lane,index+1)})()};
     await animateSequence(plan.main,{family:'main',path:''},0,startEcho);if(echoTask)await echoTask;
