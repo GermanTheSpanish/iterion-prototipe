@@ -40,6 +40,24 @@ check('presentation separates Main and Echo events without losing selected neste
   for(const stream of [plan.main,plan.echo]){assert.equal(stream.filter(e=>e.type==='signal-fork').length,2);for(let i=0;i<stream.length;i++)if(stream[i].type==='signal-fork'){const block=V.forkBlock(stream,i);assert.equal(block.branches.length,2);assert.equal(block.join.output,block.branches.reduce((n,b)=>n+b.end.output,0))}}
   assert.equal(plan.result.finalOutput,r.output);
 });
+check('Score Trace shares cascade grammar and flattens nested branch IDs to A/AB',()=>{
+  const events=[
+    {type:'signal-fork',piece:9,output:6,splitKind:'t-split'},
+    {type:'signal-start',fork:9,arm:0,output:6},{type:'op',piece:1,op:'multiply',factor:3,after:18},{type:'signal-end',fork:9,arm:0,output:18},
+    {type:'signal-start',fork:9,arm:1,output:6},{type:'op',piece:2,op:'add',add:4,after:10},
+      {type:'signal-fork',piece:2,output:10,splitKind:'t-split'},
+      {type:'signal-start',fork:2,arm:0,output:10},{type:'op',piece:3,op:'multiply',factor:2,after:20},{type:'signal-end',fork:2,arm:0,output:20},
+      {type:'signal-start',fork:2,arm:1,output:10},{type:'op',piece:4,op:'add',add:5,after:15},{type:'signal-end',fork:2,arm:1,output:15},
+      {type:'signal-join',piece:2,output:35},
+    {type:'signal-end',fork:9,arm:1,output:35},
+    {type:'signal-join',piece:9,output:53}
+  ];
+  const trace=V.scoreTracePlan(events,6,53,53),text=trace.lines.map(V.scoreTraceLineText);
+  assert.equal(V.branchLabel('A.B'),'AB');assert.equal(V.laneLabel('main','A.B'),'MAIN AB');
+  assert.equal(V.splitLabel({splitKind:'zero-port'}),'SPLIT · ZERO PORT');assert.equal(V.scoreStructuralLabel({type:'zero-port'}),'TELEPORT');
+  assert.deepEqual(text,['MAIN 6 → SPLIT','MAIN A 6 → ×3 = 18','MAIN B 6 → +4 → SPLIT','MAIN BA 10 → ×2 = 20','MAIN BB 10 → +5 = 15','JOIN BA+BB = 35','JOIN A+B = 53']);
+  assert(text.every(line=>!line.includes('A.B')),'visible trace labels must never leak dotted internal branch paths');
+});
 check('Score stays absolute near Target and becomes a red-eligible Target multiplier at 1000x',()=>{
   assert.deepEqual(V.scoreDisplay(95,100),{score:'95',target:'100',note:'5 to target',ratio:.95,multiplier:'0.95',overdrive:false,mode:'absolute'});
   assert.equal(V.scoreDisplay(100,100).score,'100');assert.equal(V.scoreDisplay(250,100).note,'×2.5 target');assert.equal(V.multiplierText(2.5),'2.5');
