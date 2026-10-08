@@ -369,7 +369,7 @@ body.monoidCommerceActive .commerceModal .marketDesc strong{grid-column:1;font-s
 body.monoidCommerceActive .commerceModal .marketDesc span{grid-column:1;margin:0!important;font-size:10.5px!important;line-height:1.2!important}
 body.monoidCommerceActive .commerceModal .marketDesc .shopBuy{grid-column:2;grid-row:1/3;margin:0!important;min-height:38px!important;padding:5px!important;font-size:10px!important}
 body.monoidCommerceActive .commerceModal .shopBuy{min-height:38px!important;padding:7px 8px!important;border-radius:3px!important;font-size:11px!important}
-body.monoidCommerceActive .commerceModal .marketChoiceTitle{margin:6px 0 4px!important;font-size:10px!important;text-align:left!important}body.monoidCommerceActive .commerceModal .compactMarket .marketChoiceTitle{width:max-content!important;margin:-7px auto 6px!important;padding:0 8px!important;background:var(--paper)!important;font-size:11px!important;font-weight:750!important;text-align:center!important}
+body.monoidCommerceActive .commerceModal .marketChoiceTitle{margin:6px 0 4px!important;font-size:10px!important;text-align:left!important}body.monoidCommerceActive .commerceModal .compactMarket .marketChoiceTitle{align-self:center!important;width:max-content!important;margin:-7px 0 6px!important;padding:0 8px!important;background:var(--paper)!important;font-size:11px!important;font-weight:750!important;text-align:center!important}
 body.monoidCommerceActive .commerceModal .marketAssignments{flex:0 0 auto}
 body.monoidCommerceActive .commerceModal .marketOfferGrid{display:grid!important;gap:3px!important;min-height:0}
 body.monoidCommerceActive .commerceModal .marketOffer{padding:5px 0!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important}
@@ -549,7 +549,7 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .roundClearScore strong{font-size:clamp(38px,13vw,64px);line-height:.92}
 .roundAdvanceModal .roundClearScore>small{font-size:12px;font-weight:800}
 .roundClearScore em{display:block;margin-top:8px;font:550 11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);overflow-wrap:anywhere;font-style:normal}
-.roundClearTarget{display:block;margin-top:5px;font:800 12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);letter-spacing:.04em}
+.roundClearScore .roundClearTarget{display:block;margin-top:5px;font:800 12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);letter-spacing:.04em}
 .scoreTrace{display:grid;gap:4px;margin-top:9px;padding-top:8px;border-top:1px dotted color-mix(in srgb,var(--muted) 46%,transparent);color:var(--ink)}
 .scoreTraceHeading{font:850 11px/1.1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;letter-spacing:.14em;color:var(--muted)}
 .scoreTraceLines{display:grid;gap:2px;min-width:0}
@@ -585,7 +585,7 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>:nth-child(1){gri
 .roundRewardLeader{align-self:center;flex:1 1 auto;min-width:18px;border-bottom:1px dotted color-mix(in srgb,var(--muted) 58%,transparent);transform:translateY(-1px)}
 .roundRewardRow .currencyAmount,.roundRewardTotal .currencyAmount{flex:0 0 auto;justify-content:flex-end}
 .roundRewardTotal{margin-top:4px;padding-top:9px;border-top:1px solid var(--line);opacity:0;transform:translateY(4px);animation:roundRewardCascade .56s ease var(--reward-total-delay,1.52s) forwards}
-.roundRewardTotal>span{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--muted);flex:0 0 auto}
+.roundRewardTotal>span{font-size:13px;font-weight:900;letter-spacing:.14em;color:var(--muted);flex:0 0 auto}
 .roundRewardTotal>strong{flex:0 0 auto;font-size:clamp(23px,6.7vw,30px);font-weight:900;line-height:1}
 .roundAdvanceModal #overlayTitle{animation:roundRewardCascade .48s ease both}
 .roundAdvanceModal .roundClearScore{opacity:0;animation:roundRewardCascade .56s ease .24s forwards}
