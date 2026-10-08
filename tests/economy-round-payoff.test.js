@@ -36,7 +36,7 @@ assert.match(css,/\.roundRewardHeading\{font-size:12px/);assert.match(css,/\.rou
 assert.doesNotMatch(ui,/class="roundClearMeta"/,'Round payoff must not render a detached Target row below economy');
 assert.match(css,/\.roundRewardRow,\.roundRewardTotal\{display:flex[^}]*gap:7px[^}]*width:100%/,'Reward rows and TOTAL must use the same flex geometry');
 assert.match(css,/\.roundRewardLeader\{[^}]*flex:1 1 auto[^}]*min-width:18px/,'Reward dotted leaders must flex all the way to each amount');
-assert.match(css,/\.roundRewardTotal>span\{font-size:12px[^}]*font-weight:900/,'TOTAL label must carry more visual weight');
+assert.match(css,/\.roundRewardTotal>span\{font-size:13px[^}]*font-weight:900/,'TOTAL label must carry more visual weight');
 assert.match(css,/\.roundRewardTotal>strong\{[^}]*font-size:clamp\(23px,6\.7vw,30px\)/,'TOTAL amount must be smaller than the previous oversized treatment');
 assert.match(ui,/roundRewardInlineSource/,'Inline earned sources must render the currency token for every source');
 assert.match(ui,/toast\(\`★ \$\{currencyHtml\(result\.upgradeCoins,\{signed:true\}\)\}\`,\{html:true\}\)/,'Star activation toast must identify its reward as currency');
