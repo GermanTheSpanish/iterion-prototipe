@@ -61,7 +61,7 @@ for(const width of [375,430])for(const endless of [false,true]){
       g.openIntermission();s.shopOffers=['double-double','double-echo','zero-port'];
     },endless);
     await openHelp(page);await page.locator('#overlayPrimary').click();
-    await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);
+    await expect(page.locator('.marketStructuredOffer.marketCompactOffer')).toHaveCount(3);await expect(page.locator('.compactMarket .marketChoiceTitle')).toHaveText('CHOOSE ONE');const choiceGeometry=await page.locator('.compactMarket').evaluate(el=>{const title=el.querySelector('.marketChoiceTitle').getBoundingClientRect(),grid=el.querySelector('.marketOfferGrid').getBoundingClientRect();return{titleCenter:title.left+title.width/2,gridCenter:grid.left+grid.width/2,titleBottom:title.bottom,gridTop:grid.top}});expect(Math.abs(choiceGeometry.titleCenter-choiceGeometry.gridCenter)).toBeLessThan(1);expect(choiceGeometry.titleBottom).toBeLessThanOrEqual(choiceGeometry.gridTop);
     await expect(page.locator('.marketOfferDescription,.marketModDiagram,.marketOfferVisual,.marketOfferPayoff,.marketOfferMeta')).toHaveCount(0);
     await expect(page.locator('.marketOfferMark')).toHaveCount(3);
     await expect(page.locator('.marketAssignedGroup,.marketPoolGroup')).toHaveCount(0);
