@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.71.4');
+assert.strictEqual(D.VERSION,'0.71.5');
 assert.strictEqual(D.SHOP_TILE_OFFER_COUNT,4);
 assert.strictEqual(D.SHOP_TILE_OFFER_COST,2);
 
