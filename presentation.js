@@ -29,6 +29,40 @@
   function signalPlan(events){const echo=events.filter(e=>e.type.startsWith('echo-')).map(e=>({...e,type:e.type.slice(5)}));const main=events.filter(e=>!e.type.startsWith('echo-')&&e.type!=='double-echo-result');return{main,echo,result:events.find(e=>e.type==='double-echo-result')||null}}
   function forkBlock(events,start){const fork=events[start].piece,branches=[];let i=start+1;while(i<events.length){const e=events[i];if(e.type==='signal-start'&&e.fork===fork){let j=i+1;while(j<events.length&&!(events[j].type==='signal-end'&&events[j].fork===fork&&events[j].arm===e.arm))j++;if(j>=events.length)return null;branches.push({arm:e.arm,events:events.slice(i+1,j),end:events[j]});i=j+1;continue}if(e.type==='signal-join'&&e.piece===fork)return{branches:branches.sort((a,b)=>a.arm-b.arm),join:e,next:i+1};if(e.type==='signal-merge'&&e.fork===fork)return{branches:branches.sort((a,b)=>a.arm-b.arm),join:e,next:i+1,merged:true};i++}return null}
   function armLabel(arm){arm=Math.max(0,Math.floor(Number(arm)||0));return arm<26?String.fromCharCode(65+arm):String(arm+1)}
+  function branchLabel(path=''){return String(path||'').split('.').filter(Boolean).join('')}
+  function laneLabel(family='main',path=''){const prefix=family==='echo'?'ECHO':'MAIN',branch=branchLabel(path);return branch?`${prefix} ${branch}`:prefix}
+  function splitLabel(event={}){return event.distributorCoreId?'SPLIT · DISTRIBUTOR':event.splitKind==='triple-double'?'SPLIT · TRIPLE DOUBLE':event.splitKind==='zero-port'?'SPLIT · ZERO PORT':'SPLIT'}
+  function joinLabel(path='',branches=[],merged=false){const ids=(branches||[]).map(branch=>branchLabel(path+(path?'.':'')+armLabel(branch.arm))).filter(Boolean);return`${merged?'MERGE':'JOIN'}${ids.length?' '+ids.join('+'):''}`}
+  function scoreOperationLabel(event={}){let label='';if(event.op==='multiply')label=`×${compact(Number(event.factor)||0)}`;else if(event.op==='add')label=`${Number(event.add)>=0?'+':''}${compact(Number(event.add)||0)}`;return label&&event.doubleDouble?`${label} · DD`:label}
+  function scoreStructuralLabel(event={}){if(event.type==='rebound')return'REBOUND';if(event.type==='zero-port')return'TELEPORT';if(event.type==='return')return'RETURN';if(event.type==='hinge-move')return'HINGE';if(event.type==='hinge-blocked')return'HINGE · BLOCKED';if(event.type==='diode-block')return'DIODE · BLOCK';return''}
+  function scoreTraceSequence(events,seed,path='',family='main',expectedOutput=null){
+    events=Array.isArray(events)?events:[];let current=Number(seed)||0,segmentSeed=current,tokens=[],lines=[];const label=()=>laneLabel(family,path),pushSegment=(showResult=true,result=current)=>{lines.push({kind:'segment',family,path:branchLabel(path),label:label(),seed:segmentSeed,tokens:[...tokens],result:Number.isFinite(Number(result))?Number(result):current,showResult});tokens=[]};
+    for(let i=0;i<events.length;i++){
+      const event=events[i];
+      if(event.type==='signal-fork'){
+        const block=forkBlock(events,i);if(!block)continue;const forkOutput=Number.isFinite(Number(event.output))?Number(event.output):current;current=forkOutput;tokens.push(splitLabel(event));pushSegment(false,forkOutput);
+        const childIds=[];for(const branch of block.branches){const childPath=path+(path?'.':'')+armLabel(branch.arm);childIds.push(branchLabel(childPath));const child=scoreTraceSequence(branch.events,forkOutput,childPath,family,branch.end?.output);lines.push(...child.lines)}
+        const joined=Number.isFinite(Number(block.join?.output))?Number(block.join.output):block.branches.reduce((sum,branch)=>sum+(Number(branch.end?.output)||0),0);lines.push({kind:block.merged?'merge':'join',family,path:branchLabel(path),label:`${family==='echo'?'ECHO ':''}${joinLabel(path,block.branches,!!block.merged)}`,branches:childIds,result:joined});current=joined;segmentSeed=joined;tokens=[];i=block.next-1;continue
+      }
+      if(event.type==='op'){const token=scoreOperationLabel(event);if(token)tokens.push(token);if(Number.isFinite(Number(event.after)))current=Number(event.after);continue}
+      const structural=scoreStructuralLabel(event);if(structural){tokens.push(structural);if(Number.isFinite(Number(event.output)))current=Number(event.output)}
+    }
+    const output=Number.isFinite(Number(expectedOutput))?Number(expectedOutput):current;if(tokens.length||!lines.length){current=output;pushSegment(true,output)}
+    return{lines,output}
+  }
+  function scoreTracePlan(events,seed,baseOutput,finalOutput=baseOutput){
+    const plan=signalPlan(events||[]),base=Number.isFinite(Number(baseOutput))?Number(baseOutput):Number(seed)||0,final=Number.isFinite(Number(finalOutput))?Number(finalOutput):base,lines=[];
+    if(plan.result){
+      const main=scoreTraceSequence(plan.main,seed,'','main',plan.result.mainOutput),echoSeed=(events||[]).find(event=>event.type==='double-echo-start')?.startOutput??plan.result.mainOutput,echo=scoreTraceSequence(plan.echo,echoSeed,'','echo',plan.result.echoOutput);lines.push(...main.lines,...echo.lines,{kind:'score',label:'SCORE',terms:[Number(plan.result.mainOutput)||0,Number(plan.result.echoOutput)||0],result:Number(plan.result.finalOutput)||base})
+    }else lines.push(...scoreTraceSequence(plan.main,seed,'','main',base).lines);
+    const traced=plan.result?(Number(plan.result.finalOutput)||base):base,tolerance=Math.max(1,Math.abs(final))*1e-9;if(Math.abs(final-traced)>tolerance){const ratio=traced?final/traced:1;lines.push({kind:'circuit',label:'CIRCUIT',seed:traced,tokens:[`×${multiplierText(ratio)}`],result:final,showResult:true})}
+    return{seed:Number(seed)||0,baseOutput:base,finalOutput:final,lines}
+  }
+  function scoreTraceLineText(line={}){
+    if(line.kind==='join'||line.kind==='merge')return`${line.label} = ${compact(Number(line.result)||0)}`;
+    if(line.kind==='score')return`SCORE ${(line.terms||[]).map(value=>compact(Number(value)||0)).join(' + ')} = ${compact(Number(line.result)||0)}`;
+    const prefix=line.label?`${line.label} `:'',parts=[compact(Number(line.seed)||0),...(line.tokens||[])],body=parts.join(' → ');return`${prefix}${body}${line.showResult===false?'':` = ${compact(Number(line.result)||0)}`}`
+  }
   function terminalContributions(events,family='main',path='',fallbackOutput=0,fallbackPiece=null){
     events=Array.isArray(events)?events:[];let lastOp=null,hadFork=false,opAfterFork=false;const leaves=[],localPieces=new Set(fallbackPiece==null?[]:[fallbackPiece]);
     for(let i=0;i<events.length;i++){
@@ -45,7 +79,7 @@
     if(!Number.isFinite(output))return[];
     return[{family,path,output,piece:lastOp?.piece??fallbackPiece??null,half:lastOp?.exitHalf??null,pieceIds:[...localPieces]}]
   }
-  function contributionLabel(item){if(item?.label)return item.label;const prefix=item?.family==='echo'?'ECHO':item?.family==='main'?'MAIN':'OTHER';return item?.path?`${prefix} ${item.path}`:prefix}
+  function contributionLabel(item){if(item?.label)return item.label;const prefix=item?.family==='echo'?'ECHO':item?.family==='main'?'MAIN':'OTHER',branch=branchLabel(item?.path);return branch?`${prefix} ${branch}`:prefix}
   function groupCascadeContributions(items,max=CASCADE.contributionLimit){
     const input=(items||[]).map((item,index)=>({...item,order:index,pieceIds:[...new Set(item.pieceIds||[])]})).filter(item=>Number.isFinite(Number(item.output)));max=Math.max(2,Math.floor(Number(max)||CASCADE.contributionLimit));
     if(input.length<=max)return input.map(item=>({...item,label:contributionLabel(item)}));
@@ -170,5 +204,5 @@
     const shareDebug=async textOverride=>{const text=brandDebugText(typeof textOverride==='string'?textOverride:debugTextFromUi());if(!text){feedback('Debug unavailable');return false}const batch=/^MONOID PLAYTEST BATCH\b/m.test(text),filename=debugFilename(text),file=new File([text],filename,{type:'text/plain'}),label=batch?'PLAYTEST':'DEBUG';if(root.navigator?.share){let canFiles=true;try{if(root.navigator.canShare)canFiles=root.navigator.canShare({files:[file]})}catch(_){canFiles=false}if(canFiles){try{await root.navigator.share({files:[file],title:`${BRAND} ${label}`});feedback(`${label} READY`);return true}catch(err){if(err?.name==='AbortError')return false}}}try{downloadDebug(text,filename);feedback(`${label} READY`);return true}catch(_){feedback('Debug export failed');return false}};
     const sharePlaytest=()=>typeof root.__monoidSharePlaytestBatch==='function'?root.__monoidSharePlaytestBatch():shareDebug();const patchRunlog=()=>{const ta=runlog?.querySelector('.runDataText');if(ta)ta.value=brandDebugText(ta.value);const button=runlog?.querySelector('.tool');if(!button||button.dataset.debugShare==='1')return;button.dataset.debugShare='1';button.textContent='SHARE .TXT';button.onclick=sharePlaytest};if(runlog){new MutationObserver(patchRunlog).observe(runlog,{childList:true,subtree:true});patchRunlog()}if(menuCopy){menuCopy.textContent='Share debug .txt';menuCopy.onclick=async()=>{try{if(gameMenu?.open)gameMenu.close()}catch(_){}await sharePlaytest()}}root.NomonUiPolish=Object.freeze({shareDebug,debugTextFromUi,paintProgress,snapScore,tweenScore,syncOverkillTiles,syncInspectorPreview})
   }
-  return Object.freeze({compact,exact,multiplierText,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,fitFontSize,operationOffset,cascadePathSegments,signalPlan,forkBlock,armLabel,terminalContributions,groupCascadeContributions,cascadeSettlementPlan,progressState,tileViewModel,longChainViewModel,modeIndicatorViewModel,hudViewModel,brandDebugText,debugFilename,installUiPolish,CASCADE,BRAND});
+  return Object.freeze({compact,exact,multiplierText,scoreDisplay,cascadeDelay,effectLifetime,operationHalf,fitFontSize,operationOffset,cascadePathSegments,signalPlan,forkBlock,armLabel,branchLabel,laneLabel,splitLabel,joinLabel,scoreOperationLabel,scoreStructuralLabel,scoreTracePlan,scoreTraceLineText,terminalContributions,groupCascadeContributions,cascadeSettlementPlan,progressState,tileViewModel,longChainViewModel,modeIndicatorViewModel,hudViewModel,brandDebugText,debugFilename,installUiPolish,CASCADE,BRAND});
 });
