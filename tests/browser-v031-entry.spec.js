@@ -47,7 +47,7 @@ test('game mode carousel keeps its frame and exposes The Eyes beside Classic',as
 
 test('Game Selection keeps new, continue and tutorials separate and confirms replacement',async({page})=>{
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const original=await page.evaluate(()=>window.__monoidGame.state().runId);
-  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#firstRunChoice')).toBeHidden();await expect(page.locator('#startRun')).toHaveText('NEW RUN');await expect(page.locator('#continueRun')).toBeVisible();await expect(page.locator('#tutorialHubButton')).toBeVisible();await expect(page.locator('#replayTutorial')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#firstRunChoice')).toBeHidden();await expect(page.locator('#startRun')).toHaveText('NEW RUN');await expect(page.locator('#continueRun')).toBeVisible();await expect(page.locator('#tutorialHubButton')).toBeVisible();await expect(page.locator('#replayTutorial')).toBeHidden();await expect(page.locator('#systemsTutorial')).toBeHidden();
   page.once('dialog',dialog=>dialog.dismiss());await page.locator('#startRun').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('iterion.activeRun.v1')).state.runId)).toBe(original);
   page.once('dialog',dialog=>dialog.accept());await page.locator('#startRun').click();await expect(page.locator('#board')).toBeVisible();expect(await page.evaluate(()=>window.__monoidGame.state().runId)).not.toBe(original);
 });
@@ -56,7 +56,7 @@ test('Basics tutorial can be left and repeated without changing the saved run',a
   await page.setViewportSize({width:390,height:844});
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));
-  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'basics');
+  await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'basics');
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('tour');await expect(page.locator('#monoidBoardCoach h2')).toHaveText('THE MACHINE');
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
   await page.locator('[data-ux-action="leave"]').click();await expect(page.locator('#gameSelection')).toBeVisible();
@@ -66,7 +66,7 @@ test('Basics tutorial can be left and repeated without changing the saved run',a
 });
 
 test('Basics tutorial completes seven real legal placements and can retry',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'basics');await finishTutorialTour(page);
+  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'basics');await finishTutorialTour(page);
   await placeTutorialTile(page,'2/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(1);
   await placeTutorialTile(page,'3/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().turns.filter(e=>Number.isInteger(e.turn)).at(-1).ops)).toContain('+2');
   await placeTutorialTile(page,'4/6');expect(await page.evaluate(()=>window.__monoidGame.snapshot().board.length)).toBe(3);
@@ -87,7 +87,7 @@ test('Basics tutorial FINISH exits after the seventh real placement',async({page
 });
 
 test('leaving during drag or an in-flight Basics placement never replaces the normal run',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'basics');await finishTutorialTour(page);
+  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'basics');await finishTutorialTour(page);
   const tile=await page.locator('#hand .tile').first().boundingBox();await page.mouse.move(tile.x+tile.width/2,tile.y+tile.height/2);await page.mouse.down();await page.mouse.move(tile.x-20,tile.y+tile.height/2);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible();
   await startTutorialFromHub(page,'basics');await finishTutorialTour(page);await expect(page.locator('#reroll')).toBeDisabled();await placeTutorialTile(page,null);await page.locator('#leaveTutorial').click({force:true});await expect(page.locator('#gameSelection')).toBeVisible({timeout:12000});
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);
@@ -137,7 +137,7 @@ test('critical raised title and screen isolation survive a missing presentation 
   const centerY=title.y+title.height/2;expect(centerY).toBeGreaterThan(844*.40);expect(centerY).toBeLessThan(844*.48);
   const assets=await page.locator('script[src],link[rel="stylesheet"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')||n.getAttribute('href')));
   expect(assets.length).toBeGreaterThan(1);
-  expect(assets.every(url=>url.includes('?v=entry-0311')||url.endsWith('?v=20261009.2'))).toBe(true);
+  expect(assets.every(url=>url.includes('?v=entry-0311')||url.endsWith('?v=20261009.3'))).toBe(true);
   await page.mouse.click(12,12);
   await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('#gameSelection')).toBeVisible();

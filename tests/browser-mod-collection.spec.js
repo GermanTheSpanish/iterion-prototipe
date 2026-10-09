@@ -18,7 +18,7 @@ test('Game Selection opens one-screen 28-domino archive with 19 active Mods',asy
 
 test('Run Menu uses the same collection without mutating the saved run',async({page})=>{
   await page.setViewportSize({width:430,height:932});await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));await page.goto('http://127.0.0.1:4173/');
-  const before=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();const access=page.locator('#modCollectionMenuButton');await expect(access).toHaveText('MODS · 19/19');await access.click();
+  const before=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();const access=page.locator('#modCollectionMenuButton');await expect(access).toHaveText('MODS · 19/19');await access.click();
   await expect(page.locator('#gameMenu')).toBeHidden();await expect(page.locator('#modCollectionDialog')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(before)
 });
 

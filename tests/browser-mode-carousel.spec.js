@@ -411,7 +411,7 @@ test('The Loom and The Peaks start as real 4|4 and 5|5 Core modes',async({page})
   let state=await page.evaluate(()=>({mode:window.__monoidGame.state().gameMode,cores:window.__monoidGame.state().cores,voids:window.__monoidGame.state().voids,signal:window.__monoidGame.snapshot().signal,geometry:window.__monoidGame.snapshot().modeGeometry}));
   expect(state.mode).toBe('loom');expect(state.cores).toHaveLength(4);expect(state.voids).toHaveLength(4);expect(state.signal.base).toBe(2);expect(state.geometry.visibleIds).toHaveLength(8);
 
-  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
   await page.evaluate(()=>window.__monoidModes.select(5));
   await expect(page.locator('#modeName')).toHaveText('THE PEAKS');
   await expect(page.locator('#modeDescription')).toHaveText('5|5 · Signal 2');

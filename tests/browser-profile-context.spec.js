@@ -51,7 +51,7 @@ test('player, dev and fresh contexts keep progression and saves isolated',async(
   expect(playerSave).toBeTruthy();
 
   await page.locator('#menuButton').click();
-  await page.locator('#qaTestRunsButton').click();
+  await page.locator('#menuGroupSystem').click();await page.locator('#qaTestRunsButton').click();
   await expect(page.locator('[data-profile-context="player"]')).toHaveAttribute('aria-pressed','true');
   await page.locator('[data-profile-context="dev"]').click();
   await page.waitForLoadState('domcontentloaded');
@@ -71,7 +71,7 @@ test('player, dev and fresh contexts keep progression and saves isolated',async(
   expect(devTelemetry.profileType).toBe('dev');
 
   await page.locator('#menuButton').click();
-  await page.locator('#qaTestRunsButton').click();
+  await page.locator('#menuGroupSystem').click();await page.locator('#qaTestRunsButton').click();
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('[data-profile-context="fresh"]').click();
   await page.waitForLoadState('domcontentloaded');
