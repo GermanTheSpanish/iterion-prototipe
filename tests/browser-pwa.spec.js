@@ -87,7 +87,7 @@ test('tutorial tour prioritises TAP TO CONTINUE over Leave',async({page})=>{
 test('manual update check confirms the current build',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();await page.locator('#menuButton').click();
-  await expect(page.locator('#checkForUpdates')).toBeVisible();await page.locator('#checkForUpdates').click();
+  await page.locator('#menuGroupSystem').click();await expect(page.locator('#checkForUpdates')).toBeVisible();await page.locator('#checkForUpdates').click();
   await expect(page.locator('#checkForUpdates')).toContainText(`UP TO DATE · ${BUILD}`)
 });
 
@@ -104,7 +104,7 @@ test('silent update detection offers reload and preserves the active run before 
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUpdate?.updateAvailable),{timeout:5000}).toBe(true);
   const before=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));expect(before).toBeTruthy();
-  await page.locator('#menuButton').click();await expect(page.locator('#checkForUpdates')).toContainText('UPDATE AVAILABLE');await expect(page.locator('#applyMonoidUpdate')).toBeVisible();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();await expect(page.locator('#checkForUpdates')).toContainText('UPDATE AVAILABLE');await expect(page.locator('#applyMonoidUpdate')).toBeVisible();
   await page.locator('#applyMonoidUpdate').click();await page.waitForURL(new RegExp(`_monoidUpdate=${NEXT_BUILD.replaceAll('.','\\.')}`),{timeout:10000});
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(before)
 });
