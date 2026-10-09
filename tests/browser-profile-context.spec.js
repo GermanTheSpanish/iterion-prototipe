@@ -109,7 +109,7 @@ test('boot selector isolates profiles and Fresh starts guided Classic',async({pa
   const openingHierarchy=await page.evaluate(()=>({header:getComputedStyle(document.querySelector('.gameHeader')).opacity,scoreStrip:getComputedStyle(document.querySelector('.scoreStrip')).opacity,meta:getComputedStyle(document.querySelector('.metaStrip')).opacity,hand:getComputedStyle(document.querySelector('.handRail')).visibility}));
   expect(openingHierarchy).toEqual({header:'0',scoreStrip:'0',meta:'0',hand:'hidden'});
   await page.waitForTimeout(850);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('FIRST TILE');await expect(page.locator('#monoidBoardCoach')).toContainText('Place a DOUBLE anywhere on the BOARD.');
-  expect(await page.locator('.handRail').evaluate(el=>getComputedStyle(el).visibility)).toBe('visible');
+  await expect.poll(()=>page.locator('.handRail').evaluate(el=>getComputedStyle(el).visibility),{timeout:3000}).toBe('visible');
   await placeOpeningTile(page);
   await expect(page.locator('body')).not.toHaveClass(/freshClassicOpening/);await expect(page.locator('#monoidBoardCoach h2')).toHaveText('TARGET');await expect(page.locator('#monoidBoardCoach')).toContainText('Reach TARGET before MOVES run out.');
 });
