@@ -45,6 +45,7 @@ test('remote carousel dominoes never paint through hidden slides, even during ra
 });
 
 test('Round Complete TOTAL stays next to its reward and general guidance starts above the board midpoint',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
   await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');
   const style=await page.evaluate(()=>{
     const coach=document.querySelector('#monoidBoardCoach');
