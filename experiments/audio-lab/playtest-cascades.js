@@ -1,4 +1,4 @@
-/* Real playtest operation order; T22 also uses the recorded SIGNAL TREE split/rebound markers. */
+/* Recorded operation operands, reversal flags and structural markers when present. */
 export const PLAYTEST_CASCADES = Object.freeze([
   {
     "id": "short",
@@ -226,22 +226,34 @@ export const PLAYTEST_CASCADES = Object.freeze([
       {
         "type": "op",
         "pip": 1,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 1,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 4,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 4,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "split",
@@ -254,37 +266,58 @@ export const PLAYTEST_CASCADES = Object.freeze([
       {
         "type": "op",
         "pip": 5,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": true,
+        "coins": 1
       },
       {
         "type": "op",
         "pip": 3,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 4,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 6,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 5,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 2,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 0,
-        "reverse": false
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "rebound"
@@ -292,57 +325,90 @@ export const PLAYTEST_CASCADES = Object.freeze([
       {
         "type": "op",
         "pip": 2,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 5,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 6,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 4,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 3,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 5,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 4,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": true,
+        "coins": 1
       },
       {
         "type": "op",
         "pip": 4,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 1,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 1,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "op",
         "pip": 5,
-        "reverse": true
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
       },
       {
         "type": "arm-end",
@@ -355,6 +421,375 @@ export const PLAYTEST_CASCADES = Object.freeze([
       {
         "type": "op",
         "pip": 2,
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 0,
+        "reverse": false,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "rebound"
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true,
+        "mod": false,
+        "mint": false,
+        "coins": 0
+      },
+      {
+        "type": "arm-end",
+        "arm": 1
+      }
+    ],
+    "traceSource": "SIGNAL TREE"
+  },
+  {
+    "id": "extended",
+    "label": "Extended",
+    "source": "MONOID_PLAYTEST_v0.56.0_B-1HARM9V.txt",
+    "run": "Run 1 · FRAMES",
+    "move": "T18 R9.1",
+    "rebounds": 1,
+    "operations": 28,
+    "pips": [
+      2,
+      3,
+      6,
+      6,
+      2,
+      4,
+      4,
+      5,
+      3,
+      4,
+      6,
+      5,
+      2,
+      0,
+      2,
+      5,
+      6,
+      4,
+      3,
+      5,
+      4,
+      4,
+      2,
+      6,
+      6,
+      3,
+      2,
+      5
+    ],
+    "events": [
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 0,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      }
+    ],
+    "traceSource": "ops (R suffix); structural split position unavailable",
+    "coins": 1,
+    "mint": true
+  },
+  {
+    "id": "extreme",
+    "label": "Extreme",
+    "source": "MONOID_PLAYTEST_v0.56.0_B-1HARM9V.txt",
+    "run": "Run 1 · FRAMES",
+    "move": "T25 R10.7",
+    "rebounds": 1,
+    "operations": 29,
+    "pips": [
+      6,
+      12,
+      3,
+      2,
+      5,
+      6,
+      4,
+      3,
+      5,
+      4,
+      4,
+      2,
+      6,
+      0,
+      6,
+      2,
+      4,
+      4,
+      5,
+      3,
+      4,
+      6,
+      5,
+      2,
+      3,
+      6,
+      6,
+      1,
+      2
+    ],
+    "events": [
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 12,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 2,
         "reverse": false
       },
       {
@@ -366,9 +801,6 @@ export const PLAYTEST_CASCADES = Object.freeze([
         "type": "op",
         "pip": 0,
         "reverse": false
-      },
-      {
-        "type": "rebound"
       },
       {
         "type": "op",
@@ -392,12 +824,22 @@ export const PLAYTEST_CASCADES = Object.freeze([
       },
       {
         "type": "op",
-        "pip": 1,
+        "pip": 5,
         "reverse": true
       },
       {
         "type": "op",
-        "pip": 1,
+        "pip": 3,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
         "reverse": true
       },
       {
@@ -406,10 +848,38 @@ export const PLAYTEST_CASCADES = Object.freeze([
         "reverse": true
       },
       {
-        "type": "arm-end",
-        "arm": 1
+        "type": "op",
+        "pip": 2,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": false
       }
     ],
-    "traceSource": "SIGNAL TREE"
+    "traceSource": "ops (R suffix); structural split position unavailable",
+    "coins": 1,
+    "mint": false
   }
 ]);
