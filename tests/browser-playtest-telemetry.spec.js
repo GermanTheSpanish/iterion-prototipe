@@ -41,6 +41,6 @@ test('performance samples stay with the archived run and are absent from the nex
     return records.find(record=>record.runId===id)?.debugText||''
   },first);
   expect(archived).toMatch(/PERFORMANCE TELEMETRY\nMove 1:/);
-  const newDebug=await page.evaluate(async()=>{await window.__monoidSharePlaytestBatch;return window.__monoidPerformance.length});
+  const newDebug=await page.evaluate(()=>window.__monoidPerformance.length);
   expect(newDebug).toBe(0)
 });
