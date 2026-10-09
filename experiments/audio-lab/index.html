@@ -15,6 +15,7 @@
 <label>Release <input id="release" type="range" min="0.08" max="1.5" step="0.02" value="0.5"></label>
 <label>Volume <input id="volume" type="range" min="0" max="0.6" step="0.01" value="0.2"></label>
 </section>
+<section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Notes represent operation operands in recorded order; this is not yet an exact branch/timing reconstruction.</p><div class="controls" id="playtests"></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
 <section><h2>Cascade sequencer</h2><p>Seven pip values map to a C minor pentatonic palette. Rebound reverses event order; branches overlap.</p>
 <label>Step interval (ms) <input id="tempo" type="range" min="90" max="650" step="10" value="220"></label>
 <div class="controls"><button id="forward">Forward</button><button id="reverse">Rebound</button><button id="branch">Branch</button><button id="stop">Stop</button></div>
@@ -22,6 +23,7 @@
 </section>
 <script type="module">
 import { PIP_NOTES, cascadeEvents } from './sequencer.js';
+import { PLAYTEST_CASCADES } from './playtest-cascades.js';
 const $ = id => document.getElementById(id);
 let context, master, scheduled = [], generation = 0;
 const sequence = [0,2,4,3,1,0];
@@ -59,6 +61,16 @@ function run(mode){
   const start = context.currentTime + 0.035;
   for(const event of events) play(event.pip,start+event.time);
   $('status').textContent = mode.toUpperCase() + ' / ' + events.map(e=>e.pip).join(' · ');
+}
+for(const fixture of PLAYTEST_CASCADES){
+ const button=document.createElement('button');button.textContent=fixture.label+' · '+fixture.operations+' ops';
+ button.addEventListener('click',()=>{
+   init();stop();const interval=Number($('tempo').value)/1000;
+   const start=context.currentTime+0.035;
+   fixture.pips.forEach((pip,i)=>play(pip,start+i*interval));
+   $('playtest-status').textContent=fixture.move+' · '+fixture.operations+' operations · '+fixture.rebounds+' rebounds · '+(fixture.operations*interval).toFixed(1)+'s · '+fixture.source;
+ });
+ $('playtests').append(button);
 }
 for(let pip=0;pip<=6;pip++){
   const button=document.createElement('button');button.textContent=pip;button.setAttribute('aria-label','Play pip '+pip);
