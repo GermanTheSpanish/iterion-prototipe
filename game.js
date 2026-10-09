@@ -552,10 +552,17 @@ function createGame(E,opts={}){
     const targetSize=Math.min(limit,Math.max(handSize,s.hand.length));while(s.hand.length<targetSize)s.hand.push(null);
     for(const t of s.hand)if(t?.shopPinned&&isZero(t))s.roundZero.drawn++;
     if(cfg.FIRST_TILE_MUST_BE_DOUBLE&&s.turn===0&&!s.pieces.length){
-      const di=s.reserve.findIndex(isDouble);
+      const di=s.reserve.findIndex(t=>isDouble(t)&&(!cfg.AVOID_ZERO_DOUBLE_FIRST_HAND||t.a!==0));
       if(di>=0){const t=s.reserve.splice(di,1)[0];s.hand[0]=t;if(isZero(t))s.roundZero.drawn++;s.events.push({type:'opening-double',round:1,tile:cloneTile(t)})}
     }
-    for(let i=0;i<s.hand.length;i++)if(!s.hand[i])s.hand[i]=drawOne();
+    for(let i=0;i<s.hand.length;i++)if(!s.hand[i]){
+      if(cfg.AVOID_ZERO_DOUBLE_FIRST_HAND&&s.turn===0&&!s.pieces.length){
+        const next=s.reserve.findIndex(t=>t.id!=='d0-0');
+        if(next>=0){const tile=s.reserve.splice(next,1)[0];s.hand[i]=tile;if(isZero(tile))s.roundZero.drawn++;continue}
+      }
+      s.hand[i]=drawOne()
+    }
+    if(cfg.AVOID_ZERO_DOUBLE_FIRST_HAND&&s.turn===0&&!s.pieces.length)s.events.push({type:'opening-zero-deferred',round:1,tileId:'d0-0',hand:s.hand.filter(Boolean).map(cloneTile)})
   }
 
   function targetExactForRound(roundIndex=s.round){
@@ -1711,6 +1718,7 @@ function createGame(E,opts={}){
       if(v.type==='run-complete'){lines.push(`RUN COMPLETE R${v.round} target=${v.targetExact??v.target} output=${v.outputExact??v.output} coins=${v.coins} inflation=${v.inflation}`);continue}
       if(v.type==='endless-start'){lines.push(`ENDLESS START R${v.nextRound} target=${v.targetExact??v.target}`);continue}
       if(v.type==='opening-double'){lines.push(`R1 OPENING DOUBLE [${v.tile.a}|${v.tile.b}]`);continue}
+      if(v.type==='opening-zero-deferred'){lines.push(`R1 OPENING ZERO DEFERRED id=${v.tileId} hand=${v.hand.map(tileText).join(',')}`);continue}
       if(v.type==='board-expand'){lines.push(`STAGE ${v.stage} BOARD ${v.from.join('x')} > ${v.to.join('x')} offset=${v.offset.join(',')}`);continue}
       if(v.type==='core-discover'){lines.push(`STAGE ${v.stage} CORE DISCOVER ${String(v.core?.archetype||'core').toUpperCase()} I id=${v.core?.id||'-'} ports=${(v.core?.ports||[]).join('')||'-'} @${v.core?.x},${v.core?.y} lattice=${v.lattice?`${v.lattice.x},${v.lattice.y}`:'-'} voids=${(v.companionVoidIds||[]).length} recharge=${v.recharge} reason=${v.reason||'-'}`);continue}
       if(v.type==='void-discover'){lines.push(`STAGE ${v.stage} VOID DISCOVER mode=${String(v.mode||'-').toUpperCase()} core=${v.sourceCoreId||'-'} count=${v.count||0} ids=${(v.voids||[]).map(item=>item.id).join(',')||'-'} lattice=${v.lattice?`${v.lattice.x},${v.lattice.y}`:'-'} fallback=${v.growthFallback?'yes':'no'}`);continue}

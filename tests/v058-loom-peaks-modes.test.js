@@ -14,7 +14,7 @@ const approachSides=(core,geometry,board={G:18,H:24})=>{
   return core.ports.filter(side=>cells(side).every(cellRect=>cellRect.x>=0&&cellRect.y>=0&&cellRect.x+cell<=board.G&&cellRect.y+cell<=board.H&&!blocked(cellRect)))
 };
 
-assert.equal(D.VERSION,'0.72.0');
+assert.equal(D.VERSION,'0.73.0');
 assert.deepEqual({...D.CORE_SIGNAL_BY_MODE},{eyes:6,frames:4,river:3,loom:2,peaks:2,islands:2});
 assert.deepEqual({...D.CORE_ABILITY_LIMIT_BY_MODE},{loom:2,peaks:2,islands:2});
 assert.equal(D.CORE_PEAK_SIGNAL_MULTIPLIER,2);
