@@ -45,10 +45,10 @@ test('Signal Route Preview turns the machine into the route and keeps Full / Pre
   await page.screenshot({path:'test-results/route-preview-clarity-390x844.png',fullPage:true});
   await cancelDrag(page);
 
-  await page.locator('#menuButton').click();await expect(page.locator('[data-route-preview="full"]')).toHaveAttribute('aria-pressed','true');await page.locator('[data-route-preview="preview"]').click();expect(await page.evaluate(()=>localStorage.getItem('iterion.routePreview.v1'))).toBe('preview');await page.locator('#closeMenu').click();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();await expect(page.locator('[data-route-preview="full"]')).toHaveAttribute('aria-pressed','true');await page.locator('[data-route-preview="preview"]').click();expect(await page.evaluate(()=>localStorage.getItem('iterion.routePreview.v1'))).toBe('preview');await page.locator('#closeMenu').click();
   await beginCandidateDrag(page);await expect(page.locator('.routePreviewSvg')).toHaveAttribute('data-preview-mode','preview');expect(await page.locator('.routePreviewPulse').count()).toBeGreaterThan(0);await expect(page.locator('.routePreviewStart')).toHaveCount(0);await expect(page.locator('.routePreviewEnd')).toHaveCount(0);await expect(page.locator('.routePreviewRule')).toHaveCount(0);await cancelDrag(page);
 
-  await page.locator('#menuButton').click();await page.locator('[data-route-preview="off"]').click();await expect(page.locator('[data-route-preview="off"]')).toHaveAttribute('aria-pressed','true');await page.locator('#closeMenu').click();const callsBefore=await page.evaluate(()=>window.__routePreviewCalls);
+  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();await page.locator('[data-route-preview="off"]').click();await expect(page.locator('[data-route-preview="off"]')).toHaveAttribute('aria-pressed','true');await page.locator('#closeMenu').click();const callsBefore=await page.evaluate(()=>window.__routePreviewCalls);
   await beginCandidateDrag(page);await expect(page.locator('.routePreviewSvg')).toHaveCount(0);expect(await page.evaluate(()=>window.__routePreviewCalls)).toBe(callsBefore);await cancelDrag(page)
 });
 
@@ -87,5 +87,5 @@ test('Full route guidance stays contained on the compact mobile fixture',async({
 });
 
 test('automatic assistance steps down to Preview after the first three Classic rounds',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.evaluate(()=>{window.__routePreviewGame.state().round=3});await page.locator('#menuButton').click();await expect(page.locator('[data-route-preview="preview"]')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#routePreviewHelp')).toContainText('Automatic')
+  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.evaluate(()=>{window.__routePreviewGame.state().round=3});await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();await expect(page.locator('[data-route-preview="preview"]')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#routePreviewHelp')).toContainText('Automatic')
 });
