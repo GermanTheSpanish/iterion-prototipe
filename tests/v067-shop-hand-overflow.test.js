@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.equal(D.VERSION,'0.71.5');
+assert.equal(D.VERSION,'0.72.0');
 assert.equal(D.HAND_SIZE,5);
 assert.equal(D.SHOP_HAND_MAX,8);
 
