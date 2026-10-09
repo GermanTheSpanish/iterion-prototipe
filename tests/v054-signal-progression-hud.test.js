@@ -82,6 +82,6 @@ assert.match(ui,/function joinSignalHud/);
 assert.match(ui,/e\.signalAfter/,'HUD must consume live cascade Signal telemetry');
 assert.match(runtime,/\.signalHudLane\.low/);
 assert.match(runtime,/#b3261e/,'low Signal must use the gameplay warning red');
-assert.match(onboarding,/Each Market expands the Core network\./);
+assert.match(onboarding,/Each Market adds new Cores\./);
 
 console.log('v0.54 Signal progression + board HUD regression passed');
