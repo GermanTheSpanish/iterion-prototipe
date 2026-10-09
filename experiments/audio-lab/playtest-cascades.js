@@ -1,4 +1,4 @@
-/* Replay fixtures extracted from real playtest ops. Pips are operation operands, not a reconstructed routing graph. */
+/* Real playtest operation order; T22 also uses the recorded SIGNAL TREE split/rebound markers. */
 export const PLAYTEST_CASCADES = Object.freeze([
   {
     "id": "short",
@@ -11,7 +11,20 @@ export const PLAYTEST_CASCADES = Object.freeze([
     "pips": [
       4,
       4
-    ]
+    ],
+    "events": [
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      }
+    ],
+    "traceSource": "ops (R suffix)"
   },
   {
     "id": "medium",
@@ -27,7 +40,35 @@ export const PLAYTEST_CASCADES = Object.freeze([
       3,
       4,
       6
-    ]
+    ],
+    "events": [
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      }
+    ],
+    "traceSource": "ops (R suffix)"
   },
   {
     "id": "long",
@@ -54,7 +95,90 @@ export const PLAYTEST_CASCADES = Object.freeze([
       6,
       5,
       2
-    ]
+    ],
+    "events": [
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 0,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": true
+      }
+    ],
+    "traceSource": "ops (R suffix)"
   },
   {
     "id": "monstrous",
@@ -97,6 +221,195 @@ export const PLAYTEST_CASCADES = Object.freeze([
       1,
       1,
       5
-    ]
+    ],
+    "events": [
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "split",
+        "kind": "centered"
+      },
+      {
+        "type": "arm",
+        "arm": 0
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 0,
+        "reverse": false
+      },
+      {
+        "type": "rebound"
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 3,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "arm-end",
+        "arm": 0
+      },
+      {
+        "type": "arm",
+        "arm": 1
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": false
+      },
+      {
+        "type": "op",
+        "pip": 0,
+        "reverse": false
+      },
+      {
+        "type": "rebound"
+      },
+      {
+        "type": "op",
+        "pip": 6,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 2,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 4,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 1,
+        "reverse": true
+      },
+      {
+        "type": "op",
+        "pip": 5,
+        "reverse": true
+      },
+      {
+        "type": "arm-end",
+        "arm": 1
+      }
+    ],
+    "traceSource": "SIGNAL TREE"
   }
 ]);
