@@ -49,7 +49,7 @@ test('Round Complete TOTAL stays next to its reward and general guidance starts 
   const style=await page.evaluate(()=>{
     const coach=document.querySelector('#monoidBoardCoach');
     coach.hidden=false;coach.className='boardCoachLayer classicGuide';coach.innerHTML='<div class="boardCoachCard"><h2>GUIDE</h2><p>Connect matching tiles.</p></div>';
-    const board=document.getElementById('board').getBoundingClientRect(),box=coach.getBoundingClientRect();
+    const board=document.getElementById('board').getBoundingClientRect();Object.assign(coach.style,{left:board.left+'px',top:board.top+'px',width:board.width+'px',height:board.height+'px'});
     const card=coach.querySelector('.boardCoachCard').getBoundingClientRect();
     return{align:getComputedStyle(coach).alignItems,top:card.top,boardTop:board.top,bottom:card.bottom,boardMid:board.top+board.height/2}
   });
