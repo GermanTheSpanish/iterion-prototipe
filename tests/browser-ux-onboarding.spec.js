@@ -108,6 +108,12 @@ test('The Frames intro appears on every NEW RUN but not CONTINUE RUN',async({pag
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE FRAMES');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Signal starts at 4.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Reach a Core to gain more Signal.');
+  await expect(page.locator('#monoidBoardCoach')).toContainText('Each Market adds new Cores.');
+  const intro=await page.locator('#monoidBoardCoach .boardCoachCard p').evaluate(node=>({content:node.textContent,whiteSpace:getComputedStyle(node).whiteSpace}));
+  expect(intro.content).not.toContain('\\n');
+  expect(intro.content.split('\n')).toHaveLength(3);
+  expect(intro.whiteSpace).toBe('pre-line');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Core');
   await expect(page.locator('#monoidBoardCoach')).not.toContainText('one Void');
   await expect(page.locator('#board .coreNode, #board .boardVoid')).toHaveCount(4);
