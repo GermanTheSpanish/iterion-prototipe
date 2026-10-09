@@ -27,7 +27,7 @@ assert.match(ui,/rewardBreakdown/,'Round payoff must read authoritative reward d
 assert.match(ui,/event\.type==='mint-coins'/,'Mint must be explained from the authoritative event log');
 assert.match(ui,/roundRewardInline/,'Post-cascade summary must expose earned funds before the result overlay');
 assert.match(ui,/roundRewardHeading">EARNED[\s\S]*roundRewardSources[\s\S]*roundRewardTotal[\s\S]*>TOTAL</,'Round payoff must list sources before a larger TOTAL');
-assert.match(ui,/roundRewardLeader/,'Round payoff rows must visually connect labels to amounts');
+assert.match(ui,/roundRewardLeader/,'Reward sources retain dotted leaders');assert.doesNotMatch(ui,/roundRewardTotal[^`]*roundRewardLeader/,'TOTAL must sit directly next to its value without a dotted leader');
 assert.match(ui,/class="roundClearTarget">TARGET \$\{escapeHtml\(compact\(target\)\)\} · ×\$\{escapeHtml\(display\.multiplier\)\}/,'Target value and multiplier must live inside the score block');
 assert.match(ui,/scoreTraceHtml\(\)/,'Round Complete must render the canonical Score Trace inside SCORE');
 assert.match(ui,/lastScoreTrace=V\.scoreTracePlan\(sim\.events\|\|\[\],trigger,sim\.output\?\?trigger,finalOutput\)/,'Score Trace must derive from the resolved cascade events, never reconstructed from board state');
@@ -36,8 +36,8 @@ assert.match(css,/\.roundRewardHeading\{font-size:12px/);assert.match(css,/\.rou
 assert.doesNotMatch(ui,/class="roundClearMeta"/,'Round payoff must not render a detached Target row below economy');
 assert.match(css,/\.roundRewardRow,\.roundRewardTotal\{display:flex[^}]*gap:7px[^}]*width:100%/,'Reward rows and TOTAL must use the same flex geometry');
 assert.match(css,/\.roundRewardLeader\{[^}]*flex:1 1 auto[^}]*min-width:18px/,'Reward dotted leaders must flex all the way to each amount');
-assert.match(css,/\.roundRewardTotal>span\{font-size:13px[^}]*font-weight:900/,'TOTAL label must carry more visual weight');
-assert.match(css,/\.roundRewardTotal>strong\{[^}]*font-size:clamp\(23px,6\.7vw,30px\)/,'TOTAL amount must be smaller than the previous oversized treatment');
+assert.match(css,/\.roundRewardTotal>span\{font-size:clamp\(15px,4\.1vw,18px\)[^}]*font-weight:900/,'TOTAL label must have larger visual weight');
+assert.match(css,/\.roundRewardTotal>strong\{[^}]*font-size:clamp\(25px,7\.3vw,33px\)/,'TOTAL amount should dominate its aligned label');
 assert.match(ui,/roundRewardInlineSource/,'Inline earned sources must render the currency token for every source');
 assert.match(ui,/toast\(\`★ \$\{currencyHtml\(result\.upgradeCoins,\{signed:true\}\)\}\`,\{html:true\}\)/,'Star activation toast must identify its reward as currency');
 assert.match(css,/animation:roundRewardCascade \.52s ease forwards[^\n]*animation-delay:calc\(\.76s \+ var\(--reward-index,0\)\*\.24s\)/,'Reward cascade must use the slower Phase 2 timing');
