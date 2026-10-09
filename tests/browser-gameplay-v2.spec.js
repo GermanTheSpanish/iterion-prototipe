@@ -143,3 +143,43 @@ test('intentional drag across the snap tolerance switches to the neighbouring pl
   const placed=await page.evaluate(()=>{const p=window.__monoidGame.state().pieces[0];return{x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr}});
   expect(placed).toEqual({x:probe.b.x,y:probe.b.y,rr:probe.b.rr});
 });
+
+test('Islands reports zero-score dormant placement before release with Route Preview off',async({page})=>{
+  await page.addInitScript(()=>{
+    localStorage.setItem('iterion.activeRunMode.v1','islands');
+    localStorage.setItem('iterion.routePreview.v1','off');
+    localStorage.setItem('monoid.firstRunBriefing.v1','seen');
+    let api;
+    Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{
+      api={...value,createGame(engine,options){
+        const game=value.createGame(engine,{...options,GAME_MODE:'islands',seed:1335132265}),state=game.state();
+        const root=state.set.find(tile=>tile.id==='d1-1'),next=state.set.find(tile=>tile.id==='d3-3');
+        const piece=engine.pieceFrom(root,4,0,0,0,1);piece.tile={...root};
+        state.pieces=[piece];state.islandRootPieceId=piece.id;state.placedTileIds=[root.id];state.idc=1;state.turn=1;state.roundTurn=1;
+        state.hand=[next,null,null,null,null];state.reserve=state.set.filter(tile=>tile.id!==root.id&&tile.id!==next.id);
+        state.running=false;state.cleared=false;state.blocked=false;state.needsReroll=false;state.shopOpen=false;
+        return game
+      }}
+    }});
+  });
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('http://127.0.0.1:4173/');
+  await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().gameMode)).toBe('islands');
+  const candidate=await page.evaluate(()=>{
+    const game=window.__monoidGame,E=window.IterionEngine,D=window.IterionData,tile=game.state().hand[0];
+    const chosen=game.candidatesForIndex(0).find(candidate=>game.previewPlacement(0,candidate)?.islandDormant);
+    if(!chosen)return null;
+    const preview=game.previewPlacement(0,chosen),piece=E.pieceFrom(tile,chosen.x,chosen.y,0,chosen.rr,-1);
+    return{x:(piece.rect.minx+piece.rect.maxx)/2/E.G,y:(piece.rect.miny+piece.rect.maxy)/2/E.H,offset:D.DRAG_Y_OFFSET||0,output:preview.output}
+  });
+  expect(candidate).toBeTruthy();expect(candidate.output).toBe(0);
+  const hand=await page.locator('#hand .tile').first().boundingBox(),board=await page.locator('#board').boundingBox();
+  await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);await page.mouse.down();
+  await page.mouse.move(hand.x-20,hand.y+hand.height/2,{steps:3});
+  await page.mouse.move(board.x+candidate.x*board.width,board.y+candidate.y*board.height+candidate.offset,{steps:5});
+  await expect(page.locator('.islandPlacementHint[data-island-preview="dormant"]')).toHaveText('DORMANT · 0 SCORE UNTIL LINKED');
+  await expect(page.locator('.dragCandidate.islandDormantCandidate')).toBeVisible();
+  await expect(page.locator('.routePreviewSvg')).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true);
+  await page.mouse.move(2,2);await page.mouse.up();
+});

@@ -126,7 +126,7 @@
     const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.blocked&&!recovery.recoverable)return s.standardComplete?'completed':'failed';if(s.cleared&&s.standardComplete&&!s.endlessMode)return'completed';return'active'
   }
   function singleRunDebugText(game=GAME,includePerformance=game===GAME){
-    H.bindRun(game.state().runId);return`${game.debugText()}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${includePerformance?performanceText():'PERFORMANCE TELEMETRY\nUnavailable after reload.'}`
+    H.bindRun(game.state().runId);return`${game.debugText()}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${includePerformance?performanceText(game.state().runId):'PERFORMANCE TELEMETRY\nUnavailable after reload.'}`
   }
   async function archiveSavedRun(reason='new-run'){
     const saved=storedState();if(!saved?.state?.runId||!PT||!BATCH_STORE)return false;let game=GAME;
@@ -158,7 +158,7 @@
     clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;if(!continueSaved)await archiveSavedRun('new-run');const saved=continueSaved?storedState():null,mode=selectedMode(saved),next=window.IterionGame.createGame(E,gameOptions(mode));if(continueSaved&&!next.restoreState(saved))return;
     localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;window.__monoidSelectedMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
-    GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem(TUTORIAL_KEY,'made');persistGame({suppressProgressionReward:true});handFx.fill('normal');showGame()
+    performanceSamples.length=0;GAME=next;activeRun=GAME;H.bindRun(GAME.state().runId);bindPlaytestRun();localStorage.setItem(TUTORIAL_KEY,'made');persistGame({suppressProgressionReward:true});handFx.fill('normal');showGame()
   }
   const tutorialCopy=[
     'Place the double. Every machine opens with one.',
@@ -363,7 +363,7 @@
       if(topologyBreak){el.classList.add('topologyBreakWarning');el.setAttribute('aria-label',`${el.getAttribute('aria-label')} Placement will remove ${topologyBreak.label}.`);const warning=document.createElement('i');warning.className='topologyBreakMark';warning.textContent=`LOSE ${topologyBreak.label}`;warning.setAttribute('aria-hidden','true');el.appendChild(warning)}
       board.appendChild(el)
     });
-    if(drag.active&&drag.candidate){const c=drag.candidate,previewTile=c.resolvedTile||drag.tile,p=E.pieceFrom(previewTile,c.x,c.y,0,c.rr,(s.idc||0)+1);p.tile={...previewTile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');board.appendChild(candidate);renderRoutePreview(p)}
+    if(drag.active&&drag.candidate){const c=drag.candidate,previewTile=c.resolvedTile||drag.tile,p=E.pieceFrom(previewTile,c.x,c.y,0,c.rr,(s.idc||0)+1);p.tile={...previewTile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');if(s.gameMode==='islands'&&drag.kind==='hand'&&drag.preview?.ok){const dormant=!!drag.preview.islandDormant,linked=Number(drag.preview.islandLinkCount)||0;if(dormant)candidate.classList.add('islandDormantCandidate');if(dormant||linked>0){const note=document.createElement('div');note.className='islandPlacementHint';note.dataset.islandPreview=dormant?'dormant':'linked';note.textContent=dormant?'DORMANT · 0 SCORE UNTIL LINKED':`ISLANDS LINKED · +${drag.preview.islandSignalAdded} SIGNAL`;board.appendChild(note)}}board.appendChild(candidate);renderRoutePreview(p)}
     else if(s.ouroborosMode&&!uiBusy&&!auxOverlay){if(!ouroborosSelection){const selected=s.pieces.find(p=>p.tile.id===s.anchorId)||s.pieces.at(-1)||null;ouroborosSelection=selected?.tile.id||null}const preview=ouroborosSelection?GAME.previewOuroborosFire?.(ouroborosSelection):null;if(preview?.ok)renderRoutePreview(preview.p,preview,'ouroboros')}
     board.classList.toggle('dragging',drag.active)
   }
@@ -391,7 +391,7 @@
   function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal','compactCommerceModal','outcomeModal','roundAdvanceModal','roundRewardComplete','voidInspectorModal');overlay.onclick=null;overlayBody.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(ms=D.OUTCOME_SCREEN_DELAY_MS){ms=Math.max(0,Number(ms)||0);clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+ms;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},ms+25)}
-  async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
+  async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
@@ -735,7 +735,7 @@
     if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){const r=board.getBoundingClientRect(),inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom,boardTileWidth=r.width/E.G*2,scale=inside?Math.max(.18,Math.min(1.2,boardTileWidth/30)):1.2;drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px';drag.float.style.setProperty('--drag-scale',scale)}
     if(drag.kind==='ouroboros'){const next=ouroborosCandidate(e),c=next.candidate,o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;drag.topologyBreaks=next.topologyBreaks;drag.invalidReason=next.reason;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard();return}
     const raw=nearest(e.clientX,e.clientY),o=drag.candidate,c=latchedPlacementCandidate(raw,e),changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;
-    if(changed){drag.topologyBreaks=c?(GAME.topologyBreaksForPlacement?.(drag.index,c)||[]):[];drag.preview=c&&routePreviewMode()!=='off'?(GAME.previewPlacement?.(drag.index,c)||null):null}
+    if(changed){drag.topologyBreaks=c?(GAME.topologyBreaksForPlacement?.(drag.index,c)||[]):[];drag.preview=c&&(routePreviewMode()!=='off'||GAME.state().gameMode==='islands')?(GAME.previewPlacement?.(drag.index,c)||null):null}
     if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()
   }
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
@@ -964,11 +964,11 @@
 
   function rootCamera(){return window.MonoidBoardCamera}
   function recordPerformance(sim,searchMs,animationMs,animationMeta={}){
-    const search=sim.search||{},events=(sim.events||[]).filter(event=>['op','signal-fork','rebound','double-echo-start'].includes(event.type)).length,skip=animationMeta.skippedCascade?(animationMeta.skippedSummary?'cascade+summary':'cascade'):animationMeta.skippedSummary?'summary':'none';performanceSamples.push({move:GAME.state().turn,searchMs:Math.round(searchMs),animationMs:Math.round(animationMs),eventsRendered:events,expanded:search.expanded||0,truncated:!!search.truncated,cameraScale:rootCamera()?.snapshot().scale||1,skip});if(!tutorial)PT?.recordCascade(animationMs);while(performanceSamples.length>12)performanceSamples.shift()
+    const search=sim.search||{},events=(sim.events||[]).filter(event=>['op','signal-fork','rebound','double-echo-start'].includes(event.type)).length,skip=animationMeta.skippedCascade?(animationMeta.skippedSummary?'cascade+summary':'cascade'):animationMeta.skippedSummary?'summary':'none';performanceSamples.push({runId:GAME.state().runId,move:GAME.state().turn,searchMs:Math.round(searchMs),animationMs:Math.round(animationMs),eventsRendered:events,expanded:search.expanded||0,truncated:!!search.truncated,cameraScale:rootCamera()?.snapshot().scale||1,skip});if(!tutorial)PT?.recordCascade(animationMs);while(performanceSamples.length>12)performanceSamples.shift()
   }
-  function performanceText(){if(!performanceSamples.length)return'PERFORMANCE TELEMETRY\nNo recorded placements this session.';return`PERFORMANCE TELEMETRY\n${performanceSamples.map(s=>`Move ${s.move}: search ${s.searchMs}ms · animation ${s.animationMs}ms · events ${s.eventsRendered} · expanded ${s.expanded}${s.truncated?' TRUNCATED':''} · zoom ${s.cameraScale.toFixed(2)}x · skip=${s.skip||'none'}`).join('\n')}`}
+  function performanceText(runId=GAME.state().runId){const samples=performanceSamples.filter(sample=>sample.runId===runId);if(!samples.length)return'PERFORMANCE TELEMETRY\nNo recorded placements this session.';return`PERFORMANCE TELEMETRY\n${samples.map(s=>`Move ${s.move}: search ${s.searchMs}ms · animation ${s.animationMs}ms · events ${s.eventsRendered} · expanded ${s.expanded}${s.truncated?' TRUNCATED':''} · zoom ${s.cameraScale.toFixed(2)}x · skip=${s.skip||'none'}`).join('\n')}`}
 
-  Object.defineProperty(window,'__monoidPerformance',{configurable:true,get:()=>performanceSamples.map(sample=>({...sample}))});
+  Object.defineProperty(window,'__monoidPerformance',{configurable:true,get:()=>performanceSamples.filter(sample=>sample.runId===GAME.state().runId).map(sample=>({...sample}))});
   Object.defineProperty(window,'__monoidPlaytest',{configurable:true,get:()=>PT?.snapshot()||null});
   Object.defineProperty(window,'__monoidCascade',{configurable:true,get:()=>({active:cascadeControl.active,phase:cascadeControl.phase,skipCascade:cascadeControl.skipCascade,skipSummary:cascadeControl.skipSummary})});
   function fullDebugText(){return singleRunDebugText(GAME,true)}

@@ -489,6 +489,10 @@ body.ouroborosPalette .piece.ouroborosSelected{outline:2px solid currentColor;ou
 .coreNode.islandActiveCore{opacity:1;box-shadow:inset 0 0 0 1px rgba(21,21,21,.22)}
 .piece.islandDormant{opacity:.42;filter:saturate(.15);outline:1px dashed rgba(21,21,21,.48);outline-offset:1px}
 .piece.islandActive{opacity:1}
+.piece.dragCandidate.islandDormantCandidate{opacity:.6;outline:2px dashed rgba(21,21,21,.7);outline-offset:2px}
+.islandPlacementHint{position:absolute;left:6px;bottom:6px;z-index:25;pointer-events:none;max-width:calc(100% - 12px);padding:5px 7px;box-sizing:border-box;background:rgba(248,245,237,.96);border:1px solid rgba(21,21,21,.55);border-radius:3px;color:var(--ink);font:700 10px/1.25 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.025em;box-shadow:0 1px 3px rgba(0,0,0,.09)}
+.islandPlacementHint[data-island-preview="dormant"]{border-style:dashed}
+
 
 .coreNode.coreNeedsConnection{opacity:1;outline:2px solid rgba(21,21,21,.54);outline-offset:3px}
 .coreNode.lastRoleLead{outline:2px solid rgba(21,21,21,.72);outline-offset:2px}
