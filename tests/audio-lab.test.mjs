@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { cascadeEvents, PIP_NOTES } from '../experiments/audio-lab/sequencer.js';
+assert.equal(PIP_NOTES.length, 7);
+const input=[0,2,4,3,1,0];
+assert.deepEqual(cascadeEvents(input,'forward',0.2).map(e=>e.pip),input);
+assert.deepEqual(cascadeEvents(input,'reverse',0.2).map(e=>e.pip),[...input].reverse());
+const branch=cascadeEvents(input,'branch',0.2);
+assert.equal(branch.length,input.length*2);
+assert.deepEqual(branch.filter(e=>e.branch==='A').map(e=>e.pip),input);
+assert.deepEqual(branch.filter(e=>e.branch==='B').map(e=>e.pip),[...input].reverse());
+assert.deepEqual(input,[0,2,4,3,1,0]);
+assert.throws(()=>cascadeEvents([7]),RangeError);
+assert.throws(()=>cascadeEvents([0],'unknown'),RangeError);
+console.log('audio-lab sequencer tests passed');
