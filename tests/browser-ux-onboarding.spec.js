@@ -56,7 +56,7 @@ test('SYSTEMS starts from a prepared real machine and teaches Circuit, Mod and P
 
 test('SYSTEMS sandbox never overwrites a saved normal run',async({page})=>{
   await page.setViewportSize({width:390,height:844});await enterSelection(page);await page.locator('#startRun').click();if(await page.locator('[data-ux-action="start-first"]').isVisible())await page.locator('[data-ux-action="start-first"]').click();
-  const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'systems');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tutorialKind)).toBe('systems');expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved)
+  const saved=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await startTutorialFromHub(page,'systems');await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.tutorialKind)).toBe('systems');expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved);await page.locator('#leaveTutorial').click();await expect(page.locator('#gameSelection')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(saved)
 });
 
 test('first real run briefing is board-led, state-neutral and shown once',async({page})=>{
@@ -120,13 +120,13 @@ test('The Frames intro appears on every NEW RUN but not CONTINUE RUN',async({pag
   await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
   const firstRunId=await page.evaluate(()=>window.__monoidGame.state().runId);
 
-  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
   await page.evaluate(()=>window.__monoidModes.select(2));page.once('dialog',dialog=>dialog.accept());await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   const secondRunId=await page.evaluate(()=>window.__monoidGame.state().runId);expect(secondRunId).not.toBe(firstRunId);
   await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
 
-  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await expect(page.locator('#gameSelection')).toBeVisible();
   await page.locator('#continueRun').click();await expect.poll(()=>page.evaluate(()=>window.__monoidFlow?.screen)).toBe('game');
   expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(secondRunId);
   await page.waitForTimeout(180);await expect(page.locator('#monoidBoardCoach')).toBeHidden();expect(await page.evaluate(()=>window.__monoidUx?.mode)).toBe('idle');
@@ -144,7 +144,7 @@ test('The Loom and The Peaks explain LEAD LINK and Peak overcharge without spoil
   await expect(page.locator('#board .coreNode')).toHaveCount(4);await expect(page.locator('#board .boardVoid')).toHaveCount(4);
   await page.locator('[data-ux-action="start-mode"]').click();await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:5200}).toBe('idle');
 
-  await page.locator('#menuButton').click();await page.locator('#gameSelectionButton').click();await page.evaluate(()=>window.__monoidModes.select(5));page.once('dialog',dialog=>dialog.accept());await page.locator('#startRun').click();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();await page.locator('#gameSelectionButton').click();await page.evaluate(()=>window.__monoidModes.select(5));page.once('dialog',dialog=>dialog.accept());await page.locator('#startRun').click();
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode)).toBe('modeReveal');
   await expect(page.locator('#monoidBoardCoach')).toContainText('THE PEAKS');
   await expect(page.locator('#monoidBoardCoach')).toContainText('Central Peak Cores overcharge it.');
