@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONOID — Audio Lab</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#101010;color:#eee}*{box-sizing:border-box}body{margin:0;padding:22px;max-width:780px;margin-inline:auto}h1{font-size:1.5rem;letter-spacing:.15em}p,small{color:#aaa}section{border:1px solid #454545;border-radius:12px;padding:18px;margin:16px 0}button,select,input{font:inherit}button{background:#242424;color:#fff;border:1px solid #666;border-radius:8px;padding:12px;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:2px solid white}.keys{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.keys button{padding:22px 0}label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}input[type=range]{width:55%}.controls{display:flex;flex-wrap:wrap;gap:8px}output{font-family:monospace;display:block;overflow-wrap:anywhere;margin-top:12px;min-height:2em}@media(max-width:420px){body{padding:12px}.keys button{padding:18px 0}}
+</style>
+</head>
+<body>
+<h1>MONOID / AUDIO LAB</h1><p>Isolated procedural sound experiment. No game state, network requests, samples, or external dependencies. Tap a key to enable audio.</p>
+<section><h2>Instrument</h2><div class="keys" id="keys"></div>
+<label>Waveform <select id="wave"><option value="sine">Sine</option><option value="triangle" selected>Triangle</option><option value="soft">Soft piano-like</option></select></label>
+<label>Attack <input id="attack" type="range" min="0.005" max="0.2" step="0.005" value="0.012"></label>
+<label>Release <input id="release" type="range" min="0.08" max="1.5" step="0.02" value="0.5"></label>
+<label>Volume <input id="volume" type="range" min="0" max="0.6" step="0.01" value="0.2"></label>
+</section>
+<section><h2>Cascade sequencer</h2><p>Seven pip values map to a C minor pentatonic palette. Rebound reverses event order; branches overlap.</p>
+<label>Step interval (ms) <input id="tempo" type="range" min="90" max="650" step="10" value="220"></label>
+<div class="controls"><button id="forward">Forward</button><button id="reverse">Rebound</button><button id="branch">Branch</button><button id="stop">Stop</button></div>
+<output id="status" aria-live="polite">Ready</output>
+</section>
+<script type="module">
+import { PIP_NOTES, cascadeEvents } from './sequencer.js';
+const $ = id => document.getElementById(id);
+let context, master, scheduled = [], generation = 0;
+const sequence = [0,2,4,3,1,0];
+function init(){
+  if (!context) {
+    context = new (window.AudioContext || window.webkitAudioContext)();
+    master = context.createGain(); master.gain.value = 1; master.connect(context.destination);
+  }
+  if(context.state === 'suspended') context.resume();
+}
+function play(pip, at) {
+  const attack = Number($('attack').value), release = Number($('release').value);
+  const gain = context.createGain(), oscillator = context.createOscillator();
+  const volume = Number($('volume').value);
+  const waveform = $('wave').value;
+  oscillator.type = waveform === 'soft' ? 'triangle' : waveform;
+  oscillator.frequency.value = PIP_NOTES[pip];
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),at+attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001,at+attack+release);
+  oscillator.connect(gain); gain.connect(master);
+  oscillator.start(at); oscillator.stop(at+attack+release+0.02);
+  scheduled.push(oscillator);
+  oscillator.onended = () => { scheduled = scheduled.filter(node => node !== oscillator); oscillator.disconnect(); gain.disconnect(); };
+}
+function stop() {
+  generation++;
+  for(const oscillator of scheduled){try{oscillator.stop();}catch{}}
+  scheduled = [];
+  $('status').textContent = 'Stopped';
+}
+function run(mode){
+  init(); stop();
+  const events = cascadeEvents(sequence,mode,Number($('tempo').value)/1000);
+  const start = context.currentTime + 0.035;
+  for(const event of events) play(event.pip,start+event.time);
+  $('status').textContent = mode.toUpperCase() + ' / ' + events.map(e=>e.pip).join(' · ');
+}
+for(let pip=0;pip<=6;pip++){
+  const button=document.createElement('button');button.textContent=pip;button.setAttribute('aria-label','Play pip '+pip);
+  button.addEventListener('click',()=>{init();play(pip,context.currentTime+0.01);$('status').textContent='Pip '+pip;});
+  $('keys').append(button);
+}
+$('forward').onclick=()=>run('forward');
+$('reverse').onclick=()=>run('reverse');
+$('branch').onclick=()=>run('branch');
+$('stop').onclick=stop;
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
+</script>
+</body></html>
