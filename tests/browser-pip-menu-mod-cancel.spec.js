@@ -38,23 +38,42 @@ test('pip diameter stays at the untransformed board size across zoom and rerende
   await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.querySelector('#board .pip')).width)).toBe(base.diameter+'px');
 });
 
-test('Run menu has visible priorities and no stale update CTA',async({page})=>{
+for(const viewport of [{width:375,height:667},{width:390,height:844}]){
+test(`Run menu stays concise and disclosures remain mutually exclusive at ${viewport.width}x${viewport.height}`,async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
-  await page.setViewportSize({width:375,height:667});await page.goto('http://127.0.0.1:4173/');
+  await page.setViewportSize(viewport);await page.goto('http://127.0.0.1:4173/');
   await page.locator('#menuButton').click();
-  const menu=page.locator('#gameMenu');
+  const menu=page.locator('#gameMenu'),explore=menu.locator('#menuGroupExplore'),system=menu.locator('#menuGroupSystem');
   await expect(menu).toBeVisible();
-  await expect(menu.locator('#menuGroupPlay')).toHaveText('PLAY');
-  await expect(menu.locator('#menuGroupExplore')).toHaveText('EXPLORE');
-  await expect(menu.locator('#menuGroupRun')).toHaveText('RUN DATA');
-  await expect(menu.locator('#menuGroupSystem')).toHaveText('SYSTEM');
-  const order=await page.evaluate(()=>['routePreviewSetting','menuHelpButton','reset','gameSelectionButton','modCollectionMenuButton','viewrun','copyrun','checkForUpdates','qaTestRunsButton'].map(id=>Number(getComputedStyle(document.getElementById(id)).order)));
-  expect(order).toEqual([...order].sort((a,b)=>a-b));
-  await expect(menu.locator('#applyMonoidUpdate')).toBeHidden();
-  expect(await menu.locator('#applyMonoidUpdate').evaluate(node=>getComputedStyle(node).display)).toBe('none');
   await expect(menu.locator('#reset')).toBeVisible();
   await expect(menu.locator('#menuHelpButton')).toBeVisible();
+  await expect(explore).toHaveText('Explore');await expect(system).toHaveText('System');
+  await expect(explore).toHaveAttribute('aria-expanded','false');
+  await expect(system).toHaveAttribute('aria-expanded','false');
+  for(const id of ['menuStats','routePreviewSetting','gameSelectionButton','modCollectionMenuButton','checkForUpdates','copyrun','qaTestRunsButton','viewrun'])
+    await expect(menu.locator('#'+id)).toBeHidden();
+  const newRun=await menu.locator('#reset').boundingBox(),rulebook=await menu.locator('#menuHelpButton').boundingBox(),exp=await explore.boundingBox();
+  expect(newRun.y).toBeLessThan(rulebook.y);expect(rulebook.y).toBeLessThan(exp.y);
+  expect(await menu.evaluate(el=>el.scrollHeight<=el.clientHeight)).toBe(true);
+  await explore.click();
+  await expect(explore).toHaveAttribute('aria-expanded','true');
+  await expect(menu.locator('#gameSelectionButton')).toBeVisible();
+  await expect(menu.locator('#modCollectionMenuButton')).toBeVisible();
+  await expect(menu.locator('#checkForUpdates')).toBeHidden();
+  await system.click();
+  await expect(explore).toHaveAttribute('aria-expanded','false');
+  await expect(system).toHaveAttribute('aria-expanded','true');
+  await expect(menu.locator('#gameSelectionButton')).toBeHidden();
+  for(const id of ['routePreviewSetting','checkForUpdates','copyrun','qaTestRunsButton'])await expect(menu.locator('#'+id)).toBeVisible();
+  await expect(menu.locator('#applyMonoidUpdate')).toBeHidden();
+  await expect(menu.locator('#viewrun')).toBeHidden();
+  await system.click();await expect(system).toHaveAttribute('aria-expanded','false');
+  await page.locator('#closeMenu').click();await page.locator('#menuButton').click();
+  await expect(explore).toHaveAttribute('aria-expanded','false');await expect(system).toHaveAttribute('aria-expanded','false');
+  await expect(menu.locator('#qaTestRunsButton')).toBeHidden();
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+}
 
 test('pending Market Mod offers a genuine cancel/refund path and restores the same Market',async({page})=>{
   await page.addInitScript(()=>{
