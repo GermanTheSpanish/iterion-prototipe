@@ -640,4 +640,13 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 #gameMenu>.routePreviewSetting{border-top:0;padding:8px 0}
 #gameMenu>.menuAction{min-height:43px}
 
+/* The full-height board otherwise masks the pending Mod cancel action on mobile. */
+#circuitChoice:not([hidden]):has(.cancelModPurchase){
+  position:absolute!important;left:6px!important;right:6px!important;bottom:6px!important;
+  z-index:85!important;box-sizing:border-box!important;padding:7px 8px!important;
+  border:1px solid var(--line)!important;background:rgba(251,250,246,.97)!important;
+  box-shadow:0 1px 8px rgba(21,21,21,.12)!important;pointer-events:auto!important;
+}
+#circuitChoice:not([hidden]) .cancelModPurchase{pointer-events:auto!important;touch-action:manipulation!important}
+
 #circuitChoice[hidden]{display:none!important}
