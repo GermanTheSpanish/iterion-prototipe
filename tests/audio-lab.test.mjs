@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { cascadeEvents, PIP_NOTES } from '../experiments/audio-lab/sequencer.js';
+import { readFileSync } from 'node:fs';
+const source = readFileSync(new URL('../experiments/audio-lab/sequencer.js', import.meta.url), 'utf8');
+const { cascadeEvents, PIP_NOTES } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 assert.equal(PIP_NOTES.length, 7);
 const input=[0,2,4,3,1,0];
 assert.deepEqual(cascadeEvents(input,'forward',0.2).map(e=>e.pip),input);
