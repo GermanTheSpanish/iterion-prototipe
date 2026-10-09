@@ -658,9 +658,9 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 
 
 /* Reserve information belongs with the physical Hand, never a duplicated menu statistic. */
-.handHeader{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;justify-items:center;width:100%}
-.handHeader>.label{grid-column:2}
-.handReserveCount{grid-column:3;justify-self:end;display:inline-flex;align-items:baseline;gap:3px;margin-right:5px;white-space:nowrap;font:650 10px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.025em;color:var(--muted);font-variant-numeric:tabular-nums}
+.handHeader{position:relative;display:flex;align-items:center;justify-content:center;width:100%}
+.handHeader>.label{position:absolute;left:50%;transform:translateX(-50%)}
+.handReserveCount{position:absolute;right:0;display:inline-flex;align-items:baseline;gap:3px;margin-right:5px;white-space:nowrap;font:650 10px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.025em;color:var(--muted);font-variant-numeric:tabular-nums}
 .handReserveCount strong{color:var(--ink);font-weight:850}
 @media(max-width:360px){.handReserveCount{font-size:9px;gap:2px;margin-right:2px}}
 
