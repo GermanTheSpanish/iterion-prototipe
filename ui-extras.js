@@ -88,10 +88,22 @@
   function installBuildStamp(){
     if(entryFlow&&!$('devBuildStamp')){const stamp=doc.createElement('div');stamp.id='devBuildStamp';stamp.textContent=version;entryFlow.appendChild(stamp)}
     const menu=$('gameMenu');if(menu&&!menu.querySelector('.menuBuildStamp')){const p=doc.createElement('p');p.className='menuBuildStamp';p.textContent=version;menu.appendChild(p)}
-    if(menu&&!menu.querySelector('#menuGroupPlay')){
-      for(const [id,label] of [['menuGroupPlay','PLAY'],['menuGroupExplore','EXPLORE'],['menuGroupRun','RUN DATA'],['menuGroupSystem','SYSTEM']]){
-        const heading=doc.createElement('div');heading.id=id;heading.className='menuSectionLabel';heading.setAttribute('role','heading');heading.setAttribute('aria-level','3');heading.textContent=label;menu.appendChild(heading)
-      }
+    if(menu&&!menu.querySelector('#menuGroupExplore')){
+      menu.dataset.openSection='';
+      const sections=[['menuGroupExplore','Explore','explore'],['menuGroupSystem','System','system']];
+      const buttons=sections.map(([id,label,section])=>{
+        const button=doc.createElement('button');button.id=id;button.type='button';button.className='menuDisclosure';button.textContent=label;button.setAttribute('aria-expanded','false');
+        button.addEventListener('click',()=>{
+          const opened=menu.dataset.openSection===section?'':section;
+          menu.dataset.openSection=opened;
+          for(const toggle of menu.querySelectorAll('.menuDisclosure'))toggle.setAttribute('aria-expanded',String(toggle===button&&opened===section));
+        });
+        menu.appendChild(button);return button
+      });
+      menu.addEventListener('close',()=>{
+        menu.dataset.openSection='';
+        for(const button of buttons)button.setAttribute('aria-expanded','false');
+      });
     }
   }
 
