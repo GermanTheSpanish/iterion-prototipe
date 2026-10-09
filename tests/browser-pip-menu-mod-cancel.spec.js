@@ -50,8 +50,9 @@ test(`Run menu stays concise and disclosures remain mutually exclusive at ${view
   await expect(explore).toHaveText('Explore');await expect(system).toHaveText('System');
   await expect(explore).toHaveAttribute('aria-expanded','false');
   await expect(system).toHaveAttribute('aria-expanded','false');
-  for(const id of ['menuStats','routePreviewSetting','gameSelectionButton','modCollectionMenuButton','checkForUpdates','copyrun','qaTestRunsButton','viewrun'])
+  for(const id of ['routePreviewSetting','gameSelectionButton','modCollectionMenuButton','checkForUpdates','copyrun','qaTestRunsButton','viewrun'])
     await expect(menu.locator('#'+id)).toBeHidden();
+  await expect(menu.locator('.menuStats')).toBeHidden();
   const newRun=await menu.locator('#reset').boundingBox(),rulebook=await menu.locator('#menuHelpButton').boundingBox(),exp=await explore.boundingBox();
   expect(newRun.y).toBeLessThan(rulebook.y);expect(rulebook.y).toBeLessThan(exp.y);
   expect(await menu.evaluate(el=>el.scrollHeight<=el.clientHeight)).toBe(true);
