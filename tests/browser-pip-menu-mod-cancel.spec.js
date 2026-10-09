@@ -1,10 +1,24 @@
 const {test,expect}=require('@playwright/test');
 
 test('pip diameter stays at the untransformed board size across zoom and rerender',async({page})=>{
-  await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
+  await page.addInitScript(()=>{
+    localStorage.setItem('iterion.entryBypass.v1','true');
+    let api;
+    Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{
+      api={...value,createGame(E,opts){
+        const game=value.createGame(E,{...opts,seed:490162786}),s=game.state(),double=s.set.find(tile=>tile.id==='d2-2');
+        if(!s.hand.some(tile=>tile?.id===double.id)){
+          const slot=s.hand.findIndex(tile=>tile!=null),displaced=s.hand[slot];
+          s.hand[slot]=double;s.reserve=s.reserve.filter(tile=>tile.id!==double.id);
+          if(displaced)s.reserve.push(displaced)
+        }
+        return game
+      }}
+    }});
+  });
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
   const position=await page.evaluate(()=>{
-    const g=window.__monoidGame,E=window.IterionEngine,s=g.state(),i=s.hand.findIndex((tile,j)=>tile&&tile.a===tile.b&&g.candidatesForIndex(j).length),tile=s.hand[i],c=g.candidatesForIndex(i)[0],p=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);
+    const g=window.__monoidGame,E=window.IterionEngine,s=g.state(),i=s.hand.findIndex((tile,j)=>tile?.id==='d2-2'&&g.candidatesForIndex(j).length),tile=s.hand[i],c=g.candidatesForIndex(i)[0],p=E.pieceFrom(tile,c.x,c.y,0,c.rr,-1);
     return{index:i,x:(p.rect.minx+p.rect.maxx)/2/E.G,y:(p.rect.miny+p.rect.maxy)/2/E.H,offset:window.IterionData.DRAG_Y_OFFSET||0};
   });
   expect(position.index).toBeGreaterThanOrEqual(0);
