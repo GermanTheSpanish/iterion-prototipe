@@ -15,7 +15,7 @@
 <label>Release <input id="release" type="range" min="0.08" max="1.5" step="0.02" value="0.5"></label>
 <label>Volume <input id="volume" type="range" min="0" max="0.6" step="0.01" value="0.2"></label>
 </section>
-<section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Notes represent operation operands in recorded order; this is not yet an exact branch/timing reconstruction.</p><div class="controls" id="playtests"></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
+<section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Uses the real cascade acceleration from presentation.js, recorded rebound directions and SIGNAL TREE split markers where available. Branch arms follow recorded trace order, not simultaneous audio.</p><label>Playback speed <select id="replay-speed"><option value="0.5">0.5×</option><option value="1" selected>1× (game timing)</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><div class="controls" id="playtests"></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
 <section><h2>Cascade sequencer</h2><p>Seven pip values map to a C minor pentatonic palette. Rebound reverses event order; branches overlap.</p>
 <label>Step interval (ms) <input id="tempo" type="range" min="90" max="650" step="10" value="220"></label>
 <div class="controls"><button id="forward">Forward</button><button id="reverse">Rebound</button><button id="branch">Branch</button><button id="stop">Stop</button></div>
@@ -24,6 +24,7 @@
 <script type="module">
 import { PIP_NOTES, cascadeEvents } from './sequencer.js';
 import { PLAYTEST_CASCADES } from './playtest-cascades.js';
+import { replayEvents } from './replay.js';
 const $ = id => document.getElementById(id);
 let context, master, scheduled = [], generation = 0;
 const sequence = [0,2,4,3,1,0];
@@ -34,10 +35,10 @@ function init(){
   }
   if(context.state === 'suspended') context.resume();
 }
-function play(pip, at) {
-  const attack = Number($('attack').value), release = Number($('release').value);
+function play(pip, at, reverse = false) {
+  const attack = reverse ? Math.max(0.07,Number($('attack').value)) : Number($('attack').value), release = reverse ? Math.max(0.18,Number($('release').value)*0.65) : Number($('release').value);
   const gain = context.createGain(), oscillator = context.createOscillator();
-  const volume = Number($('volume').value);
+  const volume = Number($('volume').value) * (reverse ? 0.65 : 1);
   const waveform = $('wave').value;
   oscillator.type = waveform === 'soft' ? 'triangle' : waveform;
   oscillator.frequency.value = PIP_NOTES[pip];
@@ -65,10 +66,16 @@ function run(mode){
 for(const fixture of PLAYTEST_CASCADES){
  const button=document.createElement('button');button.textContent=fixture.label+' · '+fixture.operations+' ops';
  button.addEventListener('click',()=>{
-   init();stop();const interval=Number($('tempo').value)/1000;
+   init();stop();
+   const replay=replayEvents(fixture,Number($('replay-speed').value));
    const start=context.currentTime+0.035;
-   fixture.pips.forEach((pip,i)=>play(pip,start+i*interval));
-   $('playtest-status').textContent=fixture.move+' · '+fixture.operations+' operations · '+fixture.rebounds+' rebounds · '+(fixture.operations*interval).toFixed(1)+'s · '+fixture.source;
+   for(const event of replay.events){
+     if(event.type==='note') play(event.pip,start+event.time,event.reverse);
+     else if(event.type==='rebound') play(0,start+event.time,true);
+     else if(event.type==='split') play(6,start+event.time);
+   }
+   $('playtest-status').textContent=fixture.move+' · '+replay.operations+' operations · '+fixture.rebounds+' rebounds · '+replay.events.filter(e=>e.type==='split').length+' splits · '+replay.duration.toFixed(1)+'s · '+fixture.traceSource;
+
  });
  $('playtests').append(button);
 }
