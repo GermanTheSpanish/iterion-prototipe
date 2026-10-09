@@ -18,7 +18,7 @@ test('performance samples stay with the archived run and are absent from the nex
   test.setTimeout(60000);
   await page.addInitScript(()=>{localStorage.setItem('iterion.entryBypass.v1','true');localStorage.setItem('monoid.firstRunBriefing.v1','seen')});
   await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');
-  await page.locator('#titleCard').click();await page.locator('#startRun').click();
+  await expect(page.locator('#board')).toBeVisible(); // entryBypass starts the run directly.
   const first=await page.evaluate(()=>window.__monoidGame.state().runId);
   const position=await page.evaluate(()=>{
     const game=window.__monoidGame,E=window.IterionEngine,D=window.IterionData,s=game.state();
