@@ -604,3 +604,8 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>.marketOffer:firs
 body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:currentColor}
 @media(max-height:700px){.scoreTrace{gap:2px;margin-top:6px;padding-top:6px}.scoreTraceHeading{font-size:10px}.scoreTraceLine{font-size:10px;line-height:1.25}.roundReward{margin-top:10px;padding:10px 0}.roundRewardHeading{font-size:11px}.roundRewardTotal>span{font-size:11px}.roundRewardTotal>strong{font-size:22px}.roundRewardRow{min-height:18px;font-size:12px}.roundRewardRow b{font-size:11px}.roundAdvanceHint{font-size:12px!important}.shopRailButton{letter-spacing:0!important}}
 @media(prefers-reduced-motion:reduce){.roundAdvanceModal #overlayTitle,.roundAdvanceModal .roundClearScore,.roundAdvanceModal .roundRewardHeading,.roundAdvanceModal .roundRewardTotal,.roundRewardRow,.roundAdvanceModal .roundAdvanceHint{animation:none!important;opacity:1!important;transform:none!important}}
+
+/* A pending Market purchase must always offer a legible, reachable escape. */
+.circuitChoice:has(.cancelModPurchase){display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.cancelModPurchase{min-height:44px;padding:8px 12px;border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;font:800 11px/1.25 system-ui,sans-serif;letter-spacing:.04em;cursor:pointer}
+.boardCoachLayer.modeReveal .boardCoachCard p{white-space:pre-line}
