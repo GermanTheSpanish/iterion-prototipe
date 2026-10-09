@@ -588,9 +588,9 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>.marketOffer:firs
 .roundRewardRow b{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--muted);flex:0 0 auto}
 .roundRewardLeader{align-self:center;flex:1 1 auto;min-width:18px;border-bottom:1px dotted color-mix(in srgb,var(--muted) 58%,transparent);transform:translateY(-1px)}
 .roundRewardRow .currencyAmount,.roundRewardTotal .currencyAmount{flex:0 0 auto;justify-content:flex-end}
-.roundRewardTotal{margin-top:4px;padding-top:9px;border-top:1px solid var(--line);opacity:0;transform:translateY(4px);animation:roundRewardCascade .56s ease var(--reward-total-delay,1.52s) forwards}
-.roundRewardTotal>span{font-size:13px;font-weight:900;letter-spacing:.14em;color:var(--muted);flex:0 0 auto}
-.roundRewardTotal>strong{flex:0 0 auto;font-size:clamp(23px,6.7vw,30px);font-weight:900;line-height:1}
+.roundRewardTotal{margin-top:4px;padding-top:9px;border-top:1px solid var(--line);justify-content:flex-end;gap:12px;opacity:0;transform:translateY(4px);animation:roundRewardCascade .56s ease var(--reward-total-delay,1.52s) forwards}
+.roundRewardTotal>span{font-size:clamp(15px,4.1vw,18px);font-weight:900;letter-spacing:.14em;color:var(--muted);flex:0 0 auto}
+.roundRewardTotal>strong{flex:0 0 auto;font-size:clamp(25px,7.3vw,33px);font-weight:900;line-height:1}
 .roundAdvanceModal #overlayTitle{animation:roundRewardCascade .48s ease both}
 .roundAdvanceModal .roundClearScore{opacity:0;animation:roundRewardCascade .56s ease .24s forwards}
 .roundAdvanceModal .roundRewardHeading{opacity:0;animation:roundRewardCascade .48s ease .56s forwards}
@@ -602,7 +602,7 @@ body.monoidCommerceActive .commerceModal .classicMarketPyramid>.marketOffer:firs
 .roundRewardInline>b{font-size:9px;letter-spacing:.12em}
 .roundRewardInlineSources{width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 5px;font-size:9px;color:var(--muted);letter-spacing:.025em}.roundRewardInlineSource{display:inline-flex;align-items:center;gap:3px}.roundRewardInlineSource .currencyMark{width:.7em;height:.7em;flex-basis:.7em}.roundRewardInlineSources>i{font-style:normal;opacity:.7}.toast .currencyAmount{display:inline-flex}.toast .currencyMark{width:.72em;height:.72em;flex-basis:.72em}
 body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:currentColor}
-@media(max-height:700px){.scoreTrace{gap:2px;margin-top:6px;padding-top:6px}.scoreTraceHeading{font-size:10px}.scoreTraceLine{font-size:10px;line-height:1.25}.roundReward{margin-top:10px;padding:10px 0}.roundRewardHeading{font-size:11px}.roundRewardTotal>span{font-size:11px}.roundRewardTotal>strong{font-size:22px}.roundRewardRow{min-height:18px;font-size:12px}.roundRewardRow b{font-size:11px}.roundAdvanceHint{font-size:12px!important}.shopRailButton{letter-spacing:0!important}}
+@media(max-height:700px){.scoreTrace{gap:2px;margin-top:6px;padding-top:6px}.scoreTraceHeading{font-size:10px}.scoreTraceLine{font-size:10px;line-height:1.25}.roundReward{margin-top:10px;padding:10px 0}.roundRewardHeading{font-size:11px}.roundRewardTotal>span{font-size:14px}.roundRewardTotal>strong{font-size:25px}.roundRewardRow{min-height:18px;font-size:12px}.roundRewardRow b{font-size:11px}.roundAdvanceHint{font-size:12px!important}.shopRailButton{letter-spacing:0!important}}
 @media(prefers-reduced-motion:reduce){.roundAdvanceModal #overlayTitle,.roundAdvanceModal .roundClearScore,.roundAdvanceModal .roundRewardHeading,.roundAdvanceModal .roundRewardTotal,.roundRewardRow,.roundAdvanceModal .roundAdvanceHint{animation:none!important;opacity:1!important;transform:none!important}}
 
 /* A pending Market purchase must always offer a legible, reachable escape. */
@@ -655,3 +655,15 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 #circuitChoice:not([hidden]) .cancelModPurchase{pointer-events:auto!important;touch-action:manipulation!important}
 
 #circuitChoice[hidden]{display:none!important}
+
+
+/* Reserve information belongs with the physical Hand, never a duplicated menu statistic. */
+.handHeader{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;justify-items:center;width:100%}
+.handHeader>.label{grid-column:2}
+.handReserveCount{grid-column:3;justify-self:end;display:inline-flex;align-items:baseline;gap:3px;margin-right:5px;white-space:nowrap;font:650 10px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.025em;color:var(--muted);font-variant-numeric:tabular-nums}
+.handReserveCount strong{color:var(--ink);font-weight:850}
+@media(max-width:360px){.handReserveCount{font-size:9px;gap:2px;margin-right:2px}}
+
+/* General, non-interactive game hints stay just below Round / Stage, not over Hand controls. */
+.boardCoachLayer.modeOrient,.boardCoachLayer.modeDiscovery,.boardCoachLayer.modePayoff,.boardCoachLayer.classicGuide,.boardCoachLayer.classicOpening{align-items:flex-start;padding:9px 10px 10px}
+.boardCoachLayer.modeOrient .boardCoachCard,.boardCoachLayer.modeDiscovery .boardCoachCard,.boardCoachLayer.modePayoff .boardCoachCard,.boardCoachLayer.classicGuide .boardCoachCard,.boardCoachLayer.classicOpening .boardCoachCard{max-height:48%;overflow:hidden}
