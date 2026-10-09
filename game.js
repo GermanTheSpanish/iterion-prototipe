@@ -1531,6 +1531,7 @@ function createGame(E,opts={}){
     const m=M.get(id);if(!m?.market)return{ok:false,reason:'item'};
     const targetCount=marketTargetCount(id);if(targetCount<1)return{ok:false,reason:'no-target'};
     const cost=marketModPrice(id);if(s.coins<cost)return{ok:false,reason:'coins'};
+    const rollback=m.target==='machine'?null:{coins:s.coins,inflation:s.inflation,undoFrame:deepClone(s.undoFrame),brokerDiscountStored:s.brokerDiscountStored,brokerPreparedMarket:s.brokerPreparedMarket,marketBuys:deepClone(s.marketBuys),shopOffers:[...s.shopOffers],nextShopType:s.nextShopType,intermissionResolved:s.intermissionResolved,eventsLength:s.events.length};
     const previousTileId=assignedTileIdsForMod(id)[0]||null,storedBrokerDiscount=brokerDiscountAmount(),baseCost=Number(cfg[m.marketCostKey])||0,fullCost=inflationCost(baseCost),brokerDiscount=Math.min(storedBrokerDiscount,fullCost),purchase=applyPurchase(cost);if(storedBrokerDiscount>0)s.brokerDiscountStored=0;
     s.undoFrame=null;
     const record={mod:id,tile:null,targetTileId:null,previousTileId,cost,brokerDiscount,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter,pending:m.target!=='machine'};s.marketBuys.push(record);
@@ -1540,8 +1541,20 @@ function createGame(E,opts={}){
       if(!s.mods.includes(id))s.mods.push(id);closeMarketState('mod-installed',true);
       return{ok:true,mod:id,pending:false,targetTileId:null,previousTileId,candidateCount:targetCount,cost,inflation:s.inflation}
     }
-    const pending=beginPendingModPlacement(id,previousTileId,s.marketBuys.length-1);closeMarketState('mod-placement',false);
+    const pending=beginPendingModPlacement(id,previousTileId,s.marketBuys.length-1);pending.rollback=rollback;closeMarketState('mod-placement',false);
     return{ok:true,mod:id,pending:true,stage:pending.stage,eligibleTileIds:[...pending.eligibleTileIds],previousTileId,candidateCount:targetCount,cost,inflation:s.inflation}
+  }
+  function cancelMarketModPurchase(){
+    const pending=s.pendingModPlacement,rollback=pending?.rollback;
+    if(!rollback||s.running||s.shopOpen||!Number.isInteger(rollback.eventsLength)||rollback.eventsLength<0||rollback.eventsLength>s.events.length)return{ok:false,reason:'state'};
+    const record=s.marketBuys[pending.recordIndex];
+    if(!record||record.mod!==pending.mod||!record.pending)return{ok:false,reason:'purchase'};
+    const cancelledMod=pending.mod,cost=record.cost;
+    s.coins=rollback.coins;s.inflation=rollback.inflation;s.undoFrame=deepClone(rollback.undoFrame);s.brokerDiscountStored=rollback.brokerDiscountStored;s.brokerPreparedMarket=rollback.brokerPreparedMarket;
+    s.marketBuys=deepClone(rollback.marketBuys);s.shopOffers=[...rollback.shopOffers];s.shopOpen=true;s.shopType='market';s.nextShopType=rollback.nextShopType;s.intermissionResolved=rollback.intermissionResolved;
+    s.events.length=rollback.eventsLength;s.pendingModPlacement=null;
+    s.events.push({type:'market-mod-cancel',mod:cancelledMod,round:s.round+1,cost,coins:s.coins,inflation:s.inflation,offers:[...s.shopOffers]});
+    return{ok:true,mod:cancelledMod,refund:cost,coins:s.coins,inflation:s.inflation}
   }
   function chooseMarketModTile(tileId){
     const pending=s.pendingModPlacement;if(!pending||s.running||s.shopOpen)return{ok:false,reason:'state'};
@@ -1715,6 +1728,7 @@ function createGame(E,opts={}){
       if(v.type==='double-double'){lines.push(`R${v.round} MARKET DOUBLE DOUBLE [${v.tile.a}|${v.tile.b}] id=${v.tile.id} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
       if(v.type==='market-signal-buy'){lines.push(`R${v.round} MARKET SIGNAL +${v.amount||1} ${v.beforeSignal}>${v.afterSignal} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.brokerDiscount?` broker=-${v.brokerDiscount}c`:''}`);continue}
       if(v.type==='market-mod-buy'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} PURCHASE -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.brokerDiscount?` broker=-${v.brokerDiscount}c`:''}${v.pending?' target=PENDING':' machine=INSTALLED'}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
+      if(v.type==='market-mod-cancel'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} CANCEL REFUND +${v.cost} coins=${v.coins} inflation=${v.inflation} offers=${(v.offers||[]).join(',')}`);continue}
       if(v.type==='market-mod-relocate-source'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} RELOCATE source=${v.sourceTileId} targets=${(v.eligibleTileIds||[]).join(',')||'-'}`);continue}
       if(v.type==='market-mod-assign'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} ASSIGN [${v.tile?.a}|${v.tile?.b}] id=${v.targetTileId}${v.previousTileId?` previous=${v.previousTileId}`:''}${v.zeroPortTileIds?` pair=${v.zeroPortTileIds.join('<->')}`:''}`);continue}
       if(v.type==='shop-close'){lines.push(`R${v.round} ${v.shop.toUpperCase()} CLOSE ${v.reason} coins=${v.coins} inflation=${v.inflation} available=${v.available}`);continue}
@@ -1771,7 +1785,7 @@ function createGame(E,opts={}){
     return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,coreCoverageTelemetry,islandTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,previewOuroborosFire,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopAdapterPrice,shopPurchaseAvailability,adapterShopInfo,marketDoubleDoublePrice,marketModPrice,marketSignalPrice,marketSignalUpgradeInfo,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,buyShopAdapter,openIntermission,buyMarketSignal,buyMarketMod,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,coreCoverageTelemetry,islandTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,previewOuroborosFire,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopAdapterPrice,shopPurchaseAvailability,adapterShopInfo,marketDoubleDoublePrice,marketModPrice,marketSignalPrice,marketSignalUpgradeInfo,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,buyShopAdapter,openIntermission,buyMarketSignal,buyMarketMod,cancelMarketModPurchase,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });

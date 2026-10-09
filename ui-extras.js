@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUiExtrasInstalled)return;
   root.__monoidUiExtrasInstalled=true;
 
-  const BUILD_ID='20261009.1',MG=root.MonoidModGuidance;
+  const BUILD_ID='20261009.2',MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const titleCard=$('titleCard'),selection=$('gameSelection'),entryFlow=$('entryFlow'),firstRunChoice=$('firstRunChoice');
   const learn=$('learnMonoid'),replay=$('replayTutorial'),systems=$('systemsTutorial'),leaveTutorial=$('leaveTutorial');
@@ -88,6 +88,11 @@
   function installBuildStamp(){
     if(entryFlow&&!$('devBuildStamp')){const stamp=doc.createElement('div');stamp.id='devBuildStamp';stamp.textContent=version;entryFlow.appendChild(stamp)}
     const menu=$('gameMenu');if(menu&&!menu.querySelector('.menuBuildStamp')){const p=doc.createElement('p');p.className='menuBuildStamp';p.textContent=version;menu.appendChild(p)}
+    if(menu&&!menu.querySelector('#menuGroupPlay')){
+      for(const [id,label] of [['menuGroupPlay','PLAY'],['menuGroupExplore','EXPLORE'],['menuGroupRun','RUN DATA'],['menuGroupSystem','SYSTEM']]){
+        const heading=doc.createElement('div');heading.id=id;heading.className='menuSectionLabel';heading.setAttribute('role','heading');heading.setAttribute('aria-level','3');heading.textContent=label;menu.appendChild(heading)
+      }
+    }
   }
 
   function animateTitle(){

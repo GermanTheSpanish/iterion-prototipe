@@ -4,7 +4,7 @@
   if(!doc||root.__monoidUpdateBootstrapped)return;
   root.__monoidUpdateBootstrapped=true;
 
-  const CURRENT_BUILD='20261009.1',CHECK_MIN_MS=60000;
+  const CURRENT_BUILD='20261009.2',CHECK_MIN_MS=60000;
   const state={currentBuild:CURRENT_BUILD,latestBuild:null,latestVersion:null,updateAvailable:false,status:'idle',lastCheck:0};
   let checkButton=null,applyButton=null,startupTimer=0;
   Object.defineProperty(root,'__monoidUpdate',{configurable:true,get:()=>({...state})});
@@ -26,6 +26,7 @@
     else if(state.status==='error')checkButton.textContent='CHECK FAILED · TAP TO RETRY';
     else if(state.status==='current')checkButton.textContent=`UP TO DATE · ${CURRENT_BUILD}`;
     else checkButton.textContent='CHECK FOR UPDATES';
+    checkButton.classList.toggle('menuUpdateAvailable',state.updateAvailable);
     if(applyButton){applyButton.hidden=!state.updateAvailable;applyButton.disabled=state.status==='reloading'}
   }
   function installMenuActions(){
