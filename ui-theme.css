@@ -606,8 +606,8 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 @media(prefers-reduced-motion:reduce){.roundAdvanceModal #overlayTitle,.roundAdvanceModal .roundClearScore,.roundAdvanceModal .roundRewardHeading,.roundAdvanceModal .roundRewardTotal,.roundRewardRow,.roundAdvanceModal .roundAdvanceHint{animation:none!important;opacity:1!important;transform:none!important}}
 
 /* A pending Market purchase must always offer a legible, reachable escape. */
-.circuitChoice:not([hidden]):has(.cancelModPurchase){display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
-.cancelModPurchase{min-height:44px;padding:8px 12px;border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;font:800 11px/1.25 system-ui,sans-serif;letter-spacing:.04em;cursor:pointer}
+.circuitChoice:not([hidden]):has(.cancelModPurchase){display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;position:relative;z-index:40;pointer-events:auto!important}
+.cancelModPurchase{pointer-events:auto!important;touch-action:manipulation;min-height:44px;padding:8px 12px;border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;font:800 11px/1.25 system-ui,sans-serif;letter-spacing:.04em;cursor:pointer}
 .boardCoachLayer.modeReveal .boardCoachCard p{white-space:pre-line}
 
 
