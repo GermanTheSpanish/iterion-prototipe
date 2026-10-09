@@ -54,7 +54,7 @@ assert.match(src,/\.isPulling \.modeSlide\{transition:translate var\(--settle-ap
 assert.match(src,/\.isLanding \.modeSlide\{transition:translate var\(--settle-land-ms/,'landing timing must be adaptive');
 assert.match(src,/overshootShift=targetShift\+direction\*profile\.overshoot/,'overshoot direction and amplitude must follow physical travel');
 assert.match(src,/strength=t\*t\*\(3-2\*t\)/,'settle strength must ease down strongly near centre');
-assert.match(src,/\.modeSlide\.isRemote\{visibility:hidden;pointer-events:none\}\.modeSlide\.isRemote \.modeTile\{visibility:visible\}/,'remote controls stay out of layout checks while their tile visuals remain physically pre-positioned');
+assert.match(src,/\.modeSlide\.isRemote,\.modeSlide\.isRemote \.modeTile\{visibility:hidden!important;pointer-events:none\}/,'remote controls and their physical tile visuals must both stay hidden during seam rebasing');
 assert.match(src,/\.isRebasing \.modeSlide\{transition:none!important\}/,'circular seam rebasing must happen offscreen without crossing the window');
 assert.match(src,/modeAvailable=mode=>/,'runtime availability must be profile-aware');
 assert.match(src,/startRun\.disabled=!available/,'Start must remain disabled for a profile-locked mode');
