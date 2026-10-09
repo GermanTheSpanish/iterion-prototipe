@@ -95,6 +95,7 @@ test('pending Market Mod offers a genuine cancel/refund path and restores the sa
   await page.locator('[data-market-mod="double-double"]').click();
   await expect(page.locator('#cancelModPurchase')).toBeVisible();
   await expect(page.locator('#cancelModPurchase')).toHaveText('CANCEL PURCHASE');
+  expect(await page.locator('#cancelModPurchase').evaluate(button=>{const rect=button.getBoundingClientRect(),at=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);return at===button||button.contains(at)})).toBe(true);
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);
   await page.locator('#cancelModPurchase').click();
   await expect(page.locator('#overlay')).toHaveClass(/show/);
