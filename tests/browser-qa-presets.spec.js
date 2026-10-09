@@ -111,7 +111,7 @@ test('PWA menu opens QA test runs and returns to the untouched saved run',async(
   const savedBefore=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));
   expect(savedBefore).toBeTruthy();
   await page.locator('#menuButton').click();
-  await expect(page.locator('#qaTestRunsButton')).toBeVisible();
+  await page.locator('#menuGroupSystem').click();await expect(page.locator('#qaTestRunsButton')).toBeVisible();
   await page.locator('#qaTestRunsButton').click();
   await expect(page.locator('#qaTestRunsDialog')).toBeVisible();
   await expect(page.locator('#qaTestRunsDialog')).toContainText('CLASSIC · ROUND 14');
@@ -121,7 +121,7 @@ test('PWA menu opens QA test runs and returns to the untouched saved run',async(
   await expect(page.locator('body')).toHaveAttribute('data-qa-preset','classic14',{timeout:12000});
   expect(await page.evaluate(()=>window.__monoidQa?.savedRunProtected)).toBe(true);
   expect(await page.evaluate(()=>window.__monoidQa?.originalStorage?.['iterion.activeRun.v1'])).toBe(savedBefore);
-  await page.locator('#menuButton').click();await page.locator('#qaTestRunsButton').click();
+  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();await page.locator('#qaTestRunsButton').click();
   await expect(page.locator('[data-qa-return]')).toBeVisible();
   await page.locator('[data-qa-return]').click();
   await expect.poll(()=>new URL(page.url()).searchParams.has('qa'),{timeout:12000}).toBe(false);
