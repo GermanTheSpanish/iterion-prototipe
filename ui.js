@@ -430,7 +430,7 @@
   function roundIncomeHtml(last,{inline=false}={}){
     const income=roundIncomeBreakdown(last),rows=income.sources.map((source,index)=>`<span class="roundRewardRow" style="--reward-index:${index}"><b>${escapeHtml(source.label)}</b><i class="roundRewardLeader" aria-hidden="true"></i>${currencyHtml(source.value,{signed:true})}</span>`).join(''),totalDelay=(.8+income.sources.length*.24).toFixed(2);
     if(inline)return `<span class="roundRewardInline"><b>EARNED</b> ${currencyHtml(income.total,{signed:true,compactValue:true})}<span class="roundRewardInlineSources">${income.sources.map(source=>`<span class="roundRewardInlineSource">${escapeHtml(source.label)} ${currencyHtml(source.value,{signed:true})}</span>`).join('<i aria-hidden="true">·</i>')}</span></span>`;
-    return `<section class="roundReward"><div class="roundRewardHeading">EARNED</div><div class="roundRewardSources">${rows}</div><div class="roundRewardTotal" style="--reward-total-delay:${totalDelay}s"><span>TOTAL</span><i class="roundRewardLeader" aria-hidden="true"></i><strong>${currencyHtml(income.total,{signed:true})}</strong></div></section>`
+    return `<section class="roundReward"><div class="roundRewardHeading">EARNED</div><div class="roundRewardSources">${rows}</div><div class="roundRewardTotal" style="--reward-total-delay:${totalDelay}s"><span>TOTAL</span><strong>${currencyHtml(income.total,{signed:true})}</strong></div></section>`
   }
   function scoreTraceHtml(plan=lastScoreTrace){
     const source=Array.isArray(plan?.lines)?plan.lines:[];if(!source.length)return'';let lines=source;if(source.length>7){const omitted=source.length-6;lines=[...source.slice(0,4),{kind:'omitted',omitted},...source.slice(-2)]}
