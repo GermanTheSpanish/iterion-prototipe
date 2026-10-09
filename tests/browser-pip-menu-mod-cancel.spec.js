@@ -27,6 +27,7 @@ test('pip diameter stays at the untransformed board size across zoom and rerende
   await page.mouse.move(hand.x-20,hand.y+hand.height/2,{steps:3});
   await page.mouse.move(board.x+position.x*board.width,board.y+position.y*board.height+position.offset,{steps:5});await page.mouse.up();
   await expect(page.locator('#board .piece')).toHaveCount(1);
+  await expect(page.locator('#board .pip').first()).toBeVisible();
   const base=await page.evaluate(()=>{
     const b=document.getElementById('board'),pip=b.querySelector('.pip');
     return{diameter:parseFloat(getComputedStyle(pip).width),variable:b.style.getPropertyValue('--board-pip-size'),width:b.offsetWidth}
