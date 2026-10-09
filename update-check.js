@@ -26,6 +26,7 @@
     else if(state.status==='error')checkButton.textContent='CHECK FAILED · TAP TO RETRY';
     else if(state.status==='current')checkButton.textContent=`UP TO DATE · ${CURRENT_BUILD}`;
     else checkButton.textContent='CHECK FOR UPDATES';
+    checkButton.classList.toggle('menuUpdateAvailable',state.updateAvailable);
     if(applyButton){applyButton.hidden=!state.updateAvailable;applyButton.disabled=state.status==='reloading'}
   }
   function installMenuActions(){
