@@ -104,6 +104,39 @@ test('Germán Run #9 checkpoint resumes the real machine at Endless start withou
 });
 
 
+test('Klaus original 84-tile machine opens on the first Ouroboros R49 screen without touching the saved run',async({page},testInfo)=>{
+  await page.setViewportSize({width:390,height:844});await seedRealSave(page);
+  await page.goto(`${BASE}?qa=klausOuroboros&ci=1`);
+  await expect(page.locator('body')).toHaveAttribute('data-qa-preset','klausOuroboros');
+  await expect(page.locator('.app')).toBeVisible({timeout:15000});
+  await expect(page.locator('#board .piece')).toHaveCount(84);
+  await expect(page.locator('#stageRound')).toContainText('OUROBOROS');
+  await expect(page.locator('#board .power3')).toHaveCount(28);
+  await expect(page.locator('#hand .ouroborosFire')).toBeVisible();
+  await expect(page.locator('#hand .ouroborosRebuildUndo')).toBeDisabled();
+  const game=await page.evaluate(()=>{
+    const g=window.__monoidGame,s=g.state(),snap=g.snapshot();
+    return{runId:s.runId,source:window.__monoidQa?.sourceRunId,round:snap.round.index,
+      stage:snap.stage.index,turn:s.turn,roundTurn:s.roundTurn,phase:snap.endless.phase,
+      board:snap.boardSize,score:s.score,coins:s.coins,inflation:s.inflation,
+      generation:s.setGeneration,hand:s.hand.length,available:g.availableTileCount(),
+      fireEvents:s.events.filter(e=>e.type==='ouroboros-fire').length,
+      preRebuild:s.pieces.find(p=>p.tile.id==='g3-d0-5')?.cubes[0]};
+  });
+  expect(game).toEqual(expect.objectContaining({
+    runId:'qa-mv1hi61f-r68xcg-ouroboros',source:'mv1hi61f-r68xcg',
+    round:49,stage:17,turn:84,roundTurn:0,phase:'ouroboros',
+    board:{width:45,height:60},score:0,coins:163,inflation:16,
+    generation:3,hand:0,available:0,fireEvents:0,
+    preRebuild:expect.objectContaining({x:38,y:4})
+  }));
+  await page.locator('#menuButton').click();
+  await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
+  await page.locator('#closeMenu').click();
+  await page.screenshot({path:testInfo.outputPath('qa-klaus-ouroboros-first-screen.png'),fullPage:true});
+  await assertRealSaveSurvived(page)
+});
+
 test('PWA menu opens QA test runs and returns to the untouched saved run',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
@@ -117,6 +150,7 @@ test('PWA menu opens QA test runs and returns to the untouched saved run',async(
   await expect(page.locator('#qaTestRunsDialog')).toContainText('CLASSIC · ROUND 14');
   await expect(page.locator('#qaTestRunsDialog')).toContainText('ENDLESS · ROUND 16');
   await expect(page.locator('#qaTestRunsDialog')).toContainText('GERMÁN RUN #9 · ENDLESS START');
+  await expect(page.locator('#qaTestRunsDialog')).toContainText('KLAUS · OUROBOROS START');
   await page.locator('[data-qa-preset="classic14"]').click();
   await expect(page.locator('body')).toHaveAttribute('data-qa-preset','classic14',{timeout:12000});
   expect(await page.evaluate(()=>window.__monoidQa?.savedRunProtected)).toBe(true);
