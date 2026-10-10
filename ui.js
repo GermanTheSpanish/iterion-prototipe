@@ -30,7 +30,7 @@
   function chooseBootContext(context){
     if(!PROFILE?.setContext)return;PROFILE.setContext(context,{reset:context==='fresh'});sessionStorage.setItem(BOOT_PASS_KEY,context);const url=new URL(location.href);url.searchParams.delete('boot');location.replace(url.href)
   }
-  let handFx=Array(Math.max(D.HAND_SIZE,D.SHOP_HAND_MAX||D.HAND_SIZE)).fill('normal'),ouroborosSelection=null;
+  let handFx=Array(Math.max(D.HAND_SIZE,D.SHOP_HAND_MAX||D.HAND_SIZE)).fill('normal'),ouroborosSelection=null,ouroborosPreviewSuspended=false;
   const MOD_FACE_REVEAL_MS=3000,ROUND_REWARD_PREVIEW_MS=1050,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
   const PLACEMENT_LOCK_MS=100,PLACEMENT_LOCK_TOLERANCE_PX=12;
   let drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null,grabOffsetX:0,grabOffsetY:0,lastX:0,lastSign:0,switches:0,shakeStarted:0,lastRotate:0};
@@ -190,8 +190,14 @@
     if(tutorial.step<4){tutorial.step++;if(tutorial.step===4)GAME.config.TARGETS[0]=0;prepareTutorialHand(tutorial.step===4?'d4-4':sequence[tutorial.step-1]);updateTutorial();return}
     if(tutorial.step===4&&result.cleared){tutorial.step=5;tutorialInstruction.textContent=tutorialCopy[5];tutorialStep.textContent='LEARN MONOID · 6/6';tutorialPanel.hidden=false;GAME.state().cleared=false;GAME.openShop()}
   }
-  function cancelTutorialDrag(){if(!drag.active)return;press.cancel();drag.float?.remove();drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null};renderBoard();renderHand()}
-  function requestTutorialExit(){if(!tutorial)return;if(drag.active)cancelTutorialDrag();if(uiBusy||GAME.state().running){tutorial.exitPending=true;$('leaveTutorial').disabled=true;return}leaveTutorial(false)}
+  function cancelActiveDrag(){
+    if(!drag.active)return;
+    const pointerId=drag.pointerId;press.cancel();drag.float?.remove();
+    try{if(pointerId!=null&&board.hasPointerCapture?.(pointerId))board.releasePointerCapture(pointerId)}catch{}
+    drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null};
+    renderBoard();renderHand()
+  }
+  function requestTutorialExit(){if(!tutorial)return;if(drag.active)cancelActiveDrag();if(uiBusy||GAME.state().running){tutorial.exitPending=true;$('leaveTutorial').disabled=true;return}leaveTutorial(false)}
 
   function dots(n,s=false){if(!Number.isInteger(n)||!P[n])return`<b class="${s?'swildPip':'wildPip'}" aria-hidden="true">•</b>`;return P[n].map(([x,y])=>`<i class="${s?'spip':'pip'}" style="left:${x}%;top:${y}%"></i>`).join('')}
   function tileView(t){return V.tileViewModel(t,GAME.state())}
@@ -368,14 +374,15 @@
       if(topologyBreak){el.classList.add('topologyBreakWarning');el.setAttribute('aria-label',`${el.getAttribute('aria-label')} Placement will remove ${topologyBreak.label}.`);const warning=document.createElement('i');warning.className='topologyBreakMark';warning.textContent=`LOSE ${topologyBreak.label}`;warning.setAttribute('aria-hidden','true');el.appendChild(warning)}
       board.appendChild(el)
     });
-    if(drag.active&&drag.candidate){const c=drag.candidate,previewTile=c.resolvedTile||drag.tile,p=E.pieceFrom(previewTile,c.x,c.y,0,c.rr,(s.idc||0)+1);p.tile={...previewTile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');if(s.gameMode==='islands'&&drag.kind==='hand'&&drag.preview?.ok){const dormant=!!drag.preview.islandDormant,linked=Number(drag.preview.islandLinkCount)||0;if(dormant)candidate.classList.add('islandDormantCandidate');if(dormant||linked>0){const note=document.createElement('div');note.className='islandPlacementHint';note.dataset.islandPreview=dormant?'dormant':'linked';note.textContent=dormant?'DORMANT · 0 SCORE UNTIL LINKED':`ISLANDS LINKED · +${drag.preview.islandSignalAdded} SIGNAL`;board.appendChild(note)}}board.appendChild(candidate);renderRoutePreview(p)}
-    else if(s.ouroborosMode&&!uiBusy&&!auxOverlay){if(!ouroborosSelection){const selected=s.pieces.find(p=>p.tile.id===s.anchorId)||s.pieces.at(-1)||null;ouroborosSelection=selected?.tile.id||null}const preview=ouroborosSelection?GAME.previewOuroborosFire?.(ouroborosSelection):null;if(preview?.ok)renderRoutePreview(preview.p,preview,'ouroboros')}
+    if(drag.active&&drag.candidate){const c=drag.candidate,previewTile=c.resolvedTile||drag.tile,p=E.pieceFrom(previewTile,c.x,c.y,0,c.rr,(s.idc||0)+1);p.tile={...previewTile};const candidate=pieceEl(p,'piece dragCandidate');if((drag.topologyBreaks||[]).length)candidate.classList.add('breaksTopology');if(s.gameMode==='islands'&&drag.kind==='hand'&&drag.preview?.ok){const dormant=!!drag.preview.islandDormant,linked=Number(drag.preview.islandLinkCount)||0;if(dormant)candidate.classList.add('islandDormantCandidate');if(dormant||linked>0){const note=document.createElement('div');note.className='islandPlacementHint';note.dataset.islandPreview=dormant?'dormant':'linked';note.textContent=dormant?'DORMANT · 0 SCORE UNTIL LINKED':`ISLANDS LINKED · +${drag.preview.islandSignalAdded} SIGNAL`;board.appendChild(note)}}board.appendChild(candidate);if(drag.kind!=='ouroboros')renderRoutePreview(p)}
+    else if(s.ouroborosMode&&!uiBusy&&!auxOverlay&&!ouroborosPreviewSuspended){if(!ouroborosSelection){const selected=s.pieces.find(p=>p.tile.id===s.anchorId)||s.pieces.at(-1)||null;ouroborosSelection=selected?.tile.id||null}const preview=ouroborosSelection?GAME.previewOuroborosFire?.(ouroborosSelection):null;if(preview?.ok)renderRoutePreview(preview.p,preview,'ouroboros')}
     board.classList.toggle('dragging',drag.active)
   }
   function renderOuroborosHand(){
     const s=GAME.state();let piece=s.pieces.find(p=>p.tile.id===ouroborosSelection);
     if(!piece){piece=s.pieces.find(p=>p.tile.id===s.anchorId)||s.pieces.at(-1)||null;ouroborosSelection=piece?.tile.id||null}
     const preview=document.createElement('div');preview.className='handSlot ouroborosSelectionSlot';if(piece){const shell=document.createElement('div');shell.innerHTML=mini(piece.tile);preview.appendChild(shell.firstChild)}else preview.textContent='SELECT';handEl.appendChild(preview);
+    const back=document.createElement('button');back.className='ouroborosAction ouroborosRebuildUndo';back.type='button';back.textContent='REVERT';back.disabled=uiBusy||!GAME.canUndoOuroborosRebuild?.();back.setAttribute('aria-label','Undo last Ouroboros rebuild without consuming a tool');back.onclick=()=>undoOuroborosRebuild();handEl.appendChild(back);
     const fire=document.createElement('button');fire.className='ouroborosAction ouroborosFire';fire.type='button';fire.textContent='FIRE';fire.disabled=!piece||uiBusy;fire.setAttribute('aria-label','Fire signal from selected Ouroboros tile');fire.onclick=()=>fireOuroborosSelection();handEl.appendChild(fire)
   }
   function renderHand(){
@@ -396,7 +403,7 @@
   function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal','compactCommerceModal','outcomeModal','roundAdvanceModal','roundRewardComplete','voidInspectorModal');overlay.onclick=null;overlayBody.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(ms=D.OUTCOME_SCREEN_DELAY_MS){ms=Math.max(0,Number(ms)||0);clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+ms;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},ms+25)}
-  async function newRun(){pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
+  async function newRun(){ouroborosPreviewSuspended=false;pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
@@ -730,23 +737,35 @@
     const gesture=press.state?.(),startX=gesture?.startX??e.clientX,startY=gesture?.startY??e.clientY,r=board.getBoundingClientRect(),originX=r.left+(piece.cubes[0].x/E.G)*r.width,originY=r.top+(piece.cubes[0].y/E.H)*r.height,f=document.createElement('div');f.className='dragFloat ouroborosDragFloat';f.innerHTML=mini(piece.tile);document.body.appendChild(f);
     drag={active:true,kind:'ouroboros',index:-1,tileId,tile:{...piece.tile},candidates:[],candidate:{x:piece.cubes[0].x,y:piece.cubes[0].y,z:0,rr:piece.rr},rr:piece.rr,topologyBreaks:[],preview:null,float:f,pointerId:e.pointerId??gesture?.pointerId??null,grabOffsetX:startX-originX,grabOffsetY:(startY-D.DRAG_Y_OFFSET)-originY,lastX:e.clientX,lastSign:0,switches:0,shakeStarted:performance.now(),lastRotate:0};ouroborosSelection=tileId;f.style.setProperty('--rr',piece.rr);
     try{if(drag.pointerId!=null&&board.setPointerCapture)board.setPointerCapture(drag.pointerId)}catch{}
-    renderBoard();renderHand()
+    renderBoard();renderHand();drag.ghost=board.querySelector('.dragCandidate');drag.boardRect=board.getBoundingClientRect()
   }
   function ouroborosCandidate(e){
-    const r=board.getBoundingClientRect(),x=Math.round(((e.clientX-drag.grabOffsetX)-r.left)/r.width*E.G),y=Math.round((((e.clientY-D.DRAG_Y_OFFSET)-drag.grabOffsetY)-r.top)/r.height*E.H),piece=GAME.state().pieces.find(p=>p.tile.id===drag.tileId),rr=drag.rr??piece?.rr??0,preview=GAME.ouroborosPlacementPreview?.(drag.tileId,{x,y,z:0,rr});
-    return preview?.ok?{candidate:preview.placement,topologyBreaks:preview.topologyLosses||[],reason:null}:{candidate:null,topologyBreaks:[],reason:preview?.reason||'invalid'}
+    const r=drag.boardRect||board.getBoundingClientRect(),x=Math.round(((e.clientX-drag.grabOffsetX)-r.left)/r.width*E.G),y=Math.round((((e.clientY-D.DRAG_Y_OFFSET)-drag.grabOffsetY)-r.top)/r.height*E.H),rr=drag.rr??0;
+    if(drag.checked?.x===x&&drag.checked.y===y&&drag.checked.rr===rr)return drag.checked.result;
+    const preview=GAME.ouroborosPlacementPreview?.(drag.tileId,{x,y,z:0,rr},{geometryOnly:true}),result=preview?.ok?{candidate:preview.placement,topologyBreaks:[],reason:null}:{candidate:null,topologyBreaks:[],reason:preview?.reason||'invalid'};
+    drag.checked={x,y,rr,result};return result
+  }
+  function updateOuroborosGhost(candidate){
+    let ghost=drag.ghost;if(!ghost)return;
+    if(!candidate){ghost.style.display='none';return}
+    const p=E.pieceFrom(drag.tile,candidate.x,candidate.y,0,candidate.rr,-1);p.tile={...drag.tile};
+    if(drag.ghostRotation!==candidate.rr){
+      const updated=pieceEl(p,'piece dragCandidate');ghost.replaceWith(updated);drag.ghost=ghost=updated;drag.ghostRotation=candidate.rr
+    }
+    ghost.style.display='';ghost.style.left=px(p.rect.minx);ghost.style.top=py(p.rect.miny);
+    ghost.style.width=px(p.rect.maxx-p.rect.minx);ghost.style.height=py(p.rect.maxy-p.rect.miny)
   }
   function moveDrag(e){
-    if(!drag.active)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){const r=board.getBoundingClientRect(),inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom,boardTileWidth=r.width/E.G*2,scale=inside?Math.max(.18,Math.min(1.2,boardTileWidth/30)):1.2;drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px';drag.float.style.setProperty('--drag-scale',scale)}
-    if(drag.kind==='ouroboros'){const next=ouroborosCandidate(e),c=next.candidate,o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;drag.topologyBreaks=next.topologyBreaks;drag.invalidReason=next.reason;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard();return}
+    if(!drag.active||drag.pointerId!=null&&e.pointerId!=null&&drag.pointerId!==e.pointerId)return;e.preventDefault();maybeShakeRotate(e);if(drag.float){const r=board.getBoundingClientRect(),inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom,boardTileWidth=r.width/E.G*2,scale=inside?Math.max(.18,Math.min(1.2,boardTileWidth/30)):1.2;drag.float.style.left=e.clientX+'px';drag.float.style.top=(e.clientY-D.DRAG_Y_OFFSET)+'px';drag.float.style.setProperty('--drag-scale',scale)}
+    if(drag.kind==='ouroboros'){const next=ouroborosCandidate(e),c=next.candidate,o=drag.candidate,changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;drag.topologyBreaks=[];drag.invalidReason=next.reason;if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)updateOuroborosGhost(c);return}
     const raw=nearest(e.clientX,e.clientY),o=drag.candidate,c=latchedPlacementCandidate(raw,e),changed=(!c)!==(!o)||c&&(!o||c.x!==o.x||c.y!==o.y||c.rr!==o.rr);drag.candidate=c;
     if(changed){drag.topologyBreaks=c?(GAME.topologyBreaksForPlacement?.(drag.index,c)||[]):[];drag.preview=c&&(routePreviewMode()!=='off'||GAME.state().gameMode==='islands')?(GAME.previewPlacement?.(drag.index,c)||null):null}
     if(drag.float)drag.float.style.opacity=c?'0':'0.96';if(changed)renderBoard()
   }
   async function animateDrawSlot(i){if(!GAME.state().hand[i]){handFx[i]='hidden';renderHand();await wait(100);handFx[i]='normal';renderHand();return}handFx[i]='back';renderHand();await wait(D.DRAW_BLACK_MS);handFx[i]='reveal';renderHand();await wait(390);handFx[i]='normal';renderHand()}
   async function endDrag(e){
-    if(!drag.active)return;moveDrag(e);const kind=drag.kind,i=drag.index,tileId=drag.tileId,c=drag.candidate,invalidReason=drag.invalidReason,pointerId=drag.pointerId;if(drag.float)drag.float.remove();try{if(pointerId!=null&&board.hasPointerCapture?.(pointerId))board.releasePointerCapture(pointerId)}catch{}drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null};renderBoard();if(!c){if(kind==='ouroboros')toast(invalidReason==='overlap'?'SPACE OCCUPIED':invalidReason==='bounds'?'OUTSIDE BOARD':invalidReason==='core-overlap'?'CORE OCCUPIED':'INVALID REBUILD');renderHand();return}
-    if(kind==='ouroboros'){const r=GAME.moveOuroborosTile(tileId,c);if(!r.ok){toast('Invalid rebuild');render();return}ouroborosSelection=tileId;PT?.recordOuroborosRebuild?.({tileId,from:r.from,to:r.to,rotated:r.from?.rr!==r.to?.rr,relocated:r.from?.x!==r.to?.x||r.from?.y!==r.to?.y});persistGame();render();if(r.topologyLosses?.length)toast(`REBUILD · LOST ${r.topologyLosses.map(x=>x.label).join(', ')}`);return}
+    if(!drag.active||drag.pointerId!=null&&e.pointerId!=null&&drag.pointerId!==e.pointerId)return;moveDrag(e);const kind=drag.kind,i=drag.index,tileId=drag.tileId,c=drag.candidate,invalidReason=drag.invalidReason,pointerId=drag.pointerId;if(drag.float)drag.float.remove();try{if(pointerId!=null&&board.hasPointerCapture?.(pointerId))board.releasePointerCapture(pointerId)}catch{}drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null};if(kind!=='ouroboros')renderBoard();if(!c){renderBoard();if(kind==='ouroboros')toast(invalidReason==='overlap'?'SPACE OCCUPIED':invalidReason==='bounds'?'OUTSIDE BOARD':invalidReason==='core-overlap'?'CORE OCCUPIED':'INVALID REBUILD');renderHand();return}
+    if(kind==='ouroboros'){const r=GAME.moveOuroborosTile(tileId,c);if(!r.ok){toast('Invalid rebuild');render();return}ouroborosSelection=tileId;ouroborosPreviewSuspended=true;if(!r.unchanged){PT?.recordOuroborosRebuild?.({tileId,from:r.from,to:r.to,rotated:r.from?.rr!==r.to?.rr,relocated:r.from?.x!==r.to?.x||r.from?.y!==r.to?.y});persistGame()}render();if(r.topologyLosses?.length)toast(`REBUILD · LOST ${r.topologyLosses.map(x=>x.label).join(', ')}`);return}
     const game=GAME,generationBefore=game.state().setGeneration||1,ouroborosBefore=!!game.state().ouroborosMode;if(!tutorial)PT?.recordDecision();const decision=!tutorial?game.decisionTelemetry(i,c,{maxEvaluations:48,timeBudgetMs:32}):null,searchStarted=performance.now(),ctx=GAME.beginPlacement(i,c),searchMs=performance.now()-searchStarted;if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();armDecisionTiming();return}
     uiBusy=true;beginCascadeControl();const drawAnim=animateDrawSlot(i);renderBoard();const camera=rootCamera(),animationStarted=performance.now();let result=null,animationMeta={skippedCascade:false,skippedSummary:false},exitPending=false;
     try{
@@ -762,7 +781,11 @@
     if(exitPending){leaveTutorial(false);return}if(game.state().ouroborosMode&&!ouroborosSelection)ouroborosSelection=ctx.tile.id;if(!tutorial&&(game.state().cleared||game.state().blocked))armOutcomeDelay(game.state().cleared?ROUND_REWARD_PREVIEW_MS:D.OUTCOME_SCREEN_DELAY_MS);render();if(!tutorial)armDecisionTiming();
     if(!tutorial&&!ouroborosBefore&&game.state().ouroborosMode){boardMessage('OUROBOROS · REBUILD',1800);toast('OUROBOROS · REBUILD THE MACHINE')}else if(!tutorial&&result.autoRerolls)toast(`NO LEGAL MOVES · AUTO REROLL${result.autoRerolls>1?` ×${result.autoRerolls}`:''}`);else if(!tutorial&&generationBefore<(game.state().setGeneration||1))toast(`POWER SET ${game.state().setGeneration} · ×${game.snapshot().powerSets.powerMultiplier} UNLOCKED`);else if(!tutorial&&game.state().cleared)toast(`ROUND COMPLETE · ${fmt(game.state().score)}`);else if(!tutorial&&result.upgradeCoins)toast(`★ ${currencyHtml(result.upgradeCoins,{signed:true})}`,{html:true})
   }
-  function selectOuroborosTile(tileId){if(!GAME.state().ouroborosMode)return;ouroborosSelection=tileId;renderBoard();renderHand()}
+  function selectOuroborosTile(tileId){if(!GAME.state().ouroborosMode)return;ouroborosSelection=tileId;ouroborosPreviewSuspended=false;renderBoard();renderHand()}
+  function undoOuroborosRebuild(){
+    if(uiBusy||auxOverlay)return;const result=GAME.undoOuroborosRebuild?.();if(!result?.ok)return;
+    ouroborosSelection=result.tileId;ouroborosPreviewSuspended=true;persistGame();render();toast('REBUILD REVERTED')
+  }
   function routeTelemetryForSim(sim,pieces=GAME.state().pieces){
     const byPieceId=new Map((pieces||[]).map(piece=>[piece.id,piece.tile?.id||piece.id])),events=sim?.events||[],physicalOps=events.filter(event=>event.type==='op'&&!event.tollRepeat),routeTileIds=[...new Set(physicalOps.map(event=>byPieceId.get(event.piece)).filter(Boolean))];
     return{routeTileIds,routeLength:events.filter(event=>event.type==='move').length}
@@ -786,7 +809,7 @@
   const press=GEST.createPressGesture({delay:D.LONG_PRESS_MS||500,tolerance:D.LONG_PRESS_MOVE_TOLERANCE_PX||10,onTap:meta=>{if(meta.kind==='circuit')chooseCircuitTile(meta.tileId);else if(meta.kind==='mod-target')chooseMarketModTile(meta.tileId);else if(meta.kind==='mod-half')chooseMarketModHalf(meta.tileId,meta.half);else if(meta.kind==='ouroboros-board')selectOuroborosTile(meta.tileId);else if(meta.kind==='board')revealModFace(meta.tileId);else if(meta.kind==='core')openCoreInspector(meta.coreId);else if(meta.kind==='void')openVoidInspector(meta.voidId)},onLongPress:meta=>{if(meta.kind==='circuit'||meta.kind==='mod-target')return;if(navigator.vibrate)navigator.vibrate(8);if(meta.kind==='core')openCoreInspector(meta.coreId);else if(meta.kind==='void')openVoidInspector(meta.voidId);else openTileInspector(meta.tileId)},onDragStart:(meta,e)=>{if(meta.kind==='hand')startDrag(e,meta.index);else if(meta.kind==='ouroboros-board')startOuroborosDrag(e,meta.tileId)}});
   function handlePointerMove(e){press.move(e);if(drag.active)moveDrag(e)}
   async function handlePointerUp(e){press.end(e);if(drag.active)await endDrag(e)}
-  function handlePointerCancel(e){press.cancel();if(drag.active)endDrag(e)}
+  function handlePointerCancel(e){press.cancel();if(drag.active&&(drag.pointerId==null||e.pointerId==null||drag.pointerId===e.pointerId))cancelActiveDrag()}
   window.addEventListener('pointermove',handlePointerMove,{passive:false});window.addEventListener('pointerup',handlePointerUp);window.addEventListener('pointercancel',handlePointerCancel);
 
   function pc(id){return GAME.state().pieces.find(p=>p.id===id)}

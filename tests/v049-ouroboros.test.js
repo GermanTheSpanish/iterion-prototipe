@@ -48,4 +48,42 @@ function readyOuroboros(seed=4901){
   const moved=game.moveOuroborosTile('d2-3',{x:12,y:16,rr:1});assert.equal(moved.ok,true);s.ouroborosBoardSize=[18,24];const saved=game.exportState(),restored=G.createGame(E,{seed:1});assert.equal(restored.restoreState(saved),true);
   assert.equal(restored.state().ouroborosMode,true);assert.deepEqual(restored.state().ouroborosBoardSize,[18,24]);assert.deepEqual(E.getBoardSize(),{G:18,H:24});assert.equal(restored.handSizeForRound(),0);const p=restored.state().pieces.find(p=>p.tile.id==='d2-3');assert.deepEqual({x:p.cubes[0].x,y:p.cubes[0].y,rr:p.rr},{x:12,y:16,rr:1})
 }
+{
+  const{game,s}=readyOuroboros(4910),tileId='d2-3',original=clone(s.pieces.find(p=>p.tile.id===tileId)),beforeConsumables=clone(s.consumables);
+  assert.equal(game.canUndoOuroborosRebuild(),false);
+  assert.equal(game.moveOuroborosTile(tileId,{x:10,y:8,rr:0}).unchanged,true,'no-op rebuild must not create a checkpoint');
+  assert.equal(s.ouroborosRebuilds.length,0);
+  const a=game.moveOuroborosTile(tileId,{x:11,y:16,rr:0});assert.equal(a.ok,true,'odd integer cell positions remain valid');
+  const b=game.moveOuroborosTile(tileId,{x:12,y:16,rr:1});assert.equal(b.ok,true);
+  assert.equal(game.canUndoOuroborosRebuild(),true);assert.equal(s.ouroborosRebuilds.length,2);
+  assert.equal(game.undoOuroborosRebuild().ok,true);assert.deepEqual(game.state().pieces.find(p=>p.tile.id===tileId).cubes[0].x,11);
+  assert.equal(game.undoOuroborosRebuild().ok,true);assert.deepEqual(game.state().pieces.find(p=>p.tile.id===tileId),original);
+  assert.deepEqual(s.consumables,beforeConsumables,'reverting builds never consumes Undo tools');
+  assert.equal(game.undoOuroborosRebuild().ok,false);
+}
+{
+  const{game,s}=readyOuroboros(4911);
+  s.pieces=[place(s,'d2-2',6,8,0,1),place(s,'d2-3',10,8,0,2),place(s,'d0-2',6,4,1,3)];
+  s.placedTileIds=s.pieces.map(p=>p.tile.id);s.cornerTileId='d2-2';
+  const destination={x:12,y:16,rr:0};
+  const quick=game.ouroborosPlacementPreview('d2-3',destination,{geometryOnly:true});
+  const full=game.ouroborosPlacementPreview('d2-3',destination);
+  assert.equal(quick.ok,true);assert.deepEqual(quick.topologyLosses,[],'drag geometry preview does not perform topology analysis');
+  assert(full.topologyLosses.some(loss=>loss.mod==='corner'&&loss.tileId==='d2-2'),'full preview predicts loss of Corner');
+  assert.equal(game.moveOuroborosTile('d2-3',destination).ok,true);assert.equal(s.cornerTileId,null);
+  assert.equal(game.undoOuroborosRebuild().ok,true);assert.equal(s.cornerTileId,'d2-2','Undo rebuild restores lost topological assignment');
+}
+{
+  const{game,s}=readyOuroboros(4912);
+  assert.equal(game.moveOuroborosTile('d2-3',{x:12,y:16,rr:0}).ok,true);
+  const saved=game.exportState(),restored=G.createGame(E,{seed:4913});
+  assert.equal(restored.restoreState(saved),true);assert.equal(restored.canUndoOuroborosRebuild(),true);
+  assert.equal(restored.undoOuroborosRebuild().ok,true);
+  assert.equal(restored.state().pieces.find(p=>p.tile.id==='d2-3').cubes[0].x,10);
+  assert.equal(restored.moveOuroborosTile('d2-3',{x:12,y:16,rr:0}).ok,true);
+  const fired=restored.beginOuroborosFire('d2-3');assert.equal(fired.ok,true);assert.equal(restored.canUndoOuroborosRebuild(),false,'FIRE closes rebuild history');
+  assert.equal(restored.finishPlacement(fired).ok,true);
+  restored.state().consumables.undo=1;assert.equal(restored.useUndo().ok,true);
+  assert.equal(restored.canUndoOuroborosRebuild(),true,'Undo of FIRE restores pre-FIRE rebuild checkpoints');
+}
 console.log('Ouroboros progression and rebuild regressions passed');
