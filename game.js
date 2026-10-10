@@ -522,7 +522,7 @@ function createGame(E,opts={}){
     if(s.ouroborosMode)return false;
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H};
     s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.ouroborosBoardSize=[board.G,board.H];s.reserve=[];s.hand=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
-    s.blocked=false;s.needsReroll=false;s.failureReason=null;s.undoFrame=null;
+    s.blocked=false;s.needsReroll=false;s.failureReason=null;s.undoFrame=null;s.ouroborosRebuilds=[];
     s.events.push({type:'ouroboros-start',round:s.round+1,roundTurn:s.roundTurn+1,generation:s.setGeneration||1,machineSize:s.pieces.length,board:[board.G,board.H],source});
     return true
   }
@@ -678,7 +678,7 @@ function createGame(E,opts={}){
       if(!s.reserve.length&&availableTileCount()===0)replenishPowerSet('round-start')
     }
     s.score=0;s.scoreExact='0';s.roundTurn=0;s.rootRR=0;s.roundZero={drawn:0,placed:0,endHand:0};
-    s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;
+    s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;s.ouroborosRebuilds=[];
     s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;
     s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
     const previousFree=s.freeReroll||0;s.freeReroll=s.ouroborosMode?0:Math.max(0,Number(cfg.ROUND_REROLL_REWARD??1));
@@ -693,7 +693,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,adapterPurchasedPhases:[],boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,brokerTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,foundationTileId:null,knotTileId:null,mintTileId:null,marketCount:0,signalUpgrades:0,brokerPreparedMarket:false,brokerDiscountStored:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{pivot:null},recallUsedStage:null,cores:[],voids:[],coreProgressMilestones:[],islandRootPieceId:null,islandSignalBonus:0};
+    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,ouroborosRebuilds:[],systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,adapterPurchasedPhases:[],boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,brokerTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,foundationTileId:null,knotTileId:null,mintTileId:null,marketCount:0,signalUpgrades:0,brokerPreparedMarket:false,brokerDiscountStored:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{pivot:null},recallUsedStage:null,cores:[],voids:[],coreProgressMilestones:[],islandRootPieceId:null,islandSignalBonus:0};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
     startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);s.voids=voidLayoutForMode(s.gameMode,seed);ensureOpeningCoreApproaches('layout');if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});if(['frames','river','loom','peaks','islands'].includes(s.gameMode))s.events.push({type:'mode-geometry-layout',mode:s.gameMode,items:deepClone(modeGeometryItems()),visibleIds:modeGeometryItems().filter(item=>geometryItemVisible(item)).map(item=>item.id)});return s
   }
@@ -753,7 +753,7 @@ function createGame(E,opts={}){
   function legalHandMask(){return s.hand.map(tile=>!!tile&&placementCandidatesForTile(tile).length>0)}
   function handPlacementDiagnostics(){return s.hand.map((tile,index)=>tile?{index,tile:cloneTile(tile),legalPlacements:candidatesForIndex(index).length}:null).filter(Boolean)}
   function canInteract(){return !s.pendingCircuit&&!s.pendingModPlacement&&!s.running&&!s.cleared&&!s.blocked&&!s.needsReroll&&!s.shopOpen}
-  function ouroborosPlacementPreview(tileId,placement){
+  function ouroborosPlacementPreview(tileId,placement,{geometryOnly=false}={}){
     if(!s.ouroborosMode||!canInteract())return{ok:false,reason:'state'};
     const piece=s.pieces.find(p=>p.tile?.id===tileId);if(!piece)return{ok:false,reason:'tile'};
     const x=Number(placement?.x),y=Number(placement?.y),rr=((Number(placement?.rr)||0)%4+4)%4;
@@ -764,15 +764,35 @@ function createGame(E,opts={}){
     const overlaps=(a,b)=>a.x<b.x+cell&&a.x+cell>b.x&&a.y<b.y+cell&&a.y+cell>b.y;
     for(const other of s.pieces)if(other.id!==piece.id)for(const cube of moved.cubes)for(const occupied of other.cubes)if(overlaps(cube,occupied))return{ok:false,reason:'overlap'};
     if(pieceOverlapsCore(moved))return{ok:false,reason:'core-overlap'};if(pieceOverlapsVoid(moved))return{ok:false,reason:'void-overlap'};
+    if(geometryOnly)return{ok:true,tileId,placement:{x,y,z:0,rr},topologyLosses:[]};
     const nextPieces=s.pieces.map(p=>p.id===piece.id?moved:p),topologyLosses=topologyBreaksForPieces(nextPieces);
     return{ok:true,tileId,placement:{x,y,z:0,rr},topologyLosses:deepClone(topologyLosses)}
   }
   function moveOuroborosTile(tileId,placement){
-    const preview=ouroborosPlacementPreview(tileId,placement);if(!preview.ok)return preview;
-    const piece=s.pieces.find(p=>p.tile?.id===tileId),before=piecePlacement(piece),moved=E.pieceFrom(piece.tile,preview.placement.x,preview.placement.y,0,preview.placement.rr,piece.id);moved.tile={...piece.tile};
+    const geometry=ouroborosPlacementPreview(tileId,placement,{geometryOnly:true});if(!geometry.ok)return geometry;
+    const piece=s.pieces.find(p=>p.tile?.id===tileId),before=piecePlacement(piece),to=geometry.placement;
+    if(before.x===to.x&&before.y===to.y&&before.rr===to.rr)return{ok:true,unchanged:true,tileId,from:before,to,topologyLosses:[]};
+    const preview=ouroborosPlacementPreview(tileId,to);if(!preview.ok)return preview;
+    const moved=E.pieceFrom(piece.tile,to.x,to.y,0,to.rr,piece.id);moved.tile={...piece.tile};
     s.pieces=s.pieces.map(p=>p.id===piece.id?moved:p);const topologyLosses=removeTopologyMods(preview.topologyLosses,tileId);s.undoFrame=null;
-    s.events.push({type:'ouroboros-rebuild',round:s.round+1,roundTurn:s.roundTurn,tileId,from:before,to:preview.placement,topologyLosses:deepClone(topologyLosses)});
-    return{ok:true,tileId,from:before,to:preview.placement,topologyLosses}
+    if(!Array.isArray(s.ouroborosRebuilds))s.ouroborosRebuilds=[];
+    s.ouroborosRebuilds.push({tileId,from:before,to,topologyLosses:deepClone(topologyLosses)});
+    if(s.ouroborosRebuilds.length>32)s.ouroborosRebuilds.shift();
+    s.events.push({type:'ouroboros-rebuild',round:s.round+1,roundTurn:s.roundTurn,tileId,from:before,to,topologyLosses:deepClone(topologyLosses)});
+    return{ok:true,tileId,from:before,to,topologyLosses}
+  }
+  function canUndoOuroborosRebuild(){
+    return s.ouroborosMode&&canInteract()&&Array.isArray(s.ouroborosRebuilds)&&s.ouroborosRebuilds.length>0
+  }
+  function undoOuroborosRebuild(){
+    if(!canUndoOuroborosRebuild())return{ok:false,reason:'state'};
+    const rebuild=s.ouroborosRebuilds.pop(),piece=s.pieces.find(p=>p.tile?.id===rebuild.tileId);
+    if(!piece){s.ouroborosRebuilds.push(rebuild);return{ok:false,reason:'tile'};}
+    const restored=E.pieceFrom(piece.tile,rebuild.from.x,rebuild.from.y,0,rebuild.from.rr,piece.id);restored.tile={...piece.tile};
+    s.pieces=s.pieces.map(p=>p.id===piece.id?restored:p);
+    for(const loss of rebuild.topologyLosses||[])setSingleTileMod(loss.mod,loss.tileId);
+    s.events.push({type:'ouroboros-rebuild-undo',round:s.round+1,roundTurn:s.roundTurn,tileId:rebuild.tileId,from:rebuild.to,to:rebuild.from,restoredTopologyMods:deepClone(rebuild.topologyLosses||[])});
+    return{ok:true,tileId:rebuild.tileId,from:rebuild.to,to:rebuild.from,remaining:s.ouroborosRebuilds.length}
   }
   function rotateOuroborosTile(tileId){
     const piece=s.pieces.find(p=>p.tile?.id===tileId);if(!piece)return{ok:false,reason:'tile'};
@@ -786,7 +806,7 @@ function createGame(E,opts={}){
   }
   function beginOuroborosFire(tileId){
     const preview=previewOuroborosFire(tileId);if(!preview.ok)return preview;
-    const undoFrame=captureUndoFrame();s.running=true;s.turn++;s.roundTurn++;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
+    const undoFrame=captureUndoFrame();s.ouroborosRebuilds=[];s.running=true;s.turn++;s.roundTurn++;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
     s.events.push({type:'ouroboros-fire',round:s.round+1,roundTurn:s.roundTurn,turn:s.turn,tileId,trigger:preview.trigger});
     return preview
   }
@@ -1775,7 +1795,7 @@ function createGame(E,opts={}){
   function exportState(){return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:persistedState()}}
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
-    s=deepClone(raw);const savedScoreExact=s.scoreExact!=null&&Number(s.scoreExact)===Number(s.score)?s.scoreExact:null,savedBestExact=s.bestExact!=null&&Number(s.bestExact)===Number(s.best)?s.bestExact:null;s.scoreExact=SCORE.exact(s.score||0,savedScoreExact);s.score=SCORE.approx(s.scoreExact);s.bestExact=SCORE.exact(s.best||0,savedBestExact);s.best=SCORE.approx(s.bestExact);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.voids))s.voids=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(!Number.isFinite(Number(s.islandSignalBonus))||Number(s.islandSignalBonus)<0)s.islandSignalBonus=0;if(s.islandRootPieceId==null)s.islandRootPieceId=null;if(s.gameMode==='classic'){s.cores=[];s.voids=[];s.coreProgressMilestones=[]}else if(s.gameMode==='eyes')s.voids=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.adapterPurchasedPhases))s.adapterPurchasedPhases=[];s.adapterPurchasedPhases=[...new Set(s.adapterPurchasedPhases.filter(phase=>['landing','endless','infinite'].includes(phase)))];if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.signalUpgrades))s.signalUpgrades=0;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
+    s=deepClone(raw);const savedScoreExact=s.scoreExact!=null&&Number(s.scoreExact)===Number(s.score)?s.scoreExact:null,savedBestExact=s.bestExact!=null&&Number(s.bestExact)===Number(s.best)?s.bestExact:null;s.scoreExact=SCORE.exact(s.score||0,savedScoreExact);s.score=SCORE.approx(s.scoreExact);s.bestExact=SCORE.exact(s.best||0,savedBestExact);s.best=SCORE.approx(s.bestExact);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;s.ouroborosRebuilds=s.ouroborosMode&&Array.isArray(s.ouroborosRebuilds)?s.ouroborosRebuilds.slice(-32):[];if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.voids))s.voids=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(!Number.isFinite(Number(s.islandSignalBonus))||Number(s.islandSignalBonus)<0)s.islandSignalBonus=0;if(s.islandRootPieceId==null)s.islandRootPieceId=null;if(s.gameMode==='classic'){s.cores=[];s.voids=[];s.coreProgressMilestones=[]}else if(s.gameMode==='eyes')s.voids=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.adapterPurchasedPhases))s.adapterPurchasedPhases=[];s.adapterPurchasedPhases=[...new Set(s.adapterPurchasedPhases.filter(phase=>['landing','endless','infinite'].includes(phase)))];if(!Array.isArray(s.marketBuys))s.marketBuys=[];if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.signalUpgrades))s.signalUpgrades=0;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;
     const legacyEconomyMods={frame:'broker',resonator:'bank'},legacyFields={frameTileId:'brokerTileId',resonatorTileId:'bankTileId'};for(const [oldField,newField] of Object.entries(legacyFields))if(!s[newField]&&s[oldField])s[newField]=s[oldField];if(s.pendingModPlacement?.mod&&legacyEconomyMods[s.pendingModPlacement.mod])s.pendingModPlacement.mod=legacyEconomyMods[s.pendingModPlacement.mod];
     if(!s.pivotTileId&&s.mirrorTileId)s.pivotTileId=s.mirrorTileId;if(s.pendingModPlacement?.mod==='mirror')s.pendingModPlacement.mod='pivot';
     const legacyMutationMods={twin:'recall',gate:'pivot'},legacyMutationFields={twinTileId:'recallTileId',gateTileId:'pivotTileId'};for(const [oldField,newField] of Object.entries(legacyMutationFields))if(!s[newField]&&s[oldField])s[newField]=s[oldField];if(s.pendingModPlacement?.mod&&legacyMutationMods[s.pendingModPlacement.mod])s.pendingModPlacement.mod=legacyMutationMods[s.pendingModPlacement.mod];
@@ -1793,7 +1813,7 @@ function createGame(E,opts={}){
     return true
   }
   fresh(opts.seed);
-  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,coreCoverageTelemetry,islandTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,previewOuroborosFire,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopAdapterPrice,shopPurchaseAvailability,adapterShopInfo,marketDoubleDoublePrice,marketModPrice,marketSignalPrice,marketSignalUpgradeInfo,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,buyShopAdapter,openIntermission,buyMarketSignal,buyMarketMod,cancelMarketModPurchase,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
+  return{state:()=>s,config:cfg,moveResonance,chooseCircuitTile,circuitTileLimit,target,targetExact,targetForRound,targetExactForRound,stageIndex,boardSizeForStage,infinitePhase,infinitePhaseStartRound,ouroborosPhase,handSizeForRound,endlessStagesCompleted,candidatesForIndex,legalHandMask,handPlacementDiagnostics,topologyTelemetry,deckTelemetry,signalTelemetry,signalShadowTelemetry,coreShadowTelemetry,coreCoverageTelemetry,islandTelemetry,previewPlacement,topologyBreaksForPlacement,decisionTelemetry,canInteract,setTollArmed,mutationOptions,applyMutation,ouroborosPlacementPreview,moveOuroborosTile,rotateOuroborosTile,canUndoOuroborosRebuild,undoOuroborosRebuild,previewOuroborosFire,beginOuroborosFire,beginPlacement,finishPlacement,reroll,canUseReroll,useMove,canUseMove,useUndo,canUndo,canUsePurchasedTool,recoveryOptions,advance,startEndless,canStartEndless,rotateRoot,setRootRotation,fresh,snapshot,debugText,save,exportState,restoreState,hasLegal,assessContinuation,maxPlacements,clearReward,clearRewardBreakdown,availableTileCount,toolPrice,toolPurchaseQuote,canBuyTool,buyTool,shopItemPrice,shopRandomPrice,shopTileOfferPrice,shopAdapterPrice,shopPurchaseAvailability,adapterShopInfo,marketDoubleDoublePrice,marketModPrice,marketSignalPrice,marketSignalUpgradeInfo,marketOfferAffordability,marketTargetCount,marketOfferInfo,canOpenShop,openShop,closeShop,buyShopItem,buyShopRandomTile,buyShopTileOffer,buyShopAdapter,openIntermission,buyMarketSignal,buyMarketMod,cancelMarketModPurchase,chooseMarketModTile,chooseMarketModHalf,buyDoubleDouble,closeMarket,resolveIntermission}
 }
 return{createGame}
 });
