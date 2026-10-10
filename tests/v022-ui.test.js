@@ -4,7 +4,7 @@ const path=require('path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const data=read('data.js'),game=read('game.js'),ui=read('ui.js'),html=read('index.html'),help=read('help.js');
 
-assert.match(data,/VERSION:'0\.74\.0'/);
+assert.match(data,/VERSION:'0\.75\.0'/);
 assert.match(data,/STAGE_SIZE:3/);
 assert.match(data,/BOARD_SIZES:\[\[18,24\],\[21,28\],\[24,32\],\[27,36\],\[30,40\]\]/);
 assert.doesNotMatch(data,/SHOP_CHANCE/,'inter-round random Shop chance must be removed');
@@ -16,7 +16,8 @@ assert.match(html,/class="handRail"/,'hand must remain on the right rail');
 assert.match(game,/function canOpenShop\(/);
 assert.match(game,/function openShop\(/);
 assert.match(game,/function buyShopRandomTile\(/);
-assert.match(game,/s\.nextShopType=endOfStage\?'market':'none'/,'only Markets should be scheduled between rounds');
+assert.match(game,/s\.nextShopType=marketQueued\?'market':'none'/,'only Markets should be scheduled between rounds');
+assert.match(game,/marketQueued=endOfStage\|\|overflowMarketsRemaining\(\)>0/,'Overflow can queue additional stage Markets but no random shops');
 assert.doesNotMatch(game,/buyMarketRandomTile/,'random tile supply must not remain a Market API');
 assert.match(ui,/GAME\.buyShopRandomTile\(\)/);
 assert.match(ui,/GAME\.buyTool\(id,quantity,\{intent:'store'\}\)/);assert.match(ui,/GAME\.buyTool\(id,1,\{intent:'buy-use'\}\)/);assert.doesNotMatch(ui,/data-shop-item=/,'Tile Shop UI must not expose tool purchase controls');

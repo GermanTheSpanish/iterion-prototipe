@@ -4,7 +4,7 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.74.0',
+    VERSION:'0.75.0',
     ENGINE_VERSION:'0.21.0-peaks-ridge-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
@@ -22,6 +22,7 @@
     SHOP_HAND_MAX:8,
     TOTAL_ROUNDS:15,
     ENDLESS_TARGET_MULTIPLIER:5,
+    OUROBOROS_FIRE_LIMIT:3,
     POWER_MULTIPLIERS:Object.freeze([1,2,3,4]),
     MAX_SET_GENERATION:3,
     CORE_SIGNAL_BASE:24,

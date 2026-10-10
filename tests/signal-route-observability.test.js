@@ -32,7 +32,7 @@ assert.deepEqual(routeSignature(E.bestSignal(1,pieces,{initialOutput:3})),routeS
 const game=G.createGame(E,{seed:530301});
 const s=game.state();
 s.pieces=pieces.map(p=>piece(p.id,{...p.tile},p.cubes[0].x,p.cubes[0].y,p.rr));
-s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=5;s.turn=5;s.roundTurn=5;s.anchorId=sourceTile.id;s.hand=[];s.reserve=[];
+s.placedTileIds=s.pieces.map(p=>p.tile.id);s.idc=5;s.turn=5;s.roundTurn=0;s.anchorId=sourceTile.id;s.hand=[];s.reserve=[];
 s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.ouroborosBoardSize=[18,24];s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.shopOpen=false;s.pendingCircuit=null;s.pendingModPlacement=null;
 const before=JSON.stringify(game.exportState()),turnBefore=s.turn,preview=game.previewOuroborosFire(sourceTile.id);
 assert(preview.ok);
