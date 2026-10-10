@@ -13,8 +13,8 @@ export function createInstrument(context, destination, track) {
     osc.onended=()=>{osc.disconnect();gain.disconnect()};
   }
   return {
-    note(pip,at,{wave='triangle',volume=0.2,attack=0.012,release=0.5,reverse=false}={}) {
-      const freq=PIP_NOTES[pip], v=volume*(reverse?0.62:1);
+    note(pip,at,{wave='triangle',volume=0.2,attack=0.012,release=0.5,reverse=false,octave=0,releaseScale=1,volumeScale=1}={}) {
+      const freq=PIP_NOTES[pip]*2**Math.max(-2,Math.min(3,octave)), v=volume*volumeScale*(reverse?0.62:1); release*=releaseScale;
       if(wave==='soft') {
         // Felt-piano-inspired partials: brief bright transient, warm fundamental, fast harmonic decay.
         voice(freq,at,{wave:'sine',volume:v*0.85,attack:0.004,release:Math.max(0.12,release*1.3)});
