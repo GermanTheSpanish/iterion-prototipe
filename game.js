@@ -1162,9 +1162,9 @@ function createGame(E,opts={}){
   function overkillTier(outputExact,tgtExact){return SCORE.compare(outputExact,SCORE.multiply(tgtExact,10))>=0?3:SCORE.compare(outputExact,SCORE.multiply(tgtExact,5))>=0?2:SCORE.compare(outputExact,SCORE.multiply(tgtExact,3))>=0?1:0}
   function scheduleIntermission(){
     if(!s.endlessMode&&s.round>=cfg.TOTAL_ROUNDS-1){s.nextShopType='none';s.intermissionResolved=true;return}
-    const endOfStage=(s.round+1)%stageSize()===0;
-    s.nextShopType=endOfStage?'market':'none';
-    s.intermissionResolved=!endOfStage;
+    const endOfStage=(s.round+1)%stageSize()===0,marketQueued=endOfStage||overflowMarketsRemaining()>0;
+    s.nextShopType=marketQueued?'market':'none';
+    s.intermissionResolved=!marketQueued;
     s.events.push({type:'shop-scheduled',round:s.round+1,shop:s.nextShopType})
   }
 
@@ -1235,10 +1235,7 @@ function createGame(E,opts={}){
       }
       if(!s.standardComplete&&s.round===cfg.TOTAL_ROUNDS-1){s.standardComplete=true;s.events.push({type:'run-complete',round:s.round+1,target:target(),targetExact:targetExact(),output:s.score,outputExact:s.scoreExact,coins:s.coins,inflation:s.inflation})}
       s.events.push({type:'coins',round:s.round+1,amount:reward,breakdown:rewardBreakdown,coins:s.coins});scheduleIntermission();
-      if(overflowMarketsRemaining()>0){
-        s.nextShopType='market';s.intermissionResolved=false;
-        s.events.push({type:'ouroboros-overflow-markets',round:s.round+1,remaining:overflowMarketsRemaining()});
-      }
+      if(overflowMarketsRemaining()>0)s.events.push({type:'ouroboros-overflow-markets',round:s.round+1,remaining:overflowMarketsRemaining()});
     }else{const protection=ensureOpeningContinuation('draw');if(protection)s.events.push(protection)}
     s.events.push({type:'circuit-resonance',round:s.round+1,move:s.turn,...resonance});
     let hingeMoved=false;
