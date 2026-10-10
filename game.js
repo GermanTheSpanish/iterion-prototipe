@@ -1712,6 +1712,7 @@ function createGame(E,opts={}){
       if(v.type==='power-set-hand-refill'){lines.push(`R${v.round} POWER SET ${v.generation} HAND REFILL +${v.filled} hand=${v.hand?.map(tileText).join(',')||'-'}`);continue}
       if(v.type==='ouroboros-start'){lines.push(`R${v.round} OUROBOROS START generation=${v.generation} machine=${v.machineSize} source=${v.source}`);continue}
       if(v.type==='ouroboros-rebuild'){lines.push(`R${v.round}.${v.roundTurn} OUROBOROS REBUILD tile=${v.tileId} ${v.from.x},${v.from.y},r${v.from.rr} > ${v.to.x},${v.to.y},r${v.to.rr}${v.topologyLosses?.length?` lost=${v.topologyLosses.map(x=>x.label||x.mod).join(',')}`:''}`);continue}
+      if(v.type==='ouroboros-rebuild-undo'){lines.push(`R${v.round}.${v.roundTurn} OUROBOROS REVERT tile=${v.tileId} ${v.from.x},${v.from.y},r${v.from.rr} > ${v.to.x},${v.to.y},r${v.to.rr}${v.restoredTopologyMods?.length?` restored=${v.restoredTopologyMods.map(x=>x.label||x.mod).join(',')}`:''}`);continue}
       if(v.type==='ouroboros-fire'){lines.push(`R${v.round}.${v.roundTurn} OUROBOROS FIRE tile=${v.tileId} trigger=${v.trigger}`);continue}
       if(v.type==='round-reroll'){lines.push(`R${v.round} FREE REROLL +${v.granted}${v.replaced?` refresh=${v.replaced}>${v.granted}`:''}`);continue}
       if(v.type==='circuit-check'){lines.push(`R${v.round} CIRCUIT NONE move=${v.move}`);continue}
