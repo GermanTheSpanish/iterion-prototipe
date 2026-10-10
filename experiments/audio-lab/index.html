@@ -10,12 +10,12 @@
 <body>
 <h1>MONOID / AUDIO LAB</h1><p>Isolated procedural sound experiment. No game state, network requests, samples, or external dependencies. Tap a key to enable audio.</p>
 <section><h2>Instrument</h2><div class="keys" id="keys"></div>
-<label>Waveform <select id="wave"><option value="sine">Sine</option><option value="triangle" selected>Triangle</option><option value="soft">Soft piano-like</option></select></label>
+<label>Waveform <select id="wave"><option value="sine">Sine</option><option value="triangle" selected>Triangle</option><option value="soft">Soft piano (additive)</option></select></label>
 <label>Attack <input id="attack" type="range" min="0.005" max="0.2" step="0.005" value="0.012"></label>
 <label>Release <input id="release" type="range" min="0.08" max="1.5" step="0.02" value="0.5"></label>
 <label>Volume <input id="volume" type="range" min="0" max="0.6" step="0.01" value="0.2"></label>
 </section>
-<section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Uses the real cascade acceleration from presentation.js, recorded rebound directions and SIGNAL TREE split markers where available. Branch arms follow recorded trace order, not simultaneous audio.</p><label>Playback speed <select id="replay-speed"><option value="0.5">0.5×</option><option value="1" selected>1× (game timing)</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><div class="controls" id="playtests"></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
+<section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Uses the cascade acceleration from presentation.js, recorded reversal flags and SIGNAL TREE markers where available. Coin and Mod sounds are only triggered by recorded evidence. Branch arms follow recorded trace order, not simultaneous audio.</p><label>Playback speed <select id="replay-speed"><option value="0.5">0.5×</option><option value="1" selected>1× (game timing)</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><div class="controls" id="playtests"></div><div class="controls"><button id="test-rebound">Rebound sound</button><button id="test-split">Split sound</button><button id="test-mod">Mod sound</button><button id="test-coin">Coin sound</button></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
 <section><h2>Cascade sequencer</h2><p>Seven pip values map to a C minor pentatonic palette. Rebound reverses event order; branches overlap.</p>
 <label>Step interval (ms) <input id="tempo" type="range" min="90" max="650" step="10" value="220"></label>
 <div class="controls"><button id="forward">Forward</button><button id="reverse">Rebound</button><button id="branch">Branch</button><button id="stop">Stop</button></div>
@@ -25,31 +25,24 @@
 import { PIP_NOTES, cascadeEvents } from './sequencer.js';
 import { PLAYTEST_CASCADES } from './playtest-cascades.js';
 import { replayEvents } from './replay.js';
+import { LONG_CASCADE } from './ultra-cascade.js';
+import { createInstrument } from './instrument.js';
 const $ = id => document.getElementById(id);
-let context, master, scheduled = [], generation = 0;
+let context, master, instrument, scheduled = [], generation = 0;
 const sequence = [0,2,4,3,1,0];
 function init(){
   if (!context) {
     context = new (window.AudioContext || window.webkitAudioContext)();
     master = context.createGain(); master.gain.value = 1; master.connect(context.destination);
+    instrument=createInstrument(context,master,oscillator=>scheduled.push(oscillator));
   }
   if(context.state === 'suspended') context.resume();
 }
-function play(pip, at, reverse = false) {
-  const attack = reverse ? Math.max(0.07,Number($('attack').value)) : Number($('attack').value), release = reverse ? Math.max(0.18,Number($('release').value)*0.65) : Number($('release').value);
-  const gain = context.createGain(), oscillator = context.createOscillator();
-  const volume = Number($('volume').value) * (reverse ? 0.65 : 1);
-  const waveform = $('wave').value;
-  oscillator.type = waveform === 'soft' ? 'triangle' : waveform;
-  oscillator.frequency.value = PIP_NOTES[pip];
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),at+attack);
-  gain.gain.exponentialRampToValueAtTime(0.0001,at+attack+release);
-  oscillator.connect(gain); gain.connect(master);
-  oscillator.start(at); oscillator.stop(at+attack+release+0.02);
-  scheduled.push(oscillator);
-  oscillator.onended = () => { scheduled = scheduled.filter(node => node !== oscillator); oscillator.disconnect(); gain.disconnect(); };
+function play(pip,at,reverse=false) {
+ instrument.note(pip,at,{wave:$('wave').value,volume:Number($('volume').value),attack:Number($('attack').value),release:Number($('release').value),reverse});
 }
+function effect(type,at) {instrument.effect(type,at,Number($('volume').value));}
+
 function stop() {
   generation++;
   for(const oscillator of scheduled){try{oscillator.stop();}catch{}}
@@ -63,22 +56,27 @@ function run(mode){
   for(const event of events) play(event.pip,start+event.time);
   $('status').textContent = mode.toUpperCase() + ' / ' + events.map(e=>e.pip).join(' · ');
 }
-for(const fixture of PLAYTEST_CASCADES){
+for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE]){
  const button=document.createElement('button');button.textContent=fixture.label+' · '+fixture.operations+' ops';
  button.addEventListener('click',()=>{
    init();stop();
    const replay=replayEvents(fixture,Number($('replay-speed').value));
    const start=context.currentTime+0.035;
    for(const event of replay.events){
-     if(event.type==='note') play(event.pip,start+event.time,event.reverse);
-     else if(event.type==='rebound') play(0,start+event.time,true);
-     else if(event.type==='split') play(6,start+event.time);
+     if(event.type==='note') {
+       play(event.pip,start+event.time,event.reverse);
+       if(event.mod) effect('mod',start+event.time);
+       if(event.mint || event.coins) effect('coin',start+event.time+0.04);
+     } else if(event.type==='rebound') effect('rebound',start+event.time);
+     else if(event.type==='split') effect('split',start+event.time);
    }
+   if(fixture.coins && !replay.events.some(e=>e.mint || e.coins)) effect('coin',start+replay.duration);
    $('playtest-status').textContent=fixture.move+' · '+replay.operations+' operations · '+fixture.rebounds+' rebounds · '+replay.events.filter(e=>e.type==='split').length+' splits · '+replay.duration.toFixed(1)+'s · '+fixture.traceSource;
 
  });
  $('playtests').append(button);
 }
+for(const type of ['rebound','split','mod','coin']) $('test-'+type).onclick=()=>{init();effect(type,context.currentTime+0.01);};
 for(let pip=0;pip<=6;pip++){
   const button=document.createElement('button');button.textContent=pip;button.setAttribute('aria-label','Play pip '+pip);
   button.addEventListener('click',()=>{init();play(pip,context.currentTime+0.01);$('status').textContent='Pip '+pip;});
