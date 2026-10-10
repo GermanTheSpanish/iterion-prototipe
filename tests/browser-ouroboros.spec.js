@@ -7,7 +7,7 @@ test('Ouroboros turns the machine into the playable surface on mobile',async({pa
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
   const saved=await page.evaluate(()=>{
     const game=window.__monoidGame,saved=game.exportState(),s=saved.state;
-    s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.hand=[];s.reserve=[];s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.running=false;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false;s.shopType=null;
+    s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.roundTurn=0;s.hand=[];s.reserve=[];s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;s.running=false;s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false;s.shopType=null;
     return saved
   });
   await page.goto(BASE);await page.evaluate(saved=>{localStorage.setItem('iterion.activeRun.v1',JSON.stringify(saved));localStorage.setItem('iterion.activeRunMode.v1','classic');localStorage.setItem('iterion.tutorialChoice.v1','made')},saved);await page.locator('#titleCard').click();await expect(page.locator('#continueRun')).toBeVisible();await page.locator('#continueRun').click();
