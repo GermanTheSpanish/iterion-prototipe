@@ -16,7 +16,8 @@
   const PRESETS=Object.freeze({
     classic14:Object.freeze({id:'classic14',mode:'classic',round:13,generation:2,score:0,best:57863119300,coins:165,inflation:8,endless:false,powerGeneration:2,sourceRunId:'mu66e4fp-116me8o'}),
     infinite16:Object.freeze({id:'infinite16',mode:'classic',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3}),
-    german9Endless:Object.freeze({id:'german9Endless',mode:'classic',round:15,generation:2,score:0,best:2.1114853892231e36,coins:35,inflation:9,endless:true,powerGeneration:2,sourceRunId:'mudyrg2r-1960frf'})
+    german9Endless:Object.freeze({id:'german9Endless',mode:'classic',round:15,generation:2,score:0,best:2.1114853892231e36,coins:35,inflation:9,endless:true,powerGeneration:2,sourceRunId:'mudyrg2r-1960frf'}),
+    klausOuroboros:Object.freeze({id:'klausOuroboros',mode:'classic',round:48,generation:3,score:0,best:5.619772630459988e45,coins:163,inflation:16,endless:true,powerGeneration:3,sourceRunId:'mv1hi61f-r68xcg'})
   });
 
   const REAL_CLASSIC14=Object.freeze({
@@ -99,6 +100,37 @@
     ])
   });
 
+  // Reconstructed from MONOID_PLAYTEST_v0.73.0_B-0XGLJP1.txt, run 13/13 (#29).
+  // Positions include every recorded board-expansion offset and stop at R49, before T85 FIRE.
+  // The text export does not contain the RNG state, full event archive or HINGE alternate placement.
+  const REAL_KLAUS_OUROBOROS=Object.freeze({
+    seed:1643080912,runId:'mv1hi61f-r68xcg',board:[45,60],
+    bestExact:'5619772630459987517896604029846414363600277946',
+    pieces:Object.freeze([
+      ['d5-5',19,27,0,0],['d1-5',20,23,1,0],['d1-3',20,21,3,0],['d3-5',23,29,3,0],
+      ['d4-5',17,29,3,0],['d3-6',23,31,1,0],['d4-6',23,37,3,0],['d4-4',16,31,0,0],
+      ['d2-4',21,39,0,0],['d3-3',19,17,0,0],['d2-5',19,39,2,0],['d5-6',15,39,3,0],
+      ['d1-4',12,31,0,0],['d0-3',25,17,2,0],['d1-6',13,35,0,3],['d1-1',10,30,1,2],
+      ['d0-0',25,19,1,0],['d2-3',15,17,0,0],['d1-2',11,35,1,3],['d0-1',27,17,0,0],
+      ['d2-6',11,39,1,3],['d2-2',13,16,1,0],['d6-6',10,43,0,3],['d0-2',13,12,1,0],
+      ['d0-5',25,15,3,0],['d0-4',15,12,0,0],['d0-6',16,43,2,3],['d3-4',20,15,3,0],
+      ['g2-d1-2',13,22,3,0],['g2-d1-6',10,28,3,0],['g2-d0-3',18,43,0,3],['g2-d5-6',8,45,3,0],
+      ['g2-d1-5',8,32,1,0],['g2-d1-3',11,22,2,3],['g2-d3-6',9,20,2,3],['g2-d3-5',10,47,2,0],
+      ['g2-d2-6',7,16,1,3],['g2-d2-2',7,12,1,3],['g2-d4-5',8,38,3,0],['g2-d0-6',14,26,2,3],
+      ['g2-d2-3',14,47,2,3],['g2-d0-2',11,12,2,3],['g2-d2-5',16,47,0,3],['g2-d5-5',20,46,1,3],
+      ['g2-d1-4',20,9,1,3],['g2-d2-4',6,40,0,3],['g2-d0-0',13,10,0,0],['g2-d6-6',25,33,1,0],
+      ['g2-d4-4',20,30,1,0],['g2-d0-4',20,36,3,3],['g2-d1-1',22,9,0,0],['g2-d3-4',25,29,0,3],
+      ['g2-d4-6',27,31,1,3],['g2-d0-5',29,13,2,0],['g2-d0-1',31,15,1,0],['g2-d3-3',22,43,0,0],
+      ['g3-d3-5',22,50,2,3],['g3-d1-6',26,9,3,0],['g3-d6-6',28,7,0,0],['g3-d2-5',4,40,3,3],
+      ['g3-d3-4',24,50,0,0],['g3-d4-4',28,49,1,3],['g3-d5-6',34,7,2,0],['g3-d5-5',36,6,1,0],
+      ['g3-d0-0',13,8,0,0],['g3-d1-5',36,12,3,0],['g3-d1-4',28,45,1,3],['g3-d1-1',34,14,0,0],
+      ['g3-d2-4',32,51,2,3],['g3-d0-2',34,53,2,3],['g3-d4-5',4,45,0,3],['g3-d2-6',32,49,3,3],
+      ['g3-d1-3',28,43,2,3],['g3-d3-6',32,43,1,3],['g3-d3-3',31,41,0,3],['g3-d2-3',35,39,2,3],
+      ['g3-d2-2',37,38,1,3],['g3-d1-2',36,16,0,3],['g3-d0-5',38,4,2,3],['g3-d0-4',4,49,3,3],
+      ['g3-d0-1',4,51,0,3],['g3-d0-3',23,47,3,3],['g3-d0-6',26,3,1,0],['g3-d4-6',28,53,1,3]
+    ])
+  });
+
   const clone=value=>JSON.parse(JSON.stringify(value));
   const powerForGeneration=generation=>Math.min(4,Math.max(1,generation));
   function makeSet(maxGeneration=1){
@@ -124,6 +156,41 @@
     const preset=PRESETS[presetId];if(!preset)throw new Error(`Unknown MONOID QA preset: ${presetId}`);
     if(!game?.exportState||!game?.restoreState)throw new Error('MONOID game state API required');
     const saved=game.exportState(),s=saved.state,set=makeSet(preset.generation),byId=new Map(set.map(tile=>[tile.id,tile]));
+
+    if(presetId==='klausOuroboros'){
+      const source=REAL_KLAUS_OUROBOROS,ids=source.pieces.map(spec=>spec[0]);
+      if(ids.length!==84||new Set(ids).size!==84)throw new Error('Klaus Ouroboros needs 84 unique physical tiles');
+      for(const[id,,,,upgrade]of source.pieces){
+        const tile=byId.get(id);if(!tile)throw new Error(`Missing Klaus physical tile ${id}`);
+        tile.upgrade=upgrade
+      }
+      s.set=set;s.setGeneration=3;
+      s.pieces=source.pieces.map(([id,x,y,rr],index)=>({id:index+1,tile:clone(byId.get(id)),x,y,rr}));
+      s.placedTileIds=ids;s.hand=[];s.reserve=[];s.round=48;s.roundTurn=0;s.turn=84;s.idc=84;s.rootRR=0;
+      s.score=0;s.scoreExact='0';s.best=Number(source.bestExact);s.bestExact=source.bestExact;s.coins=163;s.inflation=16;
+      // The debug confirms 48 clears, but does not export full authoritative win records.
+      s.wins=Array.from({length:48},(_,index)=>({round:index+1}));
+      s.events=[{type:'qa-preset',preset:preset.id,round:49,mode:'classic',sourceRunId:source.runId,sourceBatchId:'B-0XGLJP1'}];
+      s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;
+      s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;s.ouroborosRebuilds=[];
+      s.anchorId='g3-d4-6';s.freeReroll=0;s.consumables={move:0,reroll:0,undo:0};s.roundZero={drawn:0,placed:0,endHand:0};
+      s.doubleDoubleTileId='g2-d6-6';s.doubleEchoTileId=null;s.tripleDoubleTileId='g3-d6-6';
+      s.zeroPortTileIds=['d0-3','d0-6'];s.parityExchangeTileId=null;s.cornerTileId=null;
+      s.longLineTileId=null;s.overloadTileId='d3-3';s.recallTileId='g2-d0-5';
+      s.pairTileId='g2-d0-0';s.bridgeTileId='d5-5';s.pivotTileId=null;s.brokerTileId=null;
+      s.hingeTileId='g2-d2-5';s.hingeState=null;s.bankTileId='d2-2';s.foundationTileId=null;s.knotTileId=null;s.mintTileId=null;
+      s.mods=['long-run'];s.circuitRanks={'d2-2':2,'g2-d6-6':1,'g3-d4-4':3};s.circuitSignatures=[];
+      s.pendingCircuit=null;s.pendingModPlacement=null;s.nextShopType='none';s.intermissionResolved=true;
+      s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
+      s.standardComplete=true;s.endlessMode=true;s.endlessStartedRound=16;s.ouroborosMode=true;
+      s.ouroborosStartedRound=48;s.ouroborosBoardSize=[...source.board];s.systemStrain=49;
+      s.endlessLongRunActivations=7;s.boardStage=16;s.marketCount=16;
+      s.seed=source.seed;s.rngState=source.seed|0;s.runId=`qa-${source.runId}-ouroboros`;
+      s.startedAt='2026-10-09T00:00:00.000Z';s.tileSerial=0;s.gameMode='classic';
+      delete s.scoringModel;delete s.scoringFormula;
+      if(!game.restoreState(saved))throw new Error('Could not restore Klaus Ouroboros QA checkpoint');
+      return game
+    }
 
     if(presetId==='german9Endless'){
       const source=REAL_GERMAN9_ENDLESS;
@@ -257,6 +324,7 @@
       <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Real R14 · 30 tiles · DD · DE · C5 · POWER ×2 · 2 clears from Endless</small></button>
       <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>ENDLESS · ROUND 16</strong><small>Generic late-game fixture · Classic progression</small></button>
       <button class="qaPresetChoice" data-qa-preset="german9Endless"><strong>GERMÁN RUN #9 · ENDLESS START</strong><small>Real R16 machine · 33 tiles · POWER ×2 · 5 Markets · saved run safe</small></button>
+      <button class="qaPresetChoice" data-qa-preset="klausOuroboros"><strong>KLAUS · OUROBOROS START</strong><small>Reconstructed R49 · 84 tiles · POWER ×3 · before first FIRE · saved run safe</small></button>
       ${inQa?`<a class="menuAction qaReturn" data-qa-return href="${normalUrl(root)}">RETURN TO SAVED RUN</a>`:''}`;
     doc.body.appendChild(dialog);
     const close=()=>dialog.close();dialog.querySelector('.iconButton').addEventListener('click',close);
