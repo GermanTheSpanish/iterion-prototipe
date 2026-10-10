@@ -25,6 +25,7 @@
 import { PIP_NOTES, cascadeEvents } from './sequencer.js';
 import { PLAYTEST_CASCADES } from './playtest-cascades.js';
 import { replayEvents } from './replay.js';
+import { LONG_CASCADE } from './ultra-cascade.js';
 import { createInstrument } from './instrument.js';
 const $ = id => document.getElementById(id);
 let context, master, instrument, scheduled = [], generation = 0;
@@ -55,7 +56,7 @@ function run(mode){
   for(const event of events) play(event.pip,start+event.time);
   $('status').textContent = mode.toUpperCase() + ' / ' + events.map(e=>e.pip).join(' · ');
 }
-for(const fixture of PLAYTEST_CASCADES){
+for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE]){
  const button=document.createElement('button');button.textContent=fixture.label+' · '+fixture.operations+' ops';
  button.addEventListener('click',()=>{
    init();stop();
