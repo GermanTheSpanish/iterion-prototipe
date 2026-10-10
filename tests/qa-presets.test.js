@@ -38,13 +38,55 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
   assert.strictEqual(ids.length,new Set(ids).size,`${id}: physical piece ids are unique`);
   assert.strictEqual(s.placedTileIds.length,new Set(s.placedTileIds).size,`${id}: placed ids are unique`);
   assert.strictEqual(activeIds.length,new Set(activeIds).size,`${id}: one physical tile cannot exist twice across machine, Hand and reserve`);
-  assert.strictEqual(s.hand.filter(Boolean).length,5,`${id}: full visible hand`);
+  assert.strictEqual(s.hand.filter(Boolean).length,id==='klausOuroboros'?0:5,`${id}: phase-appropriate hand`);
   assert(ids.some(tileId=>tileId.startsWith(`g${preset.powerGeneration}-`))||preset.powerGeneration===1,`${id}: current POWER material is represented`);
   assert(Math.max(s.score,s.best)>=50000,`${id}: large-number UI threshold is exercised`);
-  assert(game.legalHandMask().some(Boolean),`${id}: preset remains playable`);
-  physicalAudit(game);
+  if(id==='klausOuroboros')assert(game.canInteract(),`${id}: R49 must be interactive`);
+  else{assert(game.legalHandMask().some(Boolean),`${id}: preset remains playable`);physicalAudit(game)}
 
-  if(id==='classic14'){
+  if(id==='klausOuroboros'){
+    assert.strictEqual(preset.sourceRunId,'mv1hi61f-r68xcg');
+    assert.strictEqual(s.runId,'qa-mv1hi61f-r68xcg-ouroboros');assert.strictEqual(s.roundTurn,0);
+    assert.strictEqual(s.turn,84);assert.strictEqual(s.idc,84);
+    assert.strictEqual(snap.round.index,49);assert.strictEqual(snap.stage.index,17);
+    assert.equal(snap.endless.phase,'ouroboros');assert.equal(s.ouroborosMode,true);
+    assert.deepStrictEqual(snap.boardSize,{width:45,height:60});
+    assert.deepStrictEqual(s.ouroborosBoardSize,[45,60]);
+    assert.strictEqual(s.set.length,84);assert.strictEqual(s.pieces.length,84);
+    assert.strictEqual(s.wins.length,48);assert.equal(game.availableTileCount(),0);
+    assert.strictEqual(s.seed,1643080912);assert.strictEqual(s.coins,163);
+    assert.strictEqual(s.inflation,16);assert.strictEqual(s.systemStrain,49);
+    assert.strictEqual(s.marketCount,16);assert.strictEqual(s.score,0);
+    assert.strictEqual(game.targetExact(),'29103830456733703613281250000000000');
+    assert.strictEqual(s.bestExact,'5619772630459987517896604029846414363600277946');
+    assert.strictEqual(s.anchorId,'g3-d4-6');
+    assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});
+    assert.deepStrictEqual(s.circuitRanks,{'d2-2':2,'g2-d6-6':1,'g3-d4-4':3});
+    assert.equal(s.doubleDoubleTileId,'g2-d6-6');assert.equal(s.tripleDoubleTileId,'g3-d6-6');
+    assert.deepStrictEqual(s.zeroPortTileIds,['d0-3','d0-6']);
+    assert.equal(s.overloadTileId,'d3-3');assert.equal(s.bridgeTileId,'d5-5');
+    assert.equal(s.hingeTileId,'g2-d2-5');assert.equal(s.hingeState,null);
+    assert.deepStrictEqual(s.mods,['long-run']);
+    for(const[id,x,y,rr]of [
+      ['g3-d0-5',38,4,2],['g3-d3-6',32,43,1],['g3-d2-5',4,40,3],
+      ['g3-d4-6',28,53,1],['g3-d0-6',26,3,1]
+    ]){const piece=s.pieces.find(piece=>piece.tile.id===id);assert(piece,id);
+      assert.deepStrictEqual([piece.cubes[0].x,piece.cubes[0].y,piece.rr],[x,y,rr],`${id}: pre-FIRE source coordinates`)}
+    const occupied=new Set();for(const piece of s.pieces)for(const cube of piece.cubes)
+      for(let dx=0;dx<E.S;dx++)for(let dy=0;dy<E.S;dy++){
+        const key=`${cube.x+dx},${cube.y+dy}`;assert(!occupied.has(key),`overlap ${key}`);occupied.add(key)
+      }
+    assert.equal(game.canUndoOuroborosRebuild(),false);
+    const moved=game.moveOuroborosTile('g3-d0-5',{x:37,y:4,rr:2});
+    assert(moved.ok,'first Klaus debug rebuild is legal');
+    assert.equal(game.canUndoOuroborosRebuild(),true);
+    assert(game.undoOuroborosRebuild().ok);
+    const reverted=game.state().pieces.find(piece=>piece.tile.id==='g3-d0-5');
+    assert.deepStrictEqual([reverted.cubes[0].x,reverted.cubes[0].y,reverted.rr],[38,4,2]);
+    const restored=Game.createGame(E,{seed:14});assert(restored.restoreState(game.exportState()));
+    assert.equal(restored.state().roundTurn,0);assert.equal(restored.state().pieces.length,84);
+    assert.equal(restored.state().ouroborosMode,true);
+  }else if(id==='classic14'){
     assert.strictEqual(preset.sourceRunId,'mu66e4fp-116me8o');
     assert.strictEqual(s.runId,'qa-mu66e4fp-116me8o');
     assert.strictEqual(snap.stage.index,5);assert.strictEqual(game.target(),10000000000);assert.strictEqual(s.endlessMode,false);
