@@ -1,4 +1,4 @@
-/* Recorded operation operands, reversal flags and structural markers when present. */
+/* Recorded operands; compound operands above six use a bounded pitch, preserving operand. */
 export const PLAYTEST_CASCADES = Object.freeze([
   {
     "id": "short",
@@ -702,7 +702,7 @@ export const PLAYTEST_CASCADES = Object.freeze([
     "operations": 29,
     "pips": [
       6,
-      12,
+      6,
       3,
       2,
       5,
@@ -739,8 +739,9 @@ export const PLAYTEST_CASCADES = Object.freeze([
       },
       {
         "type": "op",
-        "pip": 12,
-        "reverse": false
+        "pip": 6,
+        "reverse": false,
+        "operand": 12
       },
       {
         "type": "op",
@@ -878,7 +879,7 @@ export const PLAYTEST_CASCADES = Object.freeze([
         "reverse": false
       }
     ],
-    "traceSource": "ops (R suffix); structural split position unavailable",
+    "traceSource": "ops (R suffix); structural split position unavailable; compound operand 12 mapped to pip 6 for pitch",
     "coins": 1,
     "mint": false
   }
