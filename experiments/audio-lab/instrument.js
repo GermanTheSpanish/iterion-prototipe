@@ -1,26 +1,33 @@
 import {PIP_NOTES} from './sequencer.js';
 export function createInstrument(context, destination, track) {
-  function voice(freq,at,{wave='sine',volume=0.12,attack=0.008,release=0.3,endFreq=null}={}) {
+  function voice(freq,at,{wave='sine',volume=0.12,attack=0.008,release=0.3,endFreq=null,pan=0}={}) {
     const osc=context.createOscillator(), gain=context.createGain();
     osc.type=wave; osc.frequency.setValueAtTime(freq,at);
     if(endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq,at+Math.max(0.08,release));
     gain.gain.setValueAtTime(0.0001,at);
     gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),at+Math.max(0.003,attack));
     gain.gain.exponentialRampToValueAtTime(0.0001,at+attack+release);
-    osc.connect(gain);gain.connect(destination);
+    osc.connect(gain);const stereo=context.createStereoPanner?context.createStereoPanner():null;if(stereo){stereo.pan.setValueAtTime(pan,at);gain.connect(stereo);stereo.connect(destination);}else gain.connect(destination);
     osc.start(at);osc.stop(at+attack+release+0.025);
     track(osc);
-    osc.onended=()=>{osc.disconnect();gain.disconnect()};
+    osc.onended=()=>{osc.disconnect();gain.disconnect();if(stereo)stereo.disconnect()};
   }
   return {
-    note(pip,at,{wave='triangle',volume=0.2,attack=0.012,release=0.5,reverse=false,octave=0,releaseScale=1,volumeScale=1}={}) {
+    note(pip,at,{wave='triangle',volume=0.2,attack=0.012,release=0.5,reverse=false,octave=0,releaseScale=1,volumeScale=1,pan=0}={}) {
       const freq=PIP_NOTES[pip]*2**Math.max(-2,Math.min(3,octave)), v=volume*volumeScale*(reverse?0.62:1); release*=releaseScale;
-      if(wave==='soft') {
+      if(wave==='bell') {
+        voice(freq,at,{wave:'sine',volume:v*.72,attack:.009,release:Math.max(.25,release*1.6),pan});
+        voice(freq*2.01,at,{wave:'sine',volume:v*.26,attack:.004,release:Math.max(.12,release*.65),pan});
+        voice(freq*3.98,at,{wave:'sine',volume:v*.12,attack:.004,release:.11,pan});
+      } else if(wave==='reed') {
+        voice(freq,at,{wave:'sawtooth',volume:v*.32,attack:.065,release:Math.max(.22,release*1.3),pan});
+        voice(freq*.997,at,{wave:'triangle',volume:v*.35,attack:.075,release:Math.max(.22,release*1.4),pan});
+      } else if(wave==='soft') {
         // Felt-piano-inspired partials: brief bright transient, warm fundamental, fast harmonic decay.
-        voice(freq,at,{wave:'sine',volume:v*0.85,attack:0.004,release:Math.max(0.12,release*1.3)});
-        voice(freq*2,at,{wave:'sine',volume:v*0.19,attack:0.003,release:0.13});
-        voice(freq*3.01,at,{wave:'sine',volume:v*0.065,attack:0.003,release:0.075});
-      } else voice(freq,at,{wave,volume:v,attack,release});
+        voice(freq,at,{wave:'sine',volume:v*0.85,attack:0.004,release:Math.max(0.12,release*1.3),pan});
+        voice(freq*2,at,{wave:'sine',volume:v*0.19,attack:0.003,release:0.13,pan});
+        voice(freq*3.01,at,{wave:'sine',volume:v*0.065,attack:0.003,release:0.075,pan});
+      } else voice(freq,at,{wave,volume:v,attack,release,pan});
     },
     effect(type,at,volume=0.2) {
       const v=Math.min(0.18,volume*0.65);
