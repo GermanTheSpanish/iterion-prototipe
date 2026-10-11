@@ -15,7 +15,7 @@
 <label>Release <input id="release" type="range" min="0.08" max="1.5" step="0.02" value="0.5"></label>
 <label>Volume <input id="volume" type="range" min="0" max="0.6" step="0.01" value="0.2"></label>
 </section>
-<section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Uses the cascade acceleration from presentation.js, recorded reversal flags and SIGNAL TREE markers where available. Coin and Mod sounds are only triggered by recorded evidence. Original and Musical modes follow trace order. Orchestral mode overlaps recorded branches only when SIGNAL TREE markers are available.</p><label>Playback speed <select id="replay-speed"><option value="0.5">0.5×</option><option value="1" selected>1× (game timing)</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><div class="controls" id="playtests"></div><label>Interpretation <select id="interpretation"><option value="original">Original · sequential</option><option value="musical">Musical · sequential</option><option value="orchestral" selected>Orchestral · polyphonic</option></select></label><fieldset><legend>Musical Routing (sequential A/B)</legend><label><span>Enable Musical Routing</span><input type="checkbox" id="musical" checked></label><label><span>Rhythmic grouping (consecutive notes; reversal and branch boundaries)</span><input type="checkbox" id="rhythm" checked></label><label><span>POWER octave shift</span><input type="checkbox" id="power" checked></label><label>Preview POWER <select id="power-level"><option value="1">×1</option><option value="2" selected>×2</option><option value="3">×3</option><option value="4">×4</option></select></label><label><span>Ascending register</span><input type="checkbox" id="ascending" checked></label><label>Voice separation <input type="range" id="separation" min="0" max="1" step=".1" value=".6"></label><small>POWER is a preview control, not recorded POWER telemetry. Switch Musical Routing off to compare the original. Select a cascade again after changing controls.</small></fieldset><div class="controls"><button id="test-rebound">Rebound sound</button><button id="test-split">Split sound</button><button id="test-mod">Mod sound</button><button id="test-coin">Coin sound</button></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
+<section><h2>Generative ambient</h2><p>A quiet continuous harmonic bed derived deterministically from recorded cascade data. Start it with a tap; it remains between cascades. No gameplay changes.</p><div class="controls"><button id="ambient-start">Start ambient</button><button id="ambient-mute">Mute ambient</button></div><output id="ambient-status" aria-live="polite">Ambient off</output></section>\n<section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Uses the cascade acceleration from presentation.js, recorded reversal flags and SIGNAL TREE markers where available. Coin and Mod sounds are only triggered by recorded evidence. Original and Musical modes follow trace order. Orchestral mode overlaps recorded branches only when SIGNAL TREE markers are available.</p><label>Playback speed <select id="replay-speed"><option value="0.5">0.5×</option><option value="1" selected>1× (game timing)</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><div class="controls" id="playtests"></div><label>Orchestral branch <select id="branch-solo"><option value="all">All voices</option><option value="0">Arm A only</option><option value="1">Arm B only</option></select></label><label>Interpretation <select id="interpretation"><option value="original">Original · sequential</option><option value="musical">Musical · sequential</option><option value="orchestral" selected>Orchestral · polyphonic</option></select></label><fieldset><legend>Musical Routing (sequential A/B)</legend><label><span>Enable Musical Routing</span><input type="checkbox" id="musical" checked></label><label><span>Rhythmic grouping (consecutive notes; reversal and branch boundaries)</span><input type="checkbox" id="rhythm" checked></label><label><span>POWER octave shift</span><input type="checkbox" id="power" checked></label><label>Preview POWER <select id="power-level"><option value="1">×1</option><option value="2" selected>×2</option><option value="3">×3</option><option value="4">×4</option></select></label><label><span>Ascending register</span><input type="checkbox" id="ascending" checked></label><label>Voice separation <input type="range" id="separation" min="0" max="1" step=".1" value=".6"></label><small>POWER is a preview control, not recorded POWER telemetry. Switch Musical Routing off to compare the original. Select a cascade again after changing controls. For a clear A/B, select Monstrous, then compare All voices, Arm A only and Arm B only.</small></fieldset><div class="controls"><button id="test-rebound">Rebound sound</button><button id="test-split">Split sound</button><button id="test-mod">Mod sound</button><button id="test-coin">Coin sound</button></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
 <section><h2>Cascade sequencer</h2><p>Seven pip values map to a C minor pentatonic palette. Rebound reverses event order; branches overlap.</p>
 <label>Step interval (ms) <input id="tempo" type="range" min="90" max="650" step="10" value="220"></label>
 <div class="controls"><button id="forward">Forward</button><button id="reverse">Rebound</button><button id="branch">Branch</button><button id="stop">Stop</button></div>
@@ -28,15 +28,15 @@ import { replayEvents } from './replay.js';
 import { LONG_CASCADE } from './ultra-cascade.js';
 import { createInstrument } from './instrument.js';
 import { musicalReplay } from './musical-routing.js';
-import { orchestralReplay } from './orchestral-routing.js';
+import { orchestralReplay } from './orchestral-routing.js';\nimport { createAmbient } from './ambient-composition.js';
 const $ = id => document.getElementById(id);
-let context, master, instrument, scheduled = [], generation = 0;
+let context, master, instrument, ambient, ambientEnabled=false, lastFixture=null, scheduled = [], generation = 0;
 const sequence = [0,2,4,3,1,0];
 function init(){
   if (!context) {
     context = new (window.AudioContext || window.webkitAudioContext)();
     master = context.createGain(); master.gain.value = 1; master.connect(context.destination);
-    instrument=createInstrument(context,master,oscillator=>scheduled.push(oscillator));
+    instrument=createInstrument(context,master,oscillator=>scheduled.push(oscillator));\n    ambient=createAmbient(context,master);
   }
   if(context.state === 'suspended') context.resume();
 }
@@ -62,14 +62,14 @@ for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE]){
  const button=document.createElement('button');button.textContent=fixture.label+' · '+fixture.operations+' ops';
  button.addEventListener('click',()=>{
    init();stop();
-   const recorded=replayEvents(fixture,Number($('replay-speed').value));
+   lastFixture=fixture;\n   const recorded=replayEvents(fixture,Number($('replay-speed').value));
    const mode=$('interpretation').value;
    const active=mode==='musical' && $('musical').checked;
    const replay=mode==='orchestral'?orchestralReplay(recorded):active?musicalReplay(recorded,{rhythm:$('rhythm').checked,power:$('power').checked,ascending:$('ascending').checked,separation:Number($('separation').value),powerLevel:Number($('power-level').value)}):recorded;
    const start=context.currentTime+0.035;
    for(const event of replay.events){
      if(event.type==='note') {
-       play(event.pip,start+event.time,event.reverse,mode==='orchestral'?{wave:event.voiceWave,octave:event.voiceOctave,releaseScale:event.voiceRelease,volumeScale:event.voiceVolume}:active?{octave:event.octave+(event.armOffset||0),releaseScale:event.releaseScale,volumeScale:event.volumeScale}:{});
+       play(event.pip,start+event.time,event.reverse,mode==='orchestral'?{wave:event.voiceWave,octave:event.voiceOctave,releaseScale:event.voiceRelease,volumeScale:event.voiceVolume,pan:event.voicePan}:active?{octave:event.octave+(event.armOffset||0),releaseScale:event.releaseScale,volumeScale:event.volumeScale}:{});
        if(event.mod) effect('mod',start+event.time);
        if(event.mint || event.coins) effect('coin',start+event.time+0.04);
      } else if(event.type==='rebound') effect('rebound',start+event.time);
@@ -81,7 +81,7 @@ for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE]){
  });
  $('playtests').append(button);
 }
-for(const type of ['rebound','split','mod','coin']) $('test-'+type).onclick=()=>{init();effect(type,context.currentTime+0.01);};
+$('ambient-start').onclick=()=>{init();ambientEnabled=true;const id=ambient.start(lastFixture||PLAYTEST_CASCADES[0]);$('ambient-status').textContent='Ambient on · harmonic root '+id.root+' · depth '+Math.round(id.depth*100)+'%';};\n$('ambient-mute').onclick=()=>{if(ambient)ambient.mute();ambientEnabled=false;$('ambient-status').textContent='Ambient off';};\nfor(const type of ['rebound','split','mod','coin']) $('test-'+type).onclick=()=>{init();effect(type,context.currentTime+0.01);};
 for(let pip=0;pip<=6;pip++){
   const button=document.createElement('button');button.textContent=pip;button.setAttribute('aria-label','Play pip '+pip);
   button.addEventListener('click',()=>{init();play(pip,context.currentTime+0.01);$('status').textContent='Pip '+pip;});
