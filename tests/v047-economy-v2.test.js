@@ -69,8 +69,8 @@ check('legacy Economy state keeps Broker/Bank IDs and strips retired SPEND/TOLL'
   for(const field of ['frameTileId','frontierTileId','resonatorTileId','forgeTileId','spendTileId','tollTileId','tollArmed'])assert.equal(field in rs,false);
 });
 
-check('MINT and LONG CHAIN remain while the protected comparator is unchanged',()=>{
-  assert.equal(M.get('mint').collectionCode,'MT');assert.equal(M.get('long-run').collectionCode,'LC');
+check('MINT and COLLECTOR remain while the protected comparator is unchanged',()=>{
+  assert.equal(M.get('mint').collectionCode,'MT');assert.equal(M.get('long-run').collectionCode,'CL');
   const source=fs.readFileSync(path.join(__dirname,'..','engine.js'),'utf8');
   const traversalsIndex=source.indexOf('const at=a.traversals||0,bt=b.traversals||0'),outputIndex=source.indexOf('const scoreCmp=SCORE.compare('),tailIndex=source.indexOf("const av=[a.rebounds||0,(a.path||[]).length]");
   assert(traversalsIndex>=0&&outputIndex>traversalsIndex&&tailIndex>outputIndex,'route comparator remains protected');
