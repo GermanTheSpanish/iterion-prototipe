@@ -50,5 +50,37 @@ const {spawnSync}=require('node:child_process');
   assert.equal(new Set(arms.values()).size,1,'all branches must begin simultaneously');
   assert.deepEqual(orchestral,orchestralReplay((await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/replay.js'),'utf8')).toString('base64'))).replayEvents(study)));
  }
+
+ const importSource=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/signal-tree-import.js'),'utf8');
+ const replaySource=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/replay.js'),'utf8');
+ const {parseSignalTrees,renderSignalTree}=await import('data:text/javascript;base64,'+Buffer.from(importSource.replace("import {operationDelay} from './replay.js';",replaySource)).toString('base64'));
+ assert.match(inline[1],/parseSignalTrees/);assert.match(inline[1],/renderSignalTree/);
+ const op=(value,piece)=>({type:'op',value,piece,reverse:false,after:value});
+ const tree=[op(1,10),{type:'signal-fork',piece:20,splitKind:'centered'},
+ {type:'signal-start',fork:20,arm:0},op(2,21),
+ {type:'signal-fork',piece:30,splitKind:'triple-double'},
+ {type:'signal-start',fork:30,arm:0},op(3,31),{type:'signal-end',fork:30,arm:0},
+ {type:'signal-start',fork:30,arm:1},op(4,32),{type:'signal-end',fork:30,arm:1},
+ {type:'signal-start',fork:30,arm:2},op(5,33),{type:'signal-end',fork:30,arm:2},
+ {type:'signal-join',piece:30}, {type:'signal-end',fork:20,arm:0},
+ {type:'signal-start',fork:20,arm:1},op(6,22),{type:'signal-end',fork:20,arm:1},
+ {type:'signal-join',piece:20}];
+ const debug='Header\\nT22 SIGNAL TREE splits=2 base=42 selection=42 trace='+JSON.stringify(tree)+'\\n';
+ const traces=parseSignalTrees(debug);assert.equal(traces.length,1);assert.equal(traces[0].move,'T22');
+ const rendered=renderSignalTree(traces[0]);
+ assert.deepEqual(rendered,renderSignalTree(traces[0]));
+ assert.equal(rendered.operations,6);assert.equal(rendered.splitCount,2);assert.equal(rendered.voices,5);
+ assert.deepEqual(rendered.paths,['0','0.0','0.1','0.2','1']);
+ const notes=rendered.events.filter(e=>e.type==='note');
+ assert.equal(notes.find(e=>e.path==='0').time,notes.find(e=>e.path==='1').time);
+ assert.equal(notes.find(e=>e.path==='0.0').time,notes.find(e=>e.path==='0.1').time);
+ assert.equal(notes.find(e=>e.path==='0.1').time,notes.find(e=>e.path==='0.2').time);
+ assert.equal(renderSignalTree(tree,2).operations,6);
+ assert.throws(()=>parseSignalTrees('T2 SIGNAL TREE trace=COMPACTED_AFTER_RESTORE'),/compacted/);
+ assert.throws(()=>parseSignalTrees('T2 SIGNAL TREE trace=broken'),/Invalid SIGNAL TREE JSON/);
+ assert.throws(()=>renderSignalTree([{type:'signal-fork',piece:1}]),/Fork must contain/);
+ assert.throws(()=>renderSignalTree([{type:'signal-start',fork:1,arm:0}]),/Unbalanced/);
+ assert.throws(()=>renderSignalTree([{type:'op',piece:1}]),/pip value/);
+ assert.equal(parseSignalTrees(JSON.stringify(tree)).length,1);
  const ambientSource=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/ambient-composition.js'),'utf8');const {ambientIdentity,createAmbient}=await import('data:text/javascript;base64,'+Buffer.from(ambientSource).toString('base64'));const fixture={pips:[1,2,3,4],operations:32,rebounds:1,events:[{type:'arm',arm:0},{type:'arm',arm:1}]};assert.deepEqual(ambientIdentity(fixture),ambientIdentity(fixture));assert.notDeepEqual(ambientIdentity(fixture),ambientIdentity({...fixture,pips:[1,2,3,5]}));let starts=0,stops=0;const param=()=>({value:0,setTargetAtTime(){},cancelScheduledValues(){}});const node=()=>({gain:param(),frequency:param(),connect(){},disconnect(){},start(){starts++},stop(){stops++}});const ctx={currentTime:0,createGain:node,createOscillator:node};const ambient=createAmbient(ctx,node());assert.equal(starts,3);ambient.start(fixture);ambient.cascade(fixture,2,5);ambient.mute();assert.equal(stops,0);ambient.dispose();assert.equal(stops,3);console.log('Orchestral and ambient scheduling passed');
 })().catch(e=>{console.error(e);process.exitCode=1});
