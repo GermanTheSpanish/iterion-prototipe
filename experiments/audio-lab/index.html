@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MONOID — Audio Lab</title>
 <style>
-:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#101010;color:#eee}*{box-sizing:border-box}body{margin:0;padding:22px;max-width:780px;margin-inline:auto}h1{font-size:1.5rem;letter-spacing:.15em}p,small{color:#aaa}section{border:1px solid #454545;border-radius:12px;padding:18px;margin:16px 0}button,select,input{font:inherit}button{background:#242424;color:#fff;border:1px solid #666;border-radius:8px;padding:12px;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:2px solid white}.keys{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.keys button{padding:22px 0}label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}input[type=range]{width:55%}.controls{display:flex;flex-wrap:wrap;gap:8px}output{font-family:monospace;display:block;overflow-wrap:anywhere;margin-top:12px;min-height:2em}@media(max-width:420px){body{padding:12px}.keys button{padding:18px 0}}
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#101010;color:#eee}*{box-sizing:border-box}body{margin:0;padding:22px;max-width:780px;margin-inline:auto}h1{font-size:1.5rem;letter-spacing:.15em}p,small{color:#aaa}section{border:1px solid #454545;border-radius:12px;padding:18px;margin:16px 0}button,select,input,textarea{font:inherit}textarea{width:100%;min-height:110px;background:#171717;color:#eee;border:1px solid #666;border-radius:8px;padding:10px;resize:vertical}button{background:#242424;color:#fff;border:1px solid #666;border-radius:8px;padding:12px;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:2px solid white}.keys{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.keys button{padding:22px 0}label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}input[type=range]{width:55%}.controls{display:flex;flex-wrap:wrap;gap:8px}output{font-family:monospace;display:block;overflow-wrap:anywhere;margin-top:12px;min-height:2em}@media(max-width:420px){body{padding:12px}.keys button{padding:18px 0}}
 </style>
 </head>
 <body>
@@ -17,6 +17,7 @@
 </section>
 <section><h2>Generative ambient</h2><p>A quiet continuous harmonic bed derived deterministically from recorded cascade data. Start it with a tap; it remains between cascades. No gameplay changes.</p><div class="controls"><button id="ambient-start">Start ambient</button><button id="ambient-mute">Mute ambient</button></div><output id="ambient-status" aria-live="polite">Ambient off</output></section>
 <section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Uses the cascade acceleration from presentation.js, recorded reversal flags and SIGNAL TREE markers where available. Coin and Mod sounds are only triggered by recorded evidence. Original and Musical modes follow trace order. Orchestral mode overlaps recorded branches only when SIGNAL TREE markers are available.</p><label>Playback speed <select id="replay-speed"><option value="0.5">0.5×</option><option value="1" selected>1× (game timing)</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><div class="controls" id="playtests"></div><h3>Polyphony studies · simulated, not real runs</h3><p>Operand phrases are taken from the recorded Monstrous cascade. Branch splits and simultaneity are authored for audio evaluation, not claimed as game telemetry. Ambient stays off unless explicitly started.</p><div class="controls" id="studies"></div><label>Orchestral branch <select id="branch-solo"><option value="all">All voices</option><option value="0">Arm A only</option><option value="1">Arm B only</option><option value="2">Arm C only</option><option value="3">Arm D only</option></select></label><label>Interpretation <select id="interpretation"><option value="original">Original · sequential</option><option value="musical">Musical · sequential</option><option value="orchestral" selected>Orchestral · polyphonic</option></select></label><fieldset><legend>Musical Routing (sequential A/B)</legend><label><span>Enable Musical Routing</span><input type="checkbox" id="musical" checked></label><label><span>Rhythmic grouping (consecutive notes; reversal and branch boundaries)</span><input type="checkbox" id="rhythm" checked></label><label><span>POWER octave shift</span><input type="checkbox" id="power" checked></label><label>Preview POWER <select id="power-level"><option value="1">×1</option><option value="2" selected>×2</option><option value="3">×3</option><option value="4">×4</option></select></label><label><span>Ascending register</span><input type="checkbox" id="ascending" checked></label><label>Voice separation <input type="range" id="separation" min="0" max="1" step=".1" value=".6"></label><small>POWER is a preview control, not recorded POWER telemetry. Switch Musical Routing off to compare the original. Select a cascade again after changing controls. For a clear comparison, select a simulated polyphony study, choose Orchestral, then compare All voices with individual arms. The studies do not represent actual runs.</small></fieldset><div class="controls"><button id="test-rebound">Rebound sound</button><button id="test-split">Split sound</button><button id="test-mod">Mod sound</button><button id="test-coin">Coin sound</button></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
+<section><h2>Import recorded SIGNAL TREE</h2><p>Paste a MONOID debug export containing T… SIGNAL TREE trace=[…], or a raw engine event array. The import runs locally in your browser. Nested branches overlap musically without changing engine execution. Restored compacted traces cannot be reconstructed.</p><label>Debug file (.txt) <input id="signal-tree-file" type="file" accept=".txt,text/plain"></label><textarea id="signal-tree-input" aria-label="Paste SIGNAL TREE debug export" placeholder="T22 SIGNAL TREE splits=1 base=... trace=[{&quot;type&quot;:&quot;start&quot;},...]"></textarea><div class="controls"><button id="signal-tree-import">Import traces</button><button id="signal-tree-clear">Clear imports</button></div><div class="controls" id="imported-traces"></div><output id="import-status" aria-live="polite">No imported traces</output></section>
 <section><h2>Cascade sequencer</h2><p>Seven pip values map to a C minor pentatonic palette. Rebound reverses event order; branches overlap.</p>
 <label>Step interval (ms) <input id="tempo" type="range" min="90" max="650" step="10" value="220"></label>
 <div class="controls"><button id="forward">Forward</button><button id="reverse">Rebound</button><button id="branch">Branch</button><button id="stop">Stop</button></div>
@@ -32,6 +33,7 @@ import { createInstrument } from './instrument.js';
 import { musicalReplay } from './musical-routing.js';
 import { orchestralReplay } from './orchestral-routing.js';
 import { createAmbient } from './ambient-composition.js';
+import { parseSignalTrees, renderSignalTree } from './signal-tree-import.js';
 const $ = id => document.getElementById(id);
 let context, master, instrument, ambient, ambientEnabled=false, lastFixture=null, scheduled = [], generation = 0;
 const sequence = [0,2,4,3,1,0];
@@ -55,6 +57,33 @@ function stop() {
   scheduled = [];
   $('status').textContent = 'Stopped';
 }
+function playImported(trace){
+ init();stop();
+ let replay;
+ try {replay=renderSignalTree(trace,Number($('replay-speed').value));} catch(error){$('import-status').textContent=error.message;return;}
+ const start=context.currentTime+0.035,solo=$('branch-solo').value;
+ for(const event of replay.events){
+  if(event.type==='note'){
+   if(solo!=='all' && !event.path.split('.').includes(solo))continue;
+   play(event.pip,start+event.time,event.reverse,{wave:event.voiceWave,octave:event.voiceOctave,releaseScale:event.voiceRelease,volumeScale:event.voiceVolume,pan:event.voicePan});
+   if(event.mod)effect('mod',start+event.time);
+  } else if(solo==='all' && (event.type==='split'||event.type==='rebound'))effect(event.type,start+event.time);
+ }
+ $('import-status').textContent=trace.move+' · '+replay.operations+' recorded operations · '+replay.splitCount+' forks · '+replay.voices+' branch paths · '+replay.duration.toFixed(1)+'s · recorded topology, musical overlap';
+}
+$('signal-tree-file').onchange=async()=>{
+ const file=$('signal-tree-file').files?.[0];if(!file)return;
+ if(file.size>2000000){$('import-status').textContent='Debug file exceeds 2 MB';return;}
+ try{$('signal-tree-input').value=await file.text();$('signal-tree-import').click()}catch{$('import-status').textContent='Could not read the selected file'}
+};
+$('signal-tree-import').onclick=()=>{
+ try {
+  const traces=parseSignalTrees($('signal-tree-input').value),target=$('imported-traces');target.replaceChildren();
+  for(const trace of traces){const button=document.createElement('button');button.textContent=trace.label;button.onclick=()=>playImported(trace);target.append(button)}
+  $('import-status').textContent=traces.length+' recorded traces ready · select one to play';
+ }catch(error){$('imported-traces').replaceChildren();$('import-status').textContent=error.message}
+};
+$('signal-tree-clear').onclick=()=>{$('signal-tree-file').value='';$('signal-tree-input').value='';$('imported-traces').replaceChildren();$('import-status').textContent='No imported traces'};
 function run(mode){
   init(); stop();
   const events = cascadeEvents(sequence,mode,Number($('tempo').value)/1000);
