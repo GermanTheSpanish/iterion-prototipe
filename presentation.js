@@ -107,7 +107,7 @@
   }
   function longChainViewModel(state={},cap=7){
     cap=Math.max(1,Number(cap)||7);const owned=(state.mods||[]).includes('long-run'),used=Math.max(0,Number(state.endlessLongRunActivations)||0),remaining=Math.max(0,cap-used),endless=!!state.endlessMode,visible=owned&&(!endless||remaining>0),ratio=endless?remaining/cap:1;
-    return Object.freeze({owned,used,remaining,cap,endless,visible,ratio,ariaLabel:endless?`Long Chain · ${remaining} of ${cap} Endless activations remaining`:'Long Chain ready'})
+    return Object.freeze({owned,used,remaining,cap,endless,visible,ratio,ariaLabel:endless?`Collector · ${remaining} of ${cap} Endless activations remaining`:'Collector ready'})
   }
   function modeIndicatorViewModel(state={},snapshot={}){
     const mode=['eyes','frames','river','loom','peaks','islands'].includes(state.gameMode)?state.gameMode:'classic',endless=!!snapshot.endless?.active,infinitePhase=!!snapshot.endless?.infinitePhase,ouroboros=!!snapshot.endless?.ouroboros,pips=mode==='eyes'?[1,1]:mode==='frames'?[2,2]:mode==='river'?[3,3]:mode==='loom'?[4,4]:mode==='peaks'?[5,5]:mode==='islands'?[6,6]:[],phaseSymbol=ouroboros?'⟳':endless?'∞':'',phaseName=ouroboros?'Ouroboros':infinitePhase?'Infinite':endless?'Endless':null,modeName=mode==='eyes'?'The Eyes':mode==='frames'?'The Frames':mode==='river'?'The River':mode==='loom'?'The Loom':mode==='peaks'?'The Peaks':mode==='islands'?'The Islands':'Classic',visible=pips.length>0||!!phaseSymbol,phasePosition=!phaseSymbol?'none':phaseSymbol==='∞'&&pips.length===2?'between':pips.length?'after':'solo';
