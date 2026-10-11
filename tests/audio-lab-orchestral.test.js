@@ -1,7 +1,17 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const {spawnSync}=require('node:child_process');
 (async()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/index.html'),'utf8');
+ const inline=html.match(/<script type="module">([\s\S]*?)<\/script>/);
+ assert.ok(inline,'Audio Lab must contain a module script');
+ const check=spawnSync(process.execPath,['--input-type=module','--check'],{input:inline[1],encoding:'utf8'});
+ assert.equal(check.status,0,check.stderr||'Audio Lab inline module failed syntax check');
+ assert.match(inline[1],/ambient\.cascade\(fixture/);
+ assert.match(inline[1],/String\(event\.arm\)/);
+ const fixtures=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/playtest-cascades.js'),'utf8');
+ assert.match(fixtures,/"label": "Monstrous"/);
  const source=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/orchestral-routing.js'),'utf8');
  const {orchestralReplay}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
  const original={operations:5,duration:5,events:[
