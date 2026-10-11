@@ -29,7 +29,8 @@ export function orchestralReplay(replay) {
     result.push({...event,time,voiceId:active,voiceWave:timbres[index%timbres.length],
       voiceOctave:index===0?0:index===1?-1:index===2?0:1,
       voiceRelease:index===0?1:index===1?1.15:.65,
-      voiceVolume:index===0?1:index===1?.78:.68,\n      voicePan:index===0?0:index%2===1?-.7:.7});
+      voiceVolume:index===0?1:index===1?.78:.68,
+      voicePan:index===0?0:index%2===1?-.7:.7});
   }
   return {events:result,operations:replay.operations,duration:Math.max(0,...result.map(e=>e.time||0))+.75,
     polyphonic:true,voices:starts.size};
