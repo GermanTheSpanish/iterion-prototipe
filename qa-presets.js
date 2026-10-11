@@ -5,7 +5,7 @@
   if(root?.document){api.installMenuAccess(root);api.autoStart(root);api.autoResumeReturn(root);}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const BUILD_ID='20261010.3';
+  const BUILD_ID='20261011.1';
   const ACTIVE_RUN_KEY='iterion.activeRun.v1';
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
   const LATEST_RUN_KEY='iterion.latestRun.v9';
@@ -15,6 +15,7 @@
   const protectedKeys=root=>new Set([...PROTECTED_KEYS,...[...PROTECTED_KEYS].map(key=>scopedKey(root,key))]);
   const PRESETS=Object.freeze({
     classic14:Object.freeze({id:'classic14',mode:'classic',round:13,generation:2,score:0,best:57863119300,coins:165,inflation:8,endless:false,powerGeneration:2,sourceRunId:'mu66e4fp-116me8o'}),
+    quantumNetwork:Object.freeze({id:'quantumNetwork',mode:'classic',round:13,generation:2,score:0,best:57863119300,coins:165,inflation:8,endless:false,powerGeneration:2,sourceRunId:'mu66e4fp-116me8o'}),
     infinite16:Object.freeze({id:'infinite16',mode:'classic',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3}),
     german9Endless:Object.freeze({id:'german9Endless',mode:'classic',round:15,generation:2,score:0,best:2.1114853892231e36,coins:35,inflation:9,endless:true,powerGeneration:2,sourceRunId:'mudyrg2r-1960frf'}),
     klausOuroboros:Object.freeze({id:'klausOuroboros',mode:'classic',round:48,generation:3,score:0,best:5.619772630459988e45,coins:163,inflation:16,endless:true,powerGeneration:3,sourceRunId:'mv1hi61f-r68xcg'})
@@ -220,7 +221,7 @@
       return game
     }
 
-    if(presetId==='classic14'){
+    if(presetId==='classic14'||presetId==='quantumNetwork'){
       for(const[id,,, ,upgrade]of REAL_CLASSIC14.pieces){const tile=byId.get(id);if(!tile)throw new Error(`Missing real QA tile ${id}`);tile.upgrade=upgrade||0}
       const placedIds=REAL_CLASSIC14.pieces.map(spec=>spec[0]),hands=REAL_CLASSIC14.hand.map(id=>byId.get(id));
       if(hands.some(tile=>!tile))throw new Error('Real Classic R14 QA fixture has an incomplete hand');
@@ -236,6 +237,10 @@
       s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
       s.standardComplete=false;s.endlessMode=false;s.endlessStartedRound=null;s.systemStrain=0;s.endlessLongRunActivations=0;s.boardStage=4;
       s.seed=REAL_CLASSIC14.seed;s.rngState=REAL_CLASSIC14.seed|0;s.runId=`qa-${REAL_CLASSIC14.runId}`;s.startedAt='2026-09-18T00:00:00.000Z';s.tileSerial=0;
+      if(presetId==='quantumNetwork'){
+        s.zeroPortTileIds=['d0-1','d0-6'];s.quantumPortTileIds=['d0-3','d0-4','d0-5'];s.runId='qa-quantum-network';
+        s.events.push({type:'qa-quantum-network',zeroPortTileIds:[...s.zeroPortTileIds],quantumPortTileIds:[...s.quantumPortTileIds]});
+      }
       if(!game.restoreState(saved))throw new Error('Could not restore real Classic R14 QA fixture');
       return game
     }
@@ -322,6 +327,7 @@
       <p class="qaMenuIntro">Prepared late-game states. Your real saved run is protected.</p>
       <div class="qaProfileContext"><strong>PROFILE CONTEXT · ${context.toUpperCase()}</strong><div class="qaProfileChoices" role="group" aria-label="Profile context"><button type="button" data-profile-context="player" aria-pressed="${context==='player'}">PLAYER</button><button type="button" data-profile-context="dev" aria-pressed="${context==='dev'}">DEV · ALL</button><button type="button" data-profile-context="fresh" aria-pressed="${context==='fresh'}">FRESH · RESET</button></div></div>
       <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Real R14 · 30 tiles · DD · DE · C5 · POWER ×2 · 2 clears from Endless</small></button>
+      <button class="qaPresetChoice" data-qa-preset="quantumNetwork"><strong>QUANTUM NETWORK · FIVE PORTS</strong><small>R14 Classic machine · 2 Zero Ports + 3 Quantum Ports · all five outcomes ready</small></button>
       <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>ENDLESS · ROUND 16</strong><small>Generic late-game fixture · Classic progression</small></button>
       <button class="qaPresetChoice" data-qa-preset="german9Endless"><strong>GERMÁN RUN #9 · ENDLESS START</strong><small>Real R16 machine · 33 tiles · POWER ×2 · 5 Markets · saved run safe</small></button>
       <button class="qaPresetChoice" data-qa-preset="klausOuroboros"><strong>KLAUS · OUROBOROS START</strong><small>Reconstructed R49 · 84 tiles · POWER ×3 · before first FIRE · saved run safe</small></button>
