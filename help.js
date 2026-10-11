@@ -79,6 +79,7 @@
     if(state.doubleEchoTileId===tileId)ids.push('double-echo');
     if(state.tripleDoubleTileId===tileId)ids.push('triple-double');
     if((state.zeroPortTileIds||[]).includes(tileId))ids.push('zero-port');
+    if((state.quantumPortTileIds||[]).includes(tileId))ids.push('quantum-port');
     for(const [id,field] of Object.entries({'parity-exchange':'parityExchangeTileId','corner':'cornerTileId','long-line':'longLineTileId','overload':'overloadTileId','recall':'recallTileId','pair':'pairTileId','bridge':'bridgeTileId','pivot':'pivotTileId','broker':'brokerTileId','hinge':'hingeTileId','bank':'bankTileId','foundation':'foundationTileId','knot':'knotTileId','mint':'mintTileId'}))if(state[field]===tileId)ids.push(id);
     return ids
   }
