@@ -65,7 +65,7 @@ const {spawnSync}=require('node:child_process');
  {type:'signal-join',piece:30}, {type:'signal-end',fork:20,arm:0},
  {type:'signal-start',fork:20,arm:1},op(6,22),{type:'signal-end',fork:20,arm:1},
  {type:'signal-join',piece:20}];
- const debug='Header\\nT22 SIGNAL TREE splits=2 base=42 selection=42 trace='+JSON.stringify(tree)+'\\n';
+ const debug=['Header','T22 SIGNAL TREE splits=2 base=42 selection=42 trace='+JSON.stringify(tree),''].join(String.fromCharCode(10));
  const traces=parseSignalTrees(debug);assert.equal(traces.length,1);assert.equal(traces[0].move,'T22');
  const rendered=renderSignalTree(traces[0]);
  assert.deepEqual(rendered,renderSignalTree(traces[0]));
