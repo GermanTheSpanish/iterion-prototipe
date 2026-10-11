@@ -301,6 +301,7 @@
       if(event.type==='route'){appendRoutePreviewLine(svg,point(event.piece,event.exitHalf),point(event.toPieceId,event.toHalf),'connector');continue}
       if(event.type==='move'){appendRoutePreviewLine(svg,point(event.fromPiece,event.fromHalf),point(event.toPiece,event.toHalf),event.retrace?'retrace':'connector');continue}
       if(event.type==='core-relay'){appendRoutePreviewLine(svg,point(event.fromPieceId,event.fromHalf),point(event.toPieceId,event.toHalf),'relay');continue}
+      if(event.type==='quantum-arrival'){const destination=live.get(event.toPieceId),zero=destination?.cubes?.find(cube=>cube.v===0);appendRoutePreviewLine(svg,routePreviewPieceCenter(live.get(event.fromPieceId)),zero?E.cubeCenter(zero):null,'teleport');continue}
       if(event.type==='zero-port'){const destination=live.get(event.toPieceId),zero=destination?.cubes?.find(cube=>cube.v===0);appendRoutePreviewLine(svg,point(event.piece,event.fromHalf),zero?E.cubeCenter(zero):null,'teleport')}
     }
     if(!svg.querySelector('.routePreviewLine'))return;board.appendChild(svg);board.classList.add('routePreviewActive');
@@ -314,6 +315,7 @@
     for(const event of events){
       if(event.type==='op'&&!event.tollRepeat){lastOpByPiece.set(event.piece,event);continue}
       if(event.type==='rebound'){const op=lastOpByPiece.get(event.piece);appendRouteEventMarker(op?point(event.piece,op.exitHalf):routePreviewPieceCenter(live.get(event.piece)),'REBOUND','routePreviewRebound',markerSeen);continue}
+      if(event.type==='quantum-outcome'){appendRouteEventMarker(routePreviewPieceCenter(live.get(event.piece)),`QUANTUM · ${String(event.outcome).toUpperCase()}`,'routePreviewTeleport',markerSeen);continue}
       if(event.type==='zero-port'){appendRouteEventMarker(point(event.piece,event.fromHalf),'TELEPORT','routePreviewTeleport',markerSeen);continue}
       if(event.type==='core-relay'){appendRouteEventMarker(point(event.fromPieceId,event.fromHalf),'RELAY','routePreviewRelay',markerSeen);continue}
       if(event.type==='core-activate'&&Number(event.afterSignal)>Number(event.beforeSignal)){const core=coreById.get(String(event.coreId)),center=core?{x:core.x+(core.size||E.S)/2,y:core.y+(core.size||E.S)/2}:routePreviewPieceCenter(live.get(event.piece)),label=`${event.peak?'PEAK':'CORE'} +${Math.max(0,Number(event.signalAdded)||Number(event.afterSignal)-Number(event.beforeSignal)||0)}`;appendRouteEventMarker(center,label,'routePreviewRecharge',markerSeen);continue}
