@@ -25,11 +25,11 @@ export function orchestralReplay(replay) {
     const time=active!==null ? entry+relative : event.time;
     const index=active===null?0:starts.get(active)+1;
     // Related timbres, distinct register and envelope. Branches share the same pitch vocabulary.
-    const timbres=['triangle','soft','sine','triangle'];
+    const timbres=['triangle','bell','reed','soft'];
     result.push({...event,time,voiceId:active,voiceWave:timbres[index%timbres.length],
       voiceOctave:index===0?0:index===1?-1:index===2?0:1,
       voiceRelease:index===0?1:index===1?1.15:.65,
-      voiceVolume:index===0?1:index===1?.66:.52});
+      voiceVolume:index===0?1:index===1?.78:.68,\n      voicePan:index===0?0:index%2===1?-.7:.7});
   }
   return {events:result,operations:replay.operations,duration:Math.max(0,...result.map(e=>e.time||0))+.75,
     polyphonic:true,voices:starts.size};
