@@ -30,5 +30,25 @@ const {spawnSync}=require('node:child_process');
  const fallback=orchestralReplay({events:[{type:'note',time:0,pip:1},{type:'note',time:.5,pip:2}],operations:2,duration:1});
  assert.equal(fallback.polyphonic,false);assert.equal(fallback.events[1].time,.5);
  assert.equal(orchestralReplay({events:[{type:'arm',arm:0,time:0},{type:'note',pip:1,time:0,arm:0}],operations:1,duration:1}).polyphonic,false);
+ const studiesSource=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/polyphony-studies.js'),'utf8');
+ const {POLYPHONY_STUDIES}=await import('data:text/javascript;base64,'+Buffer.from(studiesSource).toString('base64'));
+ assert.equal(POLYPHONY_STUDIES.length,3);
+ assert.deepEqual(POLYPHONY_STUDIES.map(study=>study.arms),[2,3,4]);
+ assert.match(inline[1],/POLYPHONY_STUDIES/);
+ for(const study of POLYPHONY_STUDIES){
+  assert.equal(study.study,true);
+  assert.match(study.traceSource,/SIMULATED/);
+  assert.equal(study.operations,study.events.filter(e=>e.type==='op').length);
+  const orchestral=orchestralReplay((await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/replay.js'),'utf8')).toString('base64'))).replayEvents(study));
+  assert.equal(orchestral.voices,study.arms);
+  assert.equal(orchestral.polyphonic,true);
+  const arms=new Map();
+  for(const note of orchestral.events.filter(e=>e.type==='note'&&e.arm!==null)){
+   if(!arms.has(note.arm))arms.set(note.arm,note.time);
+  }
+  assert.equal(arms.size,study.arms);
+  assert.equal(new Set(arms.values()).size,1,'all branches must begin simultaneously');
+  assert.deepEqual(orchestral,orchestralReplay((await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/replay.js'),'utf8')).toString('base64'))).replayEvents(study)));
+ }
  const ambientSource=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/ambient-composition.js'),'utf8');const {ambientIdentity,createAmbient}=await import('data:text/javascript;base64,'+Buffer.from(ambientSource).toString('base64'));const fixture={pips:[1,2,3,4],operations:32,rebounds:1,events:[{type:'arm',arm:0},{type:'arm',arm:1}]};assert.deepEqual(ambientIdentity(fixture),ambientIdentity(fixture));assert.notDeepEqual(ambientIdentity(fixture),ambientIdentity({...fixture,pips:[1,2,3,5]}));let starts=0,stops=0;const param=()=>({value:0,setTargetAtTime(){},cancelScheduledValues(){}});const node=()=>({gain:param(),frequency:param(),connect(){},disconnect(){},start(){starts++},stop(){stops++}});const ctx={currentTime:0,createGain:node,createOscillator:node};const ambient=createAmbient(ctx,node());assert.equal(starts,3);ambient.start(fixture);ambient.cascade(fixture,2,5);ambient.mute();assert.equal(stops,0);ambient.dispose();assert.equal(stops,3);console.log('Orchestral and ambient scheduling passed');
 })().catch(e=>{console.error(e);process.exitCode=1});
