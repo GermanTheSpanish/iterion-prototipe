@@ -169,7 +169,7 @@ test('Market category language distinguishes Signal, Tile Mods and Machine Mods'
   const signal=page.locator('[data-market-offer="signal"]');await expect(signal).toHaveAttribute('data-market-kind','signal');await expect(signal.locator('.marketSignalBolt')).toHaveCount(1);
   const bridge=page.locator('[data-market-offer="bridge"]');await expect(bridge).toHaveAttribute('data-market-kind','tile');await expect(bridge.locator('.marketTileModMark')).toHaveText('BR');
   const triple=page.locator('[data-market-offer="triple-double"]');await expect(triple).toHaveAttribute('data-market-kind','tile');await expect(triple.locator('.marketTileModMark')).toHaveText('TD');
-  const machine=page.locator('[data-market-offer="long-run"]');await expect(machine).toHaveAttribute('data-market-kind','machine');await expect(machine.locator('.marketMachineModMark')).toHaveText('LC');
+  const machine=page.locator('[data-market-offer="long-run"]');await expect(machine).toHaveAttribute('data-market-kind','machine');await expect(machine.locator('.marketMachineModMark')).toHaveText('CL');
   const visuals=await page.locator('.marketOfferIdentity').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return{w:r.width,h:r.height}}));expect(visuals.every(v=>v.w>90&&v.h>=80)).toBe(true);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true)
 });
@@ -178,7 +178,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261010.3');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261011.1');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(120);expect(wordmark.width).toBeLessThanOrEqual(155);expect(parseFloat(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(19);
@@ -191,13 +191,13 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await expect(page.locator('[data-market-offer="double-double"] .marketTileModMark')).toHaveText('DD');
   await expect(page.locator('[data-market-offer="double-echo"] .marketTileModMark')).toHaveText('DE');
   await expect(page.locator('[data-market-offer="long-run"]')).toHaveAttribute('data-market-kind','machine');
-  await expect(page.locator('[data-market-offer="long-run"] .marketMachineModMark')).toHaveText('LC');
+  await expect(page.locator('[data-market-offer="long-run"] .marketMachineModMark')).toHaveText('CL');
 
   const dd=page.locator('[data-market-offer="double-double"]');
   await expect(dd.locator('.marketOfferName')).toHaveText('DOUBLE DOUBLE');
   await expect(dd.locator('.marketOfferMark')).toHaveText('DD');
   await expect(page.locator('[data-market-offer="double-echo"] .marketOfferMark')).toHaveText('DE');
-  await expect(page.locator('[data-market-offer="long-run"] .marketOfferMark')).toHaveText('LC');
+  await expect(page.locator('[data-market-offer="long-run"] .marketOfferMark')).toHaveText('CL');
   await expect(page.locator('[data-market-offer="long-run"]')).toHaveAttribute('data-market-machine','true');
   await expect(page.locator('.shopFoot')).toContainText('TAP A MOD = DETAILS');
 

@@ -36,7 +36,7 @@ async function assertLateGameSurface(page,id,{expectZp=2,minPieces=19,minPower=5
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20261010.3');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20261011.1');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
@@ -162,4 +162,15 @@ test('PWA menu opens QA test runs and returns to the untouched saved run',async(
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
   await expect(page.locator('body')).not.toHaveAttribute('data-qa-preset',/.+/);
   expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(savedBefore)
+});
+
+test('Quantum QA preset shows exactly five physical port terminals on the saved-run-safe machine',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('http://127.0.0.1:4173/?qa=quantumNetwork&ci=1');
+  await expect(page.locator('body')).toHaveAttribute('data-qa-preset','quantumNetwork');
+  await expect.poll(()=>page.locator('#board .piece').count()).toBeGreaterThanOrEqual(30);
+  await expect(page.locator('#board .tileModMark.zp')).toHaveCount(2);
+  await expect(page.locator('#board .tileModMark.qp')).toHaveCount(3);
+  const stamps=await page.locator('#board .piece[data-tile-id]').evaluateAll(items=>items.map(x=>x.dataset.tileId));
+  expect(new Set(stamps).size).toBe(stamps.length);
 });

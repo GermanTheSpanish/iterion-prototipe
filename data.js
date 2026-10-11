@@ -4,8 +4,8 @@
   root.IterionData=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   return Object.freeze({
-    VERSION:'0.75.0',
-    ENGINE_VERSION:'0.21.0-peaks-ridge-v1',
+    VERSION:'0.76.0',
+    ENGINE_VERSION:'0.22.0-quantum-port-v1',
     BIFURCATION_ENABLED:true,
     TARGETS:[
       20,100,500,2500,10000,
@@ -115,6 +115,8 @@
     MARKET_DOUBLE_DOUBLE_COST:8,
     MARKET_LONG_RUN_COST:8,
     MARKET_ZERO_PORT_COST:9,
+    MARKET_QUANTUM_PORT_COST:12,
+    QUANTUM_PORT_OUTCOME_WEIGHTS:Object.freeze([5,15,30,35,15]),
     MARKET_PARITY_EXCHANGE_COST:8,
     MARKET_CORNER_COST:8,
     MARKET_LONG_LINE_COST:8,

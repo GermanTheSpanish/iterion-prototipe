@@ -98,6 +98,12 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
     assert.deepStrictEqual(s.circuitRanks,{'d3-3':4,'d4-5':2,'d2-2':5});
     assert.strictEqual(s.circuitSignatures.length,6);assert.strictEqual(s.wins.length,13);assert.strictEqual(s.anchorId,'g2-d3-5');
     assert.deepStrictEqual(s.consumables,{move:0,reroll:0,undo:0});assert.strictEqual(s.freeReroll,1)
+  }else if(id==='quantumNetwork'){
+    assert.deepStrictEqual(s.zeroPortTileIds,['d0-1','d0-6']);
+    assert.deepStrictEqual(s.quantumPortTileIds,['d0-3','d0-4','d0-5']);
+    assert.equal(snap.quantumNetwork.active,true);
+    assert.equal(s.pieces.length,30);
+    assert.equal(s.runId,'qa-quantum-network');
   }else if(id==='german9Endless'){
     assert.strictEqual(preset.sourceRunId,'mudyrg2r-1960frf');
     assert.strictEqual(s.runId,'qa-mudyrg2r-1960frf-endless');

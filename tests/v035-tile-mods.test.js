@@ -9,10 +9,10 @@ function fakeMarket(g,id){
 }
 E.setBoardSize(30,40);
 
-check('registry exposes eighteen targeted tile Mods plus LONG CHAIN and removes retired Mods',()=>{
+check('registry exposes nineteen targeted tile Mods plus COLLECTOR and removes retired Mods',()=>{
   const tileMods=M.all().filter(m=>m.kind==='market-tile-mod').map(m=>m.id).sort();
-  assert.deepEqual(tileMods,['bank','bridge','broker','corner','double-double','double-echo','foundation','hinge','knot','long-line','mint','overload','pair','parity-exchange','pivot','recall','triple-double','zero-port']);
-  assert.equal(M.all().filter(m=>m.market).length,19);
+  assert.deepEqual(tileMods,['bank','bridge','broker','corner','double-double','double-echo','foundation','hinge','knot','long-line','mint','overload','pair','parity-exchange','pivot','quantum-port','recall','triple-double','zero-port']);
+  assert.equal(M.all().filter(m=>m.market).length,20);
   for(const id of ['diode','terminal','toll','scrap','spend','merge','return','swap','mirror','zero-memory'])assert.equal(M.get(id),null,id+' must be retired');
   assert.equal(D.MARKET_ZERO_MEMORY_COST,undefined);
 });
