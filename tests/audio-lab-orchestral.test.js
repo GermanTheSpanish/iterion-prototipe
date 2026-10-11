@@ -14,7 +14,7 @@ const path=require('node:path');
  const notes=a.events.filter(e=>e.type==='note');
  assert.deepEqual(notes.map(e=>e.time),[0,1,2,1,2]);
  assert.notEqual(notes[1].voiceWave,notes[3].voiceWave);
- assert.notEqual(notes[1].voiceOctave,notes[3].voiceOctave);
+ assert.notEqual(notes[1].voiceOctave,notes[3].voiceOctave);assert.equal(notes[1].voiceWave,'bell');assert.equal(notes[3].voiceWave,'reed');assert.ok(notes[1].voicePan<0 && notes[3].voicePan>0);
  assert.equal(a.events.find(e=>e.type==='rebound').time,1.4);
  assert.deepEqual(original.events.filter(e=>e.type==='note').map(e=>e.time),[0,1,2,3,4]);
  const fallback=orchestralReplay({events:[{type:'note',time:0,pip:1},{type:'note',time:.5,pip:2}],operations:2,duration:1});
