@@ -108,7 +108,7 @@ $('signal-tree-import').onclick=async()=>{
  const status=$('import-status');
  try {
   let debug=$('signal-tree-input').value;
-  if(file && (file!==importedFile || !debug.trim())){
+  if(file){
    if(file.size>2000000)throw new Error('Debug file exceeds 2 MB');
    status.textContent='Reading '+file.name+'…';
    debug=await readDebugFile(file);
