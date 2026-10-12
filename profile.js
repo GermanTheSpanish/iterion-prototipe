@@ -358,6 +358,7 @@
       isModeCompleted:isModeCompleted,
       completeMode:completeMode,
       modeProgress:modeProgress,
+      MOD_UNLOCK_STEPS:MOD_UNLOCK_STEPS,
       modUnlockState:modUnlockState,
       isModSlotUnlocked:isModSlotUnlocked,
       unlockModStep:unlockModStep,
