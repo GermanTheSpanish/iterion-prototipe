@@ -299,7 +299,7 @@
       }
     }
 
-    function evaluateRun(state,snapshot,context){
+    function evaluateRun(state,snapshot,context,facts){
       const id=validContext(context)||currentContext();
       if(id==='dev'||!state||!snapshot)return{unlocked:[],completed:[],profile:ensureProfile(id)};
       const mode=String(state.gameMode||snapshot.gameMode||'classic'),events=Array.isArray(state.events)?state.events:[],cores=Array.isArray(state.cores)?state.cores:[],unlocked=[],completed=[];
@@ -327,7 +327,7 @@
         const ouroborosStart=Math.max(1,Number(state.ouroborosStartedRound)||0),wonOuroborosRound=Array.isArray(state.wins)&&state.wins.some(function(win){return Number(win.round)>=ouroborosStart});
         if(wonOuroborosRound)complete('islands')
       }
-      const modDiscoveries=evaluateModDiscoveries(state,arguments[3],id);
+      const modDiscoveries=evaluateModDiscoveries(state,facts,id);
       return{unlocked:unlocked,completed:completed,modDiscoveries,profile:ensureProfile(id)}
     }
 
