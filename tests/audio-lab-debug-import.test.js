@@ -41,5 +41,10 @@ const path=require('node:path');
  assert.deepEqual(renderSignalTree(traces[0]),result);
  assert.throws(()=>renderSignalTree([{type:'signal-fork',piece:1},{type:'signal-start',fork:1,arm:0},op(2)]),/Unterminated/);
  assert.equal(parseSignalTrees(JSON.stringify([op(1)] )).length,1);
+ // Real playtest batches can exceed 2 MB even when their SIGNAL TREE traces are small.
+ const largeDebug=debug+'Unrelated telemetry: '+('x'.repeat(2_100_000))+'\n';
+ assert.ok(largeDebug.length>2_000_000);
+ assert.equal(parseSignalTrees(largeDebug).length,1);
+ assert.throws(()=>parseSignalTrees('x'.repeat(20_000_001)),/20 MB maximum/);
  console.log('Audio Lab Double Echo debug importer regression passed');
 })().catch(e=>{console.error(e);process.exitCode=1});
