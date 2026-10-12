@@ -9,7 +9,8 @@ assert.deepEqual(slots.map(({a,b})=>[a,b]),slots.map(({a,b})=>[a,b]).sort((x,y)=
 assert.equal(assigned.length,23,'five network terminals occupy collection dominoes');
 assert.equal(empty.length,5,'retired roster slots remain empty rather than pretending to be locked Mods');
 assert.equal(new Set(assigned.map(slot=>slot.mod.id)).size,20);assert.equal(new Set(assigned.map(slot=>slot.mod.collectionCode)).size,23);
-for(const slot of assigned)assert.equal(slot.mod.collectionDefaultUnlocked,true,slot.mod.id+' remains available until unlock progression lands');
+const starter=new Set(['double-double','double-echo','corner','long-line','overload','zero-port','bank','mint']);
+for(const slot of assigned)assert.equal(slot.mod.collectionDefaultUnlocked,starter.has(slot.mod.id),slot.mod.id+' starter/earned metadata matches progression');
 
 const current={'0|0':'zero-port','0|1':'zero-port','1|3':'quantum-port','2|4':'quantum-port','2|5':'quantum-port','0|2':'foundation','0|3':'pair','0|4':'bridge','0|5':'pivot','0|6':'long-line','1|1':'double-echo','1|2':'parity-exchange','1|4':'broker','1|5':'knot','1|6':'recall','2|2':'double-double','2|3':'corner','3|3':'triple-double','4|4':'overload','4|5':'hinge','4|6':'bank','5|6':'mint','6|6':'long-run'};
 for(const [key,id] of Object.entries(current))assert.equal(slots.find(slot=>slot.key===key).mod.id,id,key);
