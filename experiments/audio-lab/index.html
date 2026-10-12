@@ -120,22 +120,22 @@ async function readDebugFile(file){
  const chunkSize=262144,selected=[],maxSelected=2000000;
  let pending='',selectedLength=0,traceCount=0;
  function keepLine(line){
-  if(!/^===== RUN |^Mode: |^T\\d+ SIGNAL TREE\\b.*\\btrace=/.test(line))return;
+  if(!/^===== RUN |^Mode: |^T\d+ SIGNAL TREE\b.*\btrace=/.test(line))return;
   selectedLength+=line.length+1;
   if(selectedLength>maxSelected)throw new Error('Selected SIGNAL TREE traces exceed 2 MB; use a smaller playtest batch');
   selected.push(line);
-  if(/^T\\d+ SIGNAL TREE\\b/.test(line))traceCount++;
+  if(/^T\d+ SIGNAL TREE\b/.test(line))traceCount++;
  }
  for(let offset=0;offset<file.size;offset+=chunkSize){
   const part=await readTextBlob(file.slice(offset,offset+chunkSize));
-  const lines=(pending+part).split(/\\r?\\n/);
+  const lines=(pending+part).split(/\r?\n/);
   pending=lines.pop();
   for(const line of lines)keepLine(line);
   if(pending.length>maxSelected)throw new Error('A debug line exceeds 2 MB');
  }
  if(pending)keepLine(pending);
  if(!traceCount)throw new Error('No SIGNAL TREE trace found in this debug');
- return selected.join('\\n');
+ return selected.join('\n');
 }
 let importedFile=null;
 $('signal-tree-file').onchange=()=>{
