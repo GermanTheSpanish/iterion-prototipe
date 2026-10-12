@@ -45,7 +45,9 @@ test('Fresh Player archive reveals KNOT and three Quantum terminals progressivel
   const next=await page.evaluate(()=>window.IterionGame.createGame(window.IterionEngine,{
     seed:7705,MOD_ACCESS:window.MonoidProfile.modUnlockState()
   }).snapshot().marketModAccess);
-  expect(next).toMatchObject({knot:true,quantumLevel:3});\n  expect(next.availableMods).toContain('quantum-port');\n  expect(next.availableMods).not.toContain('foundation');
+  expect(next).toMatchObject({knot:true,quantumLevel:3});
+  expect(next.availableMods).toContain('quantum-port');
+  expect(next.availableMods).not.toContain('foundation');
   const size=await dialog.evaluate(el=>({height:el.clientHeight,scroll:el.scrollHeight}));
   expect(size.scroll).toBeLessThanOrEqual(size.height);
 });
