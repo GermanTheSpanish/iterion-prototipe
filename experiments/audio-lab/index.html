@@ -103,14 +103,39 @@ function playImported(trace){
  }
  $('import-status').textContent=trace.move+' · '+replay.operations+' recorded operations · '+replay.splitCount+' forks · '+replay.voices+' branch paths · '+replay.duration.toFixed(1)+'s · recorded topology, musical overlap';
 }
-function readDebugFile(file){
+function readTextBlob(blob){
  return new Promise((resolve,reject)=>{
   const reader=new FileReader();
   reader.onload=()=>resolve(String(reader.result||''));
   reader.onerror=()=>reject(reader.error||new Error('FileReader failed'));
   reader.onabort=()=>reject(new Error('File reading cancelled'));
-  reader.readAsText(file);
+  reader.readAsText(blob);
  });
+}
+async function readDebugFile(file){
+ // Large MONOID exports contain board snapshots and history that Audio Lab does not need.
+ // Read them in bounded slices rather than allocating the full export on mobile Safari.
+ if(file.size<=2000000)return readTextBlob(file);
+ if(file.size>50000000)throw new Error('Debug file exceeds the 50 MB import safety limit');
+ const chunkSize=262144,selected=[],maxSelected=2000000;
+ let pending='',selectedLength=0,traceCount=0;
+ function keepLine(line){
+  if(!/^===== RUN |^Mode: |^T\\d+ SIGNAL TREE\\b.*\\btrace=/.test(line))return;
+  selectedLength+=line.length+1;
+  if(selectedLength>maxSelected)throw new Error('Selected SIGNAL TREE traces exceed 2 MB; use a smaller playtest batch');
+  selected.push(line);
+  if(/^T\\d+ SIGNAL TREE\\b/.test(line))traceCount++;
+ }
+ for(let offset=0;offset<file.size;offset+=chunkSize){
+  const part=await readTextBlob(file.slice(offset,offset+chunkSize));
+  const lines=(pending+part).split(/\\r?\\n/);
+  pending=lines.pop();
+  for(const line of lines)keepLine(line);
+  if(pending.length>maxSelected)throw new Error('A debug line exceeds 2 MB');
+ }
+ if(pending)keepLine(pending);
+ if(!traceCount)throw new Error('No SIGNAL TREE trace found in this debug');
+ return selected.join('\\n');
 }
 let importedFile=null;
 $('signal-tree-file').onchange=()=>{
@@ -124,10 +149,10 @@ $('signal-tree-import').onclick=async()=>{
  try {
   let debug=$('signal-tree-input').value;
   if(file){
-   if(file.size>2000000)throw new Error('Debug file exceeds 2 MB');
-   status.textContent='Reading '+file.name+'…';
+   if(file.size>2000000)status.textContent='Extracting SIGNAL TREE traces from '+file.name+' ('+Math.ceil(file.size/1048576)+' MB)…';
+   if(file.size<=2000000)status.textContent='Reading '+file.name+'…';
    debug=await readDebugFile(file);
-   $('signal-tree-input').value=debug;
+   $('signal-tree-input').value=file.size<=2000000?debug:'';
    importedFile=file;
   }
   if(!debug.trim())throw new Error('Select a debug file or paste a SIGNAL TREE trace.');
