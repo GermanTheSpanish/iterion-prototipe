@@ -96,12 +96,11 @@ test('boot selector isolates profiles and Fresh starts guided Classic',async({pa
   await expect(page.locator('#bootSelector')).toBeVisible();await expect(page.locator('#titleCard')).toBeHidden();
   await expect(page.locator('[data-boot-context="dev"]')).toContainText('ALL UNLOCKED');
   await expect(page.locator('[data-boot-context="player"]')).toContainText('CURRENT SAVE');
-  await expect(page.locator('[data-boot-context="fresh"]')).toContainText('RESET SANDBOX');
+  await expect(page.locator('[data-boot-context="fresh"]')).toContainText('START OR CONTINUE');
   await page.locator('[data-boot-context="dev"]').click();await page.waitForLoadState('domcontentloaded');
   await expect.poll(()=>page.evaluate(()=>window.MonoidProfile?.currentContext?.())).toBe('dev');await expect(page.locator('#titleCard')).toBeVisible();await expect(page.locator('#bootSelector')).toBeHidden();
   expect(await page.evaluate(()=>window.MonoidProfile.ensureProfile().unlockedModes)).toEqual(['classic','eyes','frames','river','loom','peaks','islands']);
 
-  await page.evaluate(()=>localStorage.setItem('monoid.ctx.fresh.iterion.activeRun.v1','STALE'));
   await page.goto(BASE+'?boot=1');await expect(page.locator('#bootSelector')).toBeVisible();await page.locator('[data-boot-context="fresh"]').click();await page.waitForLoadState('domcontentloaded');
   await expect.poll(()=>page.evaluate(()=>window.MonoidProfile?.currentContext?.())).toBe('fresh');expect(await page.evaluate(()=>localStorage.getItem('monoid.ctx.fresh.iterion.activeRun.v1'))).toBeNull();
   await page.locator('#titleCard').click();await expect(page.locator('.app')).toBeVisible();await expect(page.locator('#gameSelection')).toBeHidden();
@@ -127,4 +126,57 @@ test('Fresh Classic explains Zero and T-Split after the signal uses them',async(
   await expect.poll(()=>page.evaluate(()=>window.__monoidUx?.mode),{timeout:3000}).toBe('idle');
   await page.evaluate(()=>{const s=window.__monoidGame.state();s.events.push({type:'presentation-probe',signal:{splits:1,trace:[{type:'signal-fork'}]}});document.body.dataset.classicGuideProbe=String(Date.now())});
   await expect(page.locator('#monoidBoardCoach h2')).toHaveText('T-SPLIT');await expect(page.locator('#monoidBoardCoach')).toContainText('two routes');await expect(page.locator('#monoidBoardCoach')).toContainText('outputs are added together');
+});
+
+test('NEW PLAYER resumes an existing run and retains mode and Mod discoveries across boot sessions',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(BASE+'?boot=1');
+  await expect(page.locator('[data-boot-context="fresh"]')).toContainText('NEW PLAYER');
+  await page.locator('[data-boot-context="fresh"]').click();
+  await expect(page.locator('#titleCard')).toBeVisible();
+  await page.locator('#titleCard').click();
+  await expect(page.locator('.app')).toBeVisible();
+  const before=await page.evaluate(()=>{
+    const profile=window.MonoidProfile;
+    profile.unlockMode('eyes');
+    profile.unlockModStep('bridge');
+    return{
+      profileId:profile.ensureProfile().profileId,
+      runId:window.__monoidGame.state().runId,
+      stored:localStorage.getItem(profile.storageKey('iterion.activeRun.v1'))
+    }
+  });
+  expect(before.stored).toBeTruthy();
+
+  await page.goto(BASE+'?boot=1');
+  await page.locator('[data-boot-context="fresh"]').click();
+  await expect(page.locator('#titleCard')).toBeVisible();
+  expect(await page.evaluate(()=>({
+    profileId:window.MonoidProfile.ensureProfile().profileId,
+    runId:JSON.parse(localStorage.getItem(window.MonoidProfile.storageKey('iterion.activeRun.v1')))?.state?.runId,
+    eyes:window.MonoidProfile.isModeUnlocked('eyes'),
+    bridge:window.MonoidProfile.isModSlotUnlocked('bridge')
+  }))).toEqual({profileId:before.profileId,runId:before.runId,eyes:true,bridge:true});
+
+  await page.locator('#titleCard').click();
+  await expect(page.locator('#gameSelection')).toBeVisible();
+  await expect(page.locator('#continueRun')).toBeVisible();
+  await page.locator('#continueRun').click();
+  await expect(page.locator('.app')).toBeVisible();
+  expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(before.runId);
+
+  await page.locator('#menuButton').click();
+  await page.locator('#menuGroupExplore').click();
+  await page.locator('#gameSelectionButton').click();
+  await page.evaluate(()=>window.__monoidModes.select(1));
+  await expect(page.locator('#modeName')).toHaveText('THE EYES');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#startRun').click();
+  await expect(page.locator('.app')).toBeVisible();
+  expect(await page.evaluate(()=>({
+    mode:window.__monoidGame.state().gameMode,
+    bridge:window.__monoidGame.state().marketModAccess.availableMods.includes('bridge'),
+    profileId:window.MonoidProfile.ensureProfile().profileId
+  }))).toEqual({mode:'eyes',bridge:true,profileId:before.profileId});
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
