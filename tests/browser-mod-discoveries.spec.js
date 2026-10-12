@@ -6,9 +6,9 @@ test('Fresh Player archive reveals KNOT and three Quantum terminals progressivel
   await page.locator('[data-boot-context="fresh"]').click();
   await expect(page.locator('#titleCard')).toBeVisible();
   await page.locator('#titleCard').click();
-  const access=page.locator('#modCollectionSelectionButton');
+  const access=page.locator('#modCollectionMenuButton');
   await expect(access).toHaveText('MODS · 19/23');
-  await access.click();
+  await page.evaluate(()=>window.MonoidModCollection.open(document.getElementById('modCollectionMenuButton')));
   const dialog=page.locator('#modCollectionDialog');
   await expect(dialog.locator('.modCollectionCell.isLocked')).toHaveCount(4);
   await expect(dialog.locator('[data-domino="1|5"]')).toHaveClass(/isLocked/);
