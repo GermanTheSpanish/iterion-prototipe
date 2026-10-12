@@ -72,7 +72,6 @@ test('player, dev and fresh contexts keep progression and saves isolated',async(
 
   await page.locator('#menuButton').click();
   await page.locator('#menuGroupSystem').click();await page.locator('#qaTestRunsButton').click();
-  page.once('dialog',dialog=>dialog.accept());
   await page.locator('[data-profile-context="fresh"]').click();
   await page.waitForLoadState('domcontentloaded');
   await expect.poll(()=>page.evaluate(()=>window.MonoidProfile?.contextInfo?.().context)).toBe('fresh');
