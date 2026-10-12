@@ -9,7 +9,7 @@ const extras=fs.readFileSync(path.join(root,'ui-extras.js'),'utf8');
 const ui=fs.readFileSync(path.join(root,'ui.js'),'utf8');
 assert.match(index,/<title>MONOID<\/title>/);
 assert.match(index,/<button id="menuButton" class="wordmark menuWordmark"[^>]*>MONOID<\/button>/);
-assert.match(index,/MONOID \/\/ BOOT/);assert.match(index,/DEV MODE/);assert.match(index,/ALL UNLOCKED/);assert.match(index,/FRESH PLAYER/);assert.match(index,/RESET SANDBOX/);
+assert.match(index,/MONOID \/\/ BOOT/);assert.match(index,/DEV MODE/);assert.match(index,/ALL UNLOCKED/);assert.match(index,/NEW PLAYER/);assert.match(index,/START OR CONTINUE/);
 assert.match(index,/ui-theme\.css\?v=20261012\.4/);
 assert.doesNotMatch(index,/ux-pass\.css/);
 assert.strictEqual(fs.existsSync(path.join(root,'ux-pass.css')),false);
