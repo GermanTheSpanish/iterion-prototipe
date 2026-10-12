@@ -29,7 +29,7 @@ export function createInstrument(context, destination, track) {
         voice(freq*3.01,at,{wave:'sine',volume:v*0.065,attack:0.003,release:0.075,pan});
       } else voice(freq,at,{wave,volume:v,attack,release,pan});
     },
-    effect(type,at,volume=0.2) {
+    pulse(at,volume=0.2,accent=false) {\n      voice(accent?82.41:110,at,{wave:'sine',volume:Math.min(.035,volume*(accent?.12:.065)),attack:.004,release:accent?.09:.055,endFreq:accent?54:78});\n    },\n    effect(type,at,volume=0.2) {
       const v=Math.min(0.18,volume*0.65);
       if(type==='rebound') voice(740,at,{wave:'sine',volume:v,attack:0.004,release:0.22,endFreq:260});
       if(type==='split') {voice(440,at,{wave:'triangle',volume:v*0.65,release:0.22});voice(659.25,at+0.035,{wave:'sine',volume:v*0.7,release:0.3});}
