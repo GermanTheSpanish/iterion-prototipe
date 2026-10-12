@@ -23,6 +23,19 @@
 <div class="controls"><button id="forward">Forward</button><button id="reverse">Rebound</button><button id="branch">Branch</button><button id="stop">Stop</button></div>
 <output id="status" aria-live="polite">Ready</output>
 </section>
+<script>
+(function(){
+ const status=document.getElementById('import-status');
+ const keyArea=document.getElementById('keys');
+ const show=(message)=>{
+  if(status)status.textContent='Audio Lab startup error: '+message;
+  if(keyArea)keyArea.textContent='Audio engine unavailable · '+message;
+ };
+ window.addEventListener('error',event=>show(event.message||'Script failed to load'));
+ window.addEventListener('unhandledrejection',event=>show(event.reason?.message||String(event.reason)||'Module load rejected'));
+ window.__audioLabStartupError=show;
+})();
+</script>
 <script type="module">
 import { PIP_NOTES, cascadeEvents } from './sequencer.js';
 import { PLAYTEST_CASCADES } from './playtest-cascades.js';
@@ -36,6 +49,8 @@ import { createAmbient } from './ambient-composition.js';
 import { parseSignalTrees, renderSignalTree } from './signal-tree-import.js';
 import { rhythmStudy } from './rhythm-study.js';
 const $ = id => document.getElementById(id);
+window.__audioLabReady=true;
+$('import-status').textContent='Audio Lab ready · select a debug file';
 let context, master, instrument, ambient, ambientEnabled=false, lastFixture=null, scheduled = [], generation = 0;
 const sequence = [0,2,4,3,1,0];
 function init(){
@@ -170,5 +185,10 @@ $('reverse').onclick=()=>run('reverse');
 $('branch').onclick=()=>run('branch');
 $('stop').onclick=stop;
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
+</script>
+<script>
+window.addEventListener('load',()=>{
+ if(!window.__audioLabReady)window.__audioLabStartupError('Audio Lab JavaScript module did not start. Check browser support or missing script files.');
+});
 </script>
 </body></html>
