@@ -32,11 +32,31 @@ export function createInstrument(context, destination, track) {
     pulse(at,volume=0.2,accent=false) {
       voice(accent?82.41:110,at,{wave:'sine',volume:Math.min(.035,volume*(accent?.12:.065)),attack:.004,release:accent?.09:.055,endFreq:accent?54:78});
     },
+    // Deterministic, sample-free tabletop impact: a brief noise transient plus wood resonance.
+    slap(at,volume=0.2) {
+      const sampleRate=context.sampleRate, length=Math.ceil(sampleRate*0.075);
+      const buffer=context.createBuffer(1,length,sampleRate), samples=buffer.getChannelData(0);
+      let seed=0x5eed;
+      for(let i=0;i<length;i++){
+        seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+        const envelope=Math.exp(-i/sampleRate*85);
+        samples[i]=((seed/4294967296)*2-1)*envelope;
+      }
+      const source=context.createBufferSource(), filter=context.createBiquadFilter(), gain=context.createGain();
+      source.buffer=buffer;filter.type='lowpass';filter.frequency.setValueAtTime(1750,at);
+      gain.gain.setValueAtTime(Math.min(.28,volume*.9),at);
+      source.connect(filter);filter.connect(gain);gain.connect(destination);
+      source.start(at);source.stop(at+buffer.duration);
+      source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect()};
+      voice(155,at,{wave:'triangle',volume:Math.min(.11,volume*.35),attack:.003,release:.105,endFreq:86});
+    },
     effect(type,at,volume=0.2) {
       const v=Math.min(0.18,volume*0.65);
       if(type==='rebound') voice(740,at,{wave:'sine',volume:v,attack:0.004,release:0.22,endFreq:260});
       if(type==='split') {voice(440,at,{wave:'triangle',volume:v*0.65,release:0.22});voice(659.25,at+0.035,{wave:'sine',volume:v*0.7,release:0.3});}
       if(type==='mod') {voice(392,at,{wave:'sine',volume:v*0.4,release:0.35});voice(587.33,at+0.018,{wave:'sine',volume:v*0.45,release:0.32});}
+      if(type==='teleport') voice(520,at,{wave:'sine',volume:v*.55,attack:.012,release:.3,endFreq:980});
+      if(type==='core') voice(196,at,{wave:'triangle',volume:v*.45,attack:.025,release:.42});
       if(type==='coin') {voice(1046.5,at,{wave:'sine',volume:v*0.55,release:0.16});voice(1568,at+0.055,{wave:'sine',volume:v*0.45,release:0.2});}
     }
   };
