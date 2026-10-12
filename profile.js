@@ -35,6 +35,13 @@
     peaks:Object.freeze({name:'THE PEAKS',unlock:'Complete a Circuit through a Core in The Loom.',complete:'Reach Infinite.'}),
     islands:Object.freeze({name:'THE ISLANDS',unlock:'Reach Infinite in The Peaks.',complete:'Clear one Ouroboros round.'})
   });
+  const MOD_UNLOCK_STEPS=Object.freeze([
+    Object.freeze({id:'knot',code:'KN',name:'KNOT',requirement:'Build two closed loops of at least four physical tiles that share a domino.',lore:'Two loops. One connection.'}),
+    Object.freeze({id:'quantum-port:1',code:'Q1',name:'QUANTUM PORT I',requirement:'Teleport a signal between two installed Zero Ports.',lore:'Two points. One space.'}),
+    Object.freeze({id:'quantum-port:2',code:'Q2',name:'QUANTUM PORT II',requirement:'Teleport a signal in three different Moves during one run.',lore:'An anomaly becomes a pattern.'}),
+    Object.freeze({id:'quantum-port:3',code:'Q3',name:'QUANTUM PORT III',requirement:'In one Move, teleport with Zero Port and activate at least twelve unique physical tiles.',lore:'Distance becomes irrelevant.'})
+  ]);
+  const MOD_UNLOCK_IDS=Object.freeze(MOD_UNLOCK_STEPS.map(step=>step.id));
   const LEGACY_PLAYER_KEY='monoid.playtestPlayer.v1';
   const LEGACY_ACTIVITY_KEYS=Object.freeze([
     LEGACY_PLAYER_KEY,
@@ -108,6 +115,7 @@
       return['classic']
     }
 
+    function initialUnlockedMods(context){return context==='dev'||(context==='player'&&hasLegacyPlayerActivity())?MOD_UNLOCK_IDS.slice():[]}
     function makeProfile(context){
       const legacy=context==='player'?legacyPlayer():null;
       const migrated=context==='player'&&hasLegacyPlayerActivity();
@@ -118,7 +126,8 @@
         context:context,
         unlockedModes:defaultUnlockedModes(context),
         completedModes:[],
-        unlockedMods:[],
+        unlockedMods:initialUnlockedMods(context),
+        modUnlockSchema:1,
         collection:{numbers:[]},
         stats:{
           runsStarted:0,
@@ -142,6 +151,11 @@
       if(!Array.isArray(base.completedModes))base.completedModes=[];
       base.completedModes=Array.from(new Set(base.completedModes.filter(function(mode){return ALL_MODES.includes(mode)})));
       if(!Array.isArray(base.unlockedMods))base.unlockedMods=[];
+      if(base.modUnlockSchema!==1){
+        if(context==='player'&&hasLegacyPlayerActivity())base.unlockedMods=[...new Set([...base.unlockedMods,...MOD_UNLOCK_IDS])];
+        base.modUnlockSchema=1
+      }
+      base.unlockedMods=[...new Set(base.unlockedMods.filter(id=>MOD_UNLOCK_IDS.includes(id)))];
       if(!base.collection||typeof base.collection!=='object')base.collection={numbers:[]};
       if(!Array.isArray(base.collection.numbers))base.collection.numbers=[];
       if(!base.stats||typeof base.stats!=='object')base.stats={};
@@ -201,6 +215,41 @@
       return{changed:true,profile:saveProfile(profile,id)}
     }
 
+    function modUnlockState(context){
+      const explicit=validContext(context),id=explicit||currentContext(),profile=ensureProfile(id),all=id==='dev'||(!explicit&&implicitLocalDevAccess()),owned=new Set(all?MOD_UNLOCK_IDS:profile.unlockedMods),quantumLevel=[1,2,3].reduce((n,level)=>owned.has('quantum-port:'+level)&&n===level-1?level:n,0);
+      return{unlockedMods:[...owned].sort(),knot:owned.has('knot'),quantumLevel,steps:MOD_UNLOCK_STEPS.map(step=>({...step,unlocked:owned.has(step.id)}))}
+    }
+    function isModSlotUnlocked(id,index=1,context){
+      if(id!=='knot'&&id!=='quantum-port')return true;
+      const access=modUnlockState(context);
+      return id==='knot'?access.knot:access.quantumLevel>=index
+    }
+    function unlockModStep(stepId,context){
+      const id=validContext(context)||currentContext(),profile=ensureProfile(id);
+      if(!MOD_UNLOCK_IDS.includes(stepId)||profile.unlockedMods.includes(stepId))return{changed:false,profile};
+      const tier=/^quantum-port:([23])$/.exec(stepId);if(tier&&!profile.unlockedMods.includes('quantum-port:'+(Number(tier[1])-1)))return{changed:false,profile};
+      profile.unlockedMods.push(stepId);
+      return{changed:true,profile:saveProfile(profile,id)}
+    }
+    function evaluateModDiscoveries(state,facts,context){
+      const id=validContext(context)||currentContext();
+      if(id==='dev'||!state)return[];
+      const events=Array.isArray(state.events)?state.events:[],teleportedMoves=new Set(),discovered=[];
+      let longTeleport=false;
+      for(const event of events){
+        if(!Number.isInteger(event.turn)||!Array.isArray(event.zeroPorts)||!event.zeroPorts.length)continue;
+        teleportedMoves.add(event.turn);
+        if(Number(event.physicalActivatedTileCount)>=12)longTeleport=true;
+      }
+      const candidates=[
+        [ 'knot', !!facts?.knotSharedLoops ],
+        [ 'quantum-port:1', teleportedMoves.size>=1 ],
+        [ 'quantum-port:2', teleportedMoves.size>=3 ],
+        [ 'quantum-port:3', longTeleport ]
+      ];
+      for(const [step,done] of candidates){if(!done)continue;if(step==='quantum-port:2'&&!isModSlotUnlocked('quantum-port',1,id))continue;if(step==='quantum-port:3'&&!isModSlotUnlocked('quantum-port',2,id))continue;if(unlockModStep(step,id).changed)discovered.push(step)}
+      return discovered
+    }
     function modeProgress(mode,context){
       const id=validContext(context)||currentContext(),requirement=MODE_REQUIREMENTS[mode]||null,profile=ensureProfile(id);
       return{
@@ -251,7 +300,7 @@
       }
     }
 
-    function evaluateRun(state,snapshot,context){
+    function evaluateRun(state,snapshot,context,facts){
       const id=validContext(context)||currentContext();
       if(id==='dev'||!state||!snapshot)return{unlocked:[],completed:[],profile:ensureProfile(id)};
       const mode=String(state.gameMode||snapshot.gameMode||'classic'),events=Array.isArray(state.events)?state.events:[],cores=Array.isArray(state.cores)?state.cores:[],unlocked=[],completed=[];
@@ -279,7 +328,8 @@
         const ouroborosStart=Math.max(1,Number(state.ouroborosStartedRound)||0),wonOuroborosRound=Array.isArray(state.wins)&&state.wins.some(function(win){return Number(win.round)>=ouroborosStart});
         if(wonOuroborosRound)complete('islands')
       }
-      return{unlocked:unlocked,completed:completed,profile:ensureProfile(id)}
+      const modDiscoveries=evaluateModDiscoveries(state,facts,id);
+      return{unlocked:unlocked,completed:completed,modDiscoveries,profile:ensureProfile(id)}
     }
 
     function contextInfo(){
@@ -309,6 +359,11 @@
       isModeCompleted:isModeCompleted,
       completeMode:completeMode,
       modeProgress:modeProgress,
+      MOD_UNLOCK_STEPS:MOD_UNLOCK_STEPS,
+      modUnlockState:modUnlockState,
+      isModSlotUnlocked:isModSlotUnlocked,
+      unlockModStep:unlockModStep,
+      evaluateModDiscoveries:evaluateModDiscoveries,
       resetContext:resetContext,
       setContext:setContext,
       telemetryOptions:telemetryOptions,
@@ -324,6 +379,7 @@
     CONTEXT_PREFIX:CONTEXT_PREFIX,
     CONTEXTS:CONTEXTS,
     ALL_MODES:ALL_MODES,
-    MODE_REQUIREMENTS:MODE_REQUIREMENTS
+    MODE_REQUIREMENTS:MODE_REQUIREMENTS,
+    MOD_UNLOCK_STEPS:MOD_UNLOCK_STEPS
   }
 });

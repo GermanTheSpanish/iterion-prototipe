@@ -8,7 +8,7 @@ function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 
 check('final Market roster includes Quantum Port',()=>{
-  const ids=M.all().filter(m=>m.market).map(m=>m.id).sort();assert.equal(ids.length,20);assert.equal(D.VERSION,'0.76.0');
+  const ids=M.all().filter(m=>m.market).map(m=>m.id).sort();assert.equal(ids.length,20);assert.equal(D.VERSION,'0.77.0');
   for(const id of ['diode','terminal','toll','scrap','spend','merge','return','swap','mirror'])assert.equal(M.get(id),null);
 });
 check('PAIR gives both physical dominoes x2',()=>{

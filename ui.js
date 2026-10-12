@@ -5,7 +5,7 @@
   const FIRST_REAL_OPENING_KEY=scopeKey('monoid.firstRealOpening.v1');
   const ROUTE_PREVIEW_KEY='iterion.routePreview.v1',ROUTE_PREVIEW_MODES=new Set(['full','preview','off']);
   const normalizeMode=mode=>['eyes','frames','river','loom','peaks','islands'].includes(mode)?mode:'classic';
-  const gameOptions=(mode,extra={})=>({GAME_MODE:normalizeMode(mode),...extra});
+  const gameOptions=(mode,extra={})=>({GAME_MODE:normalizeMode(mode),MOD_ACCESS:PROFILE?.modUnlockState?.()||null,...extra});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
@@ -105,7 +105,9 @@
   }
   function persistGame(options={}){
     if(tutorial)return GAME.snapshot();
-    const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],payload=JSON.stringify(GAME.exportState());
+    const snap=GAME.snapshot(),modFacts=PROFILE?.isModSlotUnlocked?.('knot')?null:GAME.modDiscoveryFacts?.(),
+      unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[],payload=JSON.stringify(GAME.exportState());
+    for(const id of modDiscoveries)window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id}}));
     if(!options.suppressProgressionReward&&(unlockedModes.length||completedModes.length))queueProgressionReward({unlockedModes:[...unlockedModes],completedModes:[...completedModes]});
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
@@ -405,7 +407,7 @@
   function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal','compactCommerceModal','outcomeModal','roundAdvanceModal','roundRewardComplete','voidInspectorModal');overlay.onclick=null;overlayBody.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(ms=D.OUTCOME_SCREEN_DELAY_MS){ms=Math.max(0,Number(ms)||0);clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+ms;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},ms+25)}
-  async function newRun(){ouroborosPreviewSuspended=false;pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
+  async function newRun(){ouroborosPreviewSuspended=false;pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;if(GAME.config)GAME.config.MOD_ACCESS=PROFILE?.modUnlockState?.()||null;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
