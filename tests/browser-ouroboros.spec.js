@@ -81,7 +81,7 @@ async function openSavedOuroboros(page,failed=false){
     const data=window.__monoidGame.exportState(),s=data.state;
     s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.roundTurn=failed?3:1;
     s.hand=[];s.reserve=[];s.cleared=false;s.blocked=failed;s.needsReroll=false;
-    s.failureReason=failed?'ouroboros-fire-limit':null;s.running=false;
+    s.failureReason=failed?'ouroboros-fire-limit':null;s.running=false;s.undoFrame=null;s.consumables.undo=0;
     s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false;s.shopType=null;
     s.events.push({type:'ouroboros-fire',round:s.round+1,turn:s.turn+1,tileId:s.pieces[0].tile.id});
     return data;
