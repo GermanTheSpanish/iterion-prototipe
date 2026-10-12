@@ -66,6 +66,7 @@ function play(pip,at,reverse=false,options={}) {
  instrument.note(pip,at,{wave:$('wave').value,volume:Number($('volume').value),attack:Number($('attack').value),release:Number($('release').value),reverse,...options});
 }
 function effect(type,at) {instrument.effect(type,at,Number($('volume').value));}
+function startWithSlap(){const at=context.currentTime+0.025;instrument.slap(at,Number($('volume').value));return at+0.17;}
 
 function stop() {
   generation++;
@@ -78,7 +79,7 @@ function playRhythm(trace){
  let study;
  try{study=rhythmStudy(renderSignalTree(trace,Number($('replay-speed').value)));}
  catch(error){$('rhythm-status').textContent=error.message;return;}
- const start=context.currentTime+.04,solo=$('branch-solo').value;
+ const start=startWithSlap(),solo=$('branch-solo').value;
  for(const e of study.events){
   const at=start+e.time;
   if(e.type==='pulse')instrument.pulse(at,Number($('volume').value),e.accent);
@@ -93,7 +94,7 @@ function playImported(trace){
  init();stop();
  let replay;
  try {replay=renderSignalTree(trace,Number($('replay-speed').value));} catch(error){$('import-status').textContent=error.message;return;}
- const start=context.currentTime+0.035,solo=$('branch-solo').value;
+ const start=startWithSlap(),solo=$('branch-solo').value;
  for(const event of replay.events){
   if(event.type==='note'){
    if(solo!=='all' && !event.path.split('.').includes(solo))continue;
@@ -142,7 +143,7 @@ $('signal-tree-clear').onclick=()=>{importedFile=null;$('signal-tree-file').valu
 function run(mode){
   init(); stop();
   const events = cascadeEvents(sequence,mode,Number($('tempo').value)/1000);
-  const start = context.currentTime + 0.035;
+  const start = startWithSlap();
   for(const event of events) play(event.pip,start+event.time);
   $('status').textContent = mode.toUpperCase() + ' / ' + events.map(e=>e.pip).join(' · ');
 }
@@ -155,7 +156,7 @@ for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE,...POLYPHONY_STUDIES]){
    const mode=$('interpretation').value;
    const active=mode==='musical' && $('musical').checked;
    const replay=mode==='orchestral'?orchestralReplay(recorded):active?musicalReplay(recorded,{rhythm:$('rhythm').checked,power:$('power').checked,ascending:$('ascending').checked,separation:Number($('separation').value),powerLevel:Number($('power-level').value)}):recorded;
-   const start=context.currentTime+0.035;
+   const start=startWithSlap();
    if(ambientEnabled){const id=ambient.cascade(fixture,start,replay.duration);$('ambient-status').textContent='Ambient on · harmonic root '+id.root+' · depth '+Math.round(id.depth*100)+'%';}
    for(const event of replay.events){
      if(event.type==='note') {
