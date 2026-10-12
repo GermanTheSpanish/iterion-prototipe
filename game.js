@@ -1615,7 +1615,7 @@ function createGame(E,opts={}){
   }
   function closeMarketState(reason,resolved){
     const opened=[...s.events].reverse().find(e=>e.type==='shop-open'&&e.shop==='market');
-    const purchasedMod=s.marketBuys.some(b=>b.kind==='mod');
+    const purchasedMod=s.marketBuys.some(b=>!!b&&typeof b.mod==='string');
     const brokerDiscovery=reason==='continue'&&!purchasedMod&&Array.isArray(opened?.discoveryAffordableMods)&&opened.discoveryAffordableMods.length>0;
     const broker=settleBrokerMarket(reason);s.events.push({type:'shop-close',round:s.round+1,shop:'market',reason,coins:s.coins,inflation:s.inflation,available:availableTileCount(),brokerBanked:broker.banked||0,brokerStored:broker.stored||0,brokerDiscovery,purchasedMod});
     s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.nextShopType='none';s.intermissionResolved=!!resolved
