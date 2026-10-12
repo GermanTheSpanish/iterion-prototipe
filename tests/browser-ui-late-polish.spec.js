@@ -154,7 +154,7 @@ test('mode and Mod unlocks use a dedicated reward reveal on compact phones',asyn
   await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('NEW MOD DISCOVERED');
   await expect(reward.locator('#progressionRewardTitle')).toHaveText('PIVOT');
   await expect(reward.locator('.progressionRewardVisual .modDiagram')).toHaveCount(1);
-  await expect(reward.locator('.progressionRewardRule')).toHaveText('Rotate around either half.');
+  await expect(reward.locator('.progressionRewardRule')).toHaveText('Change the angle.');
   await expect(reward.locator('.progressionRewardMeta')).toHaveText('ADDED TO MOD COLLECTION');
   await reward.locator('.progressionRewardContinue').click()
 });
