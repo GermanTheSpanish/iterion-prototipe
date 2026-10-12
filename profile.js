@@ -216,7 +216,7 @@
     }
 
     function modUnlockState(context){
-      const explicit=validContext(context),id=explicit||currentContext(),profile=ensureProfile(id),all=id==='dev'||(!explicit&&implicitLocalDevAccess()),owned=new Set(all?MOD_UNLOCK_IDS:profile.unlockedMods),quantumLevel=[1,2,3].reduce((n,level)=>owned.has('quantum-port:'+level)?level:n,0);
+      const explicit=validContext(context),id=explicit||currentContext(),profile=ensureProfile(id),all=id==='dev'||(!explicit&&implicitLocalDevAccess()),owned=new Set(all?MOD_UNLOCK_IDS:profile.unlockedMods),quantumLevel=[1,2,3].reduce((n,level)=>owned.has('quantum-port:'+level)&&n===level-1?level:n,0);
       return{unlockedMods:[...owned].sort(),knot:owned.has('knot'),quantumLevel,steps:MOD_UNLOCK_STEPS.map(step=>({...step,unlocked:owned.has(step.id)}))}
     }
     function isModSlotUnlocked(id,index=1,context){
@@ -227,6 +227,7 @@
     function unlockModStep(stepId,context){
       const id=validContext(context)||currentContext(),profile=ensureProfile(id);
       if(!MOD_UNLOCK_IDS.includes(stepId)||profile.unlockedMods.includes(stepId))return{changed:false,profile};
+      const tier=/^quantum-port:([23])$/.exec(stepId);if(tier&&!profile.unlockedMods.includes('quantum-port:'+(Number(tier[1])-1)))return{changed:false,profile};
       profile.unlockedMods.push(stepId);
       return{changed:true,profile:saveProfile(profile,id)}
     }
