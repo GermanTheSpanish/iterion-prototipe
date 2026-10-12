@@ -12,7 +12,7 @@ function createGame(E,opts={}){
   }
   function modAvailable(id){const access=s.marketModAccess||{knot:true,quantumLevel:3};return id==='knot'?access.knot:id==='quantum-port'?access.quantumLevel>assignedTileIdsForMod('quantum-port').length:true}
   function modDiscoveryFacts(checkKnot=true){
-    if(!checkKnot||s.pieces.length<7)return{knotSharedLoops:false};
+    if(!checkKnot||s.pieces.length<6)return{knotSharedLoops:false};
     const graph=C.adjacency(s.pieces,E.contactBetweenPieces),edges=[...graph.values()].reduce((n,items)=>n+items.size,0)/2,components=new Set(),seen=new Set();
     for(const id of graph.keys())if(!seen.has(id)){components.add(id);const queue=[id];seen.add(id);for(let i=0;i<queue.length;i++)for(const next of graph.get(queue[i])||[])if(!seen.has(next)){seen.add(next);queue.push(next)}}
     if(edges-s.pieces.length+components.size<2)return{knotSharedLoops:false};
