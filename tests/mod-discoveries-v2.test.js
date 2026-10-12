@@ -107,7 +107,9 @@ check('BROKER fires only for voluntary no-Mod Market exit with an affordable off
   assert(g.closeMarket());const close=s.events.findLast(e=>e.type==='shop-close'&&e.shop==='market');assert.equal(close.brokerDiscovery,true);
   assert.deepEqual(makeProfile().evaluateRun(run([close]),snap).modDiscoveries,['broker']);
   const q=Game.createGame(E,{seed:80108}),t=q.state();t.shopOpen=true;t.shopType='market';t.marketBuys=[];t.events.push({type:'shop-open',shop:'market',discoveryAffordableMods:[]});
-  assert(q.closeMarket());assert.equal(t.events.findLast(e=>e.type==='shop-close'&&e.shop==='market').brokerDiscovery,false)
+  assert(q.closeMarket());assert.equal(t.events.findLast(e=>e.type==='shop-close'&&e.shop==='market').brokerDiscovery,false);
+  const purchased=Game.createGame(E,{seed:80110}),u=purchased.state();u.shopOpen=true;u.shopType='market';u.marketBuys=[{mod:'corner',cost:6}];u.events.push({type:'shop-open',shop:'market',discoveryAffordableMods:['corner']});
+  assert(purchased.closeMarket());const bought=u.events.findLast(e=>e.type==='shop-close'&&e.shop==='market');assert.equal(bought.purchasedMod,true);assert.equal(bought.brokerDiscovery,false)
 });
 check('FOUNDATION requires same activated tile across three CONSECUTIVE Markets',()=>{
   const p=makeProfile();
