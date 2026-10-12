@@ -71,6 +71,15 @@ for(let level=0;level<=3;level++)check('Market limits QP assignments to '+level+
   assert.equal(copy.restoreState(g.exportState()),true);assert.deepEqual(copy.state().marketModAccess,{knot:false,quantumLevel:level});
   assert.equal(copy.marketTargetCount('quantum-port'),0);
 });
+check('the NEXT run accepts newly discovered Quantum tiers, not the active run',()=>{
+  const g=Game.createGame(Engine,{seed:77125,MOD_ACCESS:{knot:false,quantumLevel:0}});
+  const original=g.state().marketModAccess;
+  g.config.MOD_ACCESS={knot:true,quantumLevel:2};
+  assert.deepEqual(original,{knot:false,quantumLevel:0});
+  assert.deepEqual(g.state().marketModAccess,original);
+  g.fresh(77126);
+  assert.deepEqual(g.state().marketModAccess,{knot:true,quantumLevel:2});
+});
 check('older saves without access metadata remain grandfathered',()=>{
   const g=Game.createGame(Engine,{seed:77099}),saved=g.exportState();delete saved.state.marketModAccess;
   const copy=Game.createGame(Engine,{seed:3,MOD_ACCESS:{knot:false,quantumLevel:0}});
