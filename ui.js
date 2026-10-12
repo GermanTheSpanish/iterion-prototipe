@@ -105,7 +105,8 @@
   }
   function persistGame(options={}){
     if(tutorial)return GAME.snapshot();
-    const snap=GAME.snapshot(),modFacts=PROFILE?.isModSlotUnlocked?.('knot')?null:GAME.modDiscoveryFacts?.(),
+    const needsModFacts={knot:!PROFILE?.isModSlotUnlocked?.('knot'),bridge:!PROFILE?.isModSlotUnlocked?.('bridge'),hinge:!PROFILE?.isModSlotUnlocked?.('hinge'),pair:!PROFILE?.isModSlotUnlocked?.('pair'),'triple-double':!PROFILE?.isModSlotUnlocked?.('triple-double')};
+    const snap=GAME.snapshot(),modFacts=Object.values(needsModFacts).some(Boolean)?GAME.modDiscoveryFacts?.(needsModFacts):null,
       unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[],payload=JSON.stringify(GAME.exportState());
     for(const id of modDiscoveries)window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id}}));
     if(!options.suppressProgressionReward&&(unlockedModes.length||completedModes.length))queueProgressionReward({unlockedModes:[...unlockedModes],completedModes:[...completedModes]});

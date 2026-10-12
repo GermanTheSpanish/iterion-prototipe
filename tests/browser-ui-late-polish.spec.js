@@ -154,8 +154,8 @@ test('mode and Mod unlocks use a dedicated reward reveal on compact phones',asyn
   await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('NEW MOD DISCOVERED');
   await expect(reward.locator('#progressionRewardTitle')).toHaveText('PIVOT');
   await expect(reward.locator('.progressionRewardVisual .modDiagram')).toHaveCount(1);
-  await expect(reward.locator('.progressionRewardRule')).toHaveText('Rotate around either half.');
-  await expect(reward.locator('.progressionRewardMeta')).toHaveText('ADDED TO MOD COLLECTION');
+  await expect(reward.locator('.progressionRewardRule')).toHaveText('Change the angle.');
+  await expect(reward.locator('.progressionRewardMeta')).toHaveText('ADDED TO MOD COLLECTION · PV');
   await reward.locator('.progressionRewardContinue').click()
 });
 
@@ -178,7 +178,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261012.1');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261012.2');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(120);expect(wordmark.width).toBeLessThanOrEqual(155);expect(parseFloat(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(19);

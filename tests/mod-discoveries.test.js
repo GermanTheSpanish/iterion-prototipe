@@ -20,7 +20,7 @@ check('new players start with four locked terminal/Mod slots; dev remains open',
 check('legacy player retains prior open Mod access and never loses progress',()=>{
   const store=storage({'iterion.activeRun.v1':'OLD_RUN'}),p=profile(store);const access=p.modUnlockState();
   assert.equal(access.knot,true);assert.equal(access.quantumLevel,3);
-  const previous=JSON.parse(store.getItem('monoid.profile.player.v1'));assert.equal(previous.modUnlockSchema,1);
+  const previous=JSON.parse(store.getItem('monoid.profile.player.v1'));assert.equal(previous.modUnlockSchema,2);
   assert.equal(profile(store).modUnlockState().quantumLevel,3);
 });
 check('one verified Zero Port traversal permanently reveals only Q1',()=>{
@@ -57,8 +57,8 @@ check('KNOT requires two physical closed loops sharing at least one full domino'
   g.state().pieces=pieces;assert.equal(g.modDiscoveryFacts().knotSharedLoops,true);
   const graph=Circuits.adjacency(pieces,Engine.contactBetweenPieces);
   assert([...graph.keys()].some(id=>Circuits.cycleSignaturesThrough(graph,id,4).length>=2));
-  const p=profile();assert.deepEqual(p.evaluateRun(run([]),snap,undefined,g.modDiscoveryFacts()).modDiscoveries,['knot']);
-  assert.equal(p.isModSlotUnlocked('knot'),true);assert.deepEqual(p.evaluateRun(run([]),snap,undefined,g.modDiscoveryFacts()).modDiscoveries,[]);
+  const p=profile();assert.deepEqual(p.evaluateRun(run([]),snap,undefined,g.modDiscoveryFacts({pair:false,bridge:false,hinge:false,'triple-double':false})).modDiscoveries,['knot']);
+  assert.equal(p.isModSlotUnlocked('knot'),true);assert.deepEqual(p.evaluateRun(run([]),snap,undefined,g.modDiscoveryFacts({pair:false,bridge:false,hinge:false,'triple-double':false})).modDiscoveries,[]);
 });
 function marketSetup(g){const s=g.state(),ids=['d0-0','d0-1','d0-2','d0-3','d0-4'];s.pieces=ids.map((id,i)=>{const t=s.set.find(t=>t.id===id),p=Engine.pieceFrom(t,2+i*4,6,0,0,i+1);p.tile={...t};return p});s.placedTileIds=ids.slice();s.zeroPortTileIds=ids.slice(0,2);s.coins=500;return ids}
 function offer(g){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=['quantum-port'];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market'}
