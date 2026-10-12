@@ -2,11 +2,9 @@ const {test,expect}=require('@playwright/test');
 
 test('Fresh Player archive reveals KNOT and three Quantum terminals progressively',async({page})=>{
   await page.setViewportSize({width:375,height:667});
-  await page.addInitScript(()=>{
-    localStorage.setItem('monoid.profileContext.v1','fresh');
-    localStorage.setItem('iterion.entryBypass.v1','true');
-  });
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto('http://127.0.0.1:4173/?boot=1');
+  await page.locator('[data-boot-context="fresh"]').click();
+  await expect(page.locator('#titleCard')).toBeVisible();
   await page.locator('#titleCard').click();
   const access=page.locator('#modCollectionSelectionButton');
   await expect(access).toHaveText('MODS · 19/23');
