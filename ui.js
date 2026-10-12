@@ -5,7 +5,7 @@
   const FIRST_REAL_OPENING_KEY=scopeKey('monoid.firstRealOpening.v1');
   const ROUTE_PREVIEW_KEY='iterion.routePreview.v1',ROUTE_PREVIEW_MODES=new Set(['full','preview','off']);
   const normalizeMode=mode=>['eyes','frames','river','loom','peaks','islands'].includes(mode)?mode:'classic';
-  const gameOptions=(mode,extra={})=>({GAME_MODE:normalizeMode(mode),...extra});
+  const gameOptions=(mode,extra={})=>({GAME_MODE:normalizeMode(mode),MOD_ACCESS:PROFILE?.modUnlockState?.()||null,...extra});
   let GAME=window.IterionGame.createGame(E,gameOptions('classic'));
   const P={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const $=id=>document.getElementById(id);
@@ -105,7 +105,9 @@
   }
   function persistGame(options={}){
     if(tutorial)return GAME.snapshot();
-    const snap=GAME.snapshot(),unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],payload=JSON.stringify(GAME.exportState());
+    const snap=GAME.snapshot(),modFacts=PROFILE?.isModSlotUnlocked?.('knot')?null:GAME.modDiscoveryFacts?.(),
+      unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[],payload=JSON.stringify(GAME.exportState());
+    for(const id of modDiscoveries)window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id}}));
     if(!options.suppressProgressionReward&&(unlockedModes.length||completedModes.length))queueProgressionReward({unlockedModes:[...unlockedModes],completedModes:[...completedModes]});
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
