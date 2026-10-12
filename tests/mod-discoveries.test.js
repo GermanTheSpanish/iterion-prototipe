@@ -44,6 +44,7 @@ check('Q3 requires 12 distinct physical activations on one teleported Move',()=>
 check('Q3 can never skip Q1 or Q2 and profile unlock steps are idempotent',()=>{
   const p=profile();assert.deepEqual(p.evaluateRun(run([move(99,20)]),snap).modDiscoveries,['quantum-port:1']);
   assert.equal(p.modUnlockState().quantumLevel,1);
+  assert.equal(p.unlockModStep('quantum-port:3').changed,false,'third terminal cannot bypass Q2');
   assert.equal(p.unlockModStep('quantum-port:1').changed,false);
 });
 check('KNOT requires two physical closed loops sharing at least one full domino',()=>{
