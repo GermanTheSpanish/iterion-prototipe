@@ -35,7 +35,18 @@
     peaks:Object.freeze({name:'THE PEAKS',unlock:'Complete a Circuit through a Core in The Loom.',complete:'Reach Infinite.'}),
     islands:Object.freeze({name:'THE ISLANDS',unlock:'Reach Infinite in The Peaks.',complete:'Clear one Ouroboros round.'})
   });
+  const STARTER_MOD_IDS=Object.freeze(['double-double','double-echo','corner','long-line','overload','zero-port','bank','mint']);
   const MOD_UNLOCK_STEPS=Object.freeze([
+    Object.freeze({id:'bridge',code:'BR',name:'BRIDGE',requirement:'Build a domino that is the only connection between two groups of at least two tiles each.',lore:'Everything depends on one.'}),
+    Object.freeze({id:'recall',code:'RC',name:'RECALL',requirement:'Use Undo to reverse a placement, then complete that same Round.',lore:'Nothing is truly lost.'}),
+    Object.freeze({id:'parity-exchange',code:'PX',name:'PARITY EXCHANGE',requirement:'Activate at least two even and two odd non-zero values on four distinct physical tiles in one Move.',lore:'Opposites obey new rules.'}),
+    Object.freeze({id:'pivot',code:'PV',name:'PIVOT',requirement:'Close a Circuit by placing its final tile at 90° or 270°.',lore:'Change the angle.'}),
+    Object.freeze({id:'broker',code:'BO',name:'BROKER',requirement:'Voluntarily leave a Market without buying a Mod when an eligible offered Mod is affordable.',lore:'Opportunity has a price.'}),
+    Object.freeze({id:'hinge',code:'HG',name:'HINGE',requirement:'Build a machine of at least six tiles with a legal mirrored placement for a non-zero, non-double domino.',lore:'Structure can move.'}),
+    Object.freeze({id:'foundation',code:'FD',name:'FOUNDATION',requirement:'Keep one physical tile through three consecutive Markets, activating it during each preceding Stage.',lore:'Time builds value.'}),
+    Object.freeze({id:'long-run',code:'CL',name:'COLLECTOR',requirement:'Activate ten unique physical tiles in a single Move.',lore:'Nothing is left behind.'}),
+    Object.freeze({id:'triple-double',code:'TD',name:'TRIPLE DOUBLE',requirement:'Complete all four physical connections around a non-zero double.',lore:'One becomes many.'}),
+    Object.freeze({id:'pair',code:'PR',name:'PAIR',requirement:'Align two separate identically printed dominoes into an exact parallel 2×2 block.',lore:'Together, stronger.'}),
     Object.freeze({id:'knot',code:'KN',name:'KNOT',requirement:'Build two closed loops of at least four physical tiles that share a domino.',lore:'Two loops. One connection.'}),
     Object.freeze({id:'quantum-port:1',code:'Q1',name:'QUANTUM PORT I',requirement:'Teleport a signal between two installed Zero Ports.',lore:'Two points. One space.'}),
     Object.freeze({id:'quantum-port:2',code:'Q2',name:'QUANTUM PORT II',requirement:'Teleport a signal in three different Moves during one run.',lore:'An anomaly becomes a pattern.'}),
@@ -127,7 +138,7 @@
         unlockedModes:defaultUnlockedModes(context),
         completedModes:[],
         unlockedMods:initialUnlockedMods(context),
-        modUnlockSchema:1,
+        modUnlockSchema:2,
         collection:{numbers:[]},
         stats:{
           runsStarted:0,
@@ -151,9 +162,9 @@
       if(!Array.isArray(base.completedModes))base.completedModes=[];
       base.completedModes=Array.from(new Set(base.completedModes.filter(function(mode){return ALL_MODES.includes(mode)})));
       if(!Array.isArray(base.unlockedMods))base.unlockedMods=[];
-      if(base.modUnlockSchema!==1){
-        if(context==='player'&&hasLegacyPlayerActivity())base.unlockedMods=[...new Set([...base.unlockedMods,...MOD_UNLOCK_IDS])];
-        base.modUnlockSchema=1
+      if(base.modUnlockSchema!==2){
+        if(context==='player'&&(base.modUnlockSchema===1||hasLegacyPlayerActivity()))base.unlockedMods=[...new Set([...base.unlockedMods,...MOD_UNLOCK_IDS])];
+        base.modUnlockSchema=2
       }
       base.unlockedMods=[...new Set(base.unlockedMods.filter(id=>MOD_UNLOCK_IDS.includes(id)))];
       if(!base.collection||typeof base.collection!=='object')base.collection={numbers:[]};
@@ -217,12 +228,13 @@
 
     function modUnlockState(context){
       const explicit=validContext(context),id=explicit||currentContext(),profile=ensureProfile(id),all=id==='dev'||(!explicit&&implicitLocalDevAccess()),owned=new Set(all?MOD_UNLOCK_IDS:profile.unlockedMods),quantumLevel=[1,2,3].reduce((n,level)=>owned.has('quantum-port:'+level)&&n===level-1?level:n,0);
-      return{unlockedMods:[...owned].sort(),knot:owned.has('knot'),quantumLevel,steps:MOD_UNLOCK_STEPS.map(step=>({...step,unlocked:owned.has(step.id)}))}
+      const availableMods=[...new Set([...STARTER_MOD_IDS,...[...owned].filter(step=>!step.startsWith('quantum-port:')),...(quantumLevel>0?['quantum-port']:[])])].sort();
+      return{unlockedMods:[...owned].sort(),availableMods,knot:owned.has('knot'),quantumLevel,steps:MOD_UNLOCK_STEPS.map(step=>({...step,unlocked:owned.has(step.id)}))}
     }
     function isModSlotUnlocked(id,index=1,context){
-      if(id!=='knot'&&id!=='quantum-port')return true;
+      if(STARTER_MOD_IDS.includes(id))return true;
       const access=modUnlockState(context);
-      return id==='knot'?access.knot:access.quantumLevel>=index
+      return id==='quantum-port'?access.quantumLevel>=index:access.unlockedMods.includes(id)
     }
     function unlockModStep(stepId,context){
       const id=validContext(context)||currentContext(),profile=ensureProfile(id);
@@ -235,19 +247,51 @@
       const id=validContext(context)||currentContext();
       if(id==='dev'||!state)return[];
       const events=Array.isArray(state.events)?state.events:[],teleportedMoves=new Set(),discovered=[];
-      let longTeleport=false;
+      let longTeleport=false,parityFour=false,collectorTen=false;
       for(const event of events){
-        if(!Number.isInteger(event.turn)||!Array.isArray(event.zeroPorts)||!event.zeroPorts.length)continue;
-        teleportedMoves.add(event.turn);
-        if(Number(event.physicalActivatedTileCount)>=12)longTeleport=true;
+        if(Number.isInteger(event.turn)){
+          if(Array.isArray(event.zeroPorts)&&event.zeroPorts.length){
+            teleportedMoves.add(event.turn);
+            if(Number(event.physicalActivatedTileCount)>=12)longTeleport=true
+          }
+          if(event.parityMixedFour===true)parityFour=true;
+          if(Number(event.uniquePieces)>=10)collectorTen=true
+        }
+      }
+      const undoComplete=events.some(event=>event.type==='undo'&&Number.isInteger(event.round)&&Array.isArray(state.wins)&&state.wins.some(win=>win.round===event.round&&Number(win.turn)>=Number(event.restoredTurn??-1)));
+      const circuitPivot=events.some(event=>event.type==='circuit-closed'&&events.some(move=>Number.isInteger(move.turn)&&move.turn===event.move&&move.placement?.rr%2===1));
+      const brokerSkipped=events.some(event=>event.type==='shop-close'&&event.shop==='market'&&event.brokerDiscovery===true);
+      const markets=events.filter(event=>event.type==='shop-open'&&event.shop==='market'&&Number.isInteger(event.marketIndex)&&Array.isArray(event.foundationCandidateTileIds));
+      let foundationKept=false;
+      for(let i=2;i<markets.length&&!foundationKept;i++){
+        const a=markets[i-2],b=markets[i-1],c=markets[i];
+        if(b.marketIndex!==a.marketIndex+1||c.marketIndex!==b.marketIndex+1)continue;
+        const shared=new Set(a.foundationCandidateTileIds);
+        for(const market of [b,c])for(const tileId of [...shared])if(!market.foundationCandidateTileIds.includes(tileId))shared.delete(tileId);
+        if(shared.size)foundationKept=true
       }
       const candidates=[
-        [ 'knot', !!facts?.knotSharedLoops ],
-        [ 'quantum-port:1', teleportedMoves.size>=1 ],
-        [ 'quantum-port:2', teleportedMoves.size>=3 ],
-        [ 'quantum-port:3', longTeleport ]
+        ['bridge',!!facts?.bridgeRobust],
+        ['recall',undoComplete],
+        ['parity-exchange',parityFour],
+        ['pivot',circuitPivot],
+        ['broker',brokerSkipped],
+        ['hinge',!!facts?.hingeSix],
+        ['foundation',foundationKept],
+        ['long-run',collectorTen],
+        ['triple-double',!!facts?.tripleDoubleCross],
+        ['pair',!!facts?.pairExactTwin],
+        ['knot',!!facts?.knotSharedLoops],
+        ['quantum-port:1',teleportedMoves.size>=1],
+        ['quantum-port:2',teleportedMoves.size>=3],
+        ['quantum-port:3',longTeleport]
       ];
-      for(const [step,done] of candidates){if(!done)continue;if(step==='quantum-port:2'&&!isModSlotUnlocked('quantum-port',1,id))continue;if(step==='quantum-port:3'&&!isModSlotUnlocked('quantum-port',2,id))continue;if(unlockModStep(step,id).changed)discovered.push(step)}
+      for(const [step,done] of candidates){
+        if(!done)continue;
+        if(step==='quantum-port:2'&&!isModSlotUnlocked('quantum-port',1,id))continue;
+        if(step==='quantum-port:3'&&!isModSlotUnlocked('quantum-port',2,id))continue;
+        if(unlockModStep(step,id).changed)discovered.push(step)
+      }
       return discovered
     }
     function modeProgress(mode,context){
