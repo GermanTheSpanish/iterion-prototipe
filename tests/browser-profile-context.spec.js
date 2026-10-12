@@ -163,6 +163,7 @@ test('NEW PLAYER resumes an existing run and retains mode and Mod discoveries ac
   await page.locator('#continueRun').click();
   await expect(page.locator('.app')).toBeVisible();
   expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(before.runId);
+  await placeOpeningTile(page);
 
   await page.locator('#menuButton').click();
   await page.locator('#menuGroupExplore').click();
