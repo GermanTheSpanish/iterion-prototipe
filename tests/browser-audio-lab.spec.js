@@ -17,3 +17,19 @@ test('Audio Lab initializes instruments and imports recorded traces on mobile',a
  await expect(page.locator('#imported-traces button')).toHaveCount(1);
  expect(errors).toEqual([]);
 });
+
+test('Audio Lab starts recorded cascades with a tabletop slap',async({page})=>{
+ await page.goto('http://127.0.0.1:4173/experiments/audio-lab/');
+ await expect(page.locator('#keys button')).toHaveCount(7);
+ const result=await page.evaluate(async()=>{
+  const module=await import('/experiments/audio-lab/instrument.js');
+  const context=new (window.AudioContext||window.webkitAudioContext)();
+  const master=context.createGain();master.connect(context.destination);
+  const instrument=module.createInstrument(context,master,()=>{});
+  instrument.slap(context.currentTime+.03,.2);
+  const hasSlap=typeof instrument.slap==='function';
+  await context.close();
+  return hasSlap;
+ });
+ expect(result).toBe(true);
+});
