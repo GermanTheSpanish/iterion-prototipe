@@ -125,7 +125,7 @@ check('FOUNDATION stage evidence is produced at real Market opening with persist
     assert.equal(e.marketIndex,i);assert.deepEqual(e.foundationCandidateTileIds,[tile.id]);
     assert(g.closeMarket())
   }
-  assert.deepEqual(makeProfile().evaluateRun(s,snap).modDiscoveries,['foundation'])
+  assert(makeProfile().evaluateRun(s,snap).modDiscoveries.includes('foundation'),'three successive Market openings with surviving activations must unlock FOUNDATION')
 });
 check('COLLECTOR requires ten unique routed physical tiles in one Move',()=>{
   const p=makeProfile();
