@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 
 test('Game Selection opens one-screen 28-domino archive with 23 terminal/Mod slots',async({page},testInfo)=>{
-  await page.setViewportSize({width:375,height:667});
+  await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','dev'));\n  await page.setViewportSize({width:375,height:667});
   await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();
   const access=page.locator('#modCollectionSelectionButton');await expect(access).toBeVisible();await expect(access).toHaveText('MODS · 23/23');
   await access.click();const dialog=page.locator('#modCollectionDialog');await expect(dialog).toBeVisible();
@@ -17,12 +17,12 @@ test('Game Selection opens one-screen 28-domino archive with 23 terminal/Mod slo
 });
 
 test('Run Menu uses the same collection without mutating the saved run',async({page})=>{
-  await page.setViewportSize({width:430,height:932});await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));await page.goto('http://127.0.0.1:4173/');
+  await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','dev'));\n  await page.setViewportSize({width:430,height:932});await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));await page.goto('http://127.0.0.1:4173/');
   const before=await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'));await page.locator('#menuButton').click();await page.locator('#menuGroupExplore').click();const access=page.locator('#modCollectionMenuButton');await expect(access).toHaveText('MODS · 23/23');await access.click();
   await expect(page.locator('#gameMenu')).toBeHidden();await expect(page.locator('#modCollectionDialog')).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('iterion.activeRun.v1'))).toBe(before)
 });
 
 test('archive reports 23 assigned and 5 empty collection slots',async({page})=>{
-  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#modCollectionSelectionButton').click();
+  await page.addInitScript(()=>localStorage.setItem('monoid.profileContext.v1','dev'));\n  await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4173/');await page.locator('#titleCard').click();await page.locator('#modCollectionSelectionButton').click();
   const dialog=page.locator('#modCollectionDialog');await expect(dialog.locator('.modCollectionCell')).toHaveCount(28);await expect(dialog.locator('.modCollectionCell[data-mod-id]')).toHaveCount(23);await expect(dialog.locator('.modCollectionCell.isEmpty')).toHaveCount(5);await expect(dialog.locator('.modCollectionProgress strong')).toHaveText('23/23')
 });
