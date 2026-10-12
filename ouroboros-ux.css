@@ -1,6 +1,9 @@
 /* Infinite/Ouroboros HUD: pale physical board requires dark local ink. */
 body.endlessPalette .board{--ink:#20201e;--muted:#514e48;--line:#89857e;color:#20201e}
 body.endlessPalette .board .boardMessage,body.endlessPalette .board .finalfx,body.endlessPalette .board .cascadeCaption,body.endlessPalette .board .coreActivationFx{color:#20201e}
+/* The score result has an explicit pale surface despite later injected styles. */
+body.endlessPalette .board .finalfx{background:#f7f7f4!important;color:#20201e!important;border-color:#89857e!important}
+body.endlessPalette .board .opfx.add{color:#20201e;-webkit-text-stroke:1px #f7f7f4}
 body.endlessPalette .board .piece.ouroborosSelected{outline-color:#20201e}
 body.endlessPalette .boardCoachLayer:not(.tour):not(.modeReveal):not(.firstBrief):not(.endlessBrief) .boardCoachCard{--ink:#20201e;--muted:#514e48;--line:#89857e;color:#20201e}
 .ouroborosHint{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
