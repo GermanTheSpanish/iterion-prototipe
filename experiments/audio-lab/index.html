@@ -88,20 +88,42 @@ function playImported(trace){
  }
  $('import-status').textContent=trace.move+' · '+replay.operations+' recorded operations · '+replay.splitCount+' forks · '+replay.voices+' branch paths · '+replay.duration.toFixed(1)+'s · recorded topology, musical overlap';
 }
-$('signal-tree-file').onchange=async()=>{
- const file=$('signal-tree-file').files?.[0];if(!file)return;
- if(file.size>2000000){$('import-status').textContent='Debug file exceeds 2 MB';return;}
- try{$('signal-tree-input').value=await file.text();$('signal-tree-import').click()}catch{$('import-status').textContent='Could not read the selected file'}
+function readDebugFile(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=()=>resolve(String(reader.result||''));
+  reader.onerror=()=>reject(reader.error||new Error('FileReader failed'));
+  reader.onabort=()=>reject(new Error('File reading cancelled'));
+  reader.readAsText(file);
+ });
+}
+let importedFile=null;
+$('signal-tree-file').onchange=()=>{
+ const file=$('signal-tree-file').files?.[0];
+ importedFile=file||null;
+ $('import-status').textContent=file?'Selected '+file.name+' ('+file.size+' bytes). Tap Import traces.':'No file selected';
 };
-$('signal-tree-import').onclick=()=>{
+$('signal-tree-import').onclick=async()=>{
+ const file=$('signal-tree-file').files?.[0];
+ const status=$('import-status');
  try {
-  const traces=parseSignalTrees($('signal-tree-input').value),target=$('imported-traces'),rhythm=$('rhythm-traces');target.replaceChildren();rhythm.replaceChildren();
+  let debug=$('signal-tree-input').value;
+  if(file){
+   if(file.size>2000000)throw new Error('Debug file exceeds 2 MB');
+   status.textContent='Reading '+file.name+'…';
+   debug=await readDebugFile(file);
+   $('signal-tree-input').value=debug;
+   importedFile=file;
+  }
+  if(!debug.trim())throw new Error('Select a debug file or paste a SIGNAL TREE trace.');
+  status.textContent='Parsing '+debug.length+' characters…';
+  const traces=parseSignalTrees(debug),target=$('imported-traces'),rhythm=$('rhythm-traces');target.replaceChildren();rhythm.replaceChildren();
   for(const trace of traces){const button=document.createElement('button');button.textContent=trace.label;button.onclick=()=>playImported(trace);target.append(button);const rb=document.createElement('button');rb.textContent=trace.label+' · Rhythm';rb.onclick=()=>playRhythm(trace);rhythm.append(rb)}
   const runs=new Set(traces.map(trace=>trace.run?.id||'standalone'));
   $('import-status').textContent=runs.size+' run(s) with SIGNAL TREE · '+traces.length+' recorded cascade(s) ready · select one to play';
  }catch(error){$('imported-traces').replaceChildren();$('rhythm-traces').replaceChildren();$('import-status').textContent='Import failed: '+error.message}
 };
-$('signal-tree-clear').onclick=()=>{$('signal-tree-file').value='';$('signal-tree-input').value='';$('imported-traces').replaceChildren();$('rhythm-traces').replaceChildren();$('import-status').textContent='No imported traces'};
+$('signal-tree-clear').onclick=()=>{importedFile=null;$('signal-tree-file').value='';$('signal-tree-input').value='';$('imported-traces').replaceChildren();$('rhythm-traces').replaceChildren();$('import-status').textContent='No imported traces'};
 function run(mode){
   init(); stop();
   const events = cascadeEvents(sequence,mode,Number($('tempo').value)/1000);

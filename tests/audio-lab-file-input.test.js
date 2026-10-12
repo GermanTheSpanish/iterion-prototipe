@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('experiments/audio-lab/index.html','utf8');
+assert.match(html,/reader\.readAsText\(file\)/);
+assert.match(html,/status\.textContent='Reading '/);
+assert.match(html,/status\.textContent='Parsing '/);
+assert.match(html,/\$\('signal-tree-import'\)\.onclick=async\(\)=>/);
+assert.match(html,/if\(file\)\{/);
+assert.doesNotMatch(html,/await file\.text\(\)/);
+console.log('Audio Lab explicit file import regression passed');
