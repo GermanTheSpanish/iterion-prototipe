@@ -2,7 +2,7 @@ import {operationDelay} from './replay.js';
 
 // Audio-only interpretation of the engine's selected SIGNAL TREE trace.
 // The engine evaluates arms sequentially; only this renderer overlaps logical arms.
-const MAX_TEXT=2_000_000, MAX_EVENTS=20000;
+const MAX_TEXT=20_000_000, MAX_EVENTS=20000;
 function decodeEvents(json) {
   if(json==='COMPACTED_AFTER_RESTORE') throw new Error('This trace was compacted after restore; export a fresh live run.');
   let events;
@@ -11,7 +11,7 @@ function decodeEvents(json) {
   return events;
 }
 export function parseSignalTrees(text) {
-  if(typeof text!=='string'||text.length>MAX_TEXT)throw new Error('Debug text is missing or too large (2 MB maximum).');
+  if(typeof text!=='string'||text.length>MAX_TEXT)throw new Error('Debug text is missing or too large (20 MB maximum).');
   const traces=[];
   let run=null;
   for(const line of text.split(/\r?\n/)){
