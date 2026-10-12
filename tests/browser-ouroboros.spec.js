@@ -31,7 +31,7 @@ test('Ouroboros turns the machine into the playable surface on mobile',async({pa
     return{found:false,previewOk:false,previewReason:null}
   });
   expect(mismatchFreedom.found).toBe(true);expect(mismatchFreedom.previewOk).toBe(true);expect(mismatchFreedom.previewReason).toBeNull();
-  await expect(page.locator('#hand .ouroborosAction')).toHaveCount(2);await expect(page.locator('#hand .ouroborosRebuildUndo')).toHaveText('REVERT');await expect(page.locator('#hand .ouroborosRebuildUndo')).toBeDisabled();await expect(page.locator('#hand .ouroborosFire')).toHaveText('FIRE');await expect(page.locator('#hand')).not.toContainText('ROTATE');await expect(page.locator('#hand .domino')).toHaveCount(1);
+  await expect(page.locator('#hand .ouroborosAction')).toHaveCount(2);await expect(page.locator('#hand .ouroborosRebuildUndo')).toHaveText('REVERT');await expect(page.locator('#hand .ouroborosRebuildUndo')).toBeDisabled();await expect(page.locator('#hand .ouroborosFire')).toContainText('FIRE');await expect(page.locator('#hand .ouroborosFire small')).toHaveText('3 LEFT');await expect(page.locator('#moveTool')).toContainText('3 FIRES');await expect(page.locator('#hand')).not.toContainText('ROTATE');await expect(page.locator('#hand .domino')).toHaveCount(1);
   expect(await page.evaluate(()=>({phase:window.__monoidGame.snapshot().endless.phase,hand:window.__monoidGame.state().hand.length,maxGeneration:window.__monoidGame.snapshot().powerSets.maxGeneration}))).toEqual({phase:'ouroboros',hand:0,maxGeneration:3});
   const previewState=await page.evaluate(()=>JSON.stringify(window.__monoidGame.exportState()));await expect(page.locator('.routePreviewSvg[data-preview-source="ouroboros"]')).toBeVisible();await expect(page.locator('.routePreviewSvg[data-preview-source="ouroboros"]')).toHaveAttribute('data-preview-mode','preview');expect(await page.evaluate(()=>JSON.stringify(window.__monoidGame.exportState()))).toBe(previewState);
   const dragPlan=await page.evaluate(()=>{
@@ -71,4 +71,68 @@ test('Ouroboros turns the machine into the playable surface on mobile',async({pa
   expect(await page.evaluate(()=>window.__monoidGame.state().roundTurn)).toBe(before+1);expect(await page.evaluate(()=>window.__monoidGame.state().events.some(e=>e.type==='ouroboros-fire'))).toBe(true);
   const ouroTelemetry=await page.evaluate(()=>{const t=window.__monoidPlaytest;return{fires:t?.ouroborosFires?.length||0,rebuilds:t?.ouroborosRebuilds?.length||0,last:t?.ouroborosFires?.at(-1)||null}});expect(ouroTelemetry.fires).toBeGreaterThan(0);expect(ouroTelemetry.rebuilds).toBeGreaterThanOrEqual(2);expect(ouroTelemetry.last).toEqual(expect.objectContaining({routeLength:expect.any(Number),layoutSignature:expect.stringMatching(/^[0-9a-f]{8}$/),rebuildCount:expect.any(Number),rotationCount:expect.any(Number)}));
   expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+});
+
+async function openSavedOuroboros(page,failed=false){
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('http://127.0.0.1:4173/?qa=infinite16&ci=1');
+  await expect(page.locator('.app')).toBeVisible({timeout:12000});
+  const saved=await page.evaluate(failed=>{
+    const data=window.__monoidGame.exportState(),s=data.state;
+    s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.roundTurn=failed?3:1;
+    s.hand=[];s.reserve=[];s.cleared=false;s.blocked=failed;s.needsReroll=false;
+    s.failureReason=failed?'ouroboros-fire-limit':null;s.running=false;s.undoFrame=null;s.consumables.undo=0;
+    s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false;s.shopType=null;
+    s.events.push({type:'ouroboros-fire',round:s.round+1,turn:s.turn+1,tileId:s.pieces[0].tile.id});
+    return data;
+  },failed);
+  await page.goto('http://127.0.0.1:4173/');
+  await page.evaluate(saved=>{
+    localStorage.setItem('iterion.activeRun.v1',JSON.stringify(saved));
+    localStorage.setItem('iterion.activeRunMode.v1','classic');
+    localStorage.setItem('iterion.tutorialChoice.v1','made');
+  },saved);
+  await page.locator('#titleCard').click();
+  await expect(page.locator('#continueRun')).toBeVisible();
+  await page.locator('#continueRun').click();
+  await expect(page.locator('body')).toHaveClass(/ouroborosPalette/);
+}
+
+test('Ouroboros shows FIRE budget and accessible rules on a readable Infinite board',async({page})=>{
+  await openSavedOuroboros(page);
+  await expect(page.locator('#moveTool')).toContainText('2 FIRES');
+  await expect(page.locator('#moveTool')).toBeDisabled();
+  await expect(page.locator('#hand .ouroborosFire small')).toHaveText('2 LEFT');
+  await expect(page.locator('.handHeader .label')).toHaveText('SOURCE');
+  await expect(page.locator('#handReserveCount')).toContainText('FIRES LEFT');
+  await page.locator('#hint').click();
+  await expect(page.locator('#overlayTitle')).toHaveText('OUROBOROS');
+  await expect(page.locator('#overlayBody')).toContainText('3 attempts per round');
+  await expect(page.locator('#overlayBody')).toContainText('Reach TARGET');
+  await page.locator('#overlayPrimary').click();
+  const contrast=await page.evaluate(()=>{
+    const board=document.querySelector('#board'),sample=document.createElement('div');
+    sample.className='finalfx';sample.textContent='123';board.append(sample);
+    const rgb=s=>(s.match(/\d+(?:\.\d+)?/g)||[]).slice(0,3).map(Number);
+    const lum=a=>rgb(a).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+    const ratio=(a,b)=>{const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+    return{board:ratio(getComputedStyle(board).color,getComputedStyle(board).backgroundColor),fx:ratio(getComputedStyle(sample).color,getComputedStyle(sample).backgroundColor),different:getComputedStyle(document.body).color!==getComputedStyle(board).color};
+  });
+  expect(contrast.board).toBeGreaterThan(4.5);
+  expect(contrast.fx).toBeGreaterThan(4.5);
+  expect(contrast.different).toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('Ouroboros terminal screen survives FIRE telemetry and retains both exit actions',async({page})=>{
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await openSavedOuroboros(page,true);
+  await expect(page.locator('#overlayTitle')).toHaveText('OUROBOROS OVER');
+  await expect(page.locator('#overlayBody')).toContainText('3 FIRE attempts');
+  await expect(page.locator('#overlayBody')).toContainText('This run has ended');
+  await expect(page.locator('#overlayPrimary')).toHaveText('DOWNLOAD RUN .TXT');
+  await expect(page.locator('#overlaySecondary')).toHaveText('NEW RUN');
+  await expect(page.locator('#overlayPrimary')).toBeVisible();
+  await expect(page.locator('#overlaySecondary')).toBeVisible();
+  expect(errors).toEqual([]);
 });
