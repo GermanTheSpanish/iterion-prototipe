@@ -7,4 +7,6 @@ assert.match(html,/status\.textContent='Parsing '/);
 assert.match(html,/\$\('signal-tree-import'\)\.onclick=async\(\)=>/);
 assert.match(html,/if\(file\)\{/);
 assert.doesNotMatch(html,/await file\.text\(\)/);
+assert.match(html,/file\.size>20000000/);
+assert.doesNotMatch(html,/\$\('signal-tree-input'\)\.value=debug/);
 console.log('Audio Lab explicit file import regression passed');
