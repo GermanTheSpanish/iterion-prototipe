@@ -222,12 +222,12 @@
     return !doc.querySelector('dialog[open]:not(#progressionRewardDialog)')
   }
   function enqueueProgressionReward(detail){rewardQueue.push(...modeRewardItems(detail));showNextReward()}
-  function enqueueModReward(id){const mod=root.IterionMods?.get?.(id),guide=MG?.get?.(id);if(!mod)return;rewardQueue.push({kind:'mod',id,mod,guide});showNextReward()}
+  function enqueueModReward(id){const step=root.MonoidProfile?.MOD_UNLOCK_STEPS?.find(item=>item.id===id),modId=id?.startsWith('quantum-port:')?'quantum-port':id,mod=root.IterionMods?.get?.(modId),guide=MG?.get?.(modId);if(!mod)return;rewardQueue.push({kind:'mod',id,modId,mod,guide,step});showNextReward()}
   function showNextReward(){
     if(rewardActive||!rewardQueue.length||!progressionRewardSurfaceReady())return;const item=rewardQueue.shift(),dialog=ensureRewardDialog(),eyebrow=dialog.querySelector('.progressionRewardEyebrow'),title=dialog.querySelector('#progressionRewardTitle'),visual=dialog.querySelector('.progressionRewardVisual'),rule=dialog.querySelector('.progressionRewardRule'),meta=dialog.querySelector('.progressionRewardMeta');
     rewardReturnFocus=doc.activeElement;rewardActive=true;
     if(item.kind==='mod'){
-      eyebrow.textContent='NEW MOD DISCOVERED';title.textContent=item.mod.displayName||item.mod.name||item.id.toUpperCase();visual.innerHTML=MG?.diagramHtml?.(item.id,false)||`<div class="modDiagram modDiagramLine"><b>${item.mod.collectionCode||item.id.slice(0,2).toUpperCase()}</b></div>`;rule.textContent=item.guide?.market||item.mod.shortDescription||'';meta.textContent='ADDED TO MOD COLLECTION';
+      eyebrow.textContent='NEW MOD DISCOVERED';title.textContent=item.step?.name||item.mod.displayName||item.mod.name||item.id.toUpperCase();visual.innerHTML=MG?.diagramHtml?.(item.modId||item.id,false)||`<div class="modDiagram modDiagramLine"><b>${item.step?.code||item.mod.collectionCode||item.id.slice(0,2).toUpperCase()}</b></div>`;rule.textContent=item.step?.lore||item.guide?.market||item.mod.shortDescription||'';meta.textContent=item.step?.requirement?'ADDED TO MOD COLLECTION · '+item.step.code:'ADDED TO MOD COLLECTION';
     }else{
       const spec=REWARD_MODES[item.mode]||{name:String(item.mode||'MODE').toUpperCase(),pips:0,description:''};eyebrow.textContent=item.kind==='completion'?'MODE COMPLETE':'NEW MODE UNLOCKED';title.textContent=spec.name;visual.innerHTML=modeRewardVisual(item.mode);rule.textContent=spec.description;meta.textContent=item.kind==='completion'?'MILESTONE COMPLETE':item.completedName?`${item.completedName} COMPLETE · AVAILABLE FROM GAME SELECTION`:'AVAILABLE FROM GAME SELECTION';
     }
