@@ -13,11 +13,17 @@ function decodeEvents(json) {
 export function parseSignalTrees(text) {
   if(typeof text!=='string'||text.length>MAX_TEXT)throw new Error('Debug text is missing or too large (2 MB maximum).');
   const traces=[];
+  let run=null;
   for(const line of text.split(/\r?\n/)){
+    const runHeader=line.match(/^===== RUN (\d+)\/(\d+) · ([^·]+) · Run #(\d+) · (.*?) =====$/);
+    if(runHeader){run={index:Number(runHeader[1]),number:Number(runHeader[4]),status:runHeader[3].trim(),id:runHeader[5].trim(),mode:'UNKNOWN'};continue;}
+    const mode=line.match(/^Mode: (\S+)/);
+    if(mode&&run)run.mode=mode[1];
     const marker=line.match(/^T(\d+) SIGNAL TREE\b.*?\btrace=(.*)$/);
     if(!marker)continue;
     const events=decodeEvents(marker[2].trim());
-    traces.push({id:'import-'+traces.length,label:'T'+marker[1]+' · Recorded SIGNAL TREE',move:'T'+marker[1],events,traceSource:'RECORDED SIGNAL TREE',imported:true});
+    const move='T'+marker[1],runLabel=run?'Run #'+run.number+' · '+run.mode:'Debug export';
+    traces.push({id:'import-'+traces.length,label:runLabel+' · '+move+' · Recorded SIGNAL TREE',move,run:run?{...run}:null,events,traceSource:'RECORDED SIGNAL TREE',imported:true});
   }
   if(!traces.length){
     const raw=text.trim();
@@ -33,7 +39,10 @@ function voice(path) {
 }
 export function renderSignalTree(trace,speed=1) {
   if(!Number.isFinite(speed)||speed<=0)throw new Error('Invalid playback speed.');
-  const source=Array.isArray(trace)?trace:trace?.events;
+  const raw=Array.isArray(trace)?trace:trace?.events;
+  // Double Echo telemetry mirrors normal operations and branch delimiters inline.
+  // The primary signal tree must be parsed independently of its echo shadow.
+  const source=Array.isArray(raw)?raw.filter(event=>!event?.type?.startsWith('echo-')):raw;
   if(!Array.isArray(source)||source.length>MAX_EVENTS)throw new Error('Missing or oversized trace.');
   const events=[], paths=new Set(), forks=[];
   let cursor=0,opIndex=0,splitCount=0;
