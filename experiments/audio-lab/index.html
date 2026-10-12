@@ -124,10 +124,10 @@ $('signal-tree-import').onclick=async()=>{
  try {
   let debug=$('signal-tree-input').value;
   if(file){
-   if(file.size>2000000)throw new Error('Debug file exceeds 2 MB');
+   if(file.size>20000000)throw new Error('Debug file exceeds 20 MB');
    status.textContent='Reading '+file.name+'…';
    debug=await readDebugFile(file);
-   $('signal-tree-input').value=debug;
+   // Avoid duplicating large debug exports in the mobile textarea.
    importedFile=file;
   }
   if(!debug.trim())throw new Error('Select a debug file or paste a SIGNAL TREE trace.');
