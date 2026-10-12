@@ -246,7 +246,7 @@
         [ 'quantum-port:2', teleportedMoves.size>=3 ],
         [ 'quantum-port:3', longTeleport ]
       ];
-      for(const [step,done] of candidates)if(done&&unlockModStep(step,id).changed)discovered.push(step);
+      for(const [step,done] of candidates){if(!done)continue;if(step==='quantum-port:2'&&!isModSlotUnlocked('quantum-port',1,id))continue;if(step==='quantum-port:3'&&!isModSlotUnlocked('quantum-port',2,id))continue;if(unlockModStep(step,id).changed)discovered.push(step)}
       return discovered
     }
     function modeProgress(mode,context){
