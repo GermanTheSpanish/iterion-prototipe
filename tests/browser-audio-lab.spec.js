@@ -25,7 +25,7 @@ test('Audio Lab extracts SIGNAL TREE traces from a debug larger than 2 MB',async
  await page.goto('http://127.0.0.1:4173/experiments/audio-lab/');
  await expect(page.locator('#keys button')).toHaveCount(7);
  const trace='T31 SIGNAL TREE trace=[{"type":"op","value":3}]\n';
- const debug='===== RUN 1/1 · ACTIVE · Run #109 · B-TEST =====\\nMode: CLASSIC\n'
+ const debug='===== RUN 1/1 · ACTIVE · Run #109 · B-TEST =====\nMode: CLASSIC\n'
   +'irrelevant history '.repeat(140000)+'\n'+trace;
  await page.locator('#signal-tree-file').setInputFiles({
   name:'large-playtest.txt',mimeType:'text/plain',buffer:Buffer.from(debug)
