@@ -135,6 +135,9 @@ test('NEW PLAYER resumes an existing run and retains mode and Mod discoveries ac
   await expect(page.locator('#titleCard')).toBeVisible();
   await page.locator('#titleCard').click();
   await expect(page.locator('.app')).toBeVisible();
+  await expect(page.locator('.handRail')).toBeVisible();
+  await expect(page.locator('#monoidBoardCoach h2')).toHaveText('FIRST TILE');
+  await placeOpeningTile(page);
   const before=await page.evaluate(()=>{
     const profile=window.MonoidProfile;
     profile.unlockMode('eyes');
@@ -142,6 +145,7 @@ test('NEW PLAYER resumes an existing run and retains mode and Mod discoveries ac
     return{
       profileId:profile.ensureProfile().profileId,
       runId:window.__monoidGame.state().runId,
+      placedTileId:window.__monoidGame.state().pieces[0]?.id,
       stored:localStorage.getItem(profile.storageKey('iterion.activeRun.v1'))
     }
   });
@@ -162,8 +166,7 @@ test('NEW PLAYER resumes an existing run and retains mode and Mod discoveries ac
   await expect(page.locator('#continueRun')).toBeVisible();
   await page.locator('#continueRun').click();
   await expect(page.locator('.app')).toBeVisible();
-  expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(before.runId);
-  await placeOpeningTile(page);
+  expect(await page.evaluate(()=>({runId:window.__monoidGame.state().runId,placedTileId:window.__monoidGame.state().pieces[0]?.id}))).toEqual({runId:before.runId,placedTileId:before.placedTileId});
 
   await page.locator('#menuButton').click();
   await page.locator('#menuGroupExplore').click();
