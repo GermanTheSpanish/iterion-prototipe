@@ -380,7 +380,7 @@
       const context=currentContext(),profile=ensureProfile(context);
       return{
         context:context,
-        label:context==='player'?'PLAYER':context==='dev'?'DEV':'FRESH PLAYER',
+        label:context==='player'?'PLAYER':context==='dev'?'DEV':'NEW PLAYER',
         devAccess:isDevAccess(),
         profile:profile
       }

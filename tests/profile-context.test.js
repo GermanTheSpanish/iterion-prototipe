@@ -141,4 +141,27 @@ function create(store,hostname='play.monoid.test'){
   assert.ok(store.getItem('monoid.ctx.dev.monoid.playtestRun.v1'));
 }
 
+
+{
+  const store=storage(),profile=create(store);
+  const originalPlayer=profile.ensureProfile('player').profileId;
+  profile.setContext('fresh',{reset:true});
+  const originalFresh=profile.ensureProfile().profileId;
+  profile.unlockMode('eyes');
+  profile.unlockModStep('bridge');
+  const savedKey=profile.storageKey('iterion.activeRun.v1');
+  store.setItem(savedKey,JSON.stringify({state:{runId:'FRESH-RUN-1'}}));
+  profile.setContext('player');
+  profile.setContext('fresh');
+  assert.equal(profile.ensureProfile().profileId,originalFresh,'selecting New Player must preserve identity');
+  assert.equal(profile.isModeUnlocked('eyes'),true,'mode progression must persist');
+  assert.equal(profile.isModSlotUnlocked('bridge'),true,'Mod discoveries must persist');
+  assert.equal(JSON.parse(store.getItem(savedKey)).state.runId,'FRESH-RUN-1','active run must persist');
+  assert.equal(profile.ensureProfile('player').profileId,originalPlayer,'legacy Player must stay isolated');
+  assert.equal(profile.contextInfo().label,'NEW PLAYER');
+  profile.resetContext('fresh');
+  assert.equal(store.getItem(savedKey),null,'explicit reset still removes the sandbox');
+  assert.deepEqual(profile.ensureProfile().unlockedModes,['classic']);
+}
+
 console.log('profile context and progression tests passed');

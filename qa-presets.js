@@ -5,7 +5,7 @@
   if(root?.document){api.installMenuAccess(root);api.autoStart(root);api.autoResumeReturn(root);}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const BUILD_ID='20261012.2';
+  const BUILD_ID='20261012.4';
   const ACTIVE_RUN_KEY='iterion.activeRun.v1';
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
   const LATEST_RUN_KEY='iterion.latestRun.v9';
@@ -325,7 +325,8 @@
     const inQa=new URL(root.location.href).searchParams.has('qa'),context=root.MonoidProfile?.contextInfo?.()?.context||'player';
     dialog.innerHTML=`<div class="menuHead"><h2>QA / Test runs</h2><button class="iconButton" aria-label="Close QA test runs">×</button></div>
       <p class="qaMenuIntro">Prepared late-game states. Your real saved run is protected.</p>
-      <div class="qaProfileContext"><strong>PROFILE CONTEXT · ${context.toUpperCase()}</strong><div class="qaProfileChoices" role="group" aria-label="Profile context"><button type="button" data-profile-context="player" aria-pressed="${context==='player'}">PLAYER</button><button type="button" data-profile-context="dev" aria-pressed="${context==='dev'}">DEV · ALL</button><button type="button" data-profile-context="fresh" aria-pressed="${context==='fresh'}">FRESH · RESET</button></div></div>
+      <div class="qaProfileContext"><strong>PROFILE CONTEXT · ${context.toUpperCase()}</strong><div class="qaProfileChoices" role="group" aria-label="Profile context"><button type="button" data-profile-context="player" aria-pressed="${context==='player'}">PLAYER</button><button type="button" data-profile-context="dev" aria-pressed="${context==='dev'}">DEV · ALL</button><button type="button" data-profile-context="fresh" aria-pressed="${context==='fresh'}">NEW PLAYER</button></div></div>
+      <button type="button" class="qaPresetChoice" data-reset-fresh><strong>RESET NEW PLAYER</strong><small>Erase all New Player saves and discoveries (confirmation required)</small></button>
       <button class="qaPresetChoice" data-qa-preset="classic14"><strong>CLASSIC · ROUND 14</strong><small>Real R14 · 30 tiles · DD · DE · C5 · POWER ×2 · 2 clears from Endless</small></button>
       <button class="qaPresetChoice" data-qa-preset="quantumNetwork"><strong>QUANTUM NETWORK · FIVE PORTS</strong><small>R14 Classic machine · 2 Zero Ports + 3 Quantum Ports · all five outcomes ready</small></button>
       <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>ENDLESS · ROUND 16</strong><small>Generic late-game fixture · Classic progression</small></button>
@@ -338,8 +339,11 @@
     dialog.addEventListener('click',event=>{
       const profileContext=event.target.closest('[data-profile-context]')?.dataset.profileContext;
       if(profileContext&&root.MonoidProfile){
-        const reset=profileContext==='fresh';if(reset&&!root.confirm('Reset the Fresh Player test profile?'))return;
-        persistCurrentRun(root);root.MonoidProfile.setContext(profileContext,{reset});const url=new URL(root.location.href);url.search='';url.searchParams.set('cb',BUILD_ID);root.location.assign(url.href);return
+        persistCurrentRun(root);root.MonoidProfile.setContext(profileContext);const url=new URL(root.location.href);url.search='';url.searchParams.set('cb',BUILD_ID);root.location.assign(url.href);return
+      }
+      if(event.target.closest('[data-reset-fresh]')){
+        if(!root.confirm('Erase the New Player run and every unlock on this device? This cannot be undone.'))return;
+        persistCurrentRun(root);root.MonoidProfile.setContext('fresh',{reset:true});const url=new URL(root.location.href);url.search='';url.searchParams.set('cb',BUILD_ID);root.location.assign(url.href);return
       }
       const choice=event.target.closest('[data-qa-preset]')?.dataset.qaPreset;
       if(choice&&PRESETS[choice]){persistCurrentRun(root);root.location.assign(qaUrl(root,choice));return}

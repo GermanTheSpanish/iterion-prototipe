@@ -28,7 +28,7 @@
     const showBoot=!!bootSelector&&!bootBypass();entryState=showBoot?'boot':'title';document.documentElement.classList.toggle('bootSurface',showBoot);document.body.classList.toggle('bootSurface',showBoot);if(bootSelector)bootSelector.hidden=!showBoot;titleCard.hidden=showBoot;gameSelection.hidden=true;entryFlow.hidden=false
   }
   function chooseBootContext(context){
-    if(!PROFILE?.setContext)return;PROFILE.setContext(context,{reset:context==='fresh'});sessionStorage.setItem(BOOT_PASS_KEY,context);const url=new URL(location.href);url.searchParams.delete('boot');location.replace(url.href)
+    if(!PROFILE?.setContext)return;PROFILE.setContext(context);sessionStorage.setItem(BOOT_PASS_KEY,context);const url=new URL(location.href);url.searchParams.delete('boot');location.replace(url.href)
   }
   let handFx=Array(Math.max(D.HAND_SIZE,D.SHOP_HAND_MAX||D.HAND_SIZE)).fill('normal'),ouroborosSelection=null,ouroborosPreviewSuspended=false;
   const MOD_FACE_REVEAL_MS=3000,ROUND_REWARD_PREVIEW_MS=1050,modFaceRevealUntil=new Map(),modFaceRevealTimers=new Map();
@@ -1051,7 +1051,7 @@
   shopBtn.onclick=openPermanentShop;moveBtn.onclick=activateMove;rerollBtn.onclick=activateReroll;undoBtn.onclick=activateUndo;resetBtn.onclick=()=>{if(uiBusy)return;if(!confirm('Start a new run?'))return;closeMenu();newRun()};helpBtn.onclick=openRulebook;copyBtn.onclick=()=>{closeMenu();copyRun()};viewBtn.onclick=()=>{closeMenu();viewRun=!viewRun;renderLog();if(auxOverlay?.type==='inspector')renderAuxOverlay()};
   bindInspectorHold(titleCard,openMonoidInspector);bindInspectorHold(selectionTitle,openMonoidInspector);bindInspectorHold(menuButton,openMonoidInspector);
   if(selectionTitle){selectionTitle.tabIndex=0;selectionTitle.setAttribute('role','button');selectionTitle.setAttribute('aria-label','MONOID. Tap or press Enter to inspect the definition.');selectionTitle.onclick=e=>{e.preventDefault();e.stopPropagation();openMonoidInspector()};selectionTitle.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openMonoidInspector()}}}
-  function enterFromTitle(){if(PROFILE?.currentContext?.()==='fresh'){window.__monoidSelectedMode='classic';localStorage.setItem(ACTIVE_MODE_KEY,'classic');startNormal(false);return}showSelection()}
+  function enterFromTitle(){if(PROFILE?.currentContext?.()==='fresh'&&!storedState()&&!localStorage.getItem(FIRST_REAL_OPENING_KEY)){window.__monoidSelectedMode='classic';localStorage.setItem(ACTIVE_MODE_KEY,'classic');startNormal(false);return}showSelection()}
   titleCard.onclick=e=>{if(consumeInspectorHoldClick(titleCard,e))return;e.preventDefault();e.stopPropagation();enterFromTitle()};
   titleCard.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();enterFromTitle()}};
   bootSelector?.querySelectorAll('[data-boot-context]').forEach(button=>button.addEventListener('click',()=>chooseBootContext(button.dataset.bootContext)));
