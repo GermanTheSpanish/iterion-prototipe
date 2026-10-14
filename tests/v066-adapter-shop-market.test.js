@@ -29,8 +29,10 @@ assert.equal(D.SHOP_ADAPTER_TILE_COST,8);
   const right=E.pieceFrom({a:3,b:4},10,4,0,0,2);
   const adapter=adapterTile();
   const oneEnd=E.validatePlacement(adapter,6,4,0,0,[left]);
-  assert.equal(oneEnd.ok,false);
-  assert.equal(oneEnd.reason,'adapter-needs-two-ends','Adapter cannot attach to only one physical piece');
+  assert.equal(oneEnd.ok,true,'Adapter now accepts one touched physical value');
+  assert.deepEqual([oneEnd.resolvedTile.a,oneEnd.resolvedTile.b],[6,6]);
+  assert.equal(oneEnd.resolvedTile.adapterResolved,true);
+  assert.equal(oneEnd.piece.double,true,'resolved Adapter uses physical double topology');
 
   const bridge=E.validatePlacement(adapter,6,4,0,0,[left,right]);
   assert.equal(bridge.ok,true,'Adapter bridges two distinct physical ends');
@@ -47,6 +49,61 @@ assert.equal(D.SHOP_ADAPTER_TILE_COST,8);
   assert.equal(E.validatePlacement(locked,6,4,0,0,[left,right]).ok,true);
   const wrong=E.pieceFrom({a:5,b:4},10,4,0,0,4);
   assert.equal(E.validatePlacement(locked,6,4,0,0,[left,wrong]).reason,'value-mismatch','resolved Adapter obeys normal matching forever');
+}
+
+
+{
+  const adapter=adapterTile('adapter-t-branch');
+  const stem=E.pieceFrom({a:1,b:5},6,4,0,1,11);
+  const t=E.validatePlacement(adapter,5,8,0,0,[stem]);
+  assert.equal(t.ok,true,'one-value Adapter centres across the stem to make a physical T');
+  assert.deepEqual([t.resolvedTile.a,t.resolvedTile.b],[5,5]);
+  assert.equal(t.piece.double,true);
+  assert.equal(t.contacts.length,1,'both Adapter halves touch the same physical stem');
+  assert.equal(t.contacts[0].kind,'double-centered','T placement inherits the canonical double-centred geometry');
+  const physical=E.pieceFrom(t.resolvedTile,5,8,0,0,12);
+  assert.equal(E.connectionsForPiece(physical,[stem,physical]).length,2,'centred T has two physical half contacts');
+  const arm=E.pieceFrom({a:5,b:2},9,8,0,0,13);
+  assert.equal(E.validatePlacement(arm.tile,9,8,0,0,[stem,physical]).ok,true,'the new double can extend its crossbar normally');
+
+  const conflicting=E.pieceFrom({a:2,b:3},6,4,0,0,14);
+  assert.equal(E.validatePlacement(adapter,6,6,0,0,[conflicting]).ok,false,'one physical neighbour with two different values is ambiguous');
+  const zero=E.pieceFrom({a:1,b:0},2,4,0,0,15);
+  const zeroDouble=E.validatePlacement(adapter,6,4,0,0,[zero]);
+  assert.deepEqual([zeroDouble.resolvedTile?.a,zeroDouble.resolvedTile?.b],[0,0],'zero is a printed value, not an exception');
+  assert.equal(E.validatePlacement(adapter,4,4,0,0,[]).ok,false,'Adapter cannot be the first tile');
+}
+
+{
+  const game=create(6610,{STARTING_UNDO_CONSUMABLES:1}),s=game.state(),existing=s.set.find(t=>t.id==='d1-6'),adapter=adapterTile('adapter-one-value');
+  s.set.push(adapter);
+  const piece=E.pieceFrom(existing,2,4,0,0,1);piece.tile={...existing};
+  s.pieces=[piece];s.placedTileIds=[existing.id];s.idc=1;s.turn=1;s.hand=[adapter,null,null,null,null];
+  s.reserve=s.reserve.filter(t=>t.id!==existing.id);
+  const candidate=game.candidatesForIndex(0).find(p=>p.x===6&&p.y===4&&p.rr===0);
+  assert(candidate,'the playable Hand offers a single-contact Adapter');
+  assert.deepEqual([candidate.resolvedTile.a,candidate.resolvedTile.b],[6,6]);
+  const preview=game.previewPlacement(0,candidate);
+  assert.equal(preview.ok,true);assert.deepEqual([preview.tile.a,preview.tile.b],[6,6]);
+  assert.equal(preview.trigger,12,'preview scores using the real double');
+  assert.equal(s.hand[0].adapterResolved,false,'preview never materializes the Adapter');
+  const placed=game.beginPlacement(0,candidate);assert.equal(placed.ok,true);
+  assert.equal(placed.p.double,true,'runtime placement has canonical double topology');
+  assert.equal(placed.trigger,12);
+  game.finishPlacement(placed);
+  const owned=s.set.find(t=>t.id===adapter.id);
+  assert.deepEqual([owned.a,owned.b],[6,6]);assert.equal(owned.adapterResolved,true);
+  const board=game.snapshot().board.find(p=>p.tileId===adapter.id);
+  assert.deepEqual([board.a,board.b],[6,6]);assert.equal(board.adapterResolved,true);
+  const restored=create(6611);assert.equal(restored.restoreState(game.exportState()),true);
+  const restoredAdapter=restored.state().set.find(t=>t.id===adapter.id);
+  assert.deepEqual([restoredAdapter.a,restoredAdapter.b],[6,6],'save/restore keeps the resolved values');
+  assert.equal(restoredAdapter.adapterResolved,true);
+  const undone=game.useUndo();assert.equal(undone.ok,true);
+  const restoredFrame=game.state(),undoneAdapter=restoredFrame.set.find(t=>t.id===adapter.id);
+  assert.equal(undoneAdapter.adapterResolved,false,'Undo restores the unresolved Adapter');
+  assert.deepEqual([undoneAdapter.a,undoneAdapter.b],[null,null]);
+  assert.equal(restoredFrame.hand.filter(t=>t?.id===adapter.id).length,1,'Undo returns the same physical Adapter instance to Hand');
 }
 
 {
