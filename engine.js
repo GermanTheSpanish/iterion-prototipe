@@ -26,8 +26,17 @@
     if(tile?.special!=='adapter'||tile.adapterResolved)return null;
     const values=[new Set(),new Set()],neighbours=new Set(),halfNeighbours=[new Set(),new Set()];
     for(const group of contacts||[]){if(group?.piece?.id!=null)neighbours.add(group.piece.id);for(const contact of group.contacts||[]){if(contact.aHalf===0||contact.aHalf===1){values[contact.aHalf].add(contact.bV);if(group?.piece?.id!=null)halfNeighbours[contact.aHalf].add(group.piece.id)}}}
-    if(neighbours.size!==2||values.some(set=>set.size!==1)||halfNeighbours.some(set=>set.size!==1)||[...halfNeighbours[0]].some(id=>halfNeighbours[1].has(id)))return null;
-    const a=[...values[0]][0],b=[...values[1]][0];
+    let a,b;
+    if(neighbours.size===1){
+      // One unambiguous physical value becomes a real double, including a centred T contact.
+      const touchingValues=new Set([...values[0],...values[1]]);
+      if(touchingValues.size!==1)return null;
+      a=b=[...touchingValues][0];
+    }else if(neighbours.size===2){
+      // Preserve the original bridge: each half touches one different physical domino.
+      if(values.some(set=>set.size!==1)||halfNeighbours.some(set=>set.size!==1)||[...halfNeighbours[0]].some(id=>halfNeighbours[1].has(id)))return null;
+      a=[...values[0]][0];b=[...values[1]][0];
+    }else return null;
     if(!Number.isInteger(a)||a<0||a>6||!Number.isInteger(b)||b<0||b>6)return null;
     return{...tile,a,b,adapterResolved:true}
   }
