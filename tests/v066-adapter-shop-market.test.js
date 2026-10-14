@@ -100,10 +100,10 @@ assert.equal(D.SHOP_ADAPTER_TILE_COST,8);
   assert.deepEqual([restoredAdapter.a,restoredAdapter.b],[6,6],'save/restore keeps the resolved values');
   assert.equal(restoredAdapter.adapterResolved,true);
   const undone=game.useUndo();assert.equal(undone.ok,true);
-  const undoneAdapter=s.set.find(t=>t.id===adapter.id);
+  const restoredFrame=game.state(),undoneAdapter=restoredFrame.set.find(t=>t.id===adapter.id);
   assert.equal(undoneAdapter.adapterResolved,false,'Undo restores the unresolved Adapter');
   assert.deepEqual([undoneAdapter.a,undoneAdapter.b],[null,null]);
-  assert.equal(s.hand.filter(t=>t?.id===adapter.id).length,1,'Undo returns the same physical Adapter instance to Hand');
+  assert.equal(restoredFrame.hand.filter(t=>t?.id===adapter.id).length,1,'Undo returns the same physical Adapter instance to Hand');
 }
 
 {
