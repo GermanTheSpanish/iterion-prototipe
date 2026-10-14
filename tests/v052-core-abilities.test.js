@@ -20,7 +20,7 @@ const coreOptions=(pieceId,core,{signalBase=2,signalMax=2,links=[]}={})=>({
   reservoirBonus:D.CORE_RESERVOIR_BONUS
 });
 
-assert.equal(D.VERSION,'0.78.1');
+assert.equal(D.VERSION,'0.79.0');
 assert.equal(D.ENGINE_VERSION,'0.22.0-quantum-port-v1');
 assert.equal(D.CORE_SIGNAL_LEVEL_STEP,4);
 assert.equal(D.CORE_RESERVOIR_BONUS,8);
