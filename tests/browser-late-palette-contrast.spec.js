@@ -80,5 +80,5 @@ test('pale board and cascade labels use their own dark ink in all late palettes'
   });
   for(const [palette,items] of Object.entries(samples))
     for(const item of items)
-      expect(contrast(item.fg,item.bg),palette+' '+item.name).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(item.fg,item.bg),palette+' '+item.name+' '+item.fg+' on '+item.bg).toBeGreaterThanOrEqual(4.5);
 });
