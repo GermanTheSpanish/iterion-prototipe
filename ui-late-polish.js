@@ -4,7 +4,7 @@
   if(!doc||root.__monoidLatePolishInstalled)return;
   root.__monoidLatePolishInstalled=true;
 
-  const BUILD_ID='20261014.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
+  const BUILD_ID='20261015.1',EXTREME_THRESHOLD=1e27,MAX_MARKET_TILES=3,MG=root.MonoidModGuidance;
   const $=id=>doc.getElementById(id);
   const OFFER_COPY={};
 
@@ -163,6 +163,7 @@
     .progressionRewardDomino{display:flex;flex-direction:column;width:56px;height:108px;border:2px solid currentColor;border-radius:7px;background:var(--paper);box-shadow:2px 4px 10px rgba(0,0,0,.08)}
     .progressionRewardDomino>span{position:relative;flex:1}.progressionRewardDomino>span+span{border-top:2px solid currentColor}.progressionRewardDomino em{position:absolute;inset:13%;font-style:normal}
     .progressionRewardDomino i{position:absolute;width:6px;height:6px;border-radius:50%;background:currentColor;transform:translate(-50%,-50%)}
+    .progressionConditionSymbol{display:grid;place-items:center;width:76px;height:76px;border:2px solid currentColor;border-radius:50%;font-size:44px;font-weight:650;line-height:1}
     .progressionRewardRule{max-width:300px;font-size:15px;line-height:1.25;font-weight:760}
     .progressionRewardMeta{margin:0!important;max-width:310px;font-size:10px!important;line-height:1.35!important;font-weight:700;letter-spacing:.1em;color:var(--muted)!important}
     .progressionRewardContinue{width:100%;min-height:52px;margin-top:4px;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:var(--paper);font-size:13px;font-weight:800;letter-spacing:.12em}
@@ -222,16 +223,19 @@
     return !doc.querySelector('dialog[open]:not(#progressionRewardDialog)')
   }
   function enqueueProgressionReward(detail){rewardQueue.push(...modeRewardItems(detail));showNextReward()}
-  function enqueueModReward(id){const step=root.MonoidProfile?.MOD_UNLOCK_STEPS?.find(item=>item.id===id),modId=id?.startsWith('quantum-port:')?'quantum-port':id,mod=root.IterionMods?.get?.(modId),guide=MG?.get?.(modId);if(!mod)return;rewardQueue.push({kind:'mod',id,modId,mod,guide,step});showNextReward()}
+  function enqueueModReward(id){const step=root.MonoidProfile?.MOD_UNLOCK_STEPS?.find(item=>item.id===id),modId=id?.startsWith('quantum-port:')?'quantum-port':id,mod=root.IterionMods?.get?.(modId),guide=MG?.get?.(modId);if(!mod)return;const reward={id,modId,mod,guide,step};rewardQueue.push({kind:'mod-condition',...reward},{kind:'mod',...reward});showNextReward()}
   function showNextReward(){
     if(rewardActive||!rewardQueue.length||!progressionRewardSurfaceReady())return;const item=rewardQueue.shift(),dialog=ensureRewardDialog(),eyebrow=dialog.querySelector('.progressionRewardEyebrow'),title=dialog.querySelector('#progressionRewardTitle'),visual=dialog.querySelector('.progressionRewardVisual'),rule=dialog.querySelector('.progressionRewardRule'),meta=dialog.querySelector('.progressionRewardMeta');
     rewardReturnFocus=doc.activeElement;rewardActive=true;
-    if(item.kind==='mod'){
-      eyebrow.textContent='NEW MOD DISCOVERED';title.textContent=item.step?.name||item.mod.displayName||item.mod.name||item.id.toUpperCase();visual.innerHTML=MG?.diagramHtml?.(item.modId||item.id,false)||`<div class="modDiagram modDiagramLine"><b>${item.step?.code||item.mod.collectionCode||item.id.slice(0,2).toUpperCase()}</b></div>`;rule.textContent=item.step?.lore||item.guide?.market||item.mod.shortDescription||'';meta.textContent=item.step?.requirement?'ADDED TO MOD COLLECTION · '+item.step.code:'ADDED TO MOD COLLECTION';
+    if(item.kind==='mod-condition'){
+      eyebrow.textContent='MOD DISCOVERY';title.textContent='CONDITION MET';visual.innerHTML='<span class="progressionConditionSymbol" aria-hidden="true">✓</span>';rule.textContent=item.step?.requirement||'Discovery requirement completed.';meta.textContent='ACHIEVEMENT COMPLETE · 1/2';
+    }else if(item.kind==='mod'){
+      eyebrow.textContent='MOD UNLOCKED';title.textContent=item.step?.name||item.mod.displayName||item.mod.name||item.id.toUpperCase();visual.innerHTML=MG?.diagramHtml?.(item.modId||item.id,false)||`<div class="modDiagram modDiagramLine"><b>${item.step?.code||item.mod.collectionCode||item.id.slice(0,2).toUpperCase()}</b></div>`;rule.textContent=item.guide?.reward||item.mod.shortDescription||'';meta.textContent='ADDED TO MOD COLLECTION · AVAILABLE NEXT RUN';
     }else{
       const spec=REWARD_MODES[item.mode]||{name:String(item.mode||'MODE').toUpperCase(),pips:0,description:''};eyebrow.textContent=item.kind==='completion'?'MODE COMPLETE':'NEW MODE UNLOCKED';title.textContent=spec.name;visual.innerHTML=modeRewardVisual(item.mode);rule.textContent=spec.description;meta.textContent=item.kind==='completion'?'MILESTONE COMPLETE':item.completedName?`${item.completedName} COMPLETE · AVAILABLE FROM GAME SELECTION`:'AVAILABLE FROM GAME SELECTION';
     }
-    if(!dialog.open)dialog.showModal();dialog.querySelector('.progressionRewardContinue').focus()
+    const action=dialog.querySelector('.progressionRewardContinue');action.textContent=item.kind==='mod-condition'?'REVEAL MOD':'CONTINUE';
+    if(!dialog.open)dialog.showModal();action.focus()
   }
   root.addEventListener('monoid:mod-unlocked',event=>enqueueModReward(event.detail?.id));
   const pendingRewards=Array.isArray(root.__monoidProgressionRewardQueue)?root.__monoidProgressionRewardQueue.splice(0):[];for(const reward of pendingRewards)enqueueProgressionReward(reward);

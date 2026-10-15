@@ -149,14 +149,29 @@ test('mode and Mod unlocks use a dedicated reward reveal on compact phones',asyn
   expect(modeLayout.top).toBeGreaterThanOrEqual(0);expect(modeLayout.bottom).toBeLessThanOrEqual(modeLayout.height);expect(modeLayout.button).toBeGreaterThanOrEqual(44);expect(modeLayout.scrolls).toBe(false);
   await reward.locator('.progressionRewardContinue').click();await expect(reward).not.toBeVisible();
 
-  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id:'pivot'}})));
+  await page.evaluate(()=>{window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id:'pivot'}}));window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id:'knot'}}))});
   await expect(reward).toBeVisible();
-  await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('NEW MOD DISCOVERED');
+  await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('MOD DISCOVERY');
+  await expect(reward.locator('#progressionRewardTitle')).toHaveText('CONDITION MET');
+  await expect(reward.locator('.progressionRewardRule')).toHaveText('Close a Circuit by placing its final tile at 90° or 270°.');
+  await expect(reward.locator('.progressionRewardVisual .modDiagram')).toHaveCount(0);
+  await expect(reward.locator('.progressionRewardContinue')).toHaveText('REVEAL MOD');
+  const conditionLayout=await reward.evaluate(el=>({top:el.getBoundingClientRect().top,bottom:el.getBoundingClientRect().bottom,height:innerHeight,scroll:document.documentElement.scrollHeight>innerHeight}));
+  expect(conditionLayout.top).toBeGreaterThanOrEqual(0);expect(conditionLayout.bottom).toBeLessThanOrEqual(conditionLayout.height);expect(conditionLayout.scroll).toBe(false);
+  await reward.locator('.progressionRewardContinue').click();
+  await expect(reward.locator('.progressionRewardEyebrow')).toHaveText('MOD UNLOCKED');
   await expect(reward.locator('#progressionRewardTitle')).toHaveText('PIVOT');
   await expect(reward.locator('.progressionRewardVisual .modDiagram')).toHaveCount(1);
-  await expect(reward.locator('.progressionRewardRule')).toHaveText('Change the angle.');
-  await expect(reward.locator('.progressionRewardMeta')).toHaveText('ADDED TO MOD COLLECTION · PV');
-  await reward.locator('.progressionRewardContinue').click()
+  await expect(reward.locator('.progressionRewardRule')).toContainText('move the other half 90° or 180°');
+  await expect(reward.locator('.progressionRewardMeta')).toHaveText('ADDED TO MOD COLLECTION · AVAILABLE NEXT RUN');
+  await expect(reward.locator('.progressionRewardContinue')).toHaveText('CONTINUE');
+  await reward.locator('.progressionRewardContinue').click();
+  await expect(reward.locator('#progressionRewardTitle')).toHaveText('CONDITION MET');
+  await expect(reward.locator('.progressionRewardRule')).toHaveText('Build two closed loops of at least four physical tiles that share a domino.');
+  await reward.locator('.progressionRewardContinue').click();
+  await expect(reward.locator('#progressionRewardTitle')).toHaveText('KNOT');
+  await expect(reward.locator('.progressionRewardRule')).toHaveText('Its operation becomes ×4.');
+  await reward.locator('.progressionRewardContinue').click();await expect(reward).not.toBeVisible()
 });
 
 
@@ -178,7 +193,7 @@ test('late mobile polish keeps MONOID centred and Market uses compact Inspector-
   await page.setViewportSize({width:430,height:932});
   await page.addInitScript(()=>localStorage.setItem('monoid.firstRunBriefing.v1','seen'));
   await page.goto('http://127.0.0.1:4173/');
-  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261014.1');
+  await expect.poll(()=>page.evaluate(()=>window.__MONOID_BUILD)).toBe('20261015.1');
   await expect.poll(()=>page.evaluate(()=>!!window.MonoidPhaseA)).toBe(true);
   await page.locator('#titleCard').click();await page.locator('#startRun').click();
   const wordmark=await page.locator('.wordmark').boundingBox();expect(Math.abs(wordmark.x+wordmark.width/2-215)).toBeLessThan(1);expect(wordmark.width).toBeGreaterThanOrEqual(120);expect(wordmark.width).toBeLessThanOrEqual(155);expect(parseFloat(await page.locator('#menuButton').evaluate(el=>getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(19);
