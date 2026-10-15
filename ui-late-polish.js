@@ -223,7 +223,7 @@
     return !doc.querySelector('dialog[open]:not(#progressionRewardDialog)')
   }
   function enqueueProgressionReward(detail){rewardQueue.push(...modeRewardItems(detail));showNextReward()}
-  function enqueueModReward(id){const step=root.MonoidProfile?.MOD_UNLOCK_STEPS?.find(item=>item.id===id),modId=id?.startsWith('quantum-port:')?'quantum-port':id,mod=root.IterionMods?.get?.(modId),guide=MG?.get?.(modId);if(!mod)return;const reward={id,modId,mod,guide,step};rewardQueue.push({kind:'mod-condition',...reward},{kind:'mod',...reward});showNextReward()
+  function enqueueModReward(id){const step=root.MonoidProfile?.MOD_UNLOCK_STEPS?.find(item=>item.id===id),modId=id?.startsWith('quantum-port:')?'quantum-port':id,mod=root.IterionMods?.get?.(modId),guide=MG?.get?.(modId);if(!mod)return;const reward={id,modId,mod,guide,step};rewardQueue.push({kind:'mod-condition',...reward},{kind:'mod',...reward});showNextReward()}
   function showNextReward(){
     if(rewardActive||!rewardQueue.length||!progressionRewardSurfaceReady())return;const item=rewardQueue.shift(),dialog=ensureRewardDialog(),eyebrow=dialog.querySelector('.progressionRewardEyebrow'),title=dialog.querySelector('#progressionRewardTitle'),visual=dialog.querySelector('.progressionRewardVisual'),rule=dialog.querySelector('.progressionRewardRule'),meta=dialog.querySelector('.progressionRewardMeta');
     rewardReturnFocus=doc.activeElement;rewardActive=true;
