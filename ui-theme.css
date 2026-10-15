@@ -667,3 +667,12 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 /* General, non-interactive game hints stay just below Round / Stage, not over Hand controls. */
 .boardCoachLayer.modeOrient,.boardCoachLayer.modeDiscovery,.boardCoachLayer.modePayoff,.boardCoachLayer.classicGuide,.boardCoachLayer.classicOpening{align-items:flex-start;padding:9px 10px 10px}
 .boardCoachLayer.modeOrient .boardCoachCard,.boardCoachLayer.modeDiscovery .boardCoachCard,.boardCoachLayer.modePayoff .boardCoachCard,.boardCoachLayer.classicGuide .boardCoachCard,.boardCoachLayer.classicOpening .boardCoachCard{max-height:48%;overflow:hidden}
+
+/* Late-game surface contrast: entry is always light; pale signal cards own their ink. */
+.entryFlow:has(.titleCard:not([hidden])),.entryFlow:has(.gameSelection:not([hidden])){--ink:#151515;--muted:#61615b;--line:#b8b8b0;color:#151515;color-scheme:light}
+.entryFlow #devBuildStamp{color:#61615b!important;opacity:1!important}
+.entryFlow .entrySecondary:disabled{opacity:.68}
+.board .signalValue{color:#20201e}
+.board .signalValue.add strong{color:#20201e;-webkit-text-stroke:0}
+.board .islandPlacementHint,.board .coreActivationFx{color:#20201e}
+.scoreTraceLine{color:var(--muted)}
