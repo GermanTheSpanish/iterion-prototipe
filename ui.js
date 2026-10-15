@@ -162,7 +162,7 @@
   }
   function showGame(){document.documentElement.classList.remove('bootSurface');document.body.classList.remove('bootSurface');entryFlow.hidden=true;titleCard.hidden=true;gameSelection.hidden=true;app.hidden=false;app.removeAttribute('aria-hidden');app.inert=false;entryState=tutorial?'tutorial':'game';render();if(!tutorial)resumePlaytest()}
   function showSelection(){
-    pausePlaytest();press?.cancel?.();document.body.classList.remove('freshClassicOpening');if(gameMenu.open)gameMenu.close();hideOverlay();app.hidden=true;entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
+    pausePlaytest();press?.cancel?.();document.body.classList.remove('freshClassicOpening');if(gameMenu.open)gameMenu.close();hideOverlay();document.body.classList.remove('endlessPalette','infinitePalette','ouroborosPalette');delete document.body.dataset.stageRound;app.hidden=true;entryState='selection';entryFlow.hidden=false;titleCard.hidden=true;gameSelection.hidden=false;app.setAttribute('aria-hidden','true');app.inert=true;
     const saved=storedState(),choiceMade=localStorage.getItem(TUTORIAL_KEY)==='made',mode=selectedMode(saved),modeIndex=window.__monoidModes?.modes?.findIndex(item=>item.id===mode)??-1;if(modeIndex>=0)window.__monoidModes.select(modeIndex);continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
   async function startNormal(continueSaved=false){
