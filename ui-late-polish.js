@@ -199,14 +199,14 @@
   });
   const REWARD_PIPS={0:[],1:[[50,50]],2:[[28,28],[72,72]],3:[[28,28],[50,50],[72,72]],4:[[28,28],[72,28],[28,72],[72,72]],5:[[28,28],[72,28],[50,50],[28,72],[72,72]],6:[[28,23],[72,23],[28,50],[72,50],[28,77],[72,77]]};
   const rewardQueue=[];
-  let rewardDialog=null,rewardActive=false,rewardReturnFocus=null;
+  let rewardDialog=null,rewardActive=false,rewardReturnFocus=null,rewardCurrent=null;
   const rewardPips=value=>(REWARD_PIPS[value]||[]).map(([x,y])=>`<i style="left:${x}%;top:${y}%"></i>`).join('');
   function modeRewardVisual(mode){const spec=REWARD_MODES[mode]||REWARD_MODES.classic,p=rewardPips(spec.pips);return `<div class="progressionRewardDomino" aria-hidden="true"><span><em>${p}</em></span><span><em>${p}</em></span></div>`}
   function ensureRewardDialog(){
     if(rewardDialog)return rewardDialog;
     rewardDialog=doc.createElement('dialog');rewardDialog.id='progressionRewardDialog';rewardDialog.setAttribute('aria-labelledby','progressionRewardTitle');rewardDialog.innerHTML='<article class="progressionRewardCard"><div class="progressionRewardEyebrow"></div><h2 id="progressionRewardTitle"></h2><div class="progressionRewardVisual"></div><strong class="progressionRewardRule"></strong><p class="progressionRewardMeta"></p><button type="button" class="progressionRewardContinue">CONTINUE</button></article>';doc.body.appendChild(rewardDialog);
     rewardDialog.querySelector('.progressionRewardContinue').addEventListener('click',()=>rewardDialog.close());
-    rewardDialog.addEventListener('close',()=>{rewardActive=false;const target=rewardReturnFocus;rewardReturnFocus=null;if(target?.isConnected)target.focus();showNextReward()});
+    rewardDialog.addEventListener('close',()=>{if(rewardCurrent)root.MonoidTelemetryEvents?.record?.('unlock-reveal-completed',{kind:rewardCurrent.kind,id:rewardCurrent.id||rewardCurrent.mode||null});rewardCurrent=null;rewardActive=false;const target=rewardReturnFocus;rewardReturnFocus=null;if(target?.isConnected)target.focus();showNextReward()});
     return rewardDialog
   }
   function modeRewardItems(detail){
@@ -226,7 +226,7 @@
   function enqueueModReward(id){const step=root.MonoidProfile?.MOD_UNLOCK_STEPS?.find(item=>item.id===id),modId=id?.startsWith('quantum-port:')?'quantum-port':id,mod=root.IterionMods?.get?.(modId),guide=MG?.get?.(modId);if(!mod)return;const reward={id,modId,mod,guide,step};rewardQueue.push({kind:'mod-condition',...reward},{kind:'mod',...reward});showNextReward()}
   function showNextReward(){
     if(rewardActive||!rewardQueue.length||!progressionRewardSurfaceReady())return;const item=rewardQueue.shift(),dialog=ensureRewardDialog(),eyebrow=dialog.querySelector('.progressionRewardEyebrow'),title=dialog.querySelector('#progressionRewardTitle'),visual=dialog.querySelector('.progressionRewardVisual'),rule=dialog.querySelector('.progressionRewardRule'),meta=dialog.querySelector('.progressionRewardMeta');
-    rewardReturnFocus=doc.activeElement;rewardActive=true;
+    rewardReturnFocus=doc.activeElement;rewardActive=true;rewardCurrent=item;root.MonoidTelemetryEvents?.record?.('unlock-reveal-shown',{kind:item.kind,id:item.id||item.mode||null});
     if(item.kind==='mod-condition'){
       eyebrow.textContent='MOD DISCOVERY';title.textContent='CONDITION MET';visual.innerHTML='<span class="progressionConditionSymbol" aria-hidden="true">✓</span>';rule.textContent=item.step?.requirement||'Discovery requirement completed.';meta.textContent='ACHIEVEMENT COMPLETE · 1/2';
     }else if(item.kind==='mod'){
