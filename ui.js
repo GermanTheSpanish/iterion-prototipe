@@ -103,12 +103,18 @@
     if(!detail?.unlockedModes?.length&&!detail?.completedModes?.length)return;
     queueMicrotask(()=>{if(typeof window.MonoidLatePolish?.enqueueProgressionReward==='function')window.MonoidLatePolish.enqueueProgressionReward(detail);else(window.__monoidProgressionRewardQueue||(window.__monoidProgressionRewardQueue=[])).push(detail)})
   }
+  function diagnosticContext(){const state=GAME?.state?.(),snap=GAME?.snapshot?.();return{mode:state?.gameMode||'classic',round:(state?.round||0)+1,stage:snap?.stage?.index||1,turn:state?.turn??null}}
+  function recordDiagnostic(type,detail={}){return PT?.recordEvent?.(type,detail,diagnosticContext())||null}
+  window.MonoidTelemetryEvents=Object.freeze({record:recordDiagnostic});
   function persistGame(options={}){
     if(tutorial)return GAME.snapshot();
     const needsModFacts={knot:!PROFILE?.isModSlotUnlocked?.('knot'),bridge:!PROFILE?.isModSlotUnlocked?.('bridge'),hinge:!PROFILE?.isModSlotUnlocked?.('hinge'),pair:!PROFILE?.isModSlotUnlocked?.('pair'),'triple-double':!PROFILE?.isModSlotUnlocked?.('triple-double')};
     const snap=GAME.snapshot(),modFacts=Object.values(needsModFacts).some(Boolean)?GAME.modDiscoveryFacts?.(needsModFacts):null,
       unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[],payload=JSON.stringify(GAME.exportState());
-    for(const id of modDiscoveries)window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id}}));
+    PT?.observeGameplay?.(GAME.state().events,diagnosticContext());
+    for(const id of modDiscoveries){const requirement=PROFILE?.MOD_UNLOCK_STEPS?.find(step=>step.id===id)?.requirement||null;recordDiagnostic('mod-unlocked',{modId:id,requirement,discoveryFacts:modFacts||null});window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id}}))}
+    for(const mode of unlockedModes)recordDiagnostic('mode-unlocked',{mode});
+    for(const mode of completedModes)recordDiagnostic('mode-completed',{mode});
     if(!options.suppressProgressionReward&&(unlockedModes.length||completedModes.length))queueProgressionReward({unlockedModes:[...unlockedModes],completedModes:[...completedModes]});
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
@@ -117,6 +123,7 @@
     }catch(error){
       if(!persistenceFault){
         persistenceFault=true;
+        recordDiagnostic('persistence-error',{operation:'save',errorName:error?.name||'Error'});
         console.error('MONOID active run save failed',error);
         toast('SAVE FAILED · DOWNLOAD RUN DATA')
       }

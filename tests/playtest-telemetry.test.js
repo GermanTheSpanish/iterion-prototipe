@@ -36,4 +36,27 @@ const exportResult=next.markBatchExported({includedRunIds:['run-a','run-b']});as
   assert.equal(second.layoutChangedTiles,1);assert.equal(ouro.snapshot().ouroborosDecisionTotalMs,3500);assert.equal(ouro.snapshot().ouroborosFires.length,2);assert.match(ouro.text(),/Ouroboros decision time: total=00:04 fires=2 rebuilds=2/);assert.match(ouro.text(),/bestCoverage=50\.0%/);
 }
 
-console.log('Playtest coverage, re-entry, deck, identity, Ouroboros and timing telemetry regressions passed');
+
+{
+  const runStore=storage(),p=T.create({storage:runStore,now:()=>5000,randomUint32:()=>17});
+  p.bindRun({runId:'schema-3',round:1,stage:1});
+  const first=p.recordEvent('mod-unlocked',{modId:'knot'},{mode:'eyes',turn:4});
+  assert.equal(first.eventId,'schema-3:1');
+  const events=[{type:'shop-open',shop:'market',offers:['knot']},{type:'market-mod-buy',mod:'knot',cost:12},{type:'market-mod-assign',mod:'knot',targetTileId:'t0'},{turn:4,signal:{physicalOperationCount:5},modPerformance:{knot:{effectiveActivations:2}}},{type:'coins',amount:3}];
+  p.observeGameplay(events,{mode:'eyes',round:4,stage:2,turn:4});
+  const snap=p.snapshot(),count=snap.eventSequence;
+  assert.equal(snap.telemetrySchema,3);
+  assert.equal(snap.cueCoverage['cascade-note'].expected,5);
+  assert.equal(snap.cueCoverage.coin.unmapped,1);
+  assert.deepEqual(snap.modLifecycle.knot,{offered:true,purchased:true,assigned:true,effective:true});
+  p.observeGameplay(events);assert.equal(p.snapshot().eventSequence,count);
+  const restored=T.create({storage:runStore,now:()=>5500,randomUint32:()=>18});
+  restored.bindRun({runId:'schema-3',round:4,stage:2});
+  assert.equal(restored.snapshot().eventSequence,count);
+  for(let i=0;i<T.DIAGNOSTIC_LIMIT+5;i++)restored.recordEvent('bounded',{i});
+  const retained=restored.snapshot();
+  assert.equal(retained.diagnostics.length,T.DIAGNOSTIC_LIMIT);
+  assert.equal(retained.diagnosticDropped,retained.eventSequence-T.DIAGNOSTIC_LIMIT);
+  assert.match(restored.text(),/DIAGNOSTICS v3/);
+}
+console.log('Playtest coverage, re-entry, deck, identity, Ouroboros, v3 milestones and sound coverage passed');

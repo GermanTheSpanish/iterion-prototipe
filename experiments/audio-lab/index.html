@@ -17,6 +17,7 @@
 </section>
 <section><h2>Topology Music Study</h2><p>Compare three structural listening studies: linear, winding and closed-circuit machines. Deterministic polyphony, optional locally selected Space Drift bed; no gameplay changes.</p><a href="./topology-study.html">Open Topology Study →</a></section>
 <section><h2>Generative ambient</h2><p>A quiet continuous harmonic bed derived deterministically from recorded cascade data. Start it with a tap; it remains between cascades. No gameplay changes.</p><div class="controls"><button id="ambient-start">Start ambient</button><button id="ambient-mute">Mute ambient</button></div><output id="ambient-status" aria-live="polite">Ambient off</output></section>
+<section><h2>Audio diagnostics</h2><p>Local scheduling trace, not a microphone recording and not proof of audibility. Includes playback source, original branch ID, instrument, timing and cue status.</p><button id="audio-trace-download" type="button">Download audio diagnostics</button><output id="audio-trace-status" aria-live="polite">No playback yet</output></section>
 <section><h2>Playtest cascades</h2><p>Real operations from FRAMES playtest B-1HARM9V (v0.56.0). Uses the cascade acceleration from presentation.js, recorded reversal flags and SIGNAL TREE markers where available. Coin and Mod sounds are only triggered by recorded evidence. Imported SIGNAL TREE does not contain economy events; coin sounds cannot be inferred. Original and Musical modes follow trace order. Orchestral mode overlaps recorded branches only when SIGNAL TREE markers are available.</p><label>Playback speed <select id="replay-speed"><option value="0.5">0.5×</option><option value="1" selected>1× (game timing)</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><div class="controls" id="playtests"></div><h3>Polyphony studies · simulated, not real runs</h3><p>Operand phrases are taken from the recorded Monstrous cascade. Branch splits and simultaneity are authored for audio evaluation, not claimed as game telemetry. Ambient stays off unless explicitly started.</p><div class="controls" id="studies"></div><label>Orchestral branch <select id="branch-solo"><option value="all">All voices</option><option value="0">Arm A only</option><option value="1">Arm B only</option><option value="2">Arm C only</option><option value="3">Arm D only</option></select></label><label>Interpretation <select id="interpretation"><option value="original">Original · sequential</option><option value="musical">Musical · sequential</option><option value="orchestral" selected>Orchestral · polyphonic</option></select></label><fieldset><legend>Musical Routing (sequential A/B)</legend><label><span>Enable Musical Routing</span><input type="checkbox" id="musical" checked></label><label><span>Rhythmic grouping (consecutive notes; reversal and branch boundaries)</span><input type="checkbox" id="rhythm" checked></label><label><span>POWER octave shift</span><input type="checkbox" id="power" checked></label><label>Preview POWER <select id="power-level"><option value="1">×1</option><option value="2" selected>×2</option><option value="3">×3</option><option value="4">×4</option></select></label><label><span>Ascending register</span><input type="checkbox" id="ascending" checked></label><label>Voice separation <input type="range" id="separation" min="0" max="1" step=".1" value=".6"></label><small>POWER is a preview control, not recorded POWER telemetry. Switch Musical Routing off to compare the original. Select a cascade again after changing controls. For a clear comparison, select a simulated polyphony study, choose Orchestral, then compare All voices with individual arms. The studies do not represent actual runs.</small></fieldset><div class="controls"><button id="test-rebound">Rebound sound</button><button id="test-split">Split sound</button><button id="test-mod">Mod sound</button><button id="test-coin">Coin sound</button></div><output id="playtest-status" aria-live="polite">Select a cascade to listen</output></section>
 <section><h2>Import recorded SIGNAL TREE</h2><p>Upload a MONOID playtest batch or paste a debug containing T… SIGNAL TREE trace=[…]. Recorded moves are grouped by run. Double Echo markers are handled separately from the primary branch topology. The import runs locally in your browser. Nested branches overlap musically without changing engine execution. Restored compacted traces cannot be reconstructed.</p><label>Debug file (.txt) <input id="signal-tree-file" type="file" accept=".txt,text/plain"></label><textarea id="signal-tree-input" aria-label="Paste SIGNAL TREE debug export" placeholder="T22 SIGNAL TREE splits=1 base=... trace=[{&quot;type&quot;:&quot;start&quot;},...]"></textarea><div class="controls"><button id="signal-tree-import">Import traces</button><button id="signal-tree-clear">Clear imports</button></div><div class="controls" id="imported-traces"></div><output id="import-status" aria-live="polite">No imported traces</output></section>
 <section><h2>Rhythm Study · recorded cascades</h2><p>106 BPM · 2-bar intro · 1-bar outro · subtle pulse · soft quantization. Upload a MONOID debug above; these are recorded operations with authored musical framing.</p><div class="controls" id="rhythm-traces"></div><output id="rhythm-status" aria-live="polite">Import a debug to start</output></section><section><h2>Cascade sequencer</h2><p>Seven pip values map to a C minor pentatonic palette. Rebound reverses event order; branches overlap.</p>
@@ -44,6 +45,7 @@ import { replayEvents } from './replay.js';
 import { LONG_CASCADE } from './ultra-cascade.js';
 import { POLYPHONY_STUDIES } from './polyphony-studies.js';
 import { createInstrument } from './instrument.js';
+import { createAudioTelemetry } from './audio-telemetry.js';
 import { musicalReplay } from './musical-routing.js';
 import { orchestralReplay } from './orchestral-routing.js';
 import { createAmbient } from './ambient-composition.js';
@@ -53,24 +55,33 @@ const $ = id => document.getElementById(id);
 window.__audioLabReady=true;
 $('import-status').textContent='Audio Lab ready · select a debug file';
 let context, master, instrument, ambient, ambientEnabled=false, lastFixture=null, scheduled = [], generation = 0;
+const AUDIO_TRACE=createAudioTelemetry();window.__monoidAudioTelemetry=()=>AUDIO_TRACE.snapshot();
+function traceLabel(source,interpretation){AUDIO_TRACE.begin(source,interpretation);$('audio-trace-status').textContent='Recording '+source+' · '+interpretation;}
+function diagnosticMeta(event={},source='manual',index=0){return{sourceEventId:source+':'+index,branchId:String(event.path||event.arm||'main'),branchRole:event.path&&event.path.includes('.')?'accompaniment':'primary',phase:event.phase||'cascade'}}
+function auditCue(kind,at,options={},meta={}){return AUDIO_TRACE.cue(kind,at,context,{...meta,instrumentId:options.wave||$('wave').value,pip:options.pip??null,gain:Number(options.volume??Number($('volume').value))*(Number(options.volumeScale)||1),attack:Number(options.attack??Number($('attack').value)),release:Number(options.release??Number($('release').value)),pan:Number(options.pan)||0,octave:Number(options.octave)||0,oscillatorCount:options.oscillatorCount??0})}
 const sequence = [0,2,4,3,1,0];
 function init(){
   if (!context) {
     context = new (window.AudioContext || window.webkitAudioContext)();
     master = context.createGain(); master.gain.value = 1; master.connect(context.destination);
     instrument=createInstrument(context,master,oscillator=>scheduled.push(oscillator));
+    context.addEventListener?.('statechange',()=>AUDIO_TRACE.record('audio-context-state',{state:context.state,contextTime:context.currentTime}));
+    AUDIO_TRACE.record('audio-context-created',{state:context.state,sampleRate:context.sampleRate});
     ambient=createAmbient(context,master);
   }
-  if(context.state === 'suspended') context.resume();
+  if(context.state === 'suspended'){AUDIO_TRACE.record('audio-context-resume-request',{contextTime:context.currentTime});context.resume().then(()=>AUDIO_TRACE.record('audio-context-resumed',{state:context.state})).catch(error=>AUDIO_TRACE.record('audio-context-resume-failed',{errorName:error?.name||'Error'}));}
 }
-function play(pip,at,reverse=false,options={}) {
- instrument.note(pip,at,{wave:$('wave').value,volume:Number($('volume').value),attack:Number($('attack').value),release:Number($('release').value),reverse,...options});
+function play(pip,at,reverse=false,options={},meta={}) {
+ const config={wave:$('wave').value,volume:Number($('volume').value),attack:Number($('attack').value),release:Number($('release').value),reverse,...options},before=scheduled.length;
+ try{instrument.note(pip,at,config);auditCue('note',at,{...config,pip,oscillatorCount:scheduled.length-before},meta)}
+ catch(error){AUDIO_TRACE.record('cue-failed',{kind:'note',pip,errorName:error?.name||'Error',...meta});throw error}
 }
-function effect(type,at) {instrument.effect(type,at,Number($('volume').value));}
-function startWithSlap(){const at=context.currentTime+0.025;instrument.slap(at,Number($('volume').value));return at+0.17;}
+function effect(type,at,meta={}) {const before=scheduled.length;try{instrument.effect(type,at,Number($('volume').value));auditCue(type,at,{oscillatorCount:scheduled.length-before},meta)}catch(error){AUDIO_TRACE.record('cue-failed',{kind:type,errorName:error?.name||'Error',...meta});throw error}}
+function startWithSlap(){const at=context.currentTime+0.025,before=scheduled.length;instrument.slap(at,Number($('volume').value));auditCue('tabletop-slap',at,{oscillatorCount:scheduled.length-before},{sourceEventId:'playback-start'});return at+0.17;}
 
 function stop() {
   generation++;
+  if(context)AUDIO_TRACE.cancel(context.currentTime);
   for(const oscillator of scheduled){try{oscillator.stop();}catch{}}
   scheduled = [];
   $('status').textContent = 'Stopped';
@@ -80,14 +91,15 @@ function playRhythm(trace){
  let study;
  try{study=rhythmStudy(renderSignalTree(trace,Number($('replay-speed').value)));}
  catch(error){$('rhythm-status').textContent=error.message;return;}
+ traceLabel(trace.id||trace.move,'rhythm');
  const start=startWithSlap(),solo=$('branch-solo').value;
- for(const e of study.events){
+ for(const [index,e] of study.events.entries()){
   const at=start+e.time;
-  if(e.type==='pulse')instrument.pulse(at,Number($('volume').value),e.accent);
+  if(e.type==='pulse'){const before=scheduled.length;instrument.pulse(at,Number($('volume').value),e.accent);auditCue('pulse',at,{oscillatorCount:scheduled.length-before},diagnosticMeta(e,trace.id||trace.move,index));}
   else if(e.type==='note'){
    if(e.phase==='cascade'&&solo!=='all'&&!e.path.split('.').includes(solo))continue;
-   play(e.pip,at,!!e.reverse,{wave:e.voiceWave||'soft',octave:e.voiceOctave||0,releaseScale:e.voiceRelease||1,volumeScale:(e.voiceVolume||1)*(e.phase==='cascade'?.65:1),pan:e.voicePan||0});
-  }else if(solo==='all'&&(['split','rebound','teleport','core'].includes(e.type)))effect(e.type,at);
+   play(e.pip,at,!!e.reverse,{wave:e.voiceWave||'soft',octave:e.voiceOctave||0,releaseScale:e.voiceRelease||1,volumeScale:(e.voiceVolume||1)*(e.phase==='cascade'?.65:1),pan:e.voicePan||0},diagnosticMeta(e,trace.id||trace.move,index));
+  }else if(solo==='all'&&(['split','rebound','teleport','core'].includes(e.type)))effect(e.type,at,diagnosticMeta(e,trace.id||trace.move,index));
  }
  $('rhythm-status').textContent=trace.move+' · 106 BPM · '+study.recordedOperations+' recorded operations · '+study.splitCount+' splits · '+study.duration.toFixed(1)+'s';
 }
@@ -95,13 +107,14 @@ function playImported(trace){
  init();stop();
  let replay;
  try {replay=renderSignalTree(trace,Number($('replay-speed').value));} catch(error){$('import-status').textContent=error.message;return;}
+ traceLabel(trace.id||trace.move,'recorded-signal-tree');
  const start=startWithSlap(),solo=$('branch-solo').value;
- for(const event of replay.events){
+ for(const [index,event] of replay.events.entries()){
   if(event.type==='note'){
    if(solo!=='all' && !event.path.split('.').includes(solo))continue;
-   play(event.pip,start+event.time,event.reverse,{wave:event.voiceWave,octave:event.voiceOctave,releaseScale:event.voiceRelease,volumeScale:event.voiceVolume,pan:event.voicePan});
-   if(event.mod)effect('mod',start+event.time);
-  } else if(solo==='all' && (['split','rebound','teleport','core'].includes(event.type)))effect(event.type,start+event.time);
+   play(event.pip,start+event.time,event.reverse,{wave:event.voiceWave,octave:event.voiceOctave,releaseScale:event.voiceRelease,volumeScale:event.voiceVolume,pan:event.voicePan},diagnosticMeta(event,trace.id||trace.move,index));
+   if(event.mod)effect('mod',start+event.time,diagnosticMeta(event,trace.id||trace.move,index));
+  } else if(solo==='all' && (['split','rebound','teleport','core'].includes(event.type)))effect(event.type,start+event.time,diagnosticMeta(event,trace.id||trace.move,index));
  }
  $('import-status').textContent=trace.move+' · '+replay.operations+' recorded operations · '+replay.splitCount+' forks · '+replay.voices+' branch paths · '+replay.duration.toFixed(1)+'s · recorded topology, musical overlap';
 }
@@ -144,8 +157,8 @@ $('signal-tree-clear').onclick=()=>{importedFile=null;$('signal-tree-file').valu
 function run(mode){
   init(); stop();
   const events = cascadeEvents(sequence,mode,Number($('tempo').value)/1000);
-  const start = startWithSlap();
-  for(const event of events) play(event.pip,start+event.time);
+  traceLabel('sequencer',mode);const start = startWithSlap();
+  for(const [index,event] of events.entries())play(event.pip,start+event.time,false,{},diagnosticMeta(event,'sequencer',index));
   $('status').textContent = mode.toUpperCase() + ' / ' + events.map(e=>e.pip).join(' · ');
 }
 for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE,...POLYPHONY_STUDIES]){
@@ -157,17 +170,17 @@ for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE,...POLYPHONY_STUDIES]){
    const mode=$('interpretation').value;
    const active=mode==='musical' && $('musical').checked;
    const replay=mode==='orchestral'?orchestralReplay(recorded):active?musicalReplay(recorded,{rhythm:$('rhythm').checked,power:$('power').checked,ascending:$('ascending').checked,separation:Number($('separation').value),powerLevel:Number($('power-level').value)}):recorded;
-   const start=startWithSlap();
+   traceLabel(fixture.id||fixture.move,mode);const start=startWithSlap();
    if(ambientEnabled){const id=ambient.cascade(fixture,start,replay.duration);$('ambient-status').textContent='Ambient on · harmonic root '+id.root+' · depth '+Math.round(id.depth*100)+'%';}
-   for(const event of replay.events){
+   for(const [index,event] of replay.events.entries()){
      if(event.type==='note') {
        if(mode==='orchestral' && $('branch-solo').value!=='all' && String(event.arm)!==$('branch-solo').value) continue;
-       play(event.pip,start+event.time,event.reverse,mode==='orchestral'?{wave:event.voiceWave,octave:event.voiceOctave,releaseScale:event.voiceRelease,volumeScale:event.voiceVolume,pan:event.voicePan}:active?{octave:event.octave+(event.armOffset||0),releaseScale:event.releaseScale,volumeScale:event.volumeScale}:{});
-       if(event.mod) effect('mod',start+event.time);
-       if(event.mint || event.coins) effect('coin',start+event.time+0.04);
-     } else if(event.type==='rebound') effect('rebound',start+event.time);
-     else if(event.type==='split') effect('split',start+event.time);
-     else if(event.type==='teleport'||event.type==='core')effect(event.type,start+event.time);
+       play(event.pip,start+event.time,event.reverse,mode==='orchestral'?{wave:event.voiceWave,octave:event.voiceOctave,releaseScale:event.voiceRelease,volumeScale:event.voiceVolume,pan:event.voicePan}:active?{octave:event.octave+(event.armOffset||0),releaseScale:event.releaseScale,volumeScale:event.volumeScale}:{},diagnosticMeta(event,fixture.id||fixture.move,index));
+       if(event.mod) effect('mod',start+event.time,diagnosticMeta(event,fixture.id||fixture.move,index));
+       if(event.mint || event.coins) effect('coin',start+event.time+0.04,diagnosticMeta(event,fixture.id||fixture.move,index));
+     } else if(event.type==='rebound') effect('rebound',start+event.time,diagnosticMeta(event,fixture.id||fixture.move,index));
+     else if(event.type==='split') effect('split',start+event.time,diagnosticMeta(event,fixture.id||fixture.move,index));
+     else if(event.type==='teleport'||event.type==='core')effect(event.type,start+event.time,diagnosticMeta(event,fixture.id||fixture.move,index));
    }
    if(fixture.coins && !replay.events.some(e=>e.mint || e.coins)) effect('coin',start+replay.duration);
    $('playtest-status').textContent=fixture.move+' · '+replay.operations+' operations · '+fixture.rebounds+' rebounds · '+replay.events.filter(e=>e.type==='split').length+' splits · '+replay.duration.toFixed(1)+'s · '+(mode==='orchestral'?(replay.polyphonic?'Orchestral · '+replay.voices+' simultaneous voices · ':'Orchestral · sequential fallback (no recorded branches) · '):active?'Musical Routing · groups '+replay.rhythmicGroups.join('/')+' · ':'Original · ')+fixture.traceSource;
@@ -175,8 +188,9 @@ for(const fixture of [...PLAYTEST_CASCADES,LONG_CASCADE,...POLYPHONY_STUDIES]){
  });
  $(fixture.study?'studies':'playtests').append(button);
 }
-$('ambient-start').onclick=()=>{init();ambientEnabled=true;const id=ambient.start(lastFixture||PLAYTEST_CASCADES[0]);$('ambient-status').textContent='Ambient on · harmonic root '+id.root+' · depth '+Math.round(id.depth*100)+'%';};
-$('ambient-mute').onclick=()=>{if(ambient)ambient.mute();ambientEnabled=false;$('ambient-status').textContent='Ambient off';};
+$('audio-trace-download').onclick=()=>{const snapshot=AUDIO_TRACE.snapshot(),blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='MONOID_AUDIO_TELEMETRY_v1.json';link.click();URL.revokeObjectURL(url);$('audio-trace-status').textContent='Exported '+snapshot.totalEvents+' diagnostic events · '+snapshot.dropped+' older entries omitted';};
+$('ambient-start').onclick=()=>{init();ambientEnabled=true;AUDIO_TRACE.record('ambient-start',{source:lastFixture?.id||'default'});const id=ambient.start(lastFixture||PLAYTEST_CASCADES[0]);$('ambient-status').textContent='Ambient on · harmonic root '+id.root+' · depth '+Math.round(id.depth*100)+'%';};
+$('ambient-mute').onclick=()=>{if(ambient)ambient.mute();AUDIO_TRACE.record('ambient-mute',{contextState:context?.state||'unavailable'});ambientEnabled=false;$('ambient-status').textContent='Ambient off';};
 for(const type of ['rebound','split','mod','coin']) $('test-'+type).onclick=()=>{init();effect(type,context.currentTime+0.01);};
 for(let pip=0;pip<=6;pip++){
   const button=document.createElement('button');button.textContent=pip;button.setAttribute('aria-label','Play pip '+pip);

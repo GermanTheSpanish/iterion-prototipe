@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {join}=require('node:path');
+(async()=>{
+  const source=fs.readFileSync(join(__dirname,'../experiments/audio-lab/audio-telemetry.js'),'utf8');
+  const {createAudioTelemetry}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const audio=createAudioTelemetry({limit:3});
+  audio.begin('run:T4','orchestral');
+  const note=audio.cue('note',4.25,{state:'running',currentTime:1},{branchId:'A.B',sourceEventId:'run:T4:7',instrumentId:'soft',gain:0.2});
+  assert.equal(note.status,'scheduled');
+  assert.equal(note.sourceEventId,'run:T4:7');
+  assert.equal(note.branchId,'A.B');
+  assert.equal(audio.cue('coin',4.3,{state:'running',currentTime:1},{gain:0}).status,'muted');
+  assert.equal(audio.cue('split',4.4,{state:'suspended',currentTime:1},{gain:0.2}).status,'context-suspended');
+  audio.cancel(1.2);
+  const snap=audio.snapshot();
+  assert.equal(snap.totalEvents,5);
+  assert.equal(snap.dropped,2);
+  assert.equal(snap.events.length,3);
+  assert.equal(snap.counts.cue,3);
+  assert.equal(snap.counts['playback-stop'],1);
+  assert.throws(()=>createAudioTelemetry({limit:0}),RangeError);
+  console.log('Audio Lab scheduling telemetry passed');
+})().catch(error=>{console.error(error);process.exitCode=1});
