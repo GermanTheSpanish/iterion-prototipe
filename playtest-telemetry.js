@@ -116,7 +116,7 @@
       const sequence=++state.eventSequence,entry={schema:TELEMETRY_SCHEMA,eventId:state.runId+':'+sequence,sequence,runId:state.runId,mode:String(meta.mode||'unknown'),round:meta.round??state.round,stage:meta.stage??state.stage,turn:meta.turn??null,atActiveMs:Math.round(activeElapsed()),type,detail:clone(detail)};
       state.diagnostics.push(entry);
       if(state.diagnostics.length>DIAGNOSTIC_LIMIT){state.diagnostics.shift();state.diagnosticDropped++}
-      persist();return clone(entry)
+      if(!meta.deferPersist)persist();return clone(entry)
     }
     function observeGameplay(events,context={}){
       if(!state||state.finalized||!Array.isArray(events))return;
@@ -127,22 +127,26 @@
         const meta={...context,round:Number.isInteger(event.round)?event.round:context.round,turn:Number.isInteger(event.turn)?event.turn:context.turn};
         if(event.type==='shop-open'&&event.shop==='market'&&Array.isArray(event.offers)){
           for(const mod of event.offers){if(typeof mod!=='string'||state.modLifecycle[mod]?.offered)continue;
-            const prior=state.modLifecycle[mod]||{};state.modLifecycle[mod]={...prior,offered:true};recordEvent('mod-first-offered',{mod,marketIndex:event.marketIndex??null},meta)
+            const prior=state.modLifecycle[mod]||{};state.modLifecycle[mod]={...prior,offered:true};recordEvent('mod-first-offered',{mod,marketIndex:event.marketIndex??null},{...meta,deferPersist:true})
           }
         }
         if(event.type==='market-mod-buy'||event.type==='market-mod-assign'){
           const mod=event.mod,field=event.type==='market-mod-buy'?'purchased':'assigned';if(typeof mod==='string'&&!state.modLifecycle[mod]?.[field]){
-            state.modLifecycle[mod]={...(state.modLifecycle[mod]||{}),[field]:true};recordEvent('mod-first-'+field,{mod,tileId:event.targetTileId||null,cost:event.cost??null},meta)
+            state.modLifecycle[mod]={...(state.modLifecycle[mod]||{}),[field]:true};recordEvent('mod-first-'+field,{mod,tileId:event.targetTileId||null,cost:event.cost??null},{...meta,deferPersist:true})
           }
         }
         if(event.modPerformance&&typeof event.modPerformance==='object'){
           for(const [mod,perf] of Object.entries(event.modPerformance))if(Number(perf?.effectiveActivations)>0&&!state.modLifecycle[mod]?.effective){
-            state.modLifecycle[mod]={...(state.modLifecycle[mod]||{}),effective:true};recordEvent('mod-first-effective',{mod,effectiveActivations:Number(perf.effectiveActivations)},meta)
+            state.modLifecycle[mod]={...(state.modLifecycle[mod]||{}),effective:true};recordEvent('mod-first-effective',{mod,effectiveActivations:Number(perf.effectiveActivations)},{...meta,deferPersist:true})
           }
+        }
+        if(Number.isInteger(event.turn)&&event.signal&&Number(event.signal.physicalOperationCount)>0){
+          const count=Math.max(0,Number(event.signal.physicalOperationCount)||0),cue='cascade-note',coverage=state.cueCoverage[cue]||{expected:0,scheduled:0,unmapped:0};coverage.expected+=count;coverage.unmapped+=count;state.cueCoverage[cue]=coverage;
+          recordEvent('sound-cue-expected',{cue,sourceType:'signal-operations',sourceIndex:i,count,status:'unmapped',reason:'main-game-audio-not-integrated'},{...meta,deferPersist:true})
         }
         const cue=AUDIO_EXPECTATIONS[event.type];if(cue){
           const coverage=state.cueCoverage[cue]||{expected:0,scheduled:0,unmapped:0};coverage.expected++;coverage.unmapped++;state.cueCoverage[cue]=coverage;
-          recordEvent('sound-cue-expected',{cue,sourceType:event.type,sourceIndex:i,status:'unmapped',reason:'main-game-audio-not-integrated'},meta)
+          recordEvent('sound-cue-expected',{cue,sourceType:event.type,sourceIndex:i,status:'unmapped',reason:'main-game-audio-not-integrated'},{...meta,deferPersist:true})
         }
       }
       state.gameEventCursor=events.length;persist()
