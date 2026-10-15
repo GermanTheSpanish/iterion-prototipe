@@ -672,7 +672,8 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 .entryFlow:has(.titleCard:not([hidden])),.entryFlow:has(.gameSelection:not([hidden])){--ink:#151515;--muted:#61615b;--line:#b8b8b0;color:#151515;color-scheme:light}
 .entryFlow #devBuildStamp{color:#61615b!important;opacity:1!important}
 .entryFlow .entrySecondary:disabled{opacity:.68}
-.board .signalValue{color:#20201e}
-.board .signalValue.add strong{color:#20201e;-webkit-text-stroke:0}
+.board .signalValue{color:#20201e!important;background-color:rgba(255,255,252,.97)!important}
+.board .signalValue.echoLane{background-color:#f2f1e9!important}
+.board .signalValue.add strong{color:#20201e!important;-webkit-text-stroke:0!important}
 .board .islandPlacementHint,.board .coreActivationFx{color:#20201e}
 .scoreTraceLine{color:var(--muted)}
