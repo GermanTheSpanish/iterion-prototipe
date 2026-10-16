@@ -170,12 +170,12 @@
   function singleRunDebugText(game=GAME,includePerformance=game===GAME){
     H.bindRun(game.state().runId);return`${game.debugText()}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${includePerformance?performanceText(game.state().runId):'PERFORMANCE TELEMETRY\nUnavailable after reload.'}`
   }
-  async function archiveSavedRun(reason='new-run'){
-    const saved=storedState();if(!saved?.state?.runId||!PT||!BATCH_STORE)return false;let game=GAME;
-    if(game.state().runId!==saved.state.runId){game=window.IterionGame.createGame(E,gameOptions(selectedMode(saved)));if(!game.restoreState(saved))return false}
+  async function archiveSavedRun(reason='new-run',includeUnsaved=false){
+    const saved=storedState();if((!saved?.state?.runId&&!includeUnsaved)||!PT||!BATCH_STORE)return false;let game=GAME;
+    if(saved?.state?.runId&&game.state().runId!==saved.state.runId){game=window.IterionGame.createGame(E,gameOptions(selectedMode(saved)));if(!game.restoreState(saved))return false}
     const snap=game.snapshot(),current=PT.snapshot?.();if(current?.runId!==game.state().runId)PT.bindRun({runId:game.state().runId,round:game.state().round+1,stage:snap.stage.index});PT.setContext(game.state().round+1,snap.stage.index);
     const status=lifecycleStatus(game),statusReason=status==='failed'?(game.state().failureReason||reason):status==='completed'&&game.state().blocked?`endless-${game.state().failureReason||'ended'}`:reason;PT.finalizeCurrent(status,{reason:statusReason});
-    const telemetry=PT.summary?.()||null,debugText=singleRunDebugText(game,game===GAME);await BATCH_STORE.archive({runId:game.state().runId,playerId:telemetry?.playerId||PT.identity?.().playerId,runSequence:telemetry?.runSequence||null,status,statusReason,gameVersion:D.VERSION,seed:game.state().seed,debugText,telemetry});return true
+    const telemetry=PT.summary?.()||null,debugText=singleRunDebugText(game,game===GAME);const archived=await BATCH_STORE.archive({runId:game.state().runId,playerId:telemetry?.playerId||PT.identity?.().playerId,runSequence:telemetry?.runSequence||null,status,statusReason,gameVersion:D.VERSION,seed:game.state().seed,debugText,telemetry});return archived?.ok===true
   }
   function currentRunRecord(){
     const telemetry=PT?.summary?.()||null,status=exportStatus(GAME);return{runId:GAME.state().runId,playerId:telemetry?.playerId||PT?.identity?.().playerId,runSequence:telemetry?.runSequence||null,status,statusReason:status==='failed'?(GAME.state().failureReason||null):null,gameVersion:D.VERSION,seed:GAME.state().seed,debugText:singleRunDebugText(GAME,true),telemetry}
@@ -1106,9 +1106,12 @@
   async function endActiveRun(){
     if(uiBusy||drag.active||tutorial)return;
     if(!confirm('End this run? Your machine will be archived for playtest data, but cannot be resumed.'))return;
-    closeMenu();recordDiagnostic('run-ended-by-player',{runId:GAME.state().runId});
+    closeMenu();
+    // QA presets sandbox the active save to protect the player's real run.
+    if(window.__monoidQa?.savedRunProtected){showSelection();return}
+    recordDiagnostic('run-ended-by-player',{runId:GAME.state().runId});
     try{
-      if(storedState()?.state?.runId&&!await archiveSavedRun('end-run')){toast('RUN ARCHIVE FAILED · RUN PRESERVED');return}
+      if(!await archiveSavedRun('end-run',true)){toast('RUN ARCHIVE FAILED · RUN PRESERVED');return}
       localStorage.removeItem(ACTIVE_RUN_KEY);localStorage.removeItem(LEGACY_RUN_KEY);
     }catch(error){console.error('MONOID end run failed',error);toast('COULD NOT END RUN · RUN PRESERVED');return}
     cascadeOfferPending=false;clearOutcomeDelay();showSelection()
