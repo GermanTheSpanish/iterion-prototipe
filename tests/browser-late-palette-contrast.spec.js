@@ -122,21 +122,24 @@ test('late-game cascade skip and visible score captions are readable on their re
   await page.setViewportSize({width:390,height:844});
   await page.goto(BASE+'?qa=infinite16&ci=1');
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
-  const samples=await page.evaluate(()=>{
-    const hint=document.createElement('div');hint.className='cascadeSkipHint';hint.textContent='TAP SCREEN TO SKIP';
-    document.getElementById('board').appendChild(hint);
-    const styles={};
-    for(const palette of ['endless','infinite','ouroboros']){
+  await page.evaluate(()=>{const hint=document.createElement('div');hint.className='cascadeSkipHint';hint.textContent='TAP SCREEN TO SKIP';document.getElementById('board').appendChild(hint)});
+  const samples={};
+  for(const palette of ['endless','infinite','ouroboros']){
+    await page.evaluate(palette=>{
       document.body.classList.add('endlessPalette');
       document.body.classList.toggle('infinitePalette',palette==='infinite');
       document.body.classList.toggle('ouroborosPalette',palette==='ouroboros');
-      const hc=getComputedStyle(hint),caption=getComputedStyle(document.getElementById('scoreNote')),bg=getComputedStyle(document.body).backgroundColor;
-      styles[palette]={hint:{fg:hc.color,bg:hc.backgroundColor},caption:{fg:caption.color,bg}};
-    }
-    return styles;
-  });
+    },palette);
+    // The main UI animates its background for 350ms. Measure settled colors, not crossfade frames.
+    await page.waitForTimeout(450);
+    samples[palette]=await page.evaluate(()=>{
+      const hc=getComputedStyle(document.querySelector('.cascadeSkipHint'));
+      const caption=getComputedStyle(document.getElementById('scoreNote'));
+      return{hint:{fg:hc.color,bg:hc.backgroundColor},caption:{fg:caption.color,bg:getComputedStyle(document.body).backgroundColor}};
+    });
+  }
   for(const [palette,data] of Object.entries(samples)){
     expect(contrast(data.hint.fg,data.hint.bg),palette+' skip label').toBeGreaterThanOrEqual(4.5);
-    expect(contrast(data.caption.fg,data.caption.bg),palette+' visible score caption').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(data.caption.fg,data.caption.bg),palette+' visible score caption: '+data.caption.fg+' on '+data.caption.bg).toBeGreaterThanOrEqual(4.5);
   }
 });
