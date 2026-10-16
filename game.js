@@ -1889,10 +1889,33 @@ function createGame(E,opts={}){
 
   function compactEventForPersistence(event){
     if(!event||typeof event!=='object')return event;
+    const compact=deepClone(event);
     if(event.type==='signal-resolution'){
-      const compact=deepClone(event);delete compact.events;compact.traceCompacted=true;return compact
+      delete compact.events;compact.traceCompacted=true;return compact
     }
-    return deepClone(event)
+    if(!Number.isInteger(event.turn))return compact;
+    // Keep gameplay facts, exact scores, tile identity and economy intact. Only
+    // bound repeated, presentation-only signal diagnostics in saved history.
+    for(const [field,limit] of [['ops',4096],['routes',2048]]){
+      const value=compact[field];
+      if(typeof value!=='string'||value.length<=limit||compact[field+'Compacted'])continue;
+      const head=Math.floor(limit*.6),tail=limit-head;
+      compact[field+'TotalChars']=value.length;
+      compact[field]=value.slice(0,head)+' [COMPACTED '+(value.length-limit)+' CHARS] '+value.slice(-tail);
+      compact[field+'Compacted']=true
+    }
+    // These are duplicate per-Move snapshots; the primary signal summary and
+    // the authoritative Core state/discovery events already survive restore.
+    if(compact.signal&&compact.signalShadow)delete compact.signalShadow;
+    if(compact.signal&&compact.coreActivations)delete compact.coreActivations;
+    delete compact.coreShadow;
+    if(compact.signal)for(const field of ['activations','splits','branchEnds','merges']){
+      const items=compact.signal[field];
+      if(!Array.isArray(items)||items.length<=32||Number.isInteger(compact.signal[field+'TotalCount']))continue;
+      compact.signal[field+'TotalCount']=items.length;
+      compact.signal[field]=items.slice(0,16).concat(items.slice(-16))
+    }
+    return compact
   }
   function compactEventsForPersistence(events){return(Array.isArray(events)?events:[]).map(compactEventForPersistence)}
   function persistedUndoFrame(frame){
