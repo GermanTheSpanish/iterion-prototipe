@@ -44,3 +44,34 @@ test('performance samples stay with the archived run and are absent from the nex
   const newDebug=await page.evaluate(()=>window.__monoidPerformance.length);
   expect(newDebug).toBe(0)
 });
+
+test('mobile presentation distinguishes exact target thresholds while budgeting deep cascades',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('http://127.0.0.1:4173/?qa=infinite16&ci=1');
+  await expect(page.locator('.app')).toBeVisible({timeout:12000});
+  const results=await page.evaluate(()=>{
+    const P=window.IterionPresentation,S=window.MonoidScore,target='9007199254740993',
+      below=S.subtract(target,'1'),threshold=S.multiply(target,'1000'),almost=S.subtract(threshold,'1');
+    return{
+      sameNumber:Number(target)===Number(below),
+      below:P.scoreDisplay(Number(below),Number(target),below,target),
+      reached:P.scoreDisplay(Number(target),Number(target),target,target),
+      almost:P.progressState(Number(almost),Number(target),almost,target),
+      over:P.progressState(Number(threshold),Number(target),threshold,target),
+      exact:P.exact(target),
+      budget:P.CASCADE.playbackStepLimit,
+      groups:P.CASCADE.acceleratedContributions,
+      layoutOverflow:document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight
+    }
+  });
+  expect(results.sameNumber).toBe(true);
+  expect(results.below.cleared).toBe(false);
+  expect(results.below.note).toBe('1 to target');
+  expect(results.reached.cleared).toBe(true);
+  expect(results.almost.stage).toBe('clear');
+  expect(results.over.stage).toBe('overdrive');
+  expect(results.exact).toBe('9,007,199,254,740,993');
+  expect(results.budget).toBeLessThanOrEqual(36);
+  expect(results.groups).toBeLessThanOrEqual(8);
+  expect(results.layoutOverflow).toBe(false)
+});
