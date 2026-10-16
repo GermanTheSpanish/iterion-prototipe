@@ -30,6 +30,12 @@ assert.equal(hud.scoreExact,'9,007,199,254,740,992');
 assert.equal(hud.targetExact,'9,007,199,254,740,993');
 assert.equal(hud.scoreOverdrive,false);
 assert.equal(hud.note,'1 to target');
+const stale=P.hudViewModel({score:95,scoreExact:'0',round:0,roundTurn:0,pieces:[],consumables:{},gameMode:'classic'},{
+  stage:{index:1,round:1,size:4,total:4},endless:{active:false},powerSets:{generation:1,powerMultiplier:1},signal:{enabled:false},availableTileCount:5
+},{target:100,targetExact:'100',maxPlacements:4,totalRounds:12,boardWidth:18,boardHeight:24});
+assert.equal(stale.score,'95','stale exact checkpoint must not replace numeric fixture result');
+assert.equal(stale.scoreExact,'95');
+assert.equal(stale.note,'5 to target');
 
 assert(P.CASCADE.playbackStepLimit>=18&&P.CASCADE.playbackStepLimit<=36,'first signal operations stay readable with an upper limit');
 assert(P.CASCADE.acceleratedContributions>=3&&P.CASCADE.acceleratedContributions<=8,'deep-run settlement groups contributions');
@@ -44,6 +50,6 @@ const ui=fs.readFileSync(path.join(__dirname,'..','ui.js'),'utf8');
 assert.match(ui,/renderedSteps>=V\.CASCADE\.playbackStepLimit/);
 assert.match(ui,/cascadeControl\.skipCascade\|\|/,'skip exits the event loop without emitting further FX');
 assert.match(ui,/await settleCascadeScore\(sim\.events\|\|\[\],sim\.output\?\?trigger,finalOutput,p\.id\)/,'settlement uses full authoritative simulation');
-assert.match(ui,/V\.scoreDisplay\(s\.score,target,s\.scoreExact,targetExact\)/);
+assert.match(ui,/V\.scoreDisplay\(s\.score,target,scoreExact,targetExact\)/);
 assert.match(ui,/targetExact:GAME\.targetExact\(\)/);
 console.log('P1 cascade playback and exact HUD regressions passed');
