@@ -177,7 +177,7 @@
       @keyframes cascadeBoardDim{from{opacity:0}to{opacity:1}}
       @keyframes cascadeOperationFlash{0%{opacity:0;transform:translate(calc(-50% + var(--op-shift-x,0px)),calc(-50% + var(--op-shift-y,0px))) scale(.78)}10%,40%{opacity:1;transform:translate(calc(-50% + var(--op-shift-x,0px)),calc(-50% + var(--op-shift-y,0px))) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--op-shift-x,0px)),calc(-64% + var(--op-shift-y,0px))) scale(.96)}}
       @keyframes structuralHold{0%{opacity:0;transform:translate(-50%,-50%) scale(.88)}8%,88%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-56%) scale(.98)}}
-      .scoreProgress{display:block;margin-top:2px;height:11px;position:relative}.scoreProgressTrack{display:block;height:3px;background:#dddcd6;overflow:hidden}.scoreProgressFill{display:block;height:100%;width:0;background:#393934;transition:width .22s linear,background-color .22s ease}.scoreProgressNext{display:block;margin-top:1px;text-align:right;font:650 7px/1.1 ui-monospace,monospace;letter-spacing:.05em;color:var(--muted)}
+      .scoreProgress{display:block;margin-top:2px;height:11px;position:relative}.scoreProgressTrack{display:block;height:3px;background:#dddcd6;overflow:hidden}.scoreProgressFill{display:block;height:100%;width:0;background:#393934;transition:width .22s linear,background-color .22s ease}.scoreProgressNext{display:block;margin-top:1px;text-align:right;font:650 7px/1.1 ui-monospace,monospace;letter-spacing:.05em;color:#858078}
       .scoreProgress[data-stage="clear"] .scoreProgressFill{background:#6e6b63}
       .scoreProgress[data-stage="overdrive"] .scoreProgressFill{background:#b3261e}
       .scoreProgress[data-stage="overdrive"] .scoreProgressNext{color:#b3261e}
