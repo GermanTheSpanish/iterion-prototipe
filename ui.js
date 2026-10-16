@@ -1086,7 +1086,7 @@
   async function downloadRunBatch(){
     persistGame();const batch=await buildPlaytestBatch(),blob=new Blob([batch.text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`MONOID_PLAYTEST_v${D.VERSION}_${batch.batchId}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);await markBatchShared(batch);toast(`Playtest batch downloaded · ${batch.runIds.length} run${batch.runIds.length===1?'':'s'}`);return true
   }
-  function closeMenu(){gameMenu.close();menuButton.setAttribute('aria-expanded','false')}
+  function closeMenu(){if(gameMenu.open)gameMenu.close();menuButton.setAttribute('aria-expanded','false')}
   menuButton.onclick=e=>{if(consumeInspectorHoldClick(menuButton,e))return;if(GAME.state().running||uiBusy||drag.active)return;press.cancel();syncRoutePreviewSetting();syncCascadePlaybackSetting();gameMenu.showModal();menuButton.setAttribute('aria-expanded','true')};$('closeMenu').onclick=closeMenu;gameMenu.onclose=()=>menuButton.setAttribute('aria-expanded','false');gameMenu.onclick=e=>{if(e.target===gameMenu){const r=gameMenu.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeMenu()}};
   $('scoreDetail').onclick=()=>openScoreDetails('score');$('targetDetail').onclick=()=>openScoreDetails('target');
   overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','overlayTitle');
