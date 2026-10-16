@@ -261,3 +261,29 @@ test('ROUND COMPLETE first tap finishes reveal and second tap advances without a
   await page.locator('#overlayBody').click();expect(await page.evaluate(()=>window.__tapClearGame.state().round)).toBe(0);await expect(page.locator('.roundAdvanceModal')).toHaveClass(/roundRewardComplete/);await expect(page.locator('#overlay')).toHaveClass(/show/);
   await page.locator('#overlayBody').click();await expect.poll(()=>page.evaluate(()=>window.__tapClearGame.state().round)).toBe(1);await expect(page.locator('#overlay')).not.toHaveClass(/show/);
 });
+
+test('R48 unaffordable recovery explains Move cost and shortfall on mobile',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{
+    localStorage.setItem('iterion.entryBypass.v1','true');
+    let api;
+    Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{
+      api={...value,createGame(engine,options){
+        const game=value.createGame(engine,{...options,seed:2085700609}),s=game.state();
+        s.round=47;s.endlessMode=true;s.standardComplete=true;s.roundTurn=7;
+        s.blocked=true;s.failureReason='placement-limit';s.running=false;s.cleared=false;
+        s.inflation=12;s.systemStrain=48;s.coins=60;s.consumables.move=0;
+        window.__p2Game=game;return game
+      }}
+    }});
+  });
+  await page.goto('http://127.0.0.1:4173/');
+  await expect(page.locator('#overlay')).toHaveClass(/show/);
+  await expect(page.locator('#overlayTitle')).toHaveText('ENDLESS OVER');
+  await expect(page.locator('#overlayBody')).toContainText('The next Move costs 63 coins');
+  await expect(page.locator('#overlayBody')).toContainText('3 base + 12 Inflation + 48 Strain');
+  await expect(page.locator('#overlayBody')).toContainText('60 coins — 3 short');
+  await expect(page.locator('#overlayPrimary')).toContainText('DOWNLOAD RUN');
+  await expect(page.locator('#overlay')).not.toContainText('BUY & USE MOVE');
+  expect(await page.evaluate(()=>window.__p2Game.recoveryOptions().recoverable)).toBe(false)
+});
