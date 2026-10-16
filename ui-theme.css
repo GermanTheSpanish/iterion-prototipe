@@ -625,19 +625,22 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 #gameMenu>#modCollectionMenuButton{order:5}
 #gameMenu>#menuGroupSystem{order:6}
 #gameMenu>#routePreviewSetting{order:7}
+#gameMenu>#cascadePlaybackSetting{order:7}
 #gameMenu>#installMonoidApp{order:8}
 #gameMenu>#checkForUpdates{order:9}
 #gameMenu>#applyMonoidUpdate{order:10}
 #gameMenu>#copyrun{order:11}
 #gameMenu>#qaTestRunsButton{order:12}
 #gameMenu>.menuBuildStamp{order:13;padding-top:12px;border-top:1px solid var(--line);margin:14px 0 0!important;font-size:10px!important;opacity:.75}
-#gameMenu>#gameSelectionButton,#gameMenu>#modCollectionMenuButton,#gameMenu>#routePreviewSetting,#gameMenu>#installMonoidApp,#gameMenu>#checkForUpdates,#gameMenu>#applyMonoidUpdate,#gameMenu>#copyrun,#gameMenu>#qaTestRunsButton{display:none!important}
+#gameMenu>#modCollectionMenuButton,#gameMenu>#cascadePlaybackSetting,#gameMenu>#routePreviewSetting,#gameMenu>#installMonoidApp,#gameMenu>#checkForUpdates,#gameMenu>#applyMonoidUpdate,#gameMenu>#copyrun,#gameMenu>#qaTestRunsButton{display:none!important}
 #gameMenu[data-open-section="explore"]>#gameSelectionButton,#gameMenu[data-open-section="explore"]>#modCollectionMenuButton{display:block!important}
 #gameMenu[data-open-section="system"]>#routePreviewSetting{display:block!important}
+#gameMenu[data-open-section="system"]>#cascadePlaybackSetting{display:block!important}
 #gameMenu[data-open-section="system"]>#installMonoidApp,#gameMenu[data-open-section="system"]>#checkForUpdates,#gameMenu[data-open-section="system"]>#copyrun,#gameMenu[data-open-section="system"]>#qaTestRunsButton{display:block!important}
 #gameMenu[data-open-section="system"]>#applyMonoidUpdate:not([hidden]){display:block!important}
 #gameMenu>.menuAction:not(#reset):not(#menuHelpButton){padding:0 14px;min-height:46px;font-size:14px}
 #gameMenu>#routePreviewSetting{margin:2px 0 6px;padding:6px 13px 12px;border:0}
+#gameMenu>#cascadePlaybackSetting{margin:2px 0 6px;padding:6px 13px 12px;border:0}
 #gameMenu>#checkForUpdates{border-top:1px solid var(--line);font-size:12px!important;font-weight:650;color:var(--muted)}
 #gameMenu>#checkForUpdates.menuUpdateAvailable{color:var(--ink);font-weight:850}
 #gameMenu>#applyMonoidUpdate[hidden]{display:none!important}
@@ -677,3 +680,13 @@ body.endlessPalette .currencyMark,body.infinitePalette .currencyMark{color:curre
 .board .signalValue.add strong{color:#20201e!important;-webkit-text-stroke:0!important}
 .board .islandPlacementHint,.board .coreActivationFx{color:#20201e}
 .scoreTraceLine{color:var(--muted)}
+
+/* Optional per-run playback: keep End Run visible, with advanced controls in System. */
+#gameMenu>#gameSelectionButton{display:block!important;order:4;font-weight:650}
+.cascadeFastForwardOffer{width:min(350px,calc(100% - 32px));padding:22px;max-height:calc(100dvh - 28px)}
+.cascadeFastForwardOffer h2{margin:0 0 14px;font-size:20px;letter-spacing:.05em}
+.cascadeFastForwardOffer p{font-size:14px;line-height:1.5;margin:0 0 12px}
+.cascadeOfferActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.cascadeOfferActions .menuAction{min-height:48px;text-align:center;border:1px solid var(--line);border-radius:4px;font-size:12px;font-weight:750}
+.cascadeOfferActions #cascadeOfferEnable{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+@media(max-height:700px){.cascadeFastForwardOffer{padding:16px}.cascadeFastForwardOffer p{font-size:13px}}

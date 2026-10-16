@@ -168,9 +168,7 @@ test('NEW PLAYER resumes an existing run and retains mode and Mod discoveries ac
   await expect(page.locator('.app')).toBeVisible();
   expect(await page.evaluate(()=>({runId:window.__monoidGame.state().runId,placedTileId:window.__monoidGame.state().pieces[0]?.id}))).toEqual({runId:before.runId,placedTileId:before.placedTileId});
 
-  await page.locator('#menuButton').click();
-  await page.locator('#menuGroupExplore').click();
-  await page.locator('#gameSelectionButton').click();
+  await page.reload();await page.locator('#titleCard').click();await expect(page.locator('#gameSelection')).toBeVisible();
   await page.evaluate(()=>window.__monoidModes.select(1));
   await expect(page.locator('#modeName')).toHaveText('THE EYES');
   page.once('dialog',dialog=>dialog.accept());

@@ -65,7 +65,7 @@ test(`Run menu stays concise and disclosures remain mutually exclusive at ${view
   await expect(explore).toHaveText('Explore');await expect(system).toHaveText('System');
   await expect(explore).toHaveAttribute('aria-expanded','false');
   await expect(system).toHaveAttribute('aria-expanded','false');
-  for(const id of ['routePreviewSetting','gameSelectionButton','modCollectionMenuButton','checkForUpdates','copyrun','qaTestRunsButton','viewrun'])
+  for(const id of ['routePreviewSetting','cascadePlaybackSetting','modCollectionMenuButton','checkForUpdates','copyrun','qaTestRunsButton','viewrun'])
     await expect(menu.locator('#'+id)).toBeHidden();
   await expect(menu.locator('.menuStats')).toBeHidden();
   const newRun=await menu.locator('#reset').boundingBox(),rulebook=await menu.locator('#menuHelpButton').boundingBox(),exp=await explore.boundingBox();
@@ -79,8 +79,8 @@ test(`Run menu stays concise and disclosures remain mutually exclusive at ${view
   await system.click();
   await expect(explore).toHaveAttribute('aria-expanded','false');
   await expect(system).toHaveAttribute('aria-expanded','true');
-  await expect(menu.locator('#gameSelectionButton')).toBeHidden();
-  for(const id of ['routePreviewSetting','checkForUpdates','copyrun','qaTestRunsButton'])await expect(menu.locator('#'+id)).toBeVisible();
+  await expect(menu.locator('#gameSelectionButton')).toBeVisible();
+  for(const id of ['routePreviewSetting','cascadePlaybackSetting','checkForUpdates','copyrun','qaTestRunsButton'])await expect(menu.locator('#'+id)).toBeVisible();
   await expect(menu.locator('#applyMonoidUpdate')).toBeHidden();
   await expect(menu.locator('#viewrun')).toBeHidden();
   await system.click();await expect(system).toHaveAttribute('aria-expanded','false');
