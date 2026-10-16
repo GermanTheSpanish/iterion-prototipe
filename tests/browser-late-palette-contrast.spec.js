@@ -118,7 +118,7 @@ test('selection stays light after subsequent inspector render for active late-ga
   }
 });
 
-test('late-game cascade skip and progress labels are readable on their real surfaces',async({page})=>{
+test('late-game cascade skip and visible score captions are readable on their real surfaces',async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto(BASE+'?qa=infinite16&ci=1');
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
@@ -130,13 +130,13 @@ test('late-game cascade skip and progress labels are readable on their real surf
       document.body.classList.add('endlessPalette');
       document.body.classList.toggle('infinitePalette',palette==='infinite');
       document.body.classList.toggle('ouroborosPalette',palette==='ouroboros');
-      const hc=getComputedStyle(hint),progress=document.querySelector('.scoreProgressNext'),pc=progress&&getComputedStyle(progress),bg=getComputedStyle(document.body).backgroundColor;
-      styles[palette]={hint:{fg:hc.color,bg:hc.backgroundColor},progress:pc?{fg:pc.color,bg}:null};
+      const hc=getComputedStyle(hint),caption=getComputedStyle(document.getElementById('scoreNote')),bg=getComputedStyle(document.body).backgroundColor;
+      styles[palette]={hint:{fg:hc.color,bg:hc.backgroundColor},caption:{fg:caption.color,bg}};
     }
     return styles;
   });
   for(const [palette,data] of Object.entries(samples)){
     expect(contrast(data.hint.fg,data.hint.bg),palette+' skip label').toBeGreaterThanOrEqual(4.5);
-    if(data.progress)expect(contrast(data.progress.fg,data.progress.bg),palette+' progress label').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(data.caption.fg,data.caption.bg),palette+' visible score caption').toBeGreaterThanOrEqual(4.5);
   }
 });
