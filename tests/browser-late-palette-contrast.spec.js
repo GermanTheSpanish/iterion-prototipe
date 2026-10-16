@@ -15,7 +15,7 @@ test('leaving Endless/Infinite resets Game Selection contrast and palette',async
     await expect(page.locator('.app')).toBeVisible({timeout:12000});
     await expect.poll(()=>page.evaluate(()=>document.body.classList.contains('endlessPalette'))).toBe(true);
     // Use the actual menu action; do not simulate removal of CSS classes.
-    await page.evaluate(()=>document.getElementById('gameSelectionButton').click());
+    page.once('dialog',dialog=>dialog.accept());await page.evaluate(()=>document.getElementById('gameSelectionButton').click());
     await expect(page.locator('#gameSelection')).toBeVisible();
     const result=await page.evaluate(()=>{
       const entry=document.getElementById('entryFlow'),entryBg=getComputedStyle(entry).backgroundColor;
@@ -91,7 +91,7 @@ test('selection stays light after subsequent inspector render for active late-ga
       await page.goto(BASE+'?qa='+fixture+'&ci=1');
       await expect(page.locator('.app')).toBeVisible({timeout:12000});
       await expect.poll(()=>page.evaluate(()=>document.body.classList.contains('endlessPalette'))).toBe(true);
-      await page.evaluate(()=>document.getElementById('gameSelectionButton').click());
+      page.once('dialog',dialog=>dialog.accept());await page.evaluate(()=>document.getElementById('gameSelectionButton').click());
       await expect(page.locator('#gameSelection')).toBeVisible();
       await page.locator('#selectionTitle').click();
       await expect(page.locator('#overlayTitle')).toHaveText('MONOID');
