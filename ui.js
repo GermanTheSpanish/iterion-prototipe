@@ -54,12 +54,14 @@
     syncRoutePreviewSetting();toast(`ROUTE PREVIEW · ${mode.toUpperCase()}`);return true
   }
   const cascadePlaybackSetting=$('cascadePlaybackSetting'),cascadeOffer=$('cascadeFastForwardOffer');
-  let cascadeOfferPending=false;
+  let cascadeOfferPending=false,cascadePrefsCache=null;
   function cascadePrefs(){
-    try{const prefs=JSON.parse(localStorage.getItem(CASCADE_PREFS_KEY)||'null');if(prefs?.runId===GAME.state().runId)return prefs}catch(_){}
-    return{runId:GAME.state().runId,mode:'full',offered:false}
+    const runId=GAME.state().runId;
+    if(cascadePrefsCache?.runId===runId)return cascadePrefsCache;
+    try{const prefs=JSON.parse(localStorage.getItem(CASCADE_PREFS_KEY)||'null');if(prefs?.runId===runId)return cascadePrefsCache=prefs}catch(_){}
+    return cascadePrefsCache={runId,mode:'full',offered:false}
   }
-  function saveCascadePrefs(prefs){try{localStorage.setItem(CASCADE_PREFS_KEY,JSON.stringify(prefs))}catch(_){}}
+  function saveCascadePrefs(prefs){cascadePrefsCache=prefs;try{localStorage.setItem(CASCADE_PREFS_KEY,JSON.stringify(prefs))}catch(_){}}
   function fastForwardEnabled(){return cascadePrefs().mode==='fast'}
   function syncCascadePlaybackSetting(){
     if(!cascadePlaybackSetting)return;
@@ -195,7 +197,7 @@
     const saved=storedState(),choiceMade=localStorage.getItem(TUTORIAL_KEY)==='made',mode=selectedMode(saved),modeIndex=window.__monoidModes?.modes?.findIndex(item=>item.id===mode)??-1;if(modeIndex>=0)window.__monoidModes.select(modeIndex);continueRun.hidden=!saved;firstRunChoice.hidden=choiceMade;$('replayTutorial').hidden=false;$('startRun').textContent=saved?'NEW RUN':choiceMade?'START RUN':'SKIP · START RUN'
   }
   async function startNormal(continueSaved=false){
-    clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;
+    cascadeOfferPending=false;clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;
     const prior=storedState(),mode=selectedMode(continueSaved?prior:null),firstRealOpening=!continueSaved&&mode==='classic'&&PROFILE?.currentContext?.()!=='dev'&&!prior&&!localStorage.getItem(FIRST_REAL_OPENING_KEY);
     if(!continueSaved)await archiveSavedRun('new-run');
     const saved=continueSaved?prior:null,next=window.IterionGame.createGame(E,gameOptions(mode,{AVOID_ZERO_DOUBLE_FIRST_HAND:firstRealOpening}));if(continueSaved&&!next.restoreState(saved))return;
@@ -445,7 +447,7 @@
   function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal','compactCommerceModal','outcomeModal','roundAdvanceModal','roundRewardComplete','voidInspectorModal','ouroborosIntroModal');overlay.onclick=null;overlayBody.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(ms=D.OUTCOME_SCREEN_DELAY_MS){ms=Math.max(0,Number(ms)||0);clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+ms;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},ms+25)}
-  async function newRun(){ouroborosPreviewSuspended=false;pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;if(GAME.config)GAME.config.MOD_ACCESS=PROFILE?.modUnlockState?.()||null;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
+  async function newRun(){cascadeOfferPending=false;ouroborosPreviewSuspended=false;pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;if(GAME.config)GAME.config.MOD_ACCESS=PROFILE?.modUnlockState?.()||null;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
