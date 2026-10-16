@@ -7,12 +7,12 @@ const oneShort=S.subtract(target,'1');
 const approx=Number(target);
 assert.equal(Number(oneShort),approx,'fixture collapses to the same unsafe Number');
 const below=P.scoreDisplay(Number(oneShort),approx,oneShort,target);
-assert.equal(below.cleared,false,'exact one-point shortfall must not be reported as clear');
+assert.equal(below.note,'1 to target','exact shortfall must not be reported as clear');
 assert.equal(below.overdrive,false);
 assert.equal(below.note,'1 to target','near-target hint must use the exact deficit');
 assert.equal(P.progressState(Number(oneShort),approx,oneShort,target).stage,'target');
 const cleared=P.scoreDisplay(approx,approx,target,target);
-assert.equal(cleared.cleared,true);
+assert.equal(cleared.note,'Target reached');
 assert.equal(P.progressState(approx,approx,target,target).stage,'clear');
 
 const x1000=S.multiply(target,'1000'),justShort=S.subtract(x1000,'1');
