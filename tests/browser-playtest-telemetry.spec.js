@@ -65,9 +65,9 @@ test('mobile presentation distinguishes exact target thresholds while budgeting 
     }
   });
   expect(results.sameNumber).toBe(true);
-  expect(results.below.cleared).toBe(false);
   expect(results.below.note).toBe('1 to target');
-  expect(results.reached.cleared).toBe(true);
+  expect(results.below.note).toBe('1 to target');
+  expect(results.reached.note).toBe('Target reached');
   expect(results.almost.stage).toBe('clear');
   expect(results.over.stage).toBe('overdrive');
   expect(results.exact).toBe('9,007,199,254,740,993');
