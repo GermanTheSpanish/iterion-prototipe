@@ -1957,7 +1957,32 @@ function createGame(E,opts={}){
     }
     return compact
   }
-  function compactEventsForPersistence(events){return(Array.isArray(events)?events:[]).map(compactEventForPersistence)}
+  function compactEventsForPersistence(events){
+    const list=Array.isArray(events)?events:[],latestTurn=list.reduce((last,e)=>Number.isInteger(e?.turn)?Math.max(last,e.turn):last,0);
+    return list.map(event=>{
+      const compact=compactEventForPersistence(event);
+      if(!compact||!Number.isInteger(event?.turn)||event.turn>latestTurn-8)return compact;
+      // Historical Moves keep their exact score, tile identity, location, result and economy.
+      // Long operation/route traces remain available in memory and the downloaded live debug,
+      // but must not make the authoritative save exceed localStorage quota.
+      for(const field of ['ops','routes']){
+        if(typeof compact[field]!=='string')continue;
+        compact[field+'TotalChars']=event[field]?.length||compact[field].length;
+        compact[field]='[COMPACTED_FOR_SAVE]';compact[field+'Compacted']=true
+      }
+      if(compact.signal){
+        for(const field of ['activations','splits','branchEnds','merges'])if(Array.isArray(compact.signal[field])){
+          compact.signal[field+'TotalCount']=compact.signal[field].length;
+          delete compact.signal[field]
+        }
+      }
+      delete compact.modPerformance;
+      delete compact.coreActivations;
+      delete compact.coreShadow;
+      delete compact.signalShadow;
+      return compact
+    })
+  }
   function persistedUndoFrame(frame){
     if(!frame)return null;
     const{events,undoFrame,...rest}=frame,out=deepClone(rest);
