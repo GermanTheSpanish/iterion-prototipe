@@ -91,7 +91,7 @@ test(`Run menu stays concise and disclosures remain mutually exclusive at ${view
 });
 }
 
-test('pending Market Mod offers a genuine cancel/refund path and restores the same Market',async({page})=>{
+test('pending Market Mod selection costs nothing and cancellation restores the same Market',async({page})=>{
   await page.addInitScript(()=>{
     localStorage.setItem('iterion.entryBypass.v1','true');
     let api;
@@ -112,6 +112,8 @@ test('pending Market Mod offers a genuine cancel/refund path and restores the sa
   await expect(page.locator('#cancelModPurchase')).toHaveText('CANCEL PURCHASE');
   expect(await page.locator('#cancelModPurchase').evaluate(button=>{const rect=button.getBoundingClientRect(),at=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);return at===button||button.contains(at)})).toBe(true);
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);
+  const pending=await page.evaluate(()=>{const s=window.__monoidGame.state();return{coins:s.coins,inflation:s.inflation,marketBuys:s.marketBuys.length}});
+  expect(pending).toEqual({coins:initial.coins,inflation:initial.inflation,marketBuys:0});
   await page.locator('#cancelModPurchase').click();
   await expect(page.locator('#overlay')).toHaveClass(/show/);
   await expect(page.locator('[data-market-mod="double-double"]')).toBeVisible();
