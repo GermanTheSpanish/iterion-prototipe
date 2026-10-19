@@ -18,6 +18,7 @@
     quantumNetwork:Object.freeze({id:'quantumNetwork',mode:'classic',round:13,generation:2,score:0,best:57863119300,coins:165,inflation:8,endless:false,powerGeneration:2,sourceRunId:'mu66e4fp-116me8o'}),
     infinite16:Object.freeze({id:'infinite16',mode:'classic',round:15,generation:3,score:125000000000,best:610000000000,coins:142,inflation:9,endless:true,powerGeneration:3}),
     german9Endless:Object.freeze({id:'german9Endless',mode:'classic',round:15,generation:2,score:0,best:2.1114853892231e36,coins:35,inflation:9,endless:true,powerGeneration:2,sourceRunId:'mudyrg2r-1960frf'}),
+    germanPeaksR40:Object.freeze({id:'germanPeaksR40',mode:'peaks',round:39,generation:3,score:0,best:3.124543299482781e30,coins:80,inflation:15,endless:true,powerGeneration:3,sourceRunId:'mve9wej9-1hqze01'}),
     klausOuroboros:Object.freeze({id:'klausOuroboros',mode:'classic',round:48,generation:3,score:0,best:5.619772630459988e45,coins:163,inflation:16,endless:true,powerGeneration:3,sourceRunId:'mv1hi61f-r68xcg'})
   });
 
@@ -132,6 +133,19 @@
     ])
   });
 
+  // Rebuilt from B-0F583TI / Run #20: 84 placed tiles immediately before T85 R40.7.
+  // Debug text supplies physical placements and geometry, not full RNG or replay history.
+  const REAL_GERMAN_PEAKS_R40=Object.freeze({
+    seed:3250028449,runId:'mve9wej9-1hqze01',board:[42,56],
+    lastTileId:'g3-d0-3',lastPlacement:{x:8,y:46,z:0,rr:0},
+    lastScoreExact:'1427949251779793771488536',
+    bestExact:'3124543299482781270758835599061',
+    pieces:Object.freeze('d4-4,20,30,0|d2-4,24,28,1|d2-5,24,26,3|d5-5,22,22,0|d5-6,22,20,2|d6-6,16,20,0|d1-6,12,20,0|d1-2,12,22,1|d4-6,18,30,1|d2-3,12,26,1|d3-3,12,30,1|d3-4,12,34,1|d3-6,18,36,3|d3-5,18,38,2|d0-5,20,24,0|d0-6,18,24,3|d0-4,18,26,1|d0-2,16,24,2|d4-5,12,38,0|d0-1,12,16,1|d2-6,18,16,1|d2-2,18,12,1|d1-5,28,22,2|d1-1,28,18,1|d1-4,28,16,2|d1-3,8,31,0|d0-3,20,40,3|d0-0,12,14,0|g2-d3-4,24,14,1|g2-d2-3,24,10,1|adapter-endless-1,20,12,0|g2-d1-1,6,30,1|g2-d4-5,24,18,1|g2-d4-4,22,32,0|g2-d0-2,14,16,0|g2-d1-5,6,28,3|g2-d2-2,16,10,0|g2-d2-4,28,32,2|g2-d2-5,28,34,1|g2-d1-3,30,19,0|g2-d1-6,28,24,1|g2-d2-6,28,30,3|g2-d3-3,34,18,1|g2-d1-2,16,6,1|g2-d3-5,34,22,0|g2-d3-6,34,16,0|g2-d0-4,8,36,0|g2-d0-0,12,12,0|g2-d5-6,28,38,2|g2-d1-4,14,6,2|g2-d4-6,12,8,2|g2-d6-6,8,8,1|g2-d5-5,4,24,0|g2-d0-3,34,12,1|g2-d0-5,8,22,1|g2-d0-6,10,12,3|g2-d0-1,28,12,1|g3-d4-6,6,12,3|g3-d0-1,4,34,0|g3-d2-6,30,30,0|g3-d1-6,34,32,3|g3-d1-1,34,34,1|g3-d2-4,6,16,3|g3-d1-2,34,38,1|g3-d4-5,2,22,1|g3-d2-5,6,18,2|g3-d1-5,32,38,2|g3-d6-6,38,15,1|g3-d2-2,36,40,0|g3-d3-5,38,24,3|g3-d3-3,38,26,1|g3-d3-6,38,30,1|g3-d0-4,8,38,0|g3-d5-5,2,16,1|g3-d5-6,38,36,3|g3-d2-3,37,42,1|g3-d0-6,38,11,1|g3-d0-0,10,14,1|g3-d1-4,0,20,1|g3-d1-3,35,46,0|g3-d4-4,10,40,0|g3-d3-4,10,44,3|g3-d0-2,40,42,3|g3-d0-5,0,14,0'.split('|').map(row=>{const[id,x,y,rr]=row.split(',');return[id,+x,+y,+rr]})),
+    cores:Object.freeze('core-peaks-north-2,relay,1,UL,14,26|core-peaks-north-3,relay,1,LU,26,26|core-peaks-north-4,distributor,1,UR,20,22|core-peaks-south-1,distributor,2,L,26,28|core-peaks-south-2,relay,1,URLD,14,36|core-peaks-south-4,reservoir,1,U,20,32|core-peaks-stage-2,conductor,1,LUR,26,14|core-peaks-stage-3,conductor,1,LR,26,12|core-peaks-stage-4,relay,1,UDL,14,10|core-peaks-stage-5,distributor,1,DRL,14,8|core-peaks-stage-6,distributor,1,LUD,20,10|core-peaks-stage-7,conductor,2,ULR,8,14|core-peaks-stage-8,relay,1,LUD,8,48|core-peaks-stage-9,relay,1,LU,32,32|core-peaks-stage-10,conductor,1,RULD,32,4|core-peaks-stage-11,reservoir,1,RUDL,32,14|core-peaks-stage-12,distributor,1,ULR,8,52|core-peaks-stage-13,conductor,1,DLRU,2,28|core-peaks-stage-14,distributor,1,D,26,0'.split('|').map(row=>{const[id,archetype,level,ports,x,y]=row.split(',');return{id,archetype,level:+level,ports:ports.split(''),x:+x,y:+y,size:2,kind:id.includes('north-4')||id.includes('south-4')?'peak':'core',peak:id.includes('north-4')||id.includes('south-4')}})),
+    voids:Object.freeze('14,18|26,18|14,28|26,36|16,40|30,14|16,14|30,28|28,42|14,42|30,12|16,12|32,44|8,20|8,34|32,26|6,8|6,46|20,8|34,8|22,34|6,22|34,24|6,36|34,42|16,26|32,10|12,44|22,48|8,6|36,48|6,6|22,6|34,28|36,6|36,30|22,50|4,50|24,4|20,50|4,22|22,4|8,4|36,50|4,52|38,52|38,2|2,36|2,34|2,20|2,50|18,52|40,16|40,0|0,0|40,18'.split('|').map((row,i)=>{const[x,y]=row.split(',');return{id:'qa-peaks-void-'+i,x:+x,y:+y,size:2,kind:'void'}})),
+    ranks:Object.freeze({'d5-5':4,'d2-5':2,'d6-6':2,'g2-d3-4':2,'d2-4':2,'g2-d0-2':3,'g3-d1-5':2,'d4-5':1,'g2-d0-6':1})
+  });
+
   const clone=value=>JSON.parse(JSON.stringify(value));
   const powerForGeneration=generation=>Math.min(4,Math.max(1,generation));
   function makeSet(maxGeneration=1){
@@ -157,6 +171,42 @@
     const preset=PRESETS[presetId];if(!preset)throw new Error(`Unknown MONOID QA preset: ${presetId}`);
     if(!game?.exportState||!game?.restoreState)throw new Error('MONOID game state API required');
     const saved=game.exportState(),s=saved.state,set=makeSet(preset.generation),byId=new Map(set.map(tile=>[tile.id,tile]));
+
+    if(presetId==='germanPeaksR40'){
+      const source=REAL_GERMAN_PEAKS_R40;
+      set.push({id:'adapter-endless-1',a:2,b:3,source:'adapter',upgrade:0});
+      byId.set('adapter-endless-1',set[set.length-1]);
+      const ids=source.pieces.map(spec=>spec[0]);
+      if(ids.length!==84||new Set(ids).size!==84)throw new Error('Germán R40 must have 84 unique tile IDs');
+      const ranks={'d0-1':3,'d0-3':3,'d1-1':3,'d1-4':3,'d2-2':3,'d2-6':3,'d4-5':3,
+        'g2-d0-2':3,'g2-d0-3':3,'g2-d0-4':3,'g2-d0-5':3,'g2-d1-2':3,'g2-d1-4':3,
+        'g2-d1-5':3,'g2-d2-2':3,'g2-d2-3':3,'g2-d2-6':1,'g2-d3-4':3,'g2-d4-5':3,'g2-d4-6':3,
+        'g2-d5-5':3,'g2-d6-6':1,'g3-d2-3':3,'g3-d0-0':3,'g3-d0-4':3,'g3-d3-3':2,'g3-d3-6':3,
+        'g3-d5-6':2,'g3-d6-6':1};
+      for(const[id,level]of Object.entries(ranks))if(byId.has(id))byId.get(id).upgrade=level;
+      s.set=set;s.setGeneration=3;s.pieces=source.pieces.map(([id,x,y,rr],i)=>({id:i+1,tile:clone(byId.get(id)),x,y,rr}));
+      s.placedTileIds=[...ids];s.reserve=[];s.hand=[clone(byId.get(source.lastTileId)),null,null,null,null];
+      s.round=39;s.roundTurn=6;s.turn=84;s.idc=84;s.score=Number(source.lastScoreExact);s.scoreExact=source.lastScoreExact;
+      s.best=Number(source.bestExact);s.bestExact=source.bestExact;s.coins=80;s.inflation=15;
+      s.wins=Array.from({length:39},(_,i)=>({round:i+1}));s.events=[{type:'qa-preset',preset:preset.id,sourceRunId:source.runId,sourceBatchId:'B-0F583TI',round:40,phase:'endless',reconstructed:true}];
+      s.running=false;s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;
+      s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=18;s.undoFrame=null;s.ouroborosRebuilds=[];
+      s.anchorId='g3-d0-0';s.freeReroll=1;s.consumables={move:0,reroll:0,undo:0};s.roundZero={drawn:0,placed:0,endHand:0};
+      s.doubleDoubleTileId='g2-d4-4';s.doubleEchoTileId='d4-4';s.tripleDoubleTileId='d6-6';
+      s.zeroPortTileIds=['g2-d0-2','d0-3'];s.quantumPortTileIds=['d0-5','g2-d0-3'];
+      s.longLineTileId='d2-3';s.overloadTileId='d5-5';s.foundationTileId='d2-4';
+      s.mods=['long-run'];s.circuitRanks=clone(source.ranks);s.circuitSignatures=[];
+      s.pendingCircuit=null;s.pendingModPlacement=null;s.nextShopType='none';s.intermissionResolved=true;
+      s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
+      s.standardComplete=true;s.endlessMode=true;s.endlessStartedRound=16;s.ouroborosMode=false;s.ouroborosPending=false;s.ouroborosFiresUsed=0;
+      s.ouroborosStartedRound=null;s.ouroborosBoardSize=null;s.systemStrain=54;s.endlessLongRunActivations=7;s.boardStage=14;s.marketCount=13;
+      s.foundationAssignedMarket=7;s.foundationLastPayoutMarket=13;
+      s.cores=clone(source.cores);s.voids=clone(source.voids);s.coreProgressMilestones=['discover:2','discover:3','discover:4','discover:5',...Array.from({length:9},(_,i)=>'endless-growth:'+(i+6)),'upgrade:10','upgrade:13'];
+      s.seed=source.seed;s.rngState=source.seed|0;s.runId='qa-'+source.runId+'-pre-ouroboros';s.startedAt='2026-10-19T08:00:00.000Z';
+      s.gameMode='peaks';s.tileSerial=0;delete s.scoringModel;delete s.scoringFormula;
+      if(!game.restoreState(saved))throw new Error('Could not restore Germán Peaks R40 QA checkpoint');
+      return game
+    }
 
     if(presetId==='klausOuroboros'){
       const source=REAL_KLAUS_OUROBOROS,ids=source.pieces.map(spec=>spec[0]);
@@ -331,6 +381,7 @@
       <button class="qaPresetChoice" data-qa-preset="quantumNetwork"><strong>QUANTUM NETWORK · FIVE PORTS</strong><small>R14 Classic machine · 2 Zero Ports + 3 Quantum Ports · all five outcomes ready</small></button>
       <button class="qaPresetChoice" data-qa-preset="infinite16"><strong>ENDLESS · ROUND 16</strong><small>Generic late-game fixture · Classic progression</small></button>
       <button class="qaPresetChoice" data-qa-preset="german9Endless"><strong>GERMÁN RUN #9 · ENDLESS START</strong><small>Real R16 machine · 33 tiles · POWER ×2 · 5 Markets · saved run safe</small></button>
+      <button class="qaPresetChoice" data-qa-preset="germanPeaksR40"><strong>GERMÁN · PEAKS R40 · LAST TILE</strong><small>Reconstructed Run #20 · 84 tiles · final Golden tile in Hand · 3 FIRE test · saved run safe</small></button>
       <button class="qaPresetChoice" data-qa-preset="klausOuroboros"><strong>KLAUS · OUROBOROS START</strong><small>Reconstructed R49 · 84 tiles · POWER ×3 · before first FIRE · saved run safe</small></button>
       ${inQa?`<a class="menuAction qaReturn" data-qa-return href="${normalUrl(root)}">RETURN TO SAVED RUN</a>`:''}`;
     doc.body.appendChild(dialog);
@@ -359,14 +410,14 @@
     const start=()=>{
       const modes=root.__monoidModes,flow=root.__monoidFlow,ready=modes?.select&&root.IterionGame?.createGame&&flow;
       if(!ready){if(tries++<360)root.requestAnimationFrame(start);return}
-      modes.select(0);root.__monoidActiveMode='classic';
+      const modeIndex=Math.max(0,modes.modes?.findIndex(item=>item.id===preset.mode)??0);modes.select(modeIndex);root.__monoidActiveMode=preset.mode;
       const baseCreate=root.IterionGame.createGame;let armed=true;
       root.IterionGame.createGame=function(engine,options){
         const game=baseCreate.call(this,engine,options);
         if(!armed)return game;armed=false;root.IterionGame.createGame=baseCreate;return applyPreset(game,engine,id)
       };
       const title=root.document.getElementById('titleCard'),startButton=root.document.getElementById('startRun');
-      if(!title?.hidden)title.click();modes.select(0);root.__monoidActiveMode='classic';startButton?.click();
+      if(!title?.hidden)title.click();modes.select(modeIndex);root.__monoidActiveMode=preset.mode;startButton?.click();
       const finish=()=>{const app=root.document.querySelector('.app');if(app&&!app.hidden){addQaStamp(root,preset);root.MonoidPhaseA?.sync?.();root.MonoidPhaseAMobileFix?.syncBuildStamp?.();return}root.requestAnimationFrame(finish)};finish()
     };
     root.requestAnimationFrame(start);return true
