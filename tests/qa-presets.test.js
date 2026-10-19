@@ -34,11 +34,11 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
   assert.strictEqual(snap.round.index,preset.round+1,`${id}: visible round`);
   assert.strictEqual(snap.endless.active,preset.endless,`${id}: endless flag`);
   assert.strictEqual(s.setGeneration,preset.generation,`${id}: POWER generation`);
-  assert.strictEqual(s.gameMode,'classic',`${id}: every fixture uses the integrated Classic progression`);
+  assert.strictEqual(s.gameMode,preset.mode,`${id}: fixture must use its original game mode`);
   assert.strictEqual(ids.length,new Set(ids).size,`${id}: physical piece ids are unique`);
   assert.strictEqual(s.placedTileIds.length,new Set(s.placedTileIds).size,`${id}: placed ids are unique`);
   assert.strictEqual(activeIds.length,new Set(activeIds).size,`${id}: one physical tile cannot exist twice across machine, Hand and reserve`);
-  assert.strictEqual(s.hand.filter(Boolean).length,id==='klausOuroboros'?0:5,`${id}: phase-appropriate hand`);
+  assert.strictEqual(s.hand.filter(Boolean).length,id==='klausOuroboros'?0:id==='germanPeaksR40'?1:5,`${id}: phase-appropriate hand`);
   assert(ids.some(tileId=>tileId.startsWith(`g${preset.powerGeneration}-`))||preset.powerGeneration===1,`${id}: current POWER material is represented`);
   assert(Math.max(s.score,s.best)>=50000,`${id}: large-number UI threshold is exercised`);
   if(id==='klausOuroboros')assert(game.canInteract(),`${id}: R49 must be interactive`);
@@ -86,6 +86,23 @@ for(const [id,preset] of Object.entries(QA.PRESETS)){
     const restored=Game.createGame(E,{seed:14});assert(restored.restoreState(game.exportState()));
     assert.equal(restored.state().roundTurn,0);assert.equal(restored.state().pieces.length,84);
     assert.equal(restored.state().ouroborosMode,true);
+  }else if(id==='germanPeaksR40'){
+    assert.equal(s.runId,'qa-mve9wej9-1hqze01-pre-ouroboros');
+    assert.equal(s.pieces.length,84);assert.equal(s.set.length,85);
+    assert.equal(game.availableTileCount(),1);assert.equal(s.round,39);assert.equal(s.roundTurn,6);
+    assert.equal(s.ouroborosMode,false);assert.equal(s.ouroborosFiresUsed,0);
+    assert.deepStrictEqual(s.hand.filter(Boolean).map(t=>t.id),['g3-d0-3']);
+    assert.deepStrictEqual(snap.boardSize,{width:42,height:56});
+    assert.equal(s.cores.length,19);assert.equal(s.voids.length,56);
+    assert.equal(s.coins,80);assert.equal(s.inflation,15);
+    assert.equal(s.zeroPortTileIds.length,2);assert.equal(s.quantumPortTileIds.length,2);
+    assert(game.candidatesForIndex(0).some(p=>p.x===8&&p.y===46&&p.rr===0),'last Golden Deck placement is legal');
+    const context=game.beginPlacement(0,{x:8,y:46,z:0,rr:0});
+    assert(context.ok,'last Golden tile remains placeable');
+    const result=game.finishPlacement(context);
+    assert(result.ok);assert.equal(result.failureReason,null);
+    assert.equal(s.ouroborosMode,true);assert.equal(s.ouroborosFiresUsed,0);assert.equal(s.roundTurn,0);
+    assert.equal(s.pieces.length,85);assert.equal(s.events.filter(e=>e.type==='ouroboros-start').length,1);
   }else if(id==='classic14'){
     assert.strictEqual(preset.sourceRunId,'mu66e4fp-116me8o');
     assert.strictEqual(s.runId,'qa-mu66e4fp-116me8o');
