@@ -174,3 +174,38 @@ test('Quantum QA preset shows exactly five physical port terminals on the saved-
   const stamps=await page.locator('#board .piece[data-tile-id]').evaluateAll(items=>items.map(x=>x.dataset.tileId));
   expect(new Set(stamps).size).toBe(stamps.length);
 });
+
+
+test('Germán Peaks R40 last Golden tile starts Ouroboros with three untouched FIRE attempts',async({page})=>{
+  await page.setViewportSize({width:390,height:844});await seedRealSave(page);
+  await page.goto(`${BASE}?qa=germanPeaksR40&ci=1`);
+  await expect(page.locator('body')).toHaveAttribute('data-qa-preset','germanPeaksR40');
+  await expect(page.locator('.app')).toBeVisible({timeout:15000});
+  await expect(page.locator('#board .piece')).toHaveCount(84);
+  const result=await page.evaluate(()=>{
+    const game=window.__monoidGame,s=game.state(),target={x:8,y:46,z:0,rr:0};
+    const initial={mode:s.gameMode,round:s.round+1,roundTurn:s.roundTurn,pieces:s.pieces.length,
+      available:game.availableTileCount(),hand:s.hand.filter(Boolean).map(t=>t.id),
+      source:window.__monoidQa.sourceRunId,unique:new Set(s.pieces.map(p=>p.tile.id)).size};
+    const legal=game.candidatesForIndex(0).some(p=>p.x===8&&p.y===46&&p.rr===0);
+    const ctx=game.beginPlacement(0,target);
+    if(!ctx.ok)return{initial,legal,error:ctx.reason};
+    const finish=game.finishPlacement(ctx),after=game.state();
+    const saved=game.exportState(),reloaded=game.restoreState(saved),again=game.state();
+    return{initial,legal,finish:{blocked:finish.blocked,failureReason:finish.failureReason},
+      after:{mode:after.ouroborosMode,pending:after.ouroborosPending,roundTurn:after.roundTurn,
+        fires:after.ouroborosFiresUsed,available:game.availableTileCount(),pieces:after.pieces.length,
+        blocked:after.blocked,fireEvents:after.events.filter(e=>e.type==='ouroboros-fire').length,
+        transitions:after.events.filter(e=>e.type==='ouroboros-start').length},
+      reloaded,firesAfterRestore:again.ouroborosFiresUsed}
+  });
+  expect(result.error).toBeUndefined();
+  expect(result.initial).toEqual({mode:'peaks',round:40,roundTurn:6,pieces:84,available:1,
+    hand:['g3-d0-3'],source:'mve9wej9-1hqze01',unique:84});
+  expect(result.legal).toBe(true);
+  expect(result.after).toEqual({mode:true,pending:false,roundTurn:0,fires:0,available:0,
+    pieces:85,blocked:false,fireEvents:0,transitions:1});
+  expect(result.finish.failureReason).toBeNull();
+  expect(result.reloaded).toBe(true);expect(result.firesAfterRestore).toBe(0);
+  await assertRealSaveSurvived(page)
+});
