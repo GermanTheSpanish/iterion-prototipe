@@ -191,7 +191,7 @@
     function syncActionLabels(){
       const game=root.__monoidGame;if(!game?.state)return;const state=game.state(),remaining=Math.max(0,(game.maxPlacements?.()||0)-(state.roundTurn||0));
       const move=$('moveTool'),reroll=$('reroll'),undo=$('undoTool'),shop=$('shopButton');
-      const ouroboros=!!state.ouroborosMode,fireLimit=Math.max(1,Number(root.IterionData?.OUROBOROS_FIRE_LIMIT)||3),firesLeft=Math.max(0,fireLimit-(state.roundTurn||0));
+      const ouroboros=!!state.ouroborosMode,fireLimit=Math.max(1,Number(root.IterionData?.OUROBOROS_FIRE_LIMIT)||3),firesLeft=Math.max(0,fireLimit-(state.ouroborosFiresUsed||0));
       const moveHtml=ouroboros?`${firesLeft} FIRES<small>${fireLimit} PER ROUND</small>`:`${remaining} MOVES<small>ADD +1 · ${state.consumables?.move||0}</small>`;
       const rerollSub=state.freeReroll?'FREE':String(state.consumables?.reroll||0),rerollHtml=ouroboros?'REBUILD<small>DRAG TILES</small>':`REROLL<small>${rerollSub}</small>`;
       const undoHtml=`UNDO<small>${state.consumables?.undo||0}</small>`,shopHtml=`TILE SHOP<small><span class="currencyAmount"><span class="currencyValue">${state.coins||0}</span><i class="currencyMark" aria-hidden="true"></i></span></small>`;
