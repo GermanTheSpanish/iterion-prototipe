@@ -426,7 +426,7 @@
     if(!piece){piece=s.pieces.find(p=>p.tile.id===s.anchorId)||s.pieces.at(-1)||null;ouroborosSelection=piece?.tile.id||null}
     const preview=document.createElement('div');preview.className='handSlot ouroborosSelectionSlot';if(piece){const shell=document.createElement('div');shell.innerHTML=mini(piece.tile);preview.appendChild(shell.firstChild)}else preview.textContent='SELECT';handEl.appendChild(preview);
     const back=document.createElement('button');back.className='ouroborosAction ouroborosRebuildUndo';back.type='button';back.textContent='REVERT';back.disabled=uiBusy||!GAME.canUndoOuroborosRebuild?.();back.setAttribute('aria-label','Undo last Ouroboros rebuild without consuming a tool');back.onclick=()=>undoOuroborosRebuild();handEl.appendChild(back);
-    const fireLimit=Math.max(1,Number(D.OUROBOROS_FIRE_LIMIT)||3),firesLeft=Math.max(0,fireLimit-s.roundTurn);
+    const fireLimit=Math.max(1,Number(D.OUROBOROS_FIRE_LIMIT)||3),firesLeft=Math.max(0,fireLimit-(s.ouroborosFiresUsed||0));
     const fire=document.createElement('button');fire.className='ouroborosAction ouroborosFire';fire.type='button';fire.innerHTML=`FIRE<small>${firesLeft} LEFT</small>`;fire.disabled=!piece||uiBusy||firesLeft===0;fire.setAttribute('aria-label',`Fire signal from selected tile. ${firesLeft} of ${fireLimit} attempts remaining this round.`);fire.onclick=()=>fireOuroborosSelection();handEl.appendChild(fire)
   }
   function renderHand(){
@@ -861,7 +861,7 @@
   function chooseCircuitTile(tileId){const r=GAME.chooseCircuitTile(tileId);if(!r.ok)return;press.cancel();persistGame();clearOutcomeDelay();render();armDecisionTiming();toast(`CIRCUIT RANK ${D.CIRCUIT_RANKS[r.after-1].roman}`)}
   function cancelPendingMarketMod(){
     const result=GAME.cancelMarketModPurchase?.();if(!result?.ok){toast('CANNOT CANCEL THIS PURCHASE');return}
-    press.cancel();persistGame();render();toast('PURCHASE CANCELLED · FUNDS REFUNDED')
+    press.cancel();persistGame();render();toast(result.refund?'PURCHASE CANCELLED · FUNDS REFUNDED':'MOD SELECTION CANCELLED')
   }
   function chooseMarketModTile(tileId){const eventCursor=GAME.state().events.length,pending=GAME.state().pendingModPlacement,mod=M.get(pending?.mod),r=GAME.chooseMarketModTile(tileId);if(!r.ok){toast(r.reason==='no-target'?'No compatible Mod target':'Invalid Mod target');return}if(!r.pending)PT?.closeMarket({outcome:`buy:${pending?.mod||r.mod}`});press.cancel();persistGame();clearOutcomeDelay();if(r.pending){render();toast(`${mod?.displayName||r.mod} · CHOOSE NEW ZERO`);announceCoreProgress(GAME.state().events.slice(eventCursor));return}toast(`${mod?.displayName||r.mod} → [${r.tile?.a}|${r.tile?.b}]`);announceCoreProgress(GAME.state().events.slice(eventCursor));advanceRound()}
   function chooseMarketModHalf(tileId,half){const eventCursor=GAME.state().events.length,r=GAME.chooseMarketModHalf(tileId,half);if(!r.ok){toast('Invalid DIODE direction');return}PT?.closeMarket({outcome:'buy:diode'});press.cancel();persistGame();clearOutcomeDelay();toast(`DIODE IN → ${half+1}`);announceCoreProgress(GAME.state().events.slice(eventCursor));advanceRound()}
