@@ -109,7 +109,7 @@ test('pending Market Mod selection costs nothing and cancellation restores the s
   const initial=await page.evaluate(()=>{const s=window.__monoidGame.state();return{coins:s.coins,inflation:s.inflation,offers:[...s.shopOffers],runId:s.runId}});
   await page.locator('[data-market-mod="double-double"]').click();
   await expect(page.locator('#cancelModPurchase')).toBeVisible();
-  await expect(page.locator('#cancelModPurchase')).toHaveText('CANCEL PURCHASE');
+  await expect(page.locator('#cancelModPurchase')).toHaveText('CANCEL SELECTION');
   expect(await page.locator('#cancelModPurchase').evaluate(button=>{const rect=button.getBoundingClientRect(),at=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);return at===button||button.contains(at)})).toBe(true);
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);
   const pending=await page.evaluate(()=>{const s=window.__monoidGame.state();return{coins:s.coins,inflation:s.inflation,marketBuys:s.marketBuys.length}});
