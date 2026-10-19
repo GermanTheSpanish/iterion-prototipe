@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MONOID — Topology Music Study</title>
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark;background:#101010;color:#f0f0f0}*{box-sizing:border-box}body{max-width:700px;margin:auto;padding:20px}h1{letter-spacing:.1em;font-size:1.5rem}p,small{color:#b8b8b8;line-height:1.5}section{border:1px solid #454545;border-radius:10px;margin:16px 0;padding:16px}button{border:1px solid #666;background:#242424;color:white;border-radius:7px;padding:12px;cursor:pointer;font:inherit}button[aria-pressed=true]{background:#d3d6dd;color:#111}button:focus-visible,input:focus-visible{outline:2px solid white}input[type=file]{max-width:100%}.controls{display:flex;gap:8px;flex-wrap:wrap}label{display:block;margin:12px 0;line-height:1.6}output{display:block;white-space:pre-wrap;margin-top:14px;color:#dadada}audio{width:100%;margin-top:10px}a{color:#bfcdf7}#voices label{display:flex;align-items:center;gap:10px;margin:8px 0}
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:dark;background:#101010;color:#f0f0f0}*{box-sizing:border-box}body{max-width:700px;margin:auto;padding:20px}h1{letter-spacing:.1em;font-size:1.5rem}p,small{color:#b8b8b8;line-height:1.5}section{border:1px solid #454545;border-radius:10px;margin:16px 0;padding:16px}button{border:1px solid #666;background:#242424;color:white;border-radius:7px;padding:12px;cursor:pointer;font:inherit}select,input[type=range]{max-width:100%}select{background:#242424;color:white;border:1px solid #666;border-radius:7px;padding:9px;font:inherit}input[type=range]{width:100%}button[aria-pressed=true]{background:#d3d6dd;color:#111}button:focus-visible,input:focus-visible{outline:2px solid white}input[type=file]{max-width:100%}.controls{display:flex;gap:8px;flex-wrap:wrap}label{display:block;margin:12px 0;line-height:1.6}output{display:block;white-space:pre-wrap;margin-top:14px;color:#dadada}audio{width:100%;margin-top:10px}a{color:#bfcdf7}#voices label{display:flex;align-items:center;gap:10px;margin:8px 0}
 </style>
 </head>
 <body>
@@ -12,21 +12,30 @@
 <h1>MONOID / TOPOLOGY STUDY</h1>
 <p>Compare three <strong>synthetic physical-connection graphs</strong> using identical printed tile values and persistent IDs. These are listening studies, not game-legal placement fixtures. No gameplay, score or routes are changed.</p>
 <section><h2>1 / Machine</h2><div class="controls" id="machines"></div><output id="features" aria-live="polite"></output></section>
-<section><h2>2 / Optional WORLD bed</h2><p>Choose a local Space Drift stem (e.g. <code>D - Pads.wav</code>). Audio stays on your device and is not uploaded. The generative notes work without it. Original licensed WAVs are not part of this repo.</p><label>Local audio file <input id="world-file" type="file" accept="audio/*,.wav"></label><audio id="world" loop controls preload="none"></audio></section>
+<section><h2>2 / Optional WORLD bed</h2><p>Choose a local Space Drift stem (e.g. <code>D - Pads.wav</code>). Audio stays on your device and is not uploaded. The generative notes work without it. Original licensed WAVs are not part of this repo.</p><label>Local audio file <input id="world-file" type="file" accept="audio/*,.wav"></label><audio id="world" loop controls preload="none"></audio>
+<label>WORLD level <input id="world-level" type="range" min="0" max="1" step=".05" value=".7"></label></section>
 <section><h2>3 / Generative MACHINE</h2>
 <p>80 BPM · eight-beat loop. The authored serial motif is transformed by physical topology, with chromatic notes constrained by a provisional spectral map of Space Drift. No game rules change.</p>
 <label>Musical profile <select id="music-profile"><option value="calm">Calm — sparse and spacious</option><option value="motion" selected>Motion — flowing rhythm</option><option value="complex">Complex — overlapping voices</option></select></label>
 <output id="harmonic-status" aria-live="polite">Harmonic map: C / G · open (00:00–00:12)</output>
+<label>Instrument <select id="timbre"><option value="vibes" selected>Soft Vibes — CC0 acoustic sample</option><option value="air">Air — soft synthetic</option><option value="sine">Pure sine — comparison</option></select></label>
+<p><small>Soft Vibes uses a CC0 vibraphone recording by Versilian Studios. When online the browser loads it from the original public library; offline you can select a downloaded WAV below. Until loading completes, Air is the fallback.</small></p>
+<label>Optional local CC0 instrument WAV <input id="sample-file" type="file" accept="audio/*,.wav"></label>
+<output id="sample-status" aria-live="polite">Soft Vibes: waiting to load</output>
+<label>MACHINE presence <input id="machine-level" type="range" min="0" max="1" step=".025" value=".2"></label>
+<label>Attack / softness <input id="attack" type="range" min=".008" max=".4" step=".008" value=".08"></label>
+<label>Brightness <input id="brightness" type="range" min="300" max="5500" step="100" value="1200"></label>
+<label>Note tail <input id="note-tail" type="range" min=".2" max="2.4" step=".1" value=".9"></label>
 <div id="voices"></div><div class="controls"><button id="start">Play machine</button><button id="test-tone">Test audible note</button><button id="stop">Stop</button></div><output id="audio-state" aria-live="polite">Audio engine: idle</output><output id="status" aria-live="polite">Ready — first press Test audible note, then Play machine.</output></section>
-<p><small>Web Audio needs a user gesture on mobile. This prototype generates its own notes using Audio Lab's existing instrument; it does not reimplement gameplay routing or load external files.</small></p>
+<p><small>Web Audio needs a user gesture on mobile. VCSL's CC0 instrument recording is an optional experimental external asset; gameplay and the main Audio Lab remain untouched. <a href="./">Listen to a recorded SIGNAL TREE from a MONOID debug in the original Audio Lab</a>.</small></p>
 <script type="module">
 import {interpretTopology} from './topology-composition.js';
 import {TOPOLOGY_STUDIES} from './topology-fixtures.js';
-import {createInstrument} from './instrument.js';
+import {createTopologyTimbre} from './topology-timbre.js';
 import {harmonyAt,SPACE_DRIFT_LENGTH} from './space-drift-harmony.js';
 import {composeSerialMachine} from './serial-composition.js';
 const $=id=>document.getElementById(id);
-let selected=0,ctx=null,timer=null,nextLoop=0,loopIndex=0,master=null,objectUrl=null;
+let selected=0,ctx=null,timer=null,nextLoop=0,loopIndex=0,master=null,objectUrl=null,sampleFile=null;
 const localAudio=$('world');
 function stop(){
  if(timer!==null){clearInterval(timer);timer=null;}
@@ -38,10 +47,10 @@ function makeAudio(){
  const Audio=window.AudioContext||window.webkitAudioContext;
  if(!Audio)throw new Error('Web Audio is not supported by this browser');
  const context=new Audio();
- ctx=context;master=context.createGain();master.gain.value=.9;master.connect(context.destination);
+ ctx=context;master=context.createGain();master.gain.value=.6;master.connect(context.destination);
  context.onstatechange=()=>{if(ctx===context)$('audio-state').textContent='Audio engine: '+context.state};
  $('audio-state').textContent='Audio engine: '+context.state;
- return createInstrument(context,master,()=>{});
+ return createTopologyTimbre(context,master,()=>{});
 }
 function unlockAudio(context){
  // Never await resume before creating notes. Safari can retain user activation
@@ -59,16 +68,26 @@ function render(){const fixture=TOPOLOGY_STUDIES[selected],score=interpretTopolo
  $('voices').replaceChildren();score.voices.forEach(v=>{const l=document.createElement('label'),c=document.createElement('input');c.type='checkbox';c.checked=true;c.value=v.id;l.append(c,document.createTextNode(' '+v.label));$('voices').append(l)});
 }
 function schedule(instrument,topology,at,index){
- const localTime=(index*topology.beatsPerLoop*60/80)%SPACE_DRIFT_LENGTH;
+ const localTime=(objectUrl&&!localAudio.paused?localAudio.currentTime:index*topology.beatsPerLoop*60/80)%SPACE_DRIFT_LENGTH;
  const harmonic=harmonyAt(localTime), arrangement=composeSerialMachine(topology,harmonic,$('music-profile').value);
  const enabled=new Set([...$('voices').querySelectorAll('input:checked')].map(c=>c.value));
  const notes=arrangement.events.filter(e=>enabled.has(e.voice));
- for(const note of notes)instrument.midi(note.midi,at+note.beat*60/arrangement.bpm,note);
+ const presence=Number($('machine-level').value),background=!!objectUrl;
+ const elapsed=background?(objectUrl&&!localAudio.paused?localAudio.currentTime:index*topology.beatsPerLoop*60/80):60;
+ // Gentle entry: a machine should not overpower the opening of the WORLD bed.
+ const entry=background?(.16+.84*Math.min(1,elapsed/48)):1;
+ for(const note of notes)instrument.midi(note.midi,at+note.beat*60/arrangement.bpm,{
+  volume:note.volume*presence*entry,attack:Number($('attack').value),
+  release:Number($('note-tail').value)*(note.release/.6),brightness:Number($('brightness').value),
+  pan:note.pan,preset:$('timbre').value
+ });
  const start=Math.floor(harmonic.startSeconds/60)+':'+String(harmonic.startSeconds%60).padStart(2,'0');
  $('harmonic-status').textContent='Space Drift · '+harmonic.label+' · starting '+start+' · provisional spectral map';
  $('status').textContent=topology.voices.length+' available voices · '+arrangement.voices.length+' in '+arrangement.profile+' · '+notes.length+' notes per phrase';
 }
-$('world-file').onchange=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);const file=$('world-file').files?.[0];objectUrl=file?URL.createObjectURL(file):null;localAudio.removeAttribute('src');if(objectUrl)localAudio.src=objectUrl;localAudio.volume=.25;localAudio.load()};
+$('world-file').onchange=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);const file=$('world-file').files?.[0];objectUrl=file?URL.createObjectURL(file):null;localAudio.removeAttribute('src');if(objectUrl)localAudio.src=objectUrl;localAudio.volume=Number($('world-level').value);localAudio.load()};
+$('world-level').oninput=()=>{localAudio.volume=Number($('world-level').value)};
+$('sample-file').onchange=()=>{sampleFile=$('sample-file').files?.[0]||null;$('sample-status').textContent=sampleFile?'Selected '+sampleFile.name+' · load with Play machine':'Soft Vibes: waiting to load'};
 $('start').onclick=()=>{
  stop();
  try{
@@ -83,6 +102,15 @@ $('start').onclick=()=>{
   // before the asynchronous AudioContext resume settles (critical on iOS).
   tick();timer=setInterval(tick,120);
   unlockAudio(context);
+  if($('timbre').value==='vibes'){
+   $('sample-status').textContent='Loading CC0 Soft Vibes · Air fallback until ready';
+   instrument.load({file:sampleFile}).then(info=>{
+    if(ctx===context)$('sample-status').textContent='CC0 Soft Vibes ready · '+info.duration.toFixed(1)+'s source sample';
+   }).catch(error=>{
+    if(ctx===context)$('sample-status').textContent='Soft Vibes unavailable: '+error.message+' · using Air fallback';
+   });
+  }else $('sample-status').textContent='Using synthesised '+$('timbre').value+' instrument';
+
   if(objectUrl){
    localAudio.currentTime=0;
    const pending=localAudio.play();
@@ -96,7 +124,8 @@ $('test-tone').onclick=()=>{
  stop();
  try{
   const instrument=makeAudio(),context=ctx;
-  instrument.midi(60,context.currentTime+.04,{volume:.42,release:.8});
+  instrument.midi(60,context.currentTime+.04,{volume:.32,release:1.0,attack:.08,
+   brightness:Number($('brightness').value),preset:'air'});
   unlockAudio(context);
   $('status').textContent='Audible test note scheduled (C4). If silent, check Audio engine above and device audio output.';
  }catch(error){stop();$('status').textContent='Audio unavailable: '+error.message}
