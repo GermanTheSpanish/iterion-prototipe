@@ -39,7 +39,8 @@ for(const broker of [false,true]){
   const cancelled=restored.cancelMarketModPurchase();
   assert.equal(cancelled.ok,true);assert.equal(cancelled.refund,0,'unpaid selection cannot refund');
   const after=ledger(restored);
-  for(const key of ['coins','inflation','offers','marketBuys','brokerPreparedMarket','brokerDiscountStored','undoFrame','nextShopType','intermissionResolved','pieceIds'])assert.deepEqual(after[key],before[key],key+' must roll back');
+  for(const key of ['coins','inflation','offers','marketBuys','brokerPreparedMarket','brokerDiscountStored','nextShopType','intermissionResolved','pieceIds'])assert.deepEqual(after[key],before[key],key+' must roll back');
+  assert.equal(after.undoFrame?.prior,before.undoFrame?.prior,'Undo source must survive pending save/restore and cancel');
   assert.equal(after.events,before.events+2,'selection and cancellation remain auditable without payment');
   assert.match(restored.debugText(),/MARKET MOD DOUBLE-DOUBLE CANCEL/);
   assert.equal(restored.state().shopType,'market');
