@@ -32,7 +32,7 @@ async function load(name){const source=fs.readFileSync(path.join(base,name),'utf
  const entry=fs.readFileSync(path.join(base,'index.html'),'utf8');
  assert.match(html,/topology-composition\.js/);
  assert.match(html,/topology-fixtures\.js/);
- assert.match(html,/instrument\.js/);
+ assert.match(html,/topology-timbre\.js/);
  assert.match(html,/type="file"/);
  assert.match(entry,/topology-study\.html/);
  console.log('Audio Lab topology study regressions passed');
