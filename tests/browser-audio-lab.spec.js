@@ -122,3 +122,67 @@ test('Topology Audio Lab compares three serial music profiles and advances harmo
  await expect(page.locator('#status')).toContainText('1 in calm');
  expect(errors).toEqual([]);
 });
+
+test('Topology Audio Lab exposes quiet CC0 timbre mix controls and loads sampled WAV',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ const samples=22050,sampleRate=44100,buffer=Buffer.alloc(44+samples*2);
+ buffer.write('RIFF',0);buffer.writeUInt32LE(buffer.length-8,4);buffer.write('WAVE',8);
+ buffer.write('fmt ',12);buffer.writeUInt32LE(16,16);buffer.writeUInt16LE(1,20);
+ buffer.writeUInt16LE(1,22);buffer.writeUInt32LE(sampleRate,24);
+ buffer.writeUInt32LE(sampleRate*2,28);buffer.writeUInt16LE(2,32);
+ buffer.writeUInt16LE(16,34);buffer.write('data',36);buffer.writeUInt32LE(samples*2,40);
+ for(let i=0;i<samples;i++) buffer.writeInt16LE(Math.round(Math.sin(i*2*Math.PI*440/sampleRate)*10000),44+i*2);
+ let requests=0;
+ await page.route('https://raw.githubusercontent.com/sgossner/VCSL/**',async route=>{
+  requests++;
+  await route.fulfill({status:200,contentType:'audio/wav',
+   headers:{'Access-Control-Allow-Origin':'*'},body:buffer});
+ });
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:4173/experiments/audio-lab/topology-study.html');
+ await expect(page.locator('#machine-level')).toHaveValue('0.2');
+ await expect(page.locator('#world-level')).toHaveValue('0.7');
+ await expect(page.locator('#timbre')).toHaveValue('vibes');
+ await page.locator('#brightness').fill('1600');
+ await page.locator('#attack').fill('0.104');
+ await page.getByRole('button',{name:'Play machine'}).click();
+ await expect(page.locator('#sample-status')).toContainText('CC0 Soft Vibes ready');
+ expect(requests).toBe(1);
+ await expect(page.locator('#status')).toContainText('available voices');
+ await page.getByRole('button',{name:'Stop',exact:true}).click();
+ await page.locator('#timbre').selectOption('air');
+ await page.getByRole('button',{name:'Play machine'}).click();
+ await expect(page.locator('#sample-status')).toContainText('Using synthesised air');
+ expect(requests).toBe(1);
+ expect(errors).toEqual([]);
+});
+
+test('CC0 sampled instrument and fallback both generate real audio PCM',async({page})=>{
+ await page.goto('http://127.0.0.1:4173/experiments/audio-lab/topology-study.html');
+ const amplitudes=await page.evaluate(async()=>{
+  const {createTopologyTimbre}=await import('/experiments/audio-lab/topology-timbre.js');
+  async function render(sample){
+   const context=new OfflineAudioContext(1,24000,48000);
+   const gain=context.createGain();gain.connect(context.destination);
+   const timbre=createTopologyTimbre(context,gain);
+   if(sample){
+    const frames=48000,ab=new ArrayBuffer(44+frames*2),v=new DataView(ab);
+    const put=(off,s)=>{for(let i=0;i<s.length;i++)v.setUint8(off+i,s.charCodeAt(i))};
+    put(0,'RIFF');v.setUint32(4,ab.byteLength-8,true);put(8,'WAVE');put(12,'fmt ');
+    v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+    v.setUint32(24,48000,true);v.setUint32(28,96000,true);v.setUint16(32,2,true);
+    v.setUint16(34,16,true);put(36,'data');v.setUint32(40,frames*2,true);
+    for(let i=0;i<frames;i++)v.setInt16(44+i*2,Math.round(Math.sin(i*2*Math.PI*440/48000)*8000),true);
+    await timbre.load({file:new File([ab],'cc0.wav',{type:'audio/wav'})});
+   }
+   const source=timbre.midi(69,.05,{preset:'vibes',volume:.1,attack:.04,release:.5});
+   const pcm=(await context.startRendering()).getChannelData(0);
+   return {source,peak:pcm.reduce((max,x)=>Math.max(max,Math.abs(x)),0)};
+  }
+  return [await render(false),await render(true)];
+ });
+ expect(amplitudes[0].source).toBe('synth');
+ expect(amplitudes[1].source).toBe('sample');
+ expect(amplitudes[0].peak).toBeGreaterThan(.001);
+ expect(amplitudes[1].peak).toBeGreaterThan(.001);
+});
