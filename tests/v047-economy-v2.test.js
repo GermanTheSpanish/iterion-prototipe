@@ -39,7 +39,10 @@ check('BROKER activation primes one Market; skipping banks 2c up to 6c',()=>{
 check('BROKER discounts only the next Mod purchase and never Signal',()=>{
   const g=G.createGame(E,{seed:4701,STARTING_COINS:100}),s=setPlaced(g,['d1-4','d5-6']);s.brokerTileId='d1-4';s.brokerDiscountStored=6;
   s.gameMode='eyes';s.inflation=2;assert.equal(g.marketSignalPrice(),(D.CORE_SIGNAL_PURCHASE_COST||8)+2);assert.equal(s.brokerDiscountStored,6);
-  s.inflation=0;fakeMarket(g,'mint');assert.equal(g.marketModPrice('mint'),2);const buy=g.buyMarketMod('mint');assert(buy.ok&&buy.pending);assert.equal(buy.cost,2);assert.equal(s.brokerDiscountStored,0);
+  s.inflation=0;fakeMarket(g,'mint');assert.equal(g.marketModPrice('mint'),2);const buy=g.buyMarketMod('mint');assert(buy.ok&&buy.pending);assert.equal(buy.cost,2);assert.equal(s.brokerDiscountStored,6,'selection does not spend Broker discount');
+  assert.equal(s.coins,100,'selection does not spend coins');
+  assert.equal(g.chooseMarketModTile(buy.eligibleTileIds[0]).ok,true,'MINT assignment commits discount');
+  assert.equal(s.brokerDiscountStored,0);
   const discount=s.events.find(e=>e.type==='broker-discount');assert.equal(discount.amount,6);assert.equal(discount.mod,'mint');
 });
 

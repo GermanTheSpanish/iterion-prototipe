@@ -79,7 +79,7 @@ async function openSavedOuroboros(page,failed=false){
   await expect(page.locator('.app')).toBeVisible({timeout:12000});
   const saved=await page.evaluate(failed=>{
     const data=window.__monoidGame.exportState(),s=data.state;
-    s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.roundTurn=failed?3:1;
+    s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.roundTurn=failed?3:1;s.ouroborosFiresUsed=s.roundTurn;
     s.hand=[];s.reserve=[];s.cleared=false;s.blocked=failed;s.needsReroll=false;
     s.failureReason=failed?'ouroboros-fire-limit':null;s.running=false;s.undoFrame=null;s.consumables.undo=0;
     s.pendingCircuit=null;s.pendingModPlacement=null;s.shopOpen=false;s.shopType=null;

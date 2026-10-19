@@ -8,7 +8,7 @@ function setPlaced(g,ids){const s=g.state();s.pieces=ids.map((id,i)=>{const t=s.
 function fakeMarket(g,id){const s=g.state();s.shopOpen=true;s.shopType='market';s.shopOffers=[id];s.marketBuys=[];s.cleared=true;s.intermissionResolved=false;s.nextShopType='market';s.coins=100;return s}
 
 check('final Market roster includes Quantum Port',()=>{
-  const ids=M.all().filter(m=>m.market).map(m=>m.id).sort();assert.equal(ids.length,20);assert.equal(D.VERSION,'0.79.1');
+  const ids=M.all().filter(m=>m.market).map(m=>m.id).sort();assert.equal(ids.length,20);assert.equal(D.VERSION,'0.79.2');
   for(const id of ['diode','terminal','toll','scrap','spend','merge','return','swap','mirror'])assert.equal(M.get(id),null);
 });
 check('PAIR gives both physical dominoes x2',()=>{
@@ -40,7 +40,7 @@ check('BROKER banks skipped Markets, caps at 6c, ignores Signal and is spent by 
   const g=G.createGame(E,{seed:6504,STARTING_COINS:100}),s=setPlaced(g,['d1-4','d5-6']);s.brokerTileId='d1-4';
   for(let i=0;i<4;i++){s.brokerPreparedMarket=true;s.shopOpen=true;s.shopType='market';s.marketBuys=[];g.closeMarket()}assert.equal(s.brokerDiscountStored,6);
   s.gameMode='eyes';s.inflation=2;assert.equal(g.marketSignalPrice(),(D.CORE_SIGNAL_PURCHASE_COST||8)+2);assert.equal(s.brokerDiscountStored,6);
-  s.inflation=0;fakeMarket(g,'mint');assert.equal(g.marketModPrice('mint'),2);const buy=g.buyMarketMod('mint');assert(buy.ok);assert.equal(s.brokerDiscountStored,0);
+  s.inflation=0;fakeMarket(g,'mint');assert.equal(g.marketModPrice('mint'),2);const buy=g.buyMarketMod('mint');assert(buy.ok&&buy.pending);assert.equal(s.brokerDiscountStored,6,'selection must preserve the stored discount');assert.equal(s.coins,100,'selection must not charge');assert(g.chooseMarketModTile(buy.eligibleTileIds[0]).ok);assert.equal(s.brokerDiscountStored,0,'assignment spends the discount');
 });
 check('legacy saves preserve useful identities and prune retired Mod state',()=>{
   const g=G.createGame(E,{seed:6505}),saved=g.exportState();delete saved.state.pivotTileId;saved.state.mirrorTileId='d2-6';saved.state.diodeTileId='d2-4';saved.state.tollTileId='d5-5';saved.state.shopOffers=['diode','mint','toll'];saved.state.pendingModPlacement={mod:'return',stage:'target',eligibleTileIds:['d2-5'],sourceTileId:null,previousTileId:null,recordIndex:0};

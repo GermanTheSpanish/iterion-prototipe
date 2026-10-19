@@ -565,13 +565,14 @@ function createGame(E,opts={}){
     const board=E.getBoardSize?E.getBoardSize():{G:E.G,H:E.H};
     s.ouroborosMode=true;s.ouroborosStartedRound=s.round+1;s.ouroborosBoardSize=[board.G,board.H];s.reserve=[];s.hand=[];s.shopTileOffers=[];s.shopTileOfferGeneration=null;
     s.blocked=false;s.needsReroll=false;s.failureReason=null;s.undoFrame=null;s.ouroborosRebuilds=[];
+    s.ouroborosPending=false;s.ouroborosFiresUsed=0;s.roundTurn=0;
     s.events.push({type:'ouroboros-start',round:s.round+1,roundTurn:s.roundTurn+1,generation:s.setGeneration||1,machineSize:s.pieces.length,board:[board.G,board.H],source});
     return true
   }
   function replenishPowerSet(source='draw'){
     const currentGeneration=s.setGeneration||1;
     if(s.reserve.some(t=>(t.generation||1)<=currentGeneration)||availableTileCount()>0)return false;
-    if(currentGeneration>=maxSetGeneration()){activateOuroboros(source);return false}
+    if(currentGeneration>=maxSetGeneration()){if(s.running){s.ouroborosPending=true;return false}activateOuroboros(source);return false}
     const generation=Math.max(2,currentGeneration+1),fullSet=makePowerSet(generation),existing=new Set(s.set.map(t=>t.id)),tiles=fullSet.filter(t=>!existing.has(t.id)),power=fullSet[0]?.powerMultiplier||2;
     s.set.push(...tiles);s.setGeneration=generation;s.reserve.push(...sh(tiles.slice()));ensureShopTileOffers();
     s.events.push({type:'power-set',round:s.round+1,roundTurn:s.roundTurn+1,generation,powerMultiplier:power,size:fullSet.length,source});
@@ -730,7 +731,7 @@ function createGame(E,opts={}){
       if(!s.reserve.length&&availableTileCount()===0)replenishPowerSet('round-start')
     }
     s.score=0;s.scoreExact='0';s.roundTurn=0;s.rootRR=0;s.roundZero={drawn:0,placed:0,endHand:0};
-    s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;s.ouroborosRebuilds=[];s.ouroborosOverflow=null;
+    s.extraPlacements=0;s.upgradeCoinsClaimed=[];s.roundUpgradeCoins=0;s.undoFrame=null;s.ouroborosRebuilds=[];s.ouroborosOverflow=null;s.ouroborosFiresUsed=0;
     s.cleared=false;s.blocked=false;s.needsReroll=false;s.failureReason=null;
     s.nextShopType='none';s.intermissionResolved=true;s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.marketBuys=[];
     const previousFree=s.freeReroll||0;s.freeReroll=s.ouroborosMode?0:Math.max(0,Number(cfg.ROUND_REROLL_REWARD??1));
@@ -745,7 +746,7 @@ function createGame(E,opts={}){
 
   function fresh(seedOverride){
     const seed=(seedOverride==null?(typeof crypto!=='undefined'&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967296)):seedOverride)>>>0;
-    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosStartedRound:null,ouroborosBoardSize:null,ouroborosRebuilds:[],ouroborosOverflow:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,adapterPurchasedPhases:[],boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],quantumPortTileIds:[],marketModAccess:normalizeModAccess(cfg.MOD_ACCESS),parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,brokerTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,foundationTileId:null,knotTileId:null,mintTileId:null,marketCount:0,signalUpgrades:0,brokerPreparedMarket:false,brokerDiscountStored:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{pivot:null},recallUsedStage:null,cores:[],voids:[],coreProgressMilestones:[],islandRootPieceId:null,islandSignalBonus:0};
+    s={set:makePersistentSet(),setGeneration:1,reserve:[],hand:[],pieces:[],placedTileIds:[],score:0,scoreExact:'0',best:0,bestExact:'0',round:0,roundTurn:0,turn:0,wins:[],events:[],idc:0,running:false,standardComplete:false,endlessMode:false,endlessStartedRound:null,ouroborosMode:false,ouroborosPending:false,ouroborosFiresUsed:0,ouroborosStartedRound:null,ouroborosBoardSize:null,ouroborosRebuilds:[],ouroborosOverflow:null,systemStrain:0,endlessLongRunActivations:0,cleared:false,blocked:false,needsReroll:false,failureReason:null,rootRR:0,seed,rngState:seed|0,runId:`${Date.now().toString(36)}-${seed.toString(36)}`,startedAt:new Date().toISOString(),gameMode:canonicalGameMode(cfg.GAME_MODE),roundZero:{drawn:0,placed:0,endHand:0},coins:cfg.STARTING_COINS,inflation:0,consumables:{move:cfg.STARTING_MOVE_CONSUMABLES||0,reroll:cfg.STARTING_REROLL_CONSUMABLES||0,undo:cfg.STARTING_UNDO_CONSUMABLES||0},freeReroll:0,mods:[],extraPlacements:0,upgradeCoinsClaimed:[],roundUpgradeCoins:0,undoFrame:null,anchorId:null,nextShopType:'none',intermissionResolved:true,shopOpen:false,shopType:null,shopOffers:[],shopTileOffers:[],shopTileOfferGeneration:null,marketBuys:[],pendingModPlacement:null,tileSerial:0,adapterPurchasedPhases:[],boardStage:0,doubleDoubleTileId:null,doubleEchoTileId:null,tripleDoubleTileId:null,zeroPortTileIds:[],quantumPortTileIds:[],marketModAccess:normalizeModAccess(cfg.MOD_ACCESS),parityExchangeTileId:null,cornerTileId:null,longLineTileId:null,overloadTileId:null,recallTileId:null,pairTileId:null,bridgeTileId:null,pivotTileId:null,brokerTileId:null,hingeTileId:null,hingeState:null,bankTileId:null,foundationTileId:null,knotTileId:null,mintTileId:null,marketCount:0,signalUpgrades:0,brokerPreparedMarket:false,brokerDiscountStored:0,foundationAssignedMarket:null,foundationLastPayoutMarket:null,mintPaidRound:null,mutationUseRound:{pivot:null},recallUsedStage:null,cores:[],voids:[],coreProgressMilestones:[],islandRootPieceId:null,islandSignalBonus:0};
     s.circuitRanks={};s.circuitSignatures=[];s.pendingCircuit=null;s.pendingModPlacement=null;ensureShopTileOffers();
     startRound(true);s.cores=coreLayoutForMode(s.gameMode,seed);s.voids=voidLayoutForMode(s.gameMode,seed);ensureOpeningCoreApproaches('layout');if(s.cores.length)s.events.push({type:'core-layout',mode:s.gameMode,interaction:'physical',cores:deepClone(s.cores)});if(['frames','river','loom','peaks','islands'].includes(s.gameMode))s.events.push({type:'mode-geometry-layout',mode:s.gameMode,items:deepClone(modeGeometryItems()),visibleIds:modeGeometryItems().filter(item=>geometryItemVisible(item)).map(item=>item.id)});return s
   }
@@ -852,14 +853,14 @@ function createGame(E,opts={}){
   }
   function previewOuroborosFire(tileId){
     if(!s.ouroborosMode||!canInteract())return{ok:false,reason:'state'};
-    if(s.roundTurn>=Math.max(1,Number(cfg.OUROBOROS_FIRE_LIMIT)||3))return{ok:false,reason:'fire-limit'};
+    if((s.ouroborosFiresUsed||0)>=Math.max(1,Number(cfg.OUROBOROS_FIRE_LIMIT)||3))return{ok:false,reason:'fire-limit'};
     const p=s.pieces.find(piece=>piece.tile?.id===tileId),tile=p&&(s.set.find(t=>t.id===tileId)||p.tile);if(!p||!tile)return{ok:false,reason:'tile'};
     const trigger=tile.a+tile.b,sim=s.pieces.length===1?{output:trigger,outputExact:SCORE.exact(trigger),events:[],reason:'root',rebounds:0,search:{starts:0,leaves:1,expanded:0}}:E.bestSignal(p.id,s.pieces,signalOptionsForPieces(s.pieces,trigger)),signalRuntime=signalShadowTelemetry(sim);
     return{ok:true,tile,p,trigger,baseTrigger:trigger,sim,signalRuntime,signalShadow:signalRuntime,handIndex:-1,topologyLosses:[],ouroboros:true}
   }
   function beginOuroborosFire(tileId){
     const preview=previewOuroborosFire(tileId);if(!preview.ok)return preview;
-    const undoFrame=captureUndoFrame();s.ouroborosRebuilds=[];s.running=true;s.turn++;s.roundTurn++;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
+    const undoFrame=captureUndoFrame();s.ouroborosRebuilds=[];s.running=true;s.turn++;s.roundTurn++;s.ouroborosFiresUsed=(s.ouroborosFiresUsed||0)+1;s.undoFrame=undoFrame;if(s.endlessMode)s.systemStrain=(s.systemStrain||0)+1;
     s.events.push({type:'ouroboros-fire',round:s.round+1,roundTurn:s.roundTurn,turn:s.turn,tileId,trigger:preview.trigger});
     return preview
   }
@@ -1296,8 +1297,10 @@ function createGame(E,opts={}){
     }
     if(ctx.islandDormant)s.events.push({type:'circuit-check',round:s.round+1,move:s.turn,closed:false,reason:'dormant-island'});else discoverCircuit(tile.id);
     s.running=false;
+    // Deck exhaustion during a normal placement must not consume Ouroboros FIRE attempts.
+    if(s.ouroborosPending&&!s.ouroborosMode)activateOuroboros('draw');
     if(!s.cleared&&!s.pendingCircuit){
-      if(s.ouroborosMode&&s.roundTurn>=Math.max(1,Number(cfg.OUROBOROS_FIRE_LIMIT)||3))fail('ouroboros-fire-limit');
+      if(s.ouroborosMode&&(s.ouroborosFiresUsed||0)>=Math.max(1,Number(cfg.OUROBOROS_FIRE_LIMIT)||3))fail('ouroboros-fire-limit');
       else continuation=assessContinuation()||continuation;
     }
     return{ok:true,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,failureReason:s.failureReason,nextShopType:s.nextShopType,upgradeCoins,autoRerolls:continuation.autoRerolls||0,pendingCircuit:!!s.pendingCircuit,resonance,mintCoins,tollCoins,brokerReady,hingeMoved}
@@ -1654,21 +1657,34 @@ function createGame(E,opts={}){
     const m=M.get(id);if(!m?.market)return{ok:false,reason:'item'};if(!modAvailable(id))return{ok:false,reason:'locked'};
     const targetCount=marketTargetCount(id);if(targetCount<1)return{ok:false,reason:'no-target'};
     const cost=marketModPrice(id);if(s.coins<cost)return{ok:false,reason:'coins'};
-    const rollback=m.target==='machine'?null:{coins:s.coins,inflation:s.inflation,undoFrame:deepClone(s.undoFrame),brokerDiscountStored:s.brokerDiscountStored,brokerPreparedMarket:s.brokerPreparedMarket,marketBuys:deepClone(s.marketBuys),shopOffers:[...s.shopOffers],nextShopType:s.nextShopType,intermissionResolved:s.intermissionResolved,eventsLength:s.events.length};
-    const previousTileId=id==='quantum-port'?null:assignedTileIdsForMod(id)[0]||null,storedBrokerDiscount=brokerDiscountAmount(),baseCost=Number(cfg[m.marketCostKey])||0,fullCost=inflationCost(baseCost),brokerDiscount=Math.min(storedBrokerDiscount,fullCost),purchase=applyPurchase(cost);if(storedBrokerDiscount>0)s.brokerDiscountStored=0;
-    s.undoFrame=null;
-    const record={mod:id,tile:null,targetTileId:null,previousTileId,cost,brokerDiscount,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter,pending:m.target!=='machine'};s.marketBuys.push(record);
-    s.events.push({type:'market-mod-buy',mod:id,round:s.round+1,shop:'market',targetTileId:null,previousTileId,candidateCount:targetCount,pending:m.target!=='machine',baseCost,brokerDiscount,brokerStoredSpent:storedBrokerDiscount,cost,coins:s.coins,...purchase});
-    if(brokerDiscount>0)s.events.push({type:'broker-discount',round:s.round+1,mod:id,amount:brokerDiscount,cost,coins:s.coins});
-    if(m.target==='machine'){
-      if(!s.mods.includes(id))s.mods.push(id);closeMarketState('mod-installed',true);
-      return{ok:true,mod:id,pending:false,targetTileId:null,previousTileId,candidateCount:targetCount,cost,inflation:s.inflation}
+    const previousTileId=id==='quantum-port'?null:assignedTileIdsForMod(id)[0]||null;
+    const storedBrokerDiscount=brokerDiscountAmount(),baseCost=Number(cfg[m.marketCostKey])||0;
+    const fullCost=inflationCost(baseCost),brokerDiscount=Math.min(storedBrokerDiscount,fullCost);
+    if(m.target!=='machine'){
+      const offers=[...s.shopOffers],pending=beginPendingModPlacement(id,previousTileId,s.marketBuys.length);
+      pending.checkout={cost,baseCost,brokerDiscount,storedBrokerDiscount,offers};
+      // Selection is non-transactional. No coins, inflation, Undo or Broker changes yet.
+      s.shopOpen=false;s.shopType=null;s.shopOffers=[];s.nextShopType='none';s.intermissionResolved=false;
+      s.events.push({type:'market-mod-select',round:s.round+1,mod:id,cost,coins:s.coins,inflation:s.inflation});
+      return{ok:true,mod:id,pending:true,stage:pending.stage,eligibleTileIds:[...pending.eligibleTileIds],previousTileId,candidateCount:targetCount,cost,inflation:s.inflation}
     }
-    const pending=beginPendingModPlacement(id,previousTileId,s.marketBuys.length-1);pending.rollback=rollback;closeMarketState('mod-placement',false);
-    return{ok:true,mod:id,pending:true,stage:pending.stage,eligibleTileIds:[...pending.eligibleTileIds],previousTileId,candidateCount:targetCount,cost,inflation:s.inflation}
+    const purchase=applyPurchase(cost);if(storedBrokerDiscount>0)s.brokerDiscountStored=0;
+    s.undoFrame=null;
+    const record={mod:id,tile:null,targetTileId:null,previousTileId,cost,brokerDiscount,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter,pending:false};
+    s.marketBuys.push(record);
+    s.events.push({type:'market-mod-buy',mod:id,round:s.round+1,shop:'market',targetTileId:null,previousTileId,candidateCount:targetCount,pending:false,baseCost,brokerDiscount,brokerStoredSpent:storedBrokerDiscount,cost,coins:s.coins,...purchase});
+    if(brokerDiscount>0)s.events.push({type:'broker-discount',round:s.round+1,mod:id,amount:brokerDiscount,cost,coins:s.coins});
+    if(!s.mods.includes(id))s.mods.push(id);closeMarketState('mod-installed',true);
+    return{ok:true,mod:id,pending:false,targetTileId:null,previousTileId,candidateCount:targetCount,cost,inflation:s.inflation}
   }
   function cancelMarketModPurchase(){
     const pending=s.pendingModPlacement,rollback=pending?.rollback;
+    if(pending?.checkout&&!s.running&&!s.shopOpen){
+      s.shopOpen=true;s.shopType='market';s.shopOffers=[...pending.checkout.offers];
+      s.nextShopType='market';s.intermissionResolved=false;s.pendingModPlacement=null;
+      s.events.push({type:'market-mod-cancel',mod:pending.mod,round:s.round+1,cost:0,coins:s.coins,inflation:s.inflation,offers:[...s.shopOffers]});
+      return{ok:true,mod:pending.mod,refund:0,coins:s.coins,inflation:s.inflation}
+    }
     if(!rollback||s.running||s.shopOpen||!Number.isInteger(rollback.eventsLength)||rollback.eventsLength<0||rollback.eventsLength>s.events.length)return{ok:false,reason:'state'};
     const record=s.marketBuys[pending.recordIndex];
     if(!record||record.mod!==pending.mod||!record.pending)return{ok:false,reason:'purchase'};
@@ -1678,6 +1694,18 @@ function createGame(E,opts={}){
     s.events.length=rollback.eventsLength;s.pendingModPlacement=null;
     s.events.push({type:'market-mod-cancel',mod:cancelledMod,round:s.round+1,cost,coins:s.coins,inflation:s.inflation,offers:[...s.shopOffers]});
     return{ok:true,mod:cancelledMod,refund:cost,coins:s.coins,inflation:s.inflation}
+  }
+  function confirmPendingMarketMod(pending){
+    if(!pending.checkout)return null; // Legacy saves already paid at selection.
+    const {cost,baseCost,brokerDiscount,storedBrokerDiscount}=pending.checkout;
+    const purchase=applyPurchase(cost);if(storedBrokerDiscount>0)s.brokerDiscountStored=0;
+    s.undoFrame=null;
+    const record={mod:pending.mod,tile:null,targetTileId:null,previousTileId:pending.previousTileId||null,cost,brokerDiscount,inflationBefore:purchase.inflationBefore,inflationAfter:purchase.inflationAfter,pending:true};
+    s.marketBuys.push(record);
+    s.events.push({type:'market-mod-buy',mod:pending.mod,round:s.round+1,shop:'market',targetTileId:null,previousTileId:pending.previousTileId||null,pending:true,baseCost,brokerDiscount,brokerStoredSpent:storedBrokerDiscount,cost,coins:s.coins,...purchase});
+    if(brokerDiscount>0)s.events.push({type:'broker-discount',round:s.round+1,mod:pending.mod,amount:brokerDiscount,cost,coins:s.coins});
+    closeMarketState('mod-installed',true);
+    return record
   }
   function chooseMarketModTile(tileId){
     const pending=s.pendingModPlacement;if(!pending||s.running||s.shopOpen)return{ok:false,reason:'state'};
@@ -1716,6 +1744,7 @@ function createGame(E,opts={}){
       if(pending.mod==='hinge')s.hingeState=hingeState
     }
     if(pending.mod==='foundation'){s.foundationAssignedMarket=s.marketCount||0;s.foundationLastPayoutMarket=s.marketCount||0}
+    confirmPendingMarketMod(pending);
     const tile=s.set.find(t=>t.id===tileId)||s.pieces.find(p=>p.tile.id===tileId)?.tile||null,record=s.marketBuys[pending.recordIndex];
     if(record){record.tile=cloneTile(tile);record.targetTileId=tileId;record.previousTileId=previousTileId;record.pending=false}
     s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none';
@@ -1726,6 +1755,7 @@ function createGame(E,opts={}){
     const pending=s.pendingModPlacement;if(!pending||pending.mod!=='diode'||pending.stage!=='direction'||s.running||s.shopOpen)return{ok:false,reason:'state'};
     half=Number(half);if(pending.targetTileId!==tileId||!pending.eligibleTileIds.includes(tileId)||(half!==0&&half!==1))return{ok:false,reason:'target'};
     if(!setSingleTileMod('diode',tileId))return{ok:false,reason:'unsupported'};s.diodeInHalf=half;
+    confirmPendingMarketMod(pending);
     const previousTileId=pending.previousTileId||null,tile=s.set.find(t=>t.id===tileId)||s.pieces.find(p=>p.tile.id===tileId)?.tile||null,record=s.marketBuys[pending.recordIndex];
     if(record){record.tile=cloneTile(tile);record.targetTileId=tileId;record.previousTileId=previousTileId;record.pending=false;record.inHalf=half}
     s.pendingModPlacement=null;s.intermissionResolved=true;s.nextShopType='none';
@@ -1883,7 +1913,8 @@ function createGame(E,opts={}){
       if(v.type==='double-double'){lines.push(`R${v.round} MARKET DOUBLE DOUBLE [${v.tile.a}|${v.tile.b}] id=${v.tile.id} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
       if(v.type==='market-signal-buy'){lines.push(`R${v.round} MARKET SIGNAL +${v.amount||1} ${v.beforeSignal}>${v.afterSignal} -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.brokerDiscount?` broker=-${v.brokerDiscount}c`:''}`);continue}
       if(v.type==='market-mod-buy'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} PURCHASE -${v.cost} coins=${v.coins} inflation=${v.inflationBefore}>${v.inflationAfter}${v.brokerDiscount?` broker=-${v.brokerDiscount}c`:''}${v.pending?' target=PENDING':' machine=INSTALLED'}${v.previousTileId?` previous=${v.previousTileId}`:''}`);continue}
-      if(v.type==='market-mod-cancel'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} CANCEL REFUND +${v.cost} coins=${v.coins} inflation=${v.inflation} offers=${(v.offers||[]).join(',')}`);continue}
+      if(v.type==='market-mod-select'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} SELECT NO CHARGE cost=${v.cost} coins=${v.coins} inflation=${v.inflation}`);continue}
+      if(v.type==='market-mod-cancel'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} CANCEL ${v.cost?`REFUND +${v.cost}`:'NO CHARGE'} coins=${v.coins} inflation=${v.inflation} offers=${(v.offers||[]).join(',')}`);continue}
       if(v.type==='market-mod-relocate-source'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} RELOCATE source=${v.sourceTileId} targets=${(v.eligibleTileIds||[]).join(',')||'-'}`);continue}
       if(v.type==='market-mod-assign'){lines.push(`R${v.round} MARKET MOD ${(v.mod||'').toUpperCase()} ASSIGN [${v.tile?.a}|${v.tile?.b}] id=${v.targetTileId}${v.previousTileId?` previous=${v.previousTileId}`:''}${v.zeroPortTileIds?` pair=${v.zeroPortTileIds.join('<->')}`:''}${v.quantumPortTileIds?` quantum=${v.quantumPortTileIds.join('<->')}`:''}`);continue}
       if(v.type==='shop-close'){lines.push(`R${v.round} ${v.shop.toUpperCase()} CLOSE ${v.reason} coins=${v.coins} inflation=${v.inflation} available=${v.available}`);continue}
@@ -1927,7 +1958,34 @@ function createGame(E,opts={}){
     }
     return compact
   }
-  function compactEventsForPersistence(events){return(Array.isArray(events)?events:[]).map(compactEventForPersistence)}
+  function compactEventsForPersistence(events){
+    const list=Array.isArray(events)?events:[],latestTurn=list.reduce((last,e)=>Number.isInteger(e?.turn)?Math.max(last,e.turn):last,0);
+    return list.map(event=>{
+      const compact=compactEventForPersistence(event);
+      if(!compact||!Number.isInteger(event?.turn)||event.turn>latestTurn-8)return compact;
+      // Historical Moves keep their exact score, tile identity, location, result and economy.
+      // Long operation/route traces remain available in memory and the downloaded live debug,
+      // but must not make the authoritative save exceed localStorage quota.
+      for(const [field,limit] of [['ops',768],['routes',1024]]){
+        const value=compact[field];if(typeof value!=='string'||value.length<=limit)continue;
+        const head=Math.ceil(limit*.6),tail=limit-head;
+        compact[field+'TotalChars']=event[field]?.length||value.length;
+        compact[field]=value.slice(0,head)+' [COMPACTED_FOR_SAVE] '+value.slice(-tail);
+        compact[field+'Compacted']=true
+      }
+      if(compact.signal){
+        for(const field of ['activations','splits','branchEnds','merges'])if(Array.isArray(compact.signal[field])){
+          compact.signal[field+'TotalCount']=compact.signal[field].length;
+          delete compact.signal[field]
+        }
+      }
+      delete compact.modPerformance;
+      delete compact.coreActivations;
+      delete compact.coreShadow;
+      delete compact.signalShadow;
+      return compact
+    })
+  }
   function persistedUndoFrame(frame){
     if(!frame)return null;
     const{events,undoFrame,...rest}=frame,out=deepClone(rest);
@@ -1946,7 +2004,7 @@ function createGame(E,opts={}){
   function exportState(){return{schema:'iterion.state.v1',gameVersion:cfg.VERSION,state:persistedState()}}
   function restoreState(saved){
     const raw=saved?.schema==='iterion.state.v1'&&saved.state;if(!raw||!Array.isArray(raw.set)||!Array.isArray(raw.pieces))return false;
-    s=deepClone(raw);const savedScoreExact=s.scoreExact!=null&&Number(s.scoreExact)===Number(s.score)?s.scoreExact:null,savedBestExact=s.bestExact!=null&&Number(s.bestExact)===Number(s.best)?s.bestExact:null;s.scoreExact=SCORE.exact(s.score||0,savedScoreExact);s.score=SCORE.approx(s.scoreExact);s.bestExact=SCORE.exact(s.best||0,savedBestExact);s.best=SCORE.approx(s.bestExact);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;
+    s=deepClone(raw);const savedScoreExact=s.scoreExact!=null&&Number(s.scoreExact)===Number(s.score)?s.scoreExact:null,savedBestExact=s.bestExact!=null&&Number(s.bestExact)===Number(s.best)?s.bestExact:null;s.scoreExact=SCORE.exact(s.score||0,savedScoreExact);s.score=SCORE.approx(s.scoreExact);s.bestExact=SCORE.exact(s.best||0,savedBestExact);s.best=SCORE.approx(s.bestExact);const restoredMode=s.gameMode;s.ouroborosMode=!!s.ouroborosMode;if(!Number.isInteger(s.ouroborosFiresUsed))s.ouroborosFiresUsed=s.ouroborosMode?Math.max(0,s.roundTurn||0):0;if(!s.ouroborosPending)s.ouroborosPending=false;
     const o=s.ouroborosOverflow;
     s.ouroborosOverflow=s.ouroborosMode&&o&&Number.isInteger(o.fromRound)&&Number.isInteger(o.throughRound)&&Number.isInteger(o.nextRound)&&Array.isArray(o.markets)&&Number.isInteger(o.marketCursor)&&o.marketCursor>=0&&o.marketCursor<=o.markets.length?o:null;
     s.ouroborosRebuilds=s.ouroborosMode&&Array.isArray(s.ouroborosRebuilds)?s.ouroborosRebuilds.slice(-32):[];if(!Number.isInteger(s.ouroborosStartedRound))s.ouroborosStartedRound=null;if(!Array.isArray(s.ouroborosBoardSize)||s.ouroborosBoardSize.length<2||!(Number(s.ouroborosBoardSize[0])>0)||!(Number(s.ouroborosBoardSize[1])>0))s.ouroborosBoardSize=null;s.gameMode=canonicalGameMode(restoredMode||cfg.GAME_MODE);if(!Array.isArray(s.cores))s.cores=[];if(!Array.isArray(s.voids))s.voids=[];if(!Array.isArray(s.coreProgressMilestones))s.coreProgressMilestones=[];if(!Number.isFinite(Number(s.islandSignalBonus))||Number(s.islandSignalBonus)<0)s.islandSignalBonus=0;if(s.islandRootPieceId==null)s.islandRootPieceId=null;if(s.gameMode==='classic'){s.cores=[];s.voids=[];s.coreProgressMilestones=[]}else if(s.gameMode==='eyes')s.voids=[];if(restoredMode==='prototype'||restoredMode==='infinite-endless'){delete s.scoringModel;delete s.scoringFormula}if(!Array.isArray(s.shopTileOffers))s.shopTileOffers=[];if(!Number.isInteger(s.shopTileOfferGeneration))s.shopTileOfferGeneration=null;if(!Array.isArray(s.adapterPurchasedPhases))s.adapterPurchasedPhases=[];s.adapterPurchasedPhases=[...new Set(s.adapterPurchasedPhases.filter(phase=>['landing','endless','infinite'].includes(phase)))];if(!Array.isArray(s.marketBuys))s.marketBuys=[];s.marketModAccess=normalizeModAccess(s.marketModAccess);if(!Array.isArray(s.zeroPortTileIds))s.zeroPortTileIds=[];if(!Array.isArray(s.quantumPortTileIds))s.quantumPortTileIds=[];s.quantumPortTileIds=[...new Set(s.quantumPortTileIds.filter(id=>typeof id==='string'))].slice(0,3);s.pendingModPlacement=s.pendingModPlacement||null;for(const field of Object.values(TILE_MOD_FIELDS))if(!(field in s))s[field]=null;if(!Number.isInteger(s.diodeInHalf))s.diodeInHalf=null;if(!s.hingeState||s.hingeState.tileId!==s.hingeTileId)s.hingeState=null;if(!Number.isInteger(s.marketCount))s.marketCount=(s.events||[]).filter(e=>e.type==='shop-open'&&e.shop==='market').length;if(!Number.isInteger(s.signalUpgrades))s.signalUpgrades=0;if(!Number.isInteger(s.foundationAssignedMarket))s.foundationAssignedMarket=null;

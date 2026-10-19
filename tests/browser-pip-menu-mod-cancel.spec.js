@@ -91,7 +91,7 @@ test(`Run menu stays concise and disclosures remain mutually exclusive at ${view
 });
 }
 
-test('pending Market Mod offers a genuine cancel/refund path and restores the same Market',async({page})=>{
+test('pending Market Mod selection costs nothing and cancellation restores the same Market',async({page})=>{
   await page.addInitScript(()=>{
     localStorage.setItem('iterion.entryBypass.v1','true');
     let api;
@@ -109,13 +109,51 @@ test('pending Market Mod offers a genuine cancel/refund path and restores the sa
   const initial=await page.evaluate(()=>{const s=window.__monoidGame.state();return{coins:s.coins,inflation:s.inflation,offers:[...s.shopOffers],runId:s.runId}});
   await page.locator('[data-market-mod="double-double"]').click();
   await expect(page.locator('#cancelModPurchase')).toBeVisible();
-  await expect(page.locator('#cancelModPurchase')).toHaveText('CANCEL PURCHASE');
+  await expect(page.locator('#cancelModPurchase')).toHaveText('CANCEL SELECTION');
   expect(await page.locator('#cancelModPurchase').evaluate(button=>{const rect=button.getBoundingClientRect(),at=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);return at===button||button.contains(at)})).toBe(true);
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);
+  const pending=await page.evaluate(()=>{const s=window.__monoidGame.state();return{coins:s.coins,inflation:s.inflation,marketBuys:s.marketBuys.length}});
+  expect(pending).toEqual({coins:initial.coins,inflation:initial.inflation,marketBuys:0});
   await page.locator('#cancelModPurchase').click();
   await expect(page.locator('#overlay')).toHaveClass(/show/);
   await expect(page.locator('[data-market-mod="double-double"]')).toBeVisible();
   const final=await page.evaluate(()=>{const s=window.__monoidGame.state();return{coins:s.coins,inflation:s.inflation,offers:[...s.shopOffers],runId:s.runId,pending:s.pendingModPlacement}});
   expect(final).toEqual({...initial,pending:null});
   await expect(page.locator('#cancelModPurchase')).toHaveCount(0);
+});
+
+
+test('Tile Mod checkout charges only after final assignment and survives pending save/restore',async({page})=>{
+  await page.addInitScript(()=>{
+    localStorage.setItem('iterion.entryBypass.v1','true');
+    let api;
+    Object.defineProperty(window,'IterionGame',{configurable:true,get:()=>api,set:value=>{
+      api={...value,createGame(E,options){
+        const g=value.createGame(E,{...options,seed:271100}),s=g.state(),tile=s.set.find(t=>t.id==='d2-2'),p=E.pieceFrom(tile,4,8,0,0,1);p.tile={...tile};
+        s.pieces=[p];s.placedTileIds=[tile.id];s.idc=1;s.anchorId=tile.id;
+        s.round=2;s.cleared=true;s.nextShopType='market';s.intermissionResolved=false;s.coins=60;s.inflation=0;
+        g.openIntermission();s.shopOffers=['double-double','corner','overload'];return g
+      }}
+    }});
+  });
+  await page.goto('http://127.0.0.1:4173/');
+  const result=await page.evaluate(()=>{
+    const g=window.__monoidGame,s=g.state(),before={coins:s.coins,inflation:s.inflation};
+    const selected=g.buyMarketMod('double-double');
+    const pending={coins:s.coins,inflation:s.inflation,buys:s.marketBuys.length,
+      buyEvents:s.events.filter(e=>e.type==='market-mod-buy').length,
+      checkout:!!s.pendingModPlacement?.checkout};
+    const saved=g.exportState(),restored=g.restoreState(saved);
+    const assigned=g.chooseMarketModTile('d2-2'),after=g.state();
+    return{before,pending,restored,selectedOk:selected.ok,assignedOk:assigned.ok,
+      finish:{coins:after.coins,inflation:after.inflation,buys:after.marketBuys.length,
+        purchased:after.events.filter(e=>e.type==='market-mod-buy').length,
+        assigned:after.events.filter(e=>e.type==='market-mod-assign').length,
+        pending:after.pendingModPlacement,mod:after.doubleDoubleTileId,shopOpen:after.shopOpen}}
+  });
+  expect(result.selectedOk).toBe(true);expect(result.restored).toBe(true);expect(result.assignedOk).toBe(true);
+  expect(result.pending).toEqual({coins:60,inflation:0,buys:0,buyEvents:0,checkout:true});
+  expect(result.finish).toEqual({coins:expect.any(Number),inflation:1,buys:1,purchased:1,assigned:1,
+    pending:null,mod:'d2-2',shopOpen:false});
+  expect(result.finish.coins).toBeLessThan(result.before.coins)
 });

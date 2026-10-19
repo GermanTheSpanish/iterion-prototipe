@@ -29,17 +29,20 @@ for(const broker of [false,true]){
   const {game,tile}=marketFixture({broker}),before=ledger(game);
   const purchased=game.buyMarketMod('double-double');assert.equal(purchased.ok,true);assert.equal(purchased.pending,true);
   assert.equal(game.state().shopOpen,false);
-  assert.equal(game.state().coins,before.coins-purchased.cost);
+  assert.equal(game.state().coins,before.coins,'selection must not charge');
+  assert.equal(game.state().inflation,before.inflation,'selection must not inflate');
+  assert.equal(game.state().marketBuys.length,0,'selection must not commit purchase');
   assert.equal(game.state().pendingModPlacement?.eligibleTileIds.includes(tile.id),true);
-  if(broker)assert.equal(game.state().brokerDiscountStored,0);
+  if(broker)assert.equal(game.state().brokerDiscountStored,before.brokerDiscountStored,'Broker stored discount is not spent before assignment');
   const restored=Game.createGame(E,{seed:123456});
   assert.equal(restored.restoreState(game.exportState()),true,'pending purchase must survive save/restore');
   const cancelled=restored.cancelMarketModPurchase();
-  assert.equal(cancelled.ok,true);assert.equal(cancelled.refund,purchased.cost);
+  assert.equal(cancelled.ok,true);assert.equal(cancelled.refund,0,'unpaid selection cannot refund');
   const after=ledger(restored);
-  for(const key of ['coins','inflation','offers','marketBuys','brokerPreparedMarket','brokerDiscountStored','undoFrame','nextShopType','intermissionResolved','pieceIds'])assert.deepEqual(after[key],before[key],key+' must roll back');
-  assert.equal(after.events,before.events+1,'cancel adds one event without retaining uncommitted purchase events');
-  assert.match(restored.debugText(),/MARKET MOD DOUBLE-DOUBLE CANCEL REFUND/);
+  for(const key of ['coins','inflation','offers','marketBuys','brokerPreparedMarket','brokerDiscountStored','nextShopType','intermissionResolved','pieceIds'])assert.deepEqual(after[key],before[key],key+' must roll back');
+  assert.equal(after.undoFrame?.prior,before.undoFrame?.prior,'Undo source must survive pending save/restore and cancel');
+  assert.equal(after.events,before.events+2,'selection and cancellation remain auditable without payment');
+  assert.match(restored.debugText(),/MARKET MOD DOUBLE-DOUBLE CANCEL/);
   assert.equal(restored.state().shopType,'market');
   assert.equal(restored.state().pendingModPlacement,null);
   assert.equal(restored.cancelMarketModPurchase().ok,false,'cannot refund twice');
@@ -47,6 +50,9 @@ for(const broker of [false,true]){
   const repurchased=restored.buyMarketMod('double-double');assert.equal(repurchased.ok,true);
   const assigned=restored.chooseMarketModTile(tile.id);assert.equal(assigned.ok,true);
   assert.equal(restored.state().doubleDoubleTileId,tile.id);
+  assert.equal(restored.state().coins,before.coins-repurchased.cost,'charge on assignment');
+  assert.equal(restored.state().inflation,before.inflation+1,'one inflation step on assignment');
+  if(broker)assert.equal(restored.state().brokerDiscountStored,0,'Broker spent only on assignment');
   assert.equal(restored.cancelMarketModPurchase().ok,false,'committed assignment cannot be cancelled');
 }
 {
@@ -66,4 +72,4 @@ for(const broker of [false,true]){
   assert.deepEqual(game.state().shopOffers,before.offers);
   assert.equal(game.state().coins,before.coins);
 }
-console.log('Market Mod cancellation, refund, Broker, save/restore and Zero Port regressions passed');
+console.log('Market Mod deferred payment, no-refund cancellation, Broker, save/restore and Zero Port regressions passed');

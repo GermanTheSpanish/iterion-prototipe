@@ -52,13 +52,17 @@ function clearNext(game){
   assert(!g.advance());assert(!g.canUndo(),'committing to the stage transition seals the old move');
   assert.deepStrictEqual(g.snapshot().board,before.board);
   const offer=s.shopOffers[0],price=g.marketModPrice(offer),buy=g.buyMarketMod(offer);assert(buy.ok);
-  assert.strictEqual(s.coins,before.coins-price);assert.strictEqual(s.inflation,before.inflation+1);
-  assert.strictEqual(s.shopOpen,false,'any Mod purchase closes the Market immediately');
+  assert.strictEqual(s.shopOpen,false,'any Mod selection closes the Market immediately');
   assert.strictEqual(g.buyMarketMod(offer).reason,'shop');
   if(buy.pending){
+    assert.strictEqual(s.coins,before.coins,'no charge before choosing a physical tile');
+    assert.strictEqual(s.inflation,before.inflation,'no inflation before a Mod is assigned');
     assert.notStrictEqual(buy.stage,'source','fresh Endless fixture cannot begin with a complete Zero Port pair');
-    assert(buy.eligibleTileIds.length>0);assert(g.chooseMarketModTile(buy.eligibleTileIds[0]).ok)
+    assert(buy.eligibleTileIds.length>0);const selected=g.chooseMarketModTile(buy.eligibleTileIds[0]);assert(selected.ok);
+    if(selected.pending&&selected.stage==='direction')assert(g.chooseMarketModHalf(buy.eligibleTileIds[0],0).ok);
   }
+  assert.strictEqual(s.coins,before.coins-price,'confirmed purchase charges the original quoted price');
+  assert.strictEqual(s.inflation,before.inflation+1,'confirmed purchase inflates exactly once');
   const afterMarket=g.snapshot();
   assert(g.advance());
   assert.strictEqual(s.round,15);assert.strictEqual(g.target(),250000000000);

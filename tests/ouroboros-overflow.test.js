@@ -70,7 +70,7 @@ function fireResult(game,s,tile,piece,outputExact){
 }
 {
   const{game,s,tile}=ready(7553);
-  s.running=false;s.roundTurn=3;s.cleared=false;
+  s.running=false;s.roundTurn=3;s.ouroborosFiresUsed=3;s.cleared=false;
   assert.equal(game.previewOuroborosFire(tile.id).reason,'fire-limit');
   assert.equal(game.beginOuroborosFire(tile.id).reason,'fire-limit');
 }
