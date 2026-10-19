@@ -29,6 +29,15 @@ export function createInstrument(context, destination, track) {
         voice(freq*3.01,at,{wave:'sine',volume:v*0.065,attack:0.003,release:0.075,pan});
       } else voice(freq,at,{wave,volume:v,attack,release,pan});
     },
+    // Chromatic MIDI pitch for the isolated harmonic-map study.
+    // Existing seven-pip note mapping is unchanged.
+    midi(midi,at,{volume=.16,attack=.012,release=.5,pan=0}={}) {
+      if(!Number.isFinite(midi)||midi<24||midi>96)throw new RangeError('Invalid MIDI pitch');
+      const frequency=440*Math.pow(2,(midi-69)/12);
+      // Gentle sine with a quiet second harmonic; avoids an arcade beep.
+      voice(frequency,at,{wave:'sine',volume:volume*.9,attack,release,pan});
+      voice(frequency*2,at,{wave:'sine',volume:volume*.12,attack:Math.min(attack,.012),release:Math.min(.16,release),pan});
+    },
     pulse(at,volume=0.2,accent=false) {
       voice(accent?82.41:110,at,{wave:'sine',volume:Math.min(.035,volume*(accent?.12:.065)),attack:.004,release:accent?.09:.055,endFreq:accent?54:78});
     },

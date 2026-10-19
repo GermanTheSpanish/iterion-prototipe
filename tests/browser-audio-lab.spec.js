@@ -95,3 +95,30 @@ test('Audio Lab synthesized notes render nonzero PCM samples',async({page})=>{
  });
  expect(peak).toBeGreaterThan(.02);
 });
+
+test('Topology Audio Lab compares three serial music profiles and advances harmonic map',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:4173/experiments/audio-lab/topology-study.html');
+ await expect(page.locator('#music-profile')).toHaveValue('motion');
+ await page.getByRole('button',{name:'Circuit and junction'}).click();
+ await page.locator('#music-profile').selectOption('complex');
+ await page.getByRole('button',{name:'Play machine'}).click();
+ await expect(page.locator('#status')).toContainText('4 in complex');
+ await expect(page.locator('#harmonic-status')).toContainText('C / G');
+ const details=await page.evaluate(async()=>{
+  const h=await import('/experiments/audio-lab/space-drift-harmony.js');
+  const c=await import('/experiments/audio-lab/serial-composition.js');
+  const t=await import('/experiments/audio-lab/topology-composition.js');
+  const f=await import('/experiments/audio-lab/topology-fixtures.js');
+  const topology=t.interpretTopology(f.TOPOLOGY_STUDIES[2].pieces);
+  return ['calm','motion','complex'].map(profile=>c.composeSerialMachine(topology,h.harmonyAt(36),profile).events.length);
+ });
+ expect(details[0]).toBeLessThan(details[1]);
+ expect(details[1]).toBeLessThan(details[2]);
+ await page.locator('#music-profile').selectOption('calm');
+ await page.getByRole('button',{name:'Stop',exact:true}).click();
+ await page.getByRole('button',{name:'Play machine'}).click();
+ await expect(page.locator('#status')).toContainText('1 in calm');
+ expect(errors).toEqual([]);
+});
