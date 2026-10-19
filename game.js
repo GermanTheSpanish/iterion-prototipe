@@ -1966,10 +1966,12 @@ function createGame(E,opts={}){
       // Historical Moves keep their exact score, tile identity, location, result and economy.
       // Long operation/route traces remain available in memory and the downloaded live debug,
       // but must not make the authoritative save exceed localStorage quota.
-      for(const field of ['ops','routes']){
-        if(typeof compact[field]!=='string')continue;
-        compact[field+'TotalChars']=event[field]?.length||compact[field].length;
-        compact[field]='[COMPACTED_FOR_SAVE]';compact[field+'Compacted']=true
+      for(const [field,limit] of [['ops',768],['routes',1024]]){
+        const value=compact[field];if(typeof value!=='string'||value.length<=limit)continue;
+        const head=Math.ceil(limit*.6),tail=limit-head;
+        compact[field+'TotalChars']=event[field]?.length||value.length;
+        compact[field]=value.slice(0,head)+' [COMPACTED_FOR_SAVE] '+value.slice(-tail);
+        compact[field+'Compacted']=true
       }
       if(compact.signal){
         for(const field of ['activations','splits','branchEnds','merges'])if(Array.isArray(compact.signal[field])){
