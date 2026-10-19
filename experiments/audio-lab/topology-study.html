@@ -13,14 +13,20 @@
 <p>Compare three <strong>synthetic physical-connection graphs</strong> using identical printed tile values and persistent IDs. These are listening studies, not game-legal placement fixtures. No gameplay, score or routes are changed.</p>
 <section><h2>1 / Machine</h2><div class="controls" id="machines"></div><output id="features" aria-live="polite"></output></section>
 <section><h2>2 / Optional WORLD bed</h2><p>Choose a local Space Drift stem (e.g. <code>D - Pads.wav</code>). Audio stays on your device and is not uploaded. The generative notes work without it. Original licensed WAVs are not part of this repo.</p><label>Local audio file <input id="world-file" type="file" accept="audio/*,.wav"></label><audio id="world" loop controls preload="none"></audio></section>
-<section><h2>3 / Generative MACHINE</h2><p>80 BPM · eight-beat loop. Topology adds rhythm and voices, not a new oscillator for every tile. Compare the three arrangements by ear.</p><div id="voices"></div><div class="controls"><button id="start">Play machine</button><button id="test-tone">Test audible note</button><button id="stop">Stop</button></div><output id="audio-state" aria-live="polite">Audio engine: idle</output><output id="status" aria-live="polite">Ready — first press Test audible note, then Play machine.</output></section>
+<section><h2>3 / Generative MACHINE</h2>
+<p>80 BPM · eight-beat loop. The authored serial motif is transformed by physical topology, with chromatic notes constrained by a provisional spectral map of Space Drift. No game rules change.</p>
+<label>Musical profile <select id="music-profile"><option value="calm">Calm — sparse and spacious</option><option value="motion" selected>Motion — flowing rhythm</option><option value="complex">Complex — overlapping voices</option></select></label>
+<output id="harmonic-status" aria-live="polite">Harmonic map: C / G · open (00:00–00:12)</output>
+<div id="voices"></div><div class="controls"><button id="start">Play machine</button><button id="test-tone">Test audible note</button><button id="stop">Stop</button></div><output id="audio-state" aria-live="polite">Audio engine: idle</output><output id="status" aria-live="polite">Ready — first press Test audible note, then Play machine.</output></section>
 <p><small>Web Audio needs a user gesture on mobile. This prototype generates its own notes using Audio Lab's existing instrument; it does not reimplement gameplay routing or load external files.</small></p>
 <script type="module">
 import {interpretTopology} from './topology-composition.js';
 import {TOPOLOGY_STUDIES} from './topology-fixtures.js';
 import {createInstrument} from './instrument.js';
+import {harmonyAt,SPACE_DRIFT_LENGTH} from './space-drift-harmony.js';
+import {composeSerialMachine} from './serial-composition.js';
 const $=id=>document.getElementById(id);
-let selected=0,ctx=null,timer=null,nextLoop=0,master=null,objectUrl=null;
+let selected=0,ctx=null,timer=null,nextLoop=0,loopIndex=0,master=null,objectUrl=null;
 const localAudio=$('world');
 function stop(){
  if(timer!==null){clearInterval(timer);timer=null;}
@@ -52,23 +58,31 @@ function render(){const fixture=TOPOLOGY_STUDIES[selected],score=interpretTopolo
  const f=score.features;$('features').textContent=fixture.description+'\n'+f.tiles+' tiles · '+f.edges+' physical links · '+f.corners+' corners · '+f.junctions+' junctions · '+f.cycles+' cycles';
  $('voices').replaceChildren();score.voices.forEach(v=>{const l=document.createElement('label'),c=document.createElement('input');c.type='checkbox';c.checked=true;c.value=v.id;l.append(c,document.createTextNode(' '+v.label));$('voices').append(l)});
 }
-function schedule(instrument,score,at){const enabled=new Set([...$('voices').querySelectorAll('input:checked')].map(c=>c.value));for(const e of score.events){if(!enabled.has(e.voice))continue;instrument.note(e.pip,at+e.beat*60/score.bpm,{wave:e.wave,volume:e.volume,release:e.release,pan:e.pan})}}
+function schedule(instrument,topology,at,index){
+ const localTime=(index*topology.beatsPerLoop*60/80)%SPACE_DRIFT_LENGTH;
+ const harmonic=harmonyAt(localTime), arrangement=composeSerialMachine(topology,harmonic,$('music-profile').value);
+ const enabled=new Set([...$('voices').querySelectorAll('input:checked')].map(c=>c.value));
+ const notes=arrangement.events.filter(e=>enabled.has(e.voice));
+ for(const note of notes)instrument.midi(note.midi,at+note.beat*60/arrangement.bpm,note);
+ const start=Math.floor(harmonic.startSeconds/60)+':'+String(harmonic.startSeconds%60).padStart(2,'0');
+ $('harmonic-status').textContent='Space Drift · '+harmonic.label+' · starting '+start+' · provisional spectral map';
+ $('status').textContent=topology.voices.length+' available voices · '+arrangement.voices.length+' in '+arrangement.profile+' · '+notes.length+' notes per phrase';
+}
 $('world-file').onchange=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);const file=$('world-file').files?.[0];objectUrl=file?URL.createObjectURL(file):null;localAudio.removeAttribute('src');if(objectUrl)localAudio.src=objectUrl;localAudio.volume=.25;localAudio.load()};
 $('start').onclick=()=>{
  stop();
  try{
   const instrument=makeAudio(),context=ctx,score=interpretTopology(TOPOLOGY_STUDIES[selected].pieces);
   const length=score.beatsPerLoop*60/score.bpm;
-  nextLoop=context.currentTime+.07;
+  nextLoop=context.currentTime+.07;loopIndex=0;
   const tick=()=>{
    if(ctx!==context)return;
-   while(nextLoop<context.currentTime+.3){schedule(instrument,score,nextLoop);nextLoop+=length}
+   while(nextLoop<context.currentTime+.3){schedule(instrument,score,nextLoop,loopIndex++);nextLoop+=length}
   };
   // Create and start all audible oscillators *inside* the user's click,
   // before the asynchronous AudioContext resume settles (critical on iOS).
   tick();timer=setInterval(tick,120);
   unlockAudio(context);
-  $('status').textContent=score.voices.length+' available voices · '+score.events.length+' notes per eight-beat loop';
   if(objectUrl){
    localAudio.currentTime=0;
    const pending=localAudio.play();
@@ -82,7 +96,7 @@ $('test-tone').onclick=()=>{
  stop();
  try{
   const instrument=makeAudio(),context=ctx;
-  instrument.note(0,context.currentTime+.04,{wave:'soft',volume:.42,release:.8});
+  instrument.midi(60,context.currentTime+.04,{volume:.42,release:.8});
   unlockAudio(context);
   $('status').textContent='Audible test note scheduled (C4). If silent, check Audio engine above and device audio output.';
  }catch(error){stop();$('status').textContent='Audio unavailable: '+error.message}
