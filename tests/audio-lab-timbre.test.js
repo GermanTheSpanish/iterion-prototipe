@@ -11,7 +11,7 @@ const base=path.join(__dirname,'../experiments/audio-lab');
  for(const name of ['machine-level','world-level','timbre','sample-file','sample-status','attack','brightness','note-tail'])
   assert.match(page,new RegExp('id="'+name+'"'));
  assert.match(page,/id="machine-level"[^>]+value="\.2"/);
- assert.match(page,/id="world-level"[^>]+value="\.7"/);
+ assert.match(page,/id="world-level"[^>]+value="1\.25"/);
  assert.match(page,/\.16\+\.84\*Math\.min\(1,elapsed\/48\)/);
  assert.match(page,/instrument\.load\(\{file:sampleFile\}\)/);
  assert.match(page,/instrument\.midi\(note\.midi/);
