@@ -13,7 +13,9 @@
 <p>Compare three <strong>synthetic physical-connection graphs</strong> using identical printed tile values and persistent IDs. These are listening studies, not game-legal placement fixtures. No gameplay, score or routes are changed.</p>
 <section><h2>1 / Machine</h2><div class="controls" id="machines"></div><output id="features" aria-live="polite"></output></section>
 <section><h2>2 / Optional WORLD bed</h2><p>Choose a local Space Drift stem (e.g. <code>D - Pads.wav</code>). Audio stays on your device and is not uploaded. The generative notes work without it. Original licensed WAVs are not part of this repo.</p><label>Local audio file <input id="world-file" type="file" accept="audio/*,.wav"></label><audio id="world" loop controls preload="none"></audio>
-<label>WORLD level <input id="world-level" type="range" min="0" max="1" step=".05" value=".7"></label></section>
+<label for="world-level">WORLD / Background <output id="world-percent" for="world-level">125%</output></label>
+<input id="world-level" type="range" min="0" max="2" step=".05" value="1.25" aria-label="WORLD background volume">
+<p><small>100% is the recording's normal level. Boost up to 200% for quiet stems; loud mixes receive gentle peak control.</small></p></section>
 <section><h2>3 / Generative MACHINE</h2>
 <p>80 BPM · eight-beat loop. The authored serial motif is transformed by physical topology, with chromatic notes constrained by a provisional spectral map of Space Drift. No game rules change.</p>
 <label>Musical profile <select id="music-profile"><option value="calm">Calm — sparse and spacious</option><option value="motion" selected>Motion — flowing rhythm</option><option value="complex">Complex — overlapping voices</option></select></label>
@@ -34,9 +36,10 @@ import {TOPOLOGY_STUDIES} from './topology-fixtures.js';
 import {createTopologyTimbre} from './topology-timbre.js';
 import {harmonyAt,SPACE_DRIFT_LENGTH} from './space-drift-harmony.js';
 import {composeSerialMachine} from './serial-composition.js';
+import {createWorldMix} from './world-mix.js';
 const $=id=>document.getElementById(id);
 let selected=0,ctx=null,timer=null,nextLoop=0,loopIndex=0,master=null,objectUrl=null,sampleFile=null;
-const localAudio=$('world');
+const localAudio=$('world'),worldMix=createWorldMix(localAudio);
 function stop(){
  if(timer!==null){clearInterval(timer);timer=null;}
  localAudio.pause();
@@ -85,8 +88,14 @@ function schedule(instrument,topology,at,index){
  $('harmonic-status').textContent='Space Drift · '+harmonic.label+' · starting '+start+' · provisional spectral map';
  $('status').textContent=topology.voices.length+' available voices · '+arrangement.voices.length+' in '+arrangement.profile+' · '+notes.length+' notes per phrase';
 }
-$('world-file').onchange=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);const file=$('world-file').files?.[0];objectUrl=file?URL.createObjectURL(file):null;localAudio.removeAttribute('src');if(objectUrl)localAudio.src=objectUrl;localAudio.volume=Number($('world-level').value);localAudio.load()};
-$('world-level').oninput=()=>{localAudio.volume=Number($('world-level').value)};
+$('world-file').onchange=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);const file=$('world-file').files?.[0];objectUrl=file?URL.createObjectURL(file):null;localAudio.removeAttribute('src');if(objectUrl)localAudio.src=objectUrl;worldMix.setLevel(Number($('world-level').value));localAudio.load()};
+$('world-level').oninput=()=>{
+ const percent=Math.round(worldMix.setLevel(Number($('world-level').value))*100);
+ $('world-percent').textContent=percent+'%';
+ if(objectUrl)worldMix.activate().catch(error=>{
+  $('status').textContent='WORLD audio blocked: '+error.message;
+ });
+};
 $('sample-file').onchange=()=>{sampleFile=$('sample-file').files?.[0]||null;$('sample-status').textContent=sampleFile?'Selected '+sampleFile.name+' · load with Play machine':'Soft Vibes: waiting to load'};
 $('start').onclick=()=>{
  stop();
@@ -112,6 +121,9 @@ $('start').onclick=()=>{
   }else $('sample-status').textContent='Using synthesised '+$('timbre').value+' instrument';
 
   if(objectUrl){
+   worldMix.activate().catch(error=>{
+    if(ctx===context)$('status').textContent+=' · WORLD audio blocked: '+error.message;
+   });
    localAudio.currentTime=0;
    const pending=localAudio.play();
    if(pending&&typeof pending.catch==='function')pending.catch(()=>{
@@ -132,6 +144,7 @@ $('test-tone').onclick=()=>{
 };
 $('stop').onclick=stop;
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+window.addEventListener('pagehide',()=>worldMix.dispose());
 render();
 </script>
 </body></html>
