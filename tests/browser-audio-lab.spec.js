@@ -258,6 +258,11 @@ test('Space Drift stem mixer loads local files and crossfades scenes on mobile',
  });
  await expect(page.locator('#load-status')).toContainText('0 / 6');
  await expect(page.locator('#load-status')).toContainText('ignored: Space Drift - Creepy.wav');
+ await page.locator('#stems-file').setInputFiles({
+  name:'Space Drift - No Drums.wav',mimeType:'audio/wav',buffer:wav
+ });
+ await expect(page.locator('#load-status')).toContainText('0 / 6');
+ await expect(page.locator('#load-status')).toContainText('ignored: Space Drift - No Drums.wav');
  await page.locator('#stems-file').setInputFiles([
   {name:'Space Drift - D - Pads.wav',mimeType:'audio/wav',buffer:wav},
   {name:'Space Drift - A - Calm Poly.wav',mimeType:'audio/wav',buffer:wav}
