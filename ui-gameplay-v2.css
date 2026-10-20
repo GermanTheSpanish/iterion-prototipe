@@ -336,15 +336,9 @@ body .gameMenu #helpButton[aria-hidden="true"]{display:none!important}
     grid-template-rows:44px 70px 24px minmax(0,1fr) auto!important;
     gap:3px!important;
   }
-  body .app .gameHeader{min-height:44px!important;height:44px!important}
-  body .app #menuButton.wordmark{
-    height:44px!important;
-    min-height:44px!important;
-    font-size:13px!important;
-  }
+  body .app #menuButton.wordmark{font-size:13px!important}
   body .app .scoreCard{min-height:70px!important;padding:1px 0!important}
   body .app .scoreValue{font-size:35px!important;margin:3px 0 0!important}
-  body .app .scoreCaption{font-size:11px!important}
   body .app .metaStrip{min-height:24px!important;padding-bottom:2px!important}
   body .app .bottomBar{
     grid-template-columns:132px minmax(0,1fr)!important;
@@ -359,10 +353,8 @@ body .gameMenu #helpButton[aria-hidden="true"]{display:none!important}
   body .app .railActions .btn small{font-size:9px!important;margin-top:2px!important}
   body .app .handRail{height:86px!important;min-height:86px!important}
   body .app .handHeader{height:14px!important;min-height:14px!important;flex-basis:14px!important}
-  body .app .handHeader .label{font-size:11px!important}
-  body .app .handSlot{height:68px!important;min-height:0!important;flex:1 1 0!important}
-  body .app .hand .domino{width:min(26px,100%)!important;height:auto!important}
-  body .app .hand .domino>.half{height:50%!important;flex-basis:50%!important}
+  body .app .handSlot{height:68px!important}
+  body .app .hand .domino{width:min(26px,100%)!important}
   body .app .bottomBar .hint{
     height:11px!important;
     min-height:11px!important;
