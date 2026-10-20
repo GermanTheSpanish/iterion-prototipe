@@ -298,3 +298,33 @@ test('Space Drift folder loader and shared audio clock stay aligned on mobile',a
  await expect(page.locator('#master-percent')).toHaveText('110%');
  expect(errors).toEqual([]);
 });
+
+test('Space Drift folder selection discovers A-F and skips premixes automatically',async({page})=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+ const folder=fs.mkdtempSync(path.join(os.tmpdir(),'monoid-space-drift-'));
+ try {
+  const rate=44100,frames=rate;
+  const wav=Buffer.alloc(44+frames*4);
+  wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);
+  wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);
+  wav.writeUInt16LE(1,20);wav.writeUInt16LE(2,22);
+  wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*4,28);
+  wav.writeUInt16LE(4,32);wav.writeUInt16LE(16,34);
+  wav.write('data',36);wav.writeUInt32LE(frames*4,40);
+  const nested=path.join(folder,'diffusion_models');fs.mkdirSync(nested);
+  for(const name of [
+    'Space Drift - A - Calm Poly.wav','Space Drift - B - Creepy Poly.wav',
+    'Space Drift - C - Corrupted Poly.wav','Space Drift - D - Pads.wav',
+    'Space Drift - E - Synth Melodies.wav','Space Drift - F - Drum.wav'
+  ])fs.writeFileSync(path.join(nested,name),wav);
+  fs.writeFileSync(path.join(folder,'Space Drift - Creepy.wav'),wav);
+  fs.writeFileSync(path.join(folder,'Space Drift - No Drums.wav'),wav);
+  await page.goto('http://127.0.0.1:4173/experiments/audio-lab/stem-mixer.html');
+  await page.locator('#stems-folder').setInputFiles(folder);
+  await expect(page.locator('#load-status')).toContainText('6 / 6 local stems loaded');
+  await expect(page.locator('#load-status')).toContainText('complete A–F set');
+  await expect(page.locator('#load-status')).toContainText('ignored 2 other file(s)');
+  await page.getByRole('button',{name:'Play stems'}).click();
+  await expect(page.locator('#status')).toContainText('Playing 6 sample-aligned stems');
+ } finally {fs.rmSync(folder,{recursive:true,force:true})}
+});
