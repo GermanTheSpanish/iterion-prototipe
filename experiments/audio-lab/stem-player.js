@@ -1,128 +1,165 @@
-// Isolated Audio Lab multistem player. Files remain in the user's browser.
-// Stream WAVs via HTMLAudioElement rather than decoding six 7:12 WAVs into RAM.
-// Media elements are NOT sample-accurately synchronized: this is a listening
-// prototype. Use prealigned shorter encoded segments + AudioBuffer scheduling
-// before shipping a production-quality stem engine.
+// Isolated MONOID Audio Lab multistem transport.
+// One AudioContext and shared scheduled start timestamps: no HTML media drift.
+// Each six-second PCM16 WAV window is decoded from local File slices; full
+// 7:12 stems are never held as decoded buffers in browser memory.
 import {STEMS} from './stem-scenes.js';
-const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-export function createStemPlayer(elements,{makeContext=()=>new (window.AudioContext||window.webkitAudioContext)()}={}){
- const tracks=new Map();
- for(const {id} of STEMS){
-  const element=elements[id];
-  if(!element)throw new Error('Missing stem audio element '+id);
-  element.preload='auto';element.loop=true;element.volume=1;
-  tracks.set(id,{element,source:null,gain:null,objectURL:null,level:0,muted:false,solo:false});
- }
- let context=null,master=null,playing=false,masterLevel=1;
+import {readPcmHeader,decodePcmSegment} from './pcm-wav-stream.js';
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (window.AudioContext||window.webkitAudioContext)()}={}) {
+ const tracks=new Map(STEMS.map(({id})=>[id,{file:null,header:null,gain:null,level:0,muted:false,solo:false}]));
+ const sources=new Set();
+ let context=null,master=null,masterLevel=1,timer=null,playing=false,generation=0;
+ let segmentFrames=0,segmentSeconds=0,totalSegments=0,nextIndex=0,startAt=0,busy=false,underruns=0;
  function init(){
   if(context)return context;
   context=makeContext();
-  const compressor=context.createDynamicsCompressor();
-  compressor.threshold.value=-5;compressor.knee.value=5;compressor.ratio.value=8;
-  compressor.attack.value=.005;compressor.release.value=.2;
+  const limiter=context.createDynamicsCompressor();
+  limiter.threshold.value=-5;limiter.knee.value=5;limiter.ratio.value=8;
+  limiter.attack.value=.005;limiter.release.value=.2;
   master=context.createGain();master.gain.value=masterLevel;
-  master.connect(compressor);compressor.connect(context.destination);
+  master.connect(limiter);limiter.connect(context.destination);
+  for(const track of tracks.values()){
+   track.gain=context.createGain();
+   track.gain.gain.value=audibleLevel(track);
+   track.gain.connect(master);
+  }
   return context;
  }
  function audibleLevel(track){
-  const soloActive=[...tracks.values()].some(t=>t.solo);
-  return track.muted||(soloActive&&!track.solo)?0:track.level;
+  const anySolo=[...tracks.values()].some(t=>t.solo);
+  return track.muted||(anySolo&&!track.solo)?0:track.level;
  }
- function applyTrackGain(track,smooth=true){
+ function applyLevel(track,smooth=true){
   if(!track.gain)return;
-  const gain=track.gain.gain,target=audibleLevel(track);
-  gain.cancelScheduledValues(context.currentTime);
-  if(smooth)gain.setTargetAtTime(target,context.currentTime,1.25);
-  else gain.setValueAtTime(target,context.currentTime);
- }
- function setMuted(id,value){
-  const t=tracks.get(id);if(!t)throw new RangeError('Invalid stem');
-  t.muted=Boolean(value);
-  for(const track of tracks.values())applyTrackGain(track);
- }
- function setSolo(id,value){
-  const t=tracks.get(id);if(!t)throw new RangeError('Invalid stem');
-  t.solo=Boolean(value);
-  for(const track of tracks.values())applyTrackGain(track);
- }
- function attach(track){
-  if(track.source||!track.objectURL)return;
-  track.source=context.createMediaElementSource(track.element);
-  track.gain=context.createGain();
-  track.gain.gain.value=audibleLevel(track);
-  track.source.connect(track.gain);track.gain.connect(master);
+  const param=track.gain.gain,value=audibleLevel(track),at=context.currentTime;
+  param.cancelScheduledValues(at);
+  if(smooth)param.setTargetAtTime(value,at,1.25);
+  else param.setValueAtTime(value,at);
  }
  function setFile(id,file){
-  const track=tracks.get(id);if(!track)throw new Error('Unknown stem '+id);
-  if(playing)stop();
-  if(track.objectURL)URL.revokeObjectURL(track.objectURL);
-  track.objectURL=file?URL.createObjectURL(file):null;
-  track.element.removeAttribute('src');
-  if(track.objectURL)track.element.src=track.objectURL;
-  track.element.load();
-  return Boolean(track.objectURL);
+  const track=tracks.get(id);
+  if(!track)throw new RangeError('Unknown stem '+id);
+  stop();
+  track.file=file||null;track.header=null;
+  return Boolean(track.file);
  }
  function setLevel(id,value,{smooth=true}={}){
-  const t=tracks.get(id),n=Number(value);
-  if(!t||!Number.isFinite(n))throw new RangeError('Invalid stem level');
-  t.level=clamp(n,0,1.5);
-  applyTrackGain(t,smooth);
-  return t.level;
+  const track=tracks.get(id),parsed=Number(value);
+  if(!track||!Number.isFinite(parsed))throw new RangeError('Invalid stem level');
+  track.level=clamp(parsed,0,1.5);applyLevel(track,smooth);
+  return track.level;
  }
  function setLevels(levels,options){
   for(const {id} of STEMS)if(Object.hasOwn(levels,id))setLevel(id,levels[id],options);
  }
+ function setMuted(id,value){
+  const track=tracks.get(id);if(!track)throw new RangeError('Unknown stem');
+  track.muted=Boolean(value);for(const t of tracks.values())applyLevel(t);
+ }
+ function setSolo(id,value){
+  const track=tracks.get(id);if(!track)throw new RangeError('Unknown stem');
+  track.solo=Boolean(value);for(const t of tracks.values())applyLevel(t);
+ }
  function setMaster(value){
-  const n=Number(value);if(!Number.isFinite(n))throw new RangeError('Invalid master');
-  const v=clamp(n,0,2);
-  masterLevel=v;
-  if(master){master.gain.cancelScheduledValues(context.currentTime);master.gain.setTargetAtTime(v,context.currentTime,.025)}
-  return v;
- }
- function start(){
-  const available=[...tracks.values()].filter(t=>t.objectURL);
-  if(!available.length)throw new Error('Load at least one Space Drift stem first');
-  init();
-  for(const t of available)attach(t);
-  for(const t of available){try{t.element.currentTime=0}catch{}}
-  playing=true;
-  // Both the resume and ALL media play calls must originate in the same tap.
-  // Do not await resume before HTMLMediaElement.play() on iOS Safari.
-  const resume=context.resume();
-  const results=[];
-  for(let i=0;i<available.length;i++){
-   try{results[i]=available[i].element.play()}
-   catch(error){results[i]=Promise.reject(error)}
+  const parsed=Number(value);if(!Number.isFinite(parsed))throw new RangeError('Invalid WORLD master');
+  masterLevel=clamp(parsed,0,2);
+  if(master){
+   const at=context.currentTime;master.gain.cancelScheduledValues(at);
+   master.gain.setTargetAtTime(masterLevel,at,.025);
   }
-  return Promise.allSettled([resume,...results]).then(outcomes=>{
-   const errors=outcomes.filter(r=>r.status==='rejected');
-   return {loaded:available.length,errors:errors.map(r=>String(r.reason)),state:context.state};
-  });
+  return masterLevel;
  }
- function stop(){
-  playing=false;
-  for(const t of tracks.values())t.element.pause();
- }
- function reference(){
-  return tracks.get('D')?.objectURL?tracks.get('D').element:
-   [...tracks.values()].find(t=>t.objectURL)?.element||null;
- }
- function getDrift(){
-  const base=reference();
-  if(!base||!playing)return 0;
-  return Math.max(0,...[...tracks.values()].filter(t=>t.objectURL&&t.element!==base&&!t.element.paused)
-   .map(t=>Math.abs(t.element.currentTime-base.currentTime)));
- }
+ function loaded(){return [...tracks].filter(([,t])=>Boolean(t.file)).map(([id])=>id)}
  function levels(){return Object.fromEntries([...tracks].map(([id,t])=>[id,t.level]))}
- function loaded(){return [...tracks].filter(([,t])=>t.objectURL).map(([id])=>id)}
+ function stop(){
+  generation++;playing=false;busy=false;
+  if(timer!==null){clearInterval(timer);timer=null}
+  for(const source of sources){
+   try{source.stop()}catch{}
+   try{source.disconnect()}catch{}
+  }
+  sources.clear();
+ }
+ async function loadGroup(index,available){
+  const segment=index%totalSegments;
+  const first=segment*segmentFrames;
+  return Promise.all(available.map(async track=>({
+   track,
+   buffer:await decodePcmSegment(context,track.file,track.header,first,segmentFrames)
+  })));
+ }
+ function scheduleGroup(group,index,at){
+  for(const {track,buffer} of group){
+   const source=context.createBufferSource();
+   source.buffer=buffer;source.connect(track.gain);
+   sources.add(source);
+   source.onended=()=>{sources.delete(source);source.disconnect()};
+   source.start(at);
+  }
+ }
+ async function start(){
+  const available=[...tracks.values()].filter(t=>t.file);
+  if(!available.length)throw new Error('Select at least one local Space Drift stem');
+  stop();const run=++generation;
+  const active=init();
+  // Resume is invoked directly from the Play tap, before any await (iOS).
+  const resumed=active.resume();
+  if(resumed&&typeof resumed.catch==='function')resumed.catch(()=>{});
+  const headers=await Promise.all(available.map(async t=>({track:t,header:await readPcmHeader(t.file)})));
+  if(run!==generation)return {loaded:0,errors:['Start cancelled']};
+  const reference=headers[0].header;
+  for(const item of headers){
+   const h=item.header;
+   if(h.sampleRate!==reference.sampleRate||h.channels!==reference.channels||
+      h.bitsPerSample!==reference.bitsPerSample)
+    throw new Error('Stem format mismatch: all files must share sample rate and channel format');
+   if(Math.abs(h.frames-reference.frames)>h.sampleRate*.02)
+    throw new Error('Stem duration mismatch: choose the six aligned A–F stems, not alternate mixes');
+   item.track.header=h;
+  }
+  const frames=Math.min(...headers.map(x=>x.header.frames));
+  segmentFrames=Math.min(reference.sampleRate*6,frames);
+  totalSegments=Math.floor(frames/segmentFrames);
+  segmentSeconds=segmentFrames/reference.sampleRate;
+  if(!totalSegments)throw new Error('No complete audio segments');
+  const first=await loadGroup(0,available);
+  if(run!==generation)return {loaded:0,errors:['Start cancelled']};
+  playing=true;underruns=0;nextIndex=1;
+  startAt=context.currentTime+.25;
+  scheduleGroup(first,0,startAt);
+  const pump=async()=>{
+   if(!playing||run!==generation||busy)return;
+   const due=startAt+nextIndex*segmentSeconds;
+   if(due-context.currentTime>Math.min(3,segmentSeconds*.8))return;
+   busy=true;
+   const index=nextIndex;
+   try{
+    const group=await loadGroup(index,available);
+    if(!playing||run!==generation)return;
+    let when=startAt+index*segmentSeconds;
+    if(when<context.currentTime+.04){
+     underruns++;
+     when=context.currentTime+.12;
+     startAt=when-index*segmentSeconds;
+    }
+    scheduleGroup(group,index,when);
+    nextIndex=index+1;
+   }catch(error){
+    if(run===generation){stop();lastError=String(error.message||error)}
+   }finally{if(run===generation)busy=false}
+  };
+  timer=setInterval(()=>{void pump()},250);
+  void pump();
+  return {loaded:available.length,errors:[],state:context.state};
+ }
+ let lastError='';
+ function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
+ function getSyncStatus(){return {mode:'shared-audio-clock',underruns,error:lastError}}
  function dispose(){
   stop();
-  for(const t of tracks.values()){
-   t.element.removeAttribute('src');t.element.load();
-   if(t.objectURL)URL.revokeObjectURL(t.objectURL);
-   t.objectURL=null;t.source?.disconnect();t.gain?.disconnect();
-  }
+  for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect()}
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setLevel,setLevels,setMuted,setSolo,setMaster,start,stop,getDrift,loaded,levels,dispose,isPlaying:()=>playing};
+ return {setFile,setLevel,setLevels,setMuted,setSolo,setMaster,start,stop,getDrift,
+  getSyncStatus,loaded,levels,dispose,isPlaying:()=>playing};
 }

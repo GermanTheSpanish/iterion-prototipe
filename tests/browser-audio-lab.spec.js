@@ -229,48 +229,52 @@ test('WORLD gain supports live 200 percent control without recreating its media 
  await expect.poll(()=>page.evaluate(()=>window.__worldGain?.gain.value)).toBeLessThan(.05);
 });
 
-test('Space Drift stem mixer loads local files and crossfades scenes on mobile',async({page})=>{
+test('Space Drift folder loader and shared audio clock stay aligned on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{
-  window.__stemSourceCount=0;
-  const connect=MediaElementAudioSourceNode.prototype.connect;
-  MediaElementAudioSourceNode.prototype.connect=function(...args){
-   window.__stemSourceCount++;
-   return connect.apply(this,args);
+  window.__stemStarts=[];
+  const original=AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start=function(when,...rest){
+   window.__stemStarts.push(when);
+   return original.call(this,when,...rest);
   };
  });
  const rate=44100,frames=rate;
- const wav=Buffer.alloc(44+frames*2);
+ const wav=Buffer.alloc(44+frames*4);
  wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);
  wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);
- wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);
- wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*2,28);
- wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);
- wav.write('data',36);wav.writeUInt32LE(frames*2,40);
- for(let i=0;i<frames;i++)wav.writeInt16LE(Math.round(Math.sin(i*2*Math.PI*220/rate)*8500),44+i*2);
+ wav.writeUInt16LE(1,20);wav.writeUInt16LE(2,22);
+ wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*4,28);
+ wav.writeUInt16LE(4,32);wav.writeUInt16LE(16,34);
+ wav.write('data',36);wav.writeUInt32LE(frames*4,40);
+ for(let i=0;i<frames;i++){
+  const value=Math.round(Math.sin(i*2*Math.PI*220/rate)*8500);
+  wav.writeInt16LE(value,44+i*4);wav.writeInt16LE(value,46+i*4);
+ }
  await page.goto('http://127.0.0.1:4173/experiments/audio-lab/stem-mixer.html');
  await expect(page.locator('.track')).toHaveCount(6);
  await expect(page.locator('#scenes button')).toHaveCount(4);
- await expect(page.locator('#scene-status')).toContainText('Start');
+ await expect(page.locator('#stems-folder')).toHaveAttribute('webkitdirectory','');
  await page.locator('#stems-file').setInputFiles({
   name:'Space Drift - Creepy.wav',mimeType:'audio/wav',buffer:wav
  });
  await expect(page.locator('#load-status')).toContainText('0 / 6');
- await expect(page.locator('#load-status')).toContainText('ignored: Space Drift - Creepy.wav');
  await page.locator('#stems-file').setInputFiles({
   name:'Space Drift - No Drums.wav',mimeType:'audio/wav',buffer:wav
  });
  await expect(page.locator('#load-status')).toContainText('0 / 6');
- await expect(page.locator('#load-status')).toContainText('ignored: Space Drift - No Drums.wav');
  await page.locator('#stems-file').setInputFiles([
   {name:'Space Drift - D - Pads.wav',mimeType:'audio/wav',buffer:wav},
   {name:'Space Drift - A - Calm Poly.wav',mimeType:'audio/wav',buffer:wav}
  ]);
  await expect(page.locator('#load-status')).toContainText('2 / 6');
+ await expect(page.locator('#load-status')).toContainText('missing B, C, E, F');
  await page.getByRole('button',{name:'Play stems'}).click();
- await expect(page.locator('#status')).toContainText('Playing 2 stems');
- await expect.poll(()=>page.evaluate(()=>window.__stemSourceCount)).toBe(2);
+ await expect(page.locator('#status')).toContainText('Playing 2 sample-aligned stems');
+ await expect.poll(()=>page.evaluate(()=>window.__stemStarts.length)).toBeGreaterThanOrEqual(2);
+ const first=await page.evaluate(()=>window.__stemStarts.slice(0,2));
+ expect(first[0]).toBe(first[1]); // Both sources share EXACT scheduled AudioContext time.
  await page.getByRole('button',{name:'Complex'}).click();
  await expect(page.locator('#percent-E')).toHaveText('50%');
  await page.locator('#solo-D').check();
@@ -279,11 +283,12 @@ test('Space Drift stem mixer loads local files and crossfades scenes on mobile',
  await page.locator('#mute-A').check();
  await expect(page.locator('#mute-A')).toBeChecked();
  await page.locator('#mute-A').uncheck();
- await expect(page.locator('#scene-status')).toContainText('Complex');
  await page.getByRole('button',{name:'Stop',exact:true}).click();
  await page.getByRole('button',{name:'Play stems'}).click();
- await expect(page.locator('#status')).toContainText('Playing 2 stems');
- await expect.poll(()=>page.evaluate(()=>window.__stemSourceCount)).toBe(2);
+ await expect(page.locator('#status')).toContainText('Playing 2 sample-aligned stems');
+ await expect.poll(()=>page.evaluate(()=>window.__stemStarts.length)).toBeGreaterThanOrEqual(4);
+ const second=await page.evaluate(()=>window.__stemStarts.slice(-2));
+ expect(second[0]).toBe(second[1]);
  await page.locator('#follow-topology').check();
  await page.locator('#topology').selectOption('turns');
  await expect(page.locator('#scene-status')).toContainText('Develop');
@@ -292,4 +297,34 @@ test('Space Drift stem mixer loads local files and crossfades scenes on mobile',
  await page.locator('#master').fill('1.1');
  await expect(page.locator('#master-percent')).toHaveText('110%');
  expect(errors).toEqual([]);
+});
+
+test('Space Drift folder selection discovers A-F and skips premixes automatically',async({page})=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+ const folder=fs.mkdtempSync(path.join(os.tmpdir(),'monoid-space-drift-'));
+ try {
+  const rate=44100,frames=rate;
+  const wav=Buffer.alloc(44+frames*4);
+  wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);
+  wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);
+  wav.writeUInt16LE(1,20);wav.writeUInt16LE(2,22);
+  wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*4,28);
+  wav.writeUInt16LE(4,32);wav.writeUInt16LE(16,34);
+  wav.write('data',36);wav.writeUInt32LE(frames*4,40);
+  const nested=path.join(folder,'diffusion_models');fs.mkdirSync(nested);
+  for(const name of [
+    'Space Drift - A - Calm Poly.wav','Space Drift - B - Creepy Poly.wav',
+    'Space Drift - C - Corrupted Poly.wav','Space Drift - D - Pads.wav',
+    'Space Drift - E - Synth Melodies.wav','Space Drift - F - Drum.wav'
+  ])fs.writeFileSync(path.join(nested,name),wav);
+  fs.writeFileSync(path.join(folder,'Space Drift - Creepy.wav'),wav);
+  fs.writeFileSync(path.join(folder,'Space Drift - No Drums.wav'),wav);
+  await page.goto('http://127.0.0.1:4173/experiments/audio-lab/stem-mixer.html');
+  await page.locator('#stems-folder').setInputFiles(folder);
+  await expect(page.locator('#load-status')).toContainText('6 / 6 local stems loaded');
+  await expect(page.locator('#load-status')).toContainText('complete A–F set');
+  await expect(page.locator('#load-status')).toContainText('ignored 2 other file(s)');
+  await page.getByRole('button',{name:'Play stems'}).click();
+  await expect(page.locator('#status')).toContainText('Playing 6 sample-aligned stems');
+ } finally {fs.rmSync(folder,{recursive:true,force:true})}
 });
