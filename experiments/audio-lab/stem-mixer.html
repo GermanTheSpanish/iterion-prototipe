@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONOID — Space Drift Stem Mixer</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#101010;color:#eee}
+*{box-sizing:border-box}
+body{max-width:760px;margin:auto;padding:18px}
+h1{font-size:1.5rem;letter-spacing:.09em}
+p,small{color:#aaa;line-height:1.5}
+section{border:1px solid #454545;border-radius:12px;padding:15px;margin:15px 0}
+button,select,input{font:inherit}button{border:1px solid #666;background:#232323;color:#eee;border-radius:7px;padding:10px;cursor:pointer;touch-action:manipulation}
+button[aria-pressed=true]{background:#d4d7dc;color:#101010}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #fff}
+button:disabled{opacity:.45;cursor:default}
+.controls{display:flex;flex-wrap:wrap;gap:8px}
+.track{border-top:1px solid #444;padding:12px 0;display:grid;gap:8px}
+.track:first-child{border:0}
+.track-head{display:flex;justify-content:space-between;gap:12px}
+.track-title{font-weight:650}
+.track-meta,output{color:#bbb}
+.track input[type=range]{width:100%}
+.track input[type=file]{max-width:100%;font-size:.82rem}
+label{display:block;margin:8px 0}
+select{background:#242424;color:#fff;border:1px solid #555;border-radius:6px;padding:8px}
+#master{width:100%}
+#status{white-space:pre-wrap;display:block;border:1px solid #3b3b3b;border-radius:8px;padding:12px;min-height:3em;overflow-wrap:anywhere}
+a{color:#b5c8fb}
+@media(max-width:420px){body{padding:12px}button{min-height:42px}}
+</style>
+</head>
+<body>
+<p><a href="./">← Audio Lab</a> · <a href="./topology-study.html">Topology Study</a></p>
+<h1>MONOID / STEM MIXER</h1>
+<p>Four listening scenes built from the six original <em>Space Drift</em> stems. WORLD only: no changes to scoring, signal routing or gameplay.</p>
+<section>
+<h2>1 / Local stems</h2>
+<p>Select the six original <strong>Space Drift A–F WAVs</strong> at once. They stay on this device. Premixed Full, Peace and Creepy versions are not stems and will be ignored.</p>
+<label for="stems-file">Select multiple Space Drift stems</label>
+<input id="stems-file" type="file" multiple accept="audio/*,.wav">
+<output id="load-status" aria-live="polite">No stems loaded. Start with D - Pads and A - Calm Poly if you prefer.</output>
+<div id="tracks"></div>
+<small>Desktop recommended for six full-length WAVs. On mobile, start with two or three stems. No WAVs are uploaded or bundled.</small>
+</section>
+<section>
+<h2>2 / Listening scenes</h2>
+<div class="controls" id="scenes"></div>
+<p>These are experimental arrangements, not progression or score levels. Unusual is deliberately different rather than simply louder.</p>
+<label for="topology">Test physical topology</label>
+<select id="topology">
+<option value="line">Linear machine</option>
+<option value="turns">Winding machine</option>
+<option value="network">Circuit and junction</option>
+</select>
+<label><input id="follow-topology" type="checkbox"> Follow topology when choosing a scene</label>
+<output id="scene-status" aria-live="polite"></output>
+</section>
+<section>
+<h2>3 / WORLD output</h2>
+<label for="master">WORLD master <output id="master-percent">72%</output></label>
+<input id="master" type="range" min="0" max="1.5" step=".05" value=".72">
+<div class="controls"><button id="start" type="button">Play stems</button><button id="stop" type="button">Stop</button></div>
+<output id="status" aria-live="polite">Ready — load local files and press Play stems.</output>
+<small>Fades take several seconds. Individual HTML audio streams are not sample-accurate: this is a listening experiment, not the final shipping multistem engine. A drift warning reports excessive timing differences.</small>
+</section>
+<script type="module">
+import {STEMS,SCENES,identifyStem,sceneLevels,sceneForTopology} from './stem-scenes.js';
+import {createStemPlayer} from './stem-player.js';
+const $=id=>document.getElementById(id);
+const elements=Object.fromEntries(STEMS.map(s=>[s.id,new Audio()]));
+const player=createStemPlayer(elements);
+let activeScene='start',poll=null;
+function displayStatus(message){$('status').textContent=message}
+function refreshFiles(){
+ const present=new Set(player.loaded());
+ for(const {id} of STEMS)$('loaded-'+id).textContent=present.has(id)?'Loaded locally':'Not loaded';
+}
+function refreshLevels(){
+ const values=player.levels();
+ for(const {id} of STEMS){
+  $('level-'+id).value=String(values[id]);
+  $('percent-'+id).textContent=Math.round(values[id]*100)+'%';
+ }
+}
+function selectScene(name){
+ if(!SCENES[name])return;
+ activeScene=name;
+ player.setLevels(sceneLevels(name),{smooth:player.isPlaying()});
+ refreshLevels();
+ for(const button of $('scenes').querySelectorAll('button'))
+  button.setAttribute('aria-pressed',String(button.dataset.scene===name));
+ $('scene-status').textContent=SCENES[name].label+' · crossfades use gain ramps, no song restart';
+}
+function stop(){
+ if(poll!==null){clearInterval(poll);poll=null}
+ player.stop();
+ displayStatus('Stopped · scene and stem levels preserved');
+}
+for(const {id,label} of STEMS){
+ const row=document.createElement('div');row.className='track';
+ const head=document.createElement('div');head.className='track-head';
+ const left=document.createElement('span');left.className='track-title';left.textContent=id+' · '+label;
+ const right=document.createElement('span');right.className='track-meta';right.id='loaded-'+id;
+ head.append(left,right);
+ const labelVolume=document.createElement('label');labelVolume.setAttribute('for','level-'+id);
+ labelVolume.textContent='Stem level ';
+ const out=document.createElement('output');out.id='percent-'+id;labelVolume.append(out);
+ const slider=document.createElement('input');slider.type='range';slider.min='0';slider.max='1.5';slider.step='.05';slider.id='level-'+id;
+ slider.addEventListener('input',()=>{
+  const value=player.setLevel(id,Number(slider.value));
+  out.textContent=Math.round(value*100)+'%';
+  $('follow-topology').checked=false;
+  $('scene-status').textContent='Custom stem levels · you can restore a scene at any time';
+  $('scenes').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));
+ });
+ const file=document.createElement('input');file.type='file';file.accept='audio/*,.wav';file.setAttribute('aria-label','Load '+id+' stem');
+ file.addEventListener('change',()=>{
+  const selected=file.files?.[0]||null;
+  player.setFile(id,selected);refreshFiles();
+  $('load-status').textContent=player.loaded().length+' / 6 local stems loaded';
+ });
+ row.append(head,labelVolume,slider,file);
+ $('tracks').append(row);
+}
+for(const [key,scene] of Object.entries(SCENES)){
+ const button=document.createElement('button');button.type='button';button.textContent=scene.label;button.dataset.scene=key;
+ button.addEventListener('click',()=>{$('follow-topology').checked=false;selectScene(key)});
+ $('scenes').append(button);
+}
+$('topology').addEventListener('change',()=>{if($('follow-topology').checked)selectScene(sceneForTopology($('topology').value))});
+$('follow-topology').addEventListener('change',()=>{if($('follow-topology').checked)selectScene(sceneForTopology($('topology').value))});
+$('stems-file').addEventListener('change',()=>{
+ const accepted=[],skipped=[];
+ for(const file of $('stems-file').files||[]){
+  const id=identifyStem(file.name);
+  if(id){player.setFile(id,file);accepted.push(id)}
+  else skipped.push(file.name);
+ }
+ refreshFiles();
+ $('load-status').textContent=player.loaded().length+' / 6 local stems loaded'+(skipped.length?' · ignored: '+skipped.join(', '):'');
+});
+$('master').addEventListener('input',()=>{
+ const v=player.setMaster(Number($('master').value));
+ $('master-percent').textContent=Math.round(v*100)+'%';
+});
+$('start').addEventListener('click',()=>{
+ stop();
+ try{
+  const task=player.start();
+  displayStatus('Starting '+player.loaded().join(', ')+' · '+SCENES[activeScene].label+' scene');
+  task.then(result=>{
+   if(!player.isPlaying())return;
+   if(result.errors.length)displayStatus('Playback issue: '+result.errors.join('; '));
+   else displayStatus('Playing '+result.loaded+' stems · '+SCENES[activeScene].label+' scene');
+  }).catch(error=>displayStatus('Playback failed: '+error.message));
+  poll=setInterval(()=>{
+   if(!player.isPlaying())return;
+   const drift=player.getDrift();
+   if(drift>.12)displayStatus('Stems drifting by '+Math.round(drift*1000)+' ms · stop and restart for realignment. Production needs sample-accurate scheduling.');
+  },2000);
+ }catch(error){displayStatus('Cannot start: '+error.message)}
+});
+$('stop').addEventListener('click',stop);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+window.addEventListener('pagehide',()=>{if(poll!==null)clearInterval(poll);player.dispose()});
+selectScene('start');refreshFiles();
+</script>
+</body>
+</html>
