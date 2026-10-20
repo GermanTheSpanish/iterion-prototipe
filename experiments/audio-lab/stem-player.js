@@ -13,14 +13,14 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
   element.preload='auto';element.loop=true;element.volume=1;
   tracks.set(id,{element,source:null,gain:null,objectURL:null,level:0});
  }
- let context=null,master=null,playing=false;
+ let context=null,master=null,playing=false,masterLevel=.72;
  function init(){
   if(context)return context;
   context=makeContext();
   const compressor=context.createDynamicsCompressor();
   compressor.threshold.value=-5;compressor.knee.value=5;compressor.ratio.value=8;
   compressor.attack.value=.005;compressor.release.value=.2;
-  master=context.createGain();master.gain.value=.72;
+  master=context.createGain();master.gain.value=masterLevel;
   master.connect(compressor);compressor.connect(context.destination);
   return context;
  }
@@ -58,6 +58,7 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
  function setMaster(value){
   const n=Number(value);if(!Number.isFinite(n))throw new RangeError('Invalid master');
   const v=clamp(n,0,1.5);
+  masterLevel=v;
   if(master){master.gain.cancelScheduledValues(context.currentTime);master.gain.setTargetAtTime(v,context.currentTime,.025)}
   return v;
  }
