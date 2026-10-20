@@ -9,7 +9,10 @@ The core game is already substantially implemented. Work in this repository shou
 2. final UI/UX,
 3. tutorial/onboarding,
 4. balance and playtesting,
-5. release hardening.
+5. adaptive audio validation,
+6. release hardening.
+
+Landscape UI and an offline desktop build are planned follow-up work, not reasons to rewrite stable gameplay.
 
 Do not turn late-stage development into an architectural rewrite.
 
@@ -151,11 +154,13 @@ Do not clear/reconstruct it as a UI or round-transition shortcut.
 
 ### Mobile-first
 
-Gameplay must fit on one phone screen without page scrolling.
+Gameplay must fit on supported phone viewports without page scrolling.
 
 The board remains the visual focus.
 
-The hand remains vertical on the right.
+Hand position and orientation follow the active approved UI; gameplay-v2 currently uses a horizontal bottom Hand. Do not enforce a legacy vertical-right Hand when implementing a new layout.
+
+Any future landscape layout must preserve the existing portrait experience and must not change gameplay geometry or engine behaviour.
 
 ---
 
@@ -173,13 +178,14 @@ Do not silently modify:
 - odd/even operations,
 - Double Double,
 - Double Echo,
-- Zero Memory,
 - T-split,
 - POWER arithmetic,
 - Circuit detection,
 - Circuit rewards/resonance,
 - Long Chain,
 - target progression.
+
+Zero Memory is no longer an active Mod. Legacy `zeroMemoryTileId` fields may remain for save migration; do not restore the Mod or remove compatibility handling without explicit intent and regression coverage.
 
 Always distinguish:
 1. placement legality,
@@ -242,7 +248,7 @@ Use colour only when it communicates gameplay meaning.
 Maintain:
 - one-screen mobile gameplay,
 - board as primary visual focus,
-- vertical hand on the right,
+- correct Hand position/orientation for the active approved layout,
 - highly legible Score and Target,
 - quiet secondary information,
 - accessible debug tools without visual dominance.
@@ -321,7 +327,7 @@ When debugging scoring, reconstruct what happened before proposing a fix.
 
 For every code task:
 
-1. Inspect current `main` and the relevant files before editing.
+1. Inspect current `main`, relevant files, and open PRs before editing. Avoid conflicting changes to an in-flight PR.
 2. Classify the task: gameplay, state, presentation, UX, economy, progression, persistence or infrastructure.
 3. Identify protected behaviour that must remain unchanged.
 4. Create the smallest coherent patch.
@@ -443,6 +449,9 @@ From this point forward:
 - implement the final UI,
 - improve onboarding,
 - playtest and balance,
+- validate adaptive music in live gameplay,
 - harden for release.
+
+Landscape UI and a standalone offline-capable Steam build are future focused workstreams. Keep the existing PWA operational; do not migrate platforms prematurely.
 
 Do not start another broad cleanup phase unless a concrete production problem proves it is necessary.
