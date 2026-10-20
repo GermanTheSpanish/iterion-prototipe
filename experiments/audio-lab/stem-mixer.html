@@ -36,7 +36,7 @@ a{color:#b5c8fb}
 <p>Four listening scenes built from the six original <em>Space Drift</em> stems. WORLD only: no changes to scoring, signal routing or gameplay.</p>
 <section>
 <h2>1 / Local stems</h2>
-<p>Select the six original <strong>Space Drift A–F WAVs</strong> at once. They stay on this device. Premixed Full, Peace and Creepy versions are not stems and will be ignored.</p>
+<p>Select the six original <strong>Space Drift A–F WAVs</strong> at once. Use Mute and Solo to isolate a texture. They stay on this device. Premixed Full, Peace and Creepy versions are not stems and will be ignored.</p>
 <label for="stems-file">Select multiple Space Drift stems</label>
 <input id="stems-file" type="file" multiple accept="audio/*,.wav">
 <output id="load-status" aria-live="polite">No stems loaded. Start with D - Pads and A - Calm Poly if you prefer.</output>
@@ -114,13 +114,21 @@ for(const {id,label} of STEMS){
   $('scene-status').textContent='Custom stem levels · you can restore a scene at any time';
   $('scenes').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed','false'));
  });
+ const toggles=document.createElement('div');toggles.className='controls';
+ for(const mode of ['Mute','Solo']){
+  const toggleLabel=document.createElement('label');
+  const toggle=document.createElement('input');toggle.type='checkbox';toggle.id=mode.toLowerCase()+'-'+id;
+  toggle.setAttribute('aria-label',mode+' '+id+' stem');
+  toggle.addEventListener('change',()=>mode==='Mute'?player.setMuted(id,toggle.checked):player.setSolo(id,toggle.checked));
+  toggleLabel.append(toggle,document.createTextNode(' '+mode));toggles.append(toggleLabel);
+ }
  const file=document.createElement('input');file.type='file';file.accept='audio/*,.wav';file.setAttribute('aria-label','Load '+id+' stem');
  file.addEventListener('change',()=>{
   const selected=file.files?.[0]||null;
   player.setFile(id,selected);refreshFiles();
   $('load-status').textContent=player.loaded().length+' / 6 local stems loaded';
  });
- row.append(head,labelVolume,slider,file);
+ row.append(head,labelVolume,slider,toggles,file);
  $('tracks').append(row);
 }
 for(const [key,scene] of Object.entries(SCENES)){
