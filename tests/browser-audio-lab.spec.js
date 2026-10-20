@@ -253,6 +253,11 @@ test('Space Drift stem mixer loads local files and crossfades scenes on mobile',
  await expect(page.locator('.track')).toHaveCount(6);
  await expect(page.locator('#scenes button')).toHaveCount(4);
  await expect(page.locator('#scene-status')).toContainText('Start');
+ await page.locator('#stems-file').setInputFiles({
+  name:'Space Drift - Creepy.wav',mimeType:'audio/wav',buffer:wav
+ });
+ await expect(page.locator('#load-status')).toContainText('0 / 6');
+ await expect(page.locator('#load-status')).toContainText('ignored: Space Drift - Creepy.wav');
  await page.locator('#stems-file').setInputFiles([
   {name:'Space Drift - D - Pads.wav',mimeType:'audio/wav',buffer:wav},
   {name:'Space Drift - A - Calm Poly.wav',mimeType:'audio/wav',buffer:wav}
@@ -263,6 +268,12 @@ test('Space Drift stem mixer loads local files and crossfades scenes on mobile',
  await expect.poll(()=>page.evaluate(()=>window.__stemSourceCount)).toBe(2);
  await page.getByRole('button',{name:'Complex'}).click();
  await expect(page.locator('#percent-E')).toHaveText('50%');
+ await page.locator('#solo-D').check();
+ await expect(page.locator('#solo-D')).toBeChecked();
+ await page.locator('#solo-D').uncheck();
+ await page.locator('#mute-A').check();
+ await expect(page.locator('#mute-A')).toBeChecked();
+ await page.locator('#mute-A').uncheck();
  await expect(page.locator('#scene-status')).toContainText('Complex');
  await page.getByRole('button',{name:'Stop',exact:true}).click();
  await page.getByRole('button',{name:'Play stems'}).click();
