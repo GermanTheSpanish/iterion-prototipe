@@ -9,9 +9,12 @@ The core game is already substantially implemented. Work in this repository shou
 2. final UI/UX,
 3. tutorial/onboarding,
 4. balance and playtesting,
-5. release hardening.
+5. adaptive audio validation,
+6. release hardening and future offline-capable desktop packaging.
 
 Do not turn late-stage development into an architectural rewrite.
+
+Future difficulty tiers and landscape UI are approved areas for exploration, not permission to silently change current rules or portrait layout. Design, implement and regression-test them as separate scoped changes.
 
 MONOID's identity comes from physical domino placement, connectivity, routing, persistent machine construction, network topology, doubles, zeros, parity, tile identity, modifiers on physical tiles, Circuits, POWER, Markets and long-term spatial architecture.
 
@@ -41,6 +44,8 @@ The game is no longer a throwaway prototype.
 Do not perform broad cleanup, framework migrations, folder reorganisations or speculative abstractions unless they directly unblock a concrete current task or prevent a demonstrated regression.
 
 A cleaner architecture is not, by itself, sufficient reason to rewrite stable code.
+
+For code-health work, measure before changing: identify actual duplicated behaviour, unnecessary runtime work, excessive CSS overrides, event-listener lifecycle risks or broken boundaries. Prioritise demonstrably safe reductions in complexity. Avoid broad formatting-only diffs, premature minification and wholesale engine/UI replacement. Quantify changes and check equivalent gameplay and user-visible behaviour.
 
 Prefer:
 - small coherent patches,
@@ -155,7 +160,7 @@ Gameplay must fit on one phone screen without page scrolling.
 
 The board remains the visual focus.
 
-The hand remains vertical on the right.
+In the existing portrait layout, the hand remains vertical on the right. A future landscape layout must preserve one-screen play, board prominence and accessible controls, but may use a separately approved responsive arrangement.
 
 ---
 
@@ -173,13 +178,14 @@ Do not silently modify:
 - odd/even operations,
 - Double Double,
 - Double Echo,
-- Zero Memory,
 - T-split,
 - POWER arithmetic,
 - Circuit detection,
 - Circuit rewards/resonance,
 - Long Chain,
 - target progression.
+
+Removed mechanics such as Zero Memory must not be reintroduced. Historical persistence fields or migration compatibility references are not proof that a mechanic is active; investigate their consumers before removing them.
 
 Always distinguish:
 1. placement legality,
@@ -242,7 +248,7 @@ Use colour only when it communicates gameplay meaning.
 Maintain:
 - one-screen mobile gameplay,
 - board as primary visual focus,
-- vertical hand on the right,
+- vertical hand on the right in the current portrait layout,
 - highly legible Score and Target,
 - quiet secondary information,
 - accessible debug tools without visual dominance.
@@ -256,6 +262,8 @@ Do not solve layout problems by:
 Approved Figma layouts should be implemented incrementally against the current engine/game state.
 
 Do not rewrite gameplay to make a visual mockup easier to reproduce.
+
+A landscape UI is a substantial responsive-layout feature, not a global CSS rotation. Validate orientation, touch input, board scaling, overlays, inspector, accessibility and mode-specific readability before replacing existing layouts.
 
 ---
 
@@ -399,6 +407,14 @@ For UI changes, validate the supported mobile fixture sizes and relevant flows.
 For changes affecting scoring, routing, persistence, economy, shops, board dimensions or tile identity, add targeted regression coverage whenever practical.
 
 For docs-only changes, full browser validation is not normally necessary unless CI requires it; still verify repository CI before merge.
+
+---
+
+## Audio and desktop platform boundaries
+
+Adaptive audio must observe gameplay state without mutating routing, scoring, seeded RNG, Undo, purchases or save data. Drums are the musical foundation; any stem mixing based on topology or decision time must remain performance-conscious and must be tested while playing.
+
+Keep the browser/PWA runtime stable. A future Steam desktop package must support offline core gameplay; do not begin framework migration or depend on network services for deterministic game logic during unrelated tasks.
 
 ---
 
