@@ -11,7 +11,7 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
   const element=elements[id];
   if(!element)throw new Error('Missing stem audio element '+id);
   element.preload='auto';element.loop=true;element.volume=1;
-  tracks.set(id,{element,source:null,gain:null,objectURL:null,level:0});
+  tracks.set(id,{element,source:null,gain:null,objectURL:null,level:0,muted:false,solo:false});
  }
  let context=null,master=null,playing=false,masterLevel=.72;
  function init(){
@@ -24,11 +24,32 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
   master.connect(compressor);compressor.connect(context.destination);
   return context;
  }
+ function audibleLevel(track){
+  const soloActive=[...tracks.values()].some(t=>t.solo);
+  return track.muted||(soloActive&&!track.solo)?0:track.level;
+ }
+ function applyTrackGain(track,smooth=true){
+  if(!track.gain)return;
+  const gain=track.gain.gain,target=audibleLevel(track);
+  gain.cancelScheduledValues(context.currentTime);
+  if(smooth)gain.setTargetAtTime(target,context.currentTime,1.25);
+  else gain.setValueAtTime(target,context.currentTime);
+ }
+ function setMuted(id,value){
+  const t=tracks.get(id);if(!t)throw new RangeError('Invalid stem');
+  t.muted=Boolean(value);
+  for(const track of tracks.values())applyTrackGain(track);
+ }
+ function setSolo(id,value){
+  const t=tracks.get(id);if(!t)throw new RangeError('Invalid stem');
+  t.solo=Boolean(value);
+  for(const track of tracks.values())applyTrackGain(track);
+ }
  function attach(track){
   if(track.source||!track.objectURL)return;
   track.source=context.createMediaElementSource(track.element);
   track.gain=context.createGain();
-  track.gain.gain.value=track.level;
+  track.gain.gain.value=audibleLevel(track);
   track.source.connect(track.gain);track.gain.connect(master);
  }
  function setFile(id,file){
@@ -45,11 +66,7 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
   const t=tracks.get(id),n=Number(value);
   if(!t||!Number.isFinite(n))throw new RangeError('Invalid stem level');
   t.level=clamp(n,0,1.5);
-  if(t.gain){
-   t.gain.gain.cancelScheduledValues(context.currentTime);
-   if(smooth)t.gain.gain.setTargetAtTime(t.level,context.currentTime,1.25);
-   else t.gain.gain.setValueAtTime(t.level,context.currentTime);
-  }
+  applyTrackGain(t,smooth);
   return t.level;
  }
  function setLevels(levels,options){
@@ -107,5 +124,5 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
   }
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setLevel,setLevels,setMaster,start,stop,getDrift,loaded,levels,dispose,isPlaying:()=>playing};
+ return {setFile,setLevel,setLevels,setMuted,setSolo,setMaster,start,stop,getDrift,loaded,levels,dispose,isPlaying:()=>playing};
 }
