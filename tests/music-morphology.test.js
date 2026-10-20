@@ -34,6 +34,7 @@ const {pathToFileURL}=require('node:url');
  assert.match(fs.readFileSync('index.html','utf8'),/music-runtime\.js/,'real game imports the runtime');
  assert.match(fs.readFileSync('music-runtime.js','utf8'),/createStemPlayer/);
  assert.match(fs.readFileSync('music-runtime.js','utf8'),/webkitdirectory/);
+ assert.match(fs.readFileSync('music-runtime.js','utf8'),/anchor\?\.parentNode===menu/,'music settings must not insert before a node from another parent');
  assert.doesNotMatch(src,/Math\.random/);
  console.log('Adaptive game music physical topology + timing regression passed');
 })().catch(error=>{console.error(error);process.exitCode=1});
