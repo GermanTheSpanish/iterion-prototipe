@@ -31,9 +31,7 @@ function installMusic(){
   '#musicSettings .musicActions button{font:inherit;font-size:10px;font-weight:800;min-height:39px;min-width:0;padding:4px 2px;border:1px solid currentColor;border-radius:6px;background:transparent;color:inherit}'+
   '#musicSettings .musicMaster{font-size:10px;display:flex;align-items:center;gap:12px;margin:10px 0}'+
   '#musicSettings .musicMaster input{min-width:0;flex:1}'+
-  '#musicSettings .musicStatus{font-size:10px;line-height:1.4;min-height:28px;margin:6px 0}'+
-  '#gameMenu>#musicSettings{order:8;display:none!important;margin:2px 0 6px;padding:6px 13px 12px;border:0}'+
-  '#gameMenu[data-open-section="system"]>#musicSettings{display:block!important}';
+  '#musicSettings .musicStatus{font-size:10px;line-height:1.4;min-height:28px;margin:6px 0}';
  document.head.appendChild(style);
  const anchor=document.getElementById('gameSelectionButton');
  if(anchor)menu.insertBefore(section,anchor);else menu.appendChild(section);
