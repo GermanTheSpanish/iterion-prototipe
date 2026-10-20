@@ -15,6 +15,7 @@ Current priorities are:
 - final UI/UX,
 - tutorial/onboarding,
 - balance and playtesting,
+- adaptive audio validation,
 - release hardening.
 
 The repository should not undergo another broad architectural cleanup unless a concrete current task requires it.
@@ -59,7 +60,7 @@ See `AGENTS.md` for repository editing rules and protected gameplay behaviour.
 - Matching values define legal contacts.
 - Gameplay remains ground-plane only.
 - The game is mobile-first and the main gameplay view must fit on one phone screen.
-- The hand is vertical on the right.
+- The current gameplay-v2 layout uses a horizontal Hand in the bottom rail; future landscape designs must not alter gameplay rules.
 - Routing/scoring behaviour is treated as canonical unless explicitly changed.
 
 See `SIGNALS.md` for signal/routing-specific documentation.
