@@ -23,7 +23,9 @@ function installMusic(){
   '<small>Music is optional. Choose files again after reloading the game.</small>';
  const style=document.createElement('style');style.id='monoid-music-styles';
  style.textContent=
-  '#musicSettings{margin:10px 0;text-align:left}'+
+  '#gameMenu>#musicSettings{order:7;display:none!important;margin:2px 0 6px;padding:6px 13px 12px;border:0}'+
+  '#gameMenu[data-open-section="system"]>#musicSettings{display:block!important}'+
+  '#musicSettings{text-align:left}'+
   '#musicSettings .musicHelp{font-size:10px;line-height:1.4;margin:5px 0 9px;opacity:.8}'+
   '#musicSettings .musicActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}'+
   '#musicSettings .musicActions button{font:inherit;font-size:10px;font-weight:800;min-height:39px;min-width:0;padding:4px 2px;border:1px solid currentColor;border-radius:6px;background:transparent;color:inherit}'+

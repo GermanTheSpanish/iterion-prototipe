@@ -16,6 +16,7 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  await page.goto('http://127.0.0.1:4173/');
  await expect(page.locator('#musicSettings')).toHaveCount(1);
  await page.locator('#menuButton').click();
+ await page.locator('#menuGroupSystem').click();
  const before=await page.evaluate(()=>window.__monoidMusic.snapshot());
  expect(before.playing).toBe(false);
  await page.locator('#musicFileInput').setInputFiles({name:'Space Drift F Drum.wav',mimeType:'audio/wav',buffer:wav()});
