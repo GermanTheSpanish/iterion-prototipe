@@ -36,12 +36,15 @@ a{color:#b5c8fb}
 <p>Four listening scenes built from the six original <em>Space Drift</em> stems. WORLD only: no changes to scoring, signal routing or gameplay.</p>
 <section>
 <h2>1 / Local stems</h2>
-<p>Select the six original <strong>Space Drift A–F WAVs</strong> at once. Use Mute and Solo to isolate a texture. They stay on this device. Premixed Full, Peace and Creepy versions are not stems and will be ignored.</p>
+<p>Choose your Space Drift folder to detect A–F stems automatically, including nested folders. If the browser cannot select a folder, choose the WAV files instead. Mute/Solo remain available. All audio stays on your device.</p>
+<label for="stems-folder">Select folder — find stems automatically</label>
+<input id="stems-folder" type="file" webkitdirectory directory multiple aria-label="Choose Space Drift folder">
+<p><small>Folder selection depends on the browser. The multi-file option below always remains available.</small></p>
 <label for="stems-file">Select multiple Space Drift stems</label>
 <input id="stems-file" type="file" multiple accept="audio/*,.wav">
-<output id="load-status" aria-live="polite">No stems loaded. Start with D - Pads and A - Calm Poly if you prefer.</output>
+<output id="load-status" aria-live="polite">No stems loaded. Choose a folder or start with D - Pads and A - Calm Poly.</output>
 <div id="tracks"></div>
-<small>Desktop recommended for six full-length WAVs. On mobile, start with two or three stems. No WAVs are uploaded or bundled.</small>
+<small>Only short sections of local PCM16 WAVs are decoded. No audio is uploaded or bundled; folder selection may be unavailable on some mobile browsers.</small>
 </section>
 <section>
 <h2>2 / Listening scenes</h2>
@@ -62,14 +65,13 @@ a{color:#b5c8fb}
 <input id="master" type="range" min="0" max="2" step=".05" value="1">
 <div class="controls"><button id="start" type="button">Play stems</button><button id="stop" type="button">Stop</button></div>
 <output id="status" aria-live="polite">Ready — load local files and press Play stems.</output>
-<small>Fades take several seconds. Individual HTML audio streams are not sample-accurate: this is a listening experiment, not the final shipping multistem engine. A drift warning reports excessive timing differences.</small>
+<small>Fades take several seconds. Six-second PCM buffers are scheduled on one shared Web Audio clock for sample-aligned stems. Slow devices can still cause buffer underruns, which are reported separately.</small>
 </section>
 <script type="module">
 import {STEMS,SCENES,identifyStem,sceneLevels,sceneForTopology} from './stem-scenes.js';
 import {createStemPlayer} from './stem-player.js';
 const $=id=>document.getElementById(id);
-const elements=Object.fromEntries(STEMS.map(s=>[s.id,new Audio()]));
-const player=createStemPlayer(elements);
+const player=createStemPlayer();
 let activeScene='start',poll=null;
 function displayStatus(message){$('status').textContent=message}
 function refreshFiles(){
@@ -96,6 +98,23 @@ function stop(){
  if(poll!==null){clearInterval(poll);poll=null}
  player.stop();
  displayStatus('Stopped · scene and stem levels preserved');
+}
+function loadFiles(files){
+ const identified=new Map(),skipped=[],duplicates=[];
+ for(const file of files){
+  const id=identifyStem(file.name);
+  if(!id){skipped.push(file.name);continue}
+  if(identified.has(id)){duplicates.push(file.name);continue}
+  identified.set(id,file);
+ }
+ for(const [id,file] of identified)player.setFile(id,file);
+ refreshFiles();
+ const present=new Set(player.loaded());
+ const missing=STEMS.filter(stem=>!present.has(stem.id)).map(stem=>stem.id);
+ $('load-status').textContent=present.size+' / 6 local stems loaded'
+  +(missing.length?' · missing '+missing.join(', '):' · complete A–F set')
+  +(duplicates.length?' · duplicate candidates ignored: '+duplicates.join(', '):'')
+  +(skipped.length?' · ignored '+skipped.length+' other file(s)':'');
 }
 for(const {id,label} of STEMS){
  const row=document.createElement('div');row.className='track';
@@ -138,16 +157,8 @@ for(const [key,scene] of Object.entries(SCENES)){
 }
 $('topology').addEventListener('change',()=>{if($('follow-topology').checked)selectScene(sceneForTopology($('topology').value))});
 $('follow-topology').addEventListener('change',()=>{if($('follow-topology').checked)selectScene(sceneForTopology($('topology').value))});
-$('stems-file').addEventListener('change',()=>{
- const accepted=[],skipped=[];
- for(const file of $('stems-file').files||[]){
-  const id=identifyStem(file.name);
-  if(id){player.setFile(id,file);accepted.push(id)}
-  else skipped.push(file.name);
- }
- refreshFiles();
- $('load-status').textContent=player.loaded().length+' / 6 local stems loaded'+(skipped.length?' · ignored: '+skipped.join(', '):'');
-});
+$('stems-file').addEventListener('change',()=>loadFiles($('stems-file').files||[]));
+$('stems-folder').addEventListener('change',()=>loadFiles($('stems-folder').files||[]));
 $('master').addEventListener('input',()=>{
  const v=player.setMaster(Number($('master').value));
  $('master-percent').textContent=Math.round(v*100)+'%';
@@ -160,12 +171,13 @@ $('start').addEventListener('click',()=>{
   task.then(result=>{
    if(!player.isPlaying())return;
    if(result.errors.length)displayStatus('Playback issue: '+result.errors.join('; '));
-   else displayStatus('Playing '+result.loaded+' stems · '+SCENES[activeScene].label+' scene');
+   else displayStatus('Playing '+result.loaded+' sample-aligned stems · '+SCENES[activeScene].label+' scene · shared clock');
   }).catch(error=>displayStatus('Playback failed: '+error.message));
   poll=setInterval(()=>{
    if(!player.isPlaying())return;
-   const drift=player.getDrift();
-   if(drift>.12)displayStatus('Stems drifting by '+Math.round(drift*1000)+' ms · stop and restart for realignment. Production needs sample-accurate scheduling.');
+   const diagnostic=player.getSyncStatus();
+   if(diagnostic.error)displayStatus('Playback interrupted: '+diagnostic.error);
+   else if(diagnostic.underruns)displayStatus('Shared audio clock · '+diagnostic.underruns+' buffer underrun(s); reduce active stems or use desktop');
   },2000);
  }catch(error){displayStatus('Cannot start: '+error.message)}
 });
