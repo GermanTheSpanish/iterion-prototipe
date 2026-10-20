@@ -141,7 +141,7 @@ test('Topology Audio Lab exposes quiet CC0 timbre mix controls and loads sampled
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('http://127.0.0.1:4173/experiments/audio-lab/topology-study.html');
  await expect(page.locator('#machine-level')).toHaveValue('0.2');
- await expect(page.locator('#world-level')).toHaveValue('0.7');
+ await expect(page.locator('#world-level')).toHaveValue('1.25');
  await expect(page.locator('#timbre')).toHaveValue('vibes');
  await page.locator('#brightness').fill('1600');
  await page.locator('#attack').fill('0.104');
@@ -185,4 +185,46 @@ test('CC0 sampled instrument and fallback both generate real audio PCM',async({p
  expect(amplitudes[1].source).toBe('sample');
  expect(amplitudes[0].peak).toBeGreaterThan(.001);
  expect(amplitudes[1].peak).toBeGreaterThan(.001);
+});
+
+test('WORLD gain supports live 200 percent control without recreating its media source',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.addInitScript(()=>{
+  window.__worldSourceConnections=0;
+  window.__worldGain=null;
+  const connect=MediaElementAudioSourceNode.prototype.connect;
+  MediaElementAudioSourceNode.prototype.connect=function(target,...args){
+   window.__worldSourceConnections++;
+   window.__worldGain=target;
+   return connect.call(this,target,...args);
+  };
+ });
+ const rate=44100,frames=rate;
+ const wav=Buffer.alloc(44+frames*2);
+ wav.write('RIFF',0);wav.writeUInt32LE(wav.length-8,4);
+ wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);
+ wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);
+ wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*2,28);
+ wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);
+ wav.write('data',36);wav.writeUInt32LE(frames*2,40);
+ for(let i=0;i<frames;i++)wav.writeInt16LE(Math.round(2500*Math.sin(2*Math.PI*220*i/rate)),44+i*2);
+ await page.goto('http://127.0.0.1:4173/experiments/audio-lab/topology-study.html');
+ await expect(page.locator('#world-percent')).toHaveText('125%');
+ await page.locator('#world-level').fill('1.75');
+ await expect(page.locator('#world-percent')).toHaveText('175%');
+ await page.locator('#world-file').setInputFiles({name:'local-world.wav',mimeType:'audio/wav',buffer:wav});
+ await page.locator('#timbre').selectOption('air');
+ await page.getByRole('button',{name:'Play machine'}).click();
+ await expect.poll(()=>page.evaluate(()=>window.__worldSourceConnections)).toBe(1);
+ await expect.poll(()=>page.evaluate(()=>window.__worldGain?.gain.value)).toBe(1.75);
+ await page.locator('#world-level').fill('2');
+ await expect(page.locator('#world-percent')).toHaveText('200%');
+ await expect.poll(()=>page.evaluate(()=>window.__worldGain?.gain.value)).toBeGreaterThan(1.95);
+ await page.getByRole('button',{name:'Stop',exact:true}).click();
+ await page.getByRole('button',{name:'Play machine'}).click();
+ await expect.poll(()=>page.evaluate(()=>window.__worldSourceConnections)).toBe(1);
+ await expect(page.locator('#world-percent')).toHaveText('200%');
+ await page.locator('#world-level').fill('0');
+ await expect(page.locator('#world-percent')).toHaveText('0%');
+ await expect.poll(()=>page.evaluate(()=>window.__worldGain?.gain.value)).toBeLessThan(.05);
 });
