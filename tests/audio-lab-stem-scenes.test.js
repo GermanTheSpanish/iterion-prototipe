@@ -1,0 +1,17 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const folder = path.join(__dirname, '../experiments/audio-lab');
+const script = fs.readFileSync(path.join(folder, 'stem-scenes.js'), 'utf8');
+const page = fs.readFileSync(path.join(folder, 'stem-mixer.html'), 'utf8');
+const landing = fs.readFileSync(path.join(folder, 'index.html'), 'utf8');
+assert.match(script, /export const STEMS/);
+assert.match(script, /export const SCENES/);
+assert.match(script, /export function identifyStem/);
+assert.match(script, /export function sceneForTopology/);
+assert.match(page, /stem-player\.js/);
+assert.match(page, /stem-scenes\.js/);
+assert.match(page, /stems-file/);
+assert.match(page, /follow-topology/);
+assert.match(landing, /stem-mixer\.html/);
+console.log('Audio Lab stem mixer wiring regression passed');
