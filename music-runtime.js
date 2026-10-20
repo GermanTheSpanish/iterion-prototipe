@@ -34,7 +34,8 @@ function installMusic(){
   '#musicSettings .musicStatus{font-size:10px;line-height:1.4;min-height:28px;margin:6px 0}';
  document.head.appendChild(style);
  const anchor=document.getElementById('gameSelectionButton');
- if(anchor)menu.insertBefore(section,anchor);else menu.appendChild(section);
+ // Another presentation layer may reparent actions while modules initialize.
+ if(anchor?.parentNode===menu)menu.insertBefore(section,anchor);else menu.appendChild(section);
  const files=document.createElement('input'),folder=document.createElement('input');
  for(const input of [files,folder]){
   input.type='file';input.accept='.wav,audio/wav';input.multiple=true;input.hidden=true;

@@ -12,7 +12,7 @@ function wav(){
 test('in-game music is opt-in and starts with locally selected F Drum',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
- const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const errors=[];page.on('pageerror',error=>errors.push(error.stack||error.message));
  await page.goto('http://127.0.0.1:4173/');
  await expect(page.locator('#musicSettings')).toHaveCount(1);
  await page.locator('#menuButton').click();
