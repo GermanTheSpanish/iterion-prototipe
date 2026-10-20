@@ -13,7 +13,7 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
   element.preload='auto';element.loop=true;element.volume=1;
   tracks.set(id,{element,source:null,gain:null,objectURL:null,level:0,muted:false,solo:false});
  }
- let context=null,master=null,playing=false,masterLevel=.72;
+ let context=null,master=null,playing=false,masterLevel=1;
  function init(){
   if(context)return context;
   context=makeContext();
@@ -74,7 +74,7 @@ export function createStemPlayer(elements,{makeContext=()=>new (window.AudioCont
  }
  function setMaster(value){
   const n=Number(value);if(!Number.isFinite(n))throw new RangeError('Invalid master');
-  const v=clamp(n,0,1.5);
+  const v=clamp(n,0,2);
   masterLevel=v;
   if(master){master.gain.cancelScheduledValues(context.currentTime);master.gain.setTargetAtTime(v,context.currentTime,.025)}
   return v;
