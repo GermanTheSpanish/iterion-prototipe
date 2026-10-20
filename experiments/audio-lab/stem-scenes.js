@@ -24,7 +24,7 @@ export function identifyStem(filename){
  const matched=name.match(/space[\s._-]*drift[\s._-]*([a-f])(?:[\s._-]|$)/i);
  if(matched)return matched[1].toUpperCase();
  const explicit=[['A',/calm[\s._-]*poly/],['B',/creepy[\s._-]*poly/],['C',/corrupted[\s._-]*poly/],
- ['D',/pads/],['E',/synth[\s._-]*melod/],['F',/drum/]];
+ ['D',/pads/],['E',/synth[\s._-]*melod/],['F',/(?:^|[\\s._-])drum(?:[\\s._-]|$)/]];
  for(const [id,pattern] of explicit)if(pattern.test(name))return id;
  return null; // Do not silently treat a premixed Full/Peace WAV as a stem.
 }
