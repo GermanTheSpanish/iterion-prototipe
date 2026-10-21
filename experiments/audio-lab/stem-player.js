@@ -77,8 +77,10 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  function activateAudio(){
   const active=init();
   // Called synchronously from the first valid board pointer interaction (iOS).
-  const resumed=active.resume();
-  if(resumed?.catch)resumed.catch(()=>{});
+  if(active.state!=='running'){
+   const resumed=active.resume();
+   if(resumed?.catch)resumed.catch(()=>{});
+  }
   return {context:active,effects};
  }
  function setAcoustics({level=1,lowpass:frequency=20000,fadeMs=200}={}){
