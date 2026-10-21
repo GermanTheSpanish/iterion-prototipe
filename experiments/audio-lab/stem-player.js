@@ -6,7 +6,7 @@ import {STEMS} from './stem-scenes.js';
 import {readPcmHeader,decodePcmSegment} from './pcm-wav-stream.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (window.AudioContext||window.webkitAudioContext)()}={}) {
- const tracks=new Map(STEMS.map(({id})=>[id,{file:null,header:null,gain:null,level:0,muted:false,solo:false}]));
+ const tracks=new Map(STEMS.map(({id})=>[id,{id,file:null,header:null,gain:null,level:0,muted:false,solo:false}]));
  const sources=new Set();
  let context=null,master=null,masterLevel=1,timer=null,playing=false,generation=0;
  let acoustic=null,lowpass=null,effects=null,acousticLevel=1,lowpassHz=20000;
@@ -147,7 +147,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   }
  }
  async function start(){
-  const available=[...tracks.entries()].filter(([id,t])=>pack?Boolean(pack.manifest.stems[id]):Boolean(t.file)).map(([id,t])=>({...t,id}));
+  const available=[...tracks.values()].filter(t=>pack?Boolean(pack.manifest.stems[t.id]):Boolean(t.file));
   if(!available.length)throw new Error('Select a private audio pack or at least one local Space Drift stem');
   stop();const run=++generation;
   const active=init();
