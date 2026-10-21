@@ -126,7 +126,7 @@ function installMusic(){
   const now=performance.now(),state=current(),screen=flow(),delta=Math.max(0,Math.min(2,(now-lastSample)/1000));
   lastSample=now;
   if(!state||screen!=='game'){
-   if(enabled)stop('Paused outside a run · press Play to resume.');
+   if(enabled)stop('Paused outside a run · audio ready for the next first tile.',{preserveArmed:true});
    return;
   }
   applyAcoustics(state);
