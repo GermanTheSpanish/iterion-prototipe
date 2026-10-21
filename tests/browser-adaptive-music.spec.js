@@ -72,13 +72,16 @@ test('Audio Lab sound preset can be imported in-game without changing the run',a
  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
  const runId=await page.evaluate(()=>window.__monoidGame.state().runId);
  await page.locator('#musicPresetInput').setInputFiles({name:'my-monoid-mix.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({
-  schema:'monoid-audio-preset-v1',cascadeDuckDb:22,shopLowpassHz:600,operation:.35
+  schema:'monoid-audio-preset-v1',cascadeDuckDb:22,shopLowpassHz:600,operation:.35,instrumentWave:'bell',instrumentAttack:.03,tonalMode:'original'
  }))});
  await expect(page.locator('#musicStatus')).toContainText('Preset imported');
  const result=await page.evaluate(()=>window.__monoidMusic.snapshot());
  expect(result.preset.cascadeDuckDb).toBe(22);
  expect(result.preset.shopLowpassHz).toBe(600);
  expect(result.preset.operation).toBe(.35);
+  expect(result.preset.instrumentWave).toBe('bell');
+  expect(result.preset.instrumentAttack).toBe(.03);
+  expect(result.preset.tonalMode).toBe('original');
  expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(runId);
  await expect(page.locator('#musicAudioLab')).toHaveAttribute('href','./experiments/audio-lab/');
 });

@@ -209,6 +209,10 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   return {loaded:available.length,errors:[],state:context.state};
  }
  let lastError='';
+ function playbackSeconds(){
+  if(!playing||!context||!totalSegments||!segmentSeconds)return 0;
+  return Math.max(0,(context.currentTime-startAt)%(totalSegments*segmentSeconds));
+ }
  function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
  function getSyncStatus(){return {mode:'shared-audio-clock',underruns,error:lastError}}
  function dispose(){
@@ -217,5 +221,5 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
  return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,start,stop,getDrift,
-  getSyncStatus,loaded,levels,dispose,isPlaying:()=>playing};
+  getSyncStatus,playbackSeconds,loaded,levels,dispose,isPlaying:()=>playing};
 }

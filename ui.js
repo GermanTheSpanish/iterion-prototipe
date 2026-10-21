@@ -1129,5 +1129,7 @@
     cascadeOfferPending=false;clearOutcomeDelay();showSelection()
   }
   $('learnMonoid').onclick=startTutorial;$('replayTutorial').onclick=startTutorial;$('startRun').onclick=()=>{if(storedState()&&!confirm('Replace the saved run with a new run?'))return;startNormal(false)};continueRun.onclick=()=>startNormal(true);$('modeClassic').onclick=()=>storedState()?startNormal(true):startNormal(false);$('leaveTutorial').onclick=requestTutorialExit;$('gameSelectionButton').onclick=endActiveRun;
-  if(localStorage.getItem('iterion.entryBypass.v1')==='true')startNormal(false);else{app.inert=true;initialiseEntry();render()}
+  if(new URL(location.href).searchParams.has('audioLabReturn')&&storedState())void startNormal(true);
+   else if(localStorage.getItem('iterion.entryBypass.v1')==='true')startNormal(false);
+   else{app.inert=true;initialiseEntry();render()}
 })();

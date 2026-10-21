@@ -334,15 +334,49 @@ test('Audio Lab edits, downloads and imports portable machine sound presets',asy
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('http://127.0.0.1:4173/experiments/audio-lab/');
  await expect(page.locator('#soundPresetLab')).toBeVisible();
- await expect(page.locator('#presetControls input[type=range]')).toHaveCount(13);
+ await expect(page.locator('#presetControls input[type=range]')).toHaveCount(15);
+  await page.locator('#presetWave').selectOption('bell');
+  await page.locator('#presetTonalMode').selectOption('original');
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.audioPreset.v1')).instrumentWave)).toBe('bell');
  const before=await page.evaluate(()=>window.__monoidAudioLabPreset());
  expect(before.schema).toBe('monoid-audio-preset-v1');
  await page.locator('#presetFile').setInputFiles({name:'test-sound.json',mimeType:'application/json',
   buffer:Buffer.from(JSON.stringify({schema:'monoid-audio-preset-v1',operation:.31,shopLowpassHz:1250}))});
  await expect(page.locator('#presetStatus')).toContainText('Imported test-sound.json');
  const after=await page.evaluate(()=>window.__monoidAudioLabPreset());
- expect(after.operation).toBe(.31);expect(after.shopLowpassHz).toBe(1250);
+ expect(after.operation).toBe(.31);expect(after.shopLowpassHz).toBe(1250);expect(after.instrumentWave).toBe('soft');expect(after.tonalMode).toBe('aligned');
  const download=page.waitForEvent('download');await page.locator('#presetDownload').click();
  const file=await download;expect(file.suggestedFilename()).toBe('MONOID_SOUND_PRESET_v1.json');
  expect(errors).toEqual([]);
+});
+
+test('Aligned cascade pitches and instrument presets transfer to gameplay',async({page})=>{
+ await page.goto('http://127.0.0.1:4173/experiments/audio-lab/');
+ const notes=await page.evaluate(async()=>{
+  const {cascadeFrequency}=await import('/audio-harmony.js');
+  return [cascadeFrequency(1,'original',0),cascadeFrequency(1,'aligned',0),cascadeFrequency(1,'aligned',36),cascadeFrequency(1,'aligned',120)];
+ });
+ expect(notes[0]).not.toBe(notes[1]);
+ expect(notes[1]).not.toBe(notes[2]);
+ expect(notes[1]).not.toBe(notes[3]);
+ await page.locator('#presetWave').selectOption('reed');
+ await page.locator('#presetTonalMode').selectOption('aligned');
+ await page.locator('#presetTestGame').click();
+ await expect(page).toHaveURL(/audioLabReturn=1/);
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('monoid.audioPreset.v1')));
+ expect(saved.instrumentWave).toBe('reed');expect(saved.tonalMode).toBe('aligned');
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic?.snapshot().preset.instrumentWave)).toBe('reed');
+});
+test('Audio Lab return resumes the same run',async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
+ await page.goto('http://127.0.0.1:4173/');
+ const original=await page.evaluate(()=>window.__monoidGame.state().runId);
+ await page.locator('#menuButton').click();
+ await page.locator('#menuGroupSystem').click();
+ await page.locator('#musicAudioLab').click();
+ await expect(page).toHaveURL(/experiments\/audio-lab/);
+ await page.locator('#presetWave').selectOption('bell');
+ await page.locator('#presetTestGame').click();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidGame?.state().runId)).toBe(original);
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic?.snapshot().preset.instrumentWave)).toBe('bell');
 });
