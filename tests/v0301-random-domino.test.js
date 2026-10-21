@@ -3,7 +3,7 @@ const D=require('../data.js');
 const E=require('../engine.js');
 const Game=require('../game.js');
 
-assert.strictEqual(D.VERSION,'0.81.0');
+assert.strictEqual(D.VERSION,'0.81.1');
 
 function makeHandSpace(s){const i=s.hand.findIndex(Boolean);assert(i>=0);s.reserve.unshift(s.hand[i]);s.hand[i]=null;return i}
 
