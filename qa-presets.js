@@ -355,7 +355,7 @@
     root.requestAnimationFrame(resume);return true
   }
   function installMenuAccess(root){
-    const doc=root.document,menu=doc?.getElementById('gameMenu'),anchor=doc?.querySelector('#gameMenu p');if(!doc||!menu||menu.querySelector('#qaTestRunsButton'))return false;
+    const doc=root.document,menu=doc?.getElementById('gameMenu'),anchor=menu?.querySelector(':scope > p');if(!doc||!menu||menu.querySelector('#qaTestRunsButton'))return false;
     const style=doc.createElement('style');style.id='monoid-qa-menu-style';style.textContent=`
       #qaTestRunsButton{margin-top:10px!important;border-top:1px solid var(--line)!important}
       #qaTestRunsDialog{width:min(420px,94vw);padding:18px}
