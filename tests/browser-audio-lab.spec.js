@@ -328,3 +328,21 @@ test('Space Drift folder selection discovers A-F and skips premixes automaticall
   await expect(page.locator('#status')).toContainText('Playing 6 sample-aligned stems');
  } finally {fs.rmSync(folder,{recursive:true,force:true})}
 });
+
+test('Audio Lab edits, downloads and imports portable machine sound presets',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:4173/experiments/audio-lab/');
+ await expect(page.locator('#soundPresetLab')).toBeVisible();
+ await expect(page.locator('#presetControls input[type=range]')).toHaveCount(13);
+ const before=await page.evaluate(()=>window.__monoidAudioLabPreset());
+ expect(before.schema).toBe('monoid-audio-preset-v1');
+ await page.locator('#presetFile').setInputFiles({name:'test-sound.json',mimeType:'application/json',
+  buffer:Buffer.from(JSON.stringify({schema:'monoid-audio-preset-v1',operation:.31,shopLowpassHz:1250}))});
+ await expect(page.locator('#presetStatus')).toContainText('Imported test-sound.json');
+ const after=await page.evaluate(()=>window.__monoidAudioLabPreset());
+ expect(after.operation).toBe(.31);expect(after.shopLowpassHz).toBe(1250);
+ const download=page.waitForEvent('download');await page.locator('#presetDownload').click();
+ const file=await download;expect(file.suggestedFilename()).toBe('MONOID_SOUND_PRESET_v1.json');
+ expect(errors).toEqual([]);
+});

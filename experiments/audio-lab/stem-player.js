@@ -9,6 +9,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  const tracks=new Map(STEMS.map(({id})=>[id,{file:null,header:null,gain:null,level:0,muted:false,solo:false}]));
  const sources=new Set();
  let context=null,master=null,masterLevel=1,timer=null,playing=false,generation=0;
+ let acoustic=null,lowpass=null,effects=null,acousticLevel=1,lowpassHz=20000;
  let segmentFrames=0,segmentSeconds=0,totalSegments=0,nextIndex=0,startAt=0,busy=false,underruns=0;
  function init(){
   if(context)return context;
@@ -17,7 +18,11 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   limiter.threshold.value=-5;limiter.knee.value=5;limiter.ratio.value=8;
   limiter.attack.value=.005;limiter.release.value=.2;
   master=context.createGain();master.gain.value=masterLevel;
-  master.connect(limiter);limiter.connect(context.destination);
+  lowpass=context.createBiquadFilter();lowpass.type='lowpass';lowpass.frequency.value=lowpassHz;
+  acoustic=context.createGain();acoustic.gain.value=acousticLevel;
+  effects=context.createGain();effects.gain.value=1;
+  master.connect(lowpass);lowpass.connect(acoustic);acoustic.connect(limiter);
+  effects.connect(limiter);limiter.connect(context.destination);
   for(const track of tracks.values()){
    track.gain=context.createGain();
    track.gain.gain.value=audibleLevel(track);
@@ -68,6 +73,23 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
    master.gain.setTargetAtTime(masterLevel,at,.025);
   }
   return masterLevel;
+ }
+ function activateAudio(){
+  const active=init();
+  // Called synchronously from the first valid board pointer interaction (iOS).
+  if(active.state!=='running'){
+   const resumed=active.resume();
+   if(resumed?.catch)resumed.catch(()=>{});
+  }
+  return {context:active,effects};
+ }
+ function setAcoustics({level=1,lowpass:frequency=20000,fadeMs=200}={}){
+  acousticLevel=clamp(Number(level),0,1);lowpassHz=clamp(Number(frequency),300,20000);
+  if(acoustic){
+   const at=context.currentTime,tau=Math.max(.01,Number(fadeMs)/3000);
+   acoustic.gain.cancelScheduledValues(at);acoustic.gain.setTargetAtTime(acousticLevel,at,tau);
+   lowpass.frequency.cancelScheduledValues(at);lowpass.frequency.setTargetAtTime(lowpassHz,at,tau);
+  }
  }
  function loaded(){return [...tracks].filter(([,t])=>Boolean(t.file)).map(([id])=>id)}
  function levels(){return Object.fromEntries([...tracks].map(([id,t])=>[id,t.level]))}
@@ -160,6 +182,6 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect()}
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setLevel,setLevels,setMuted,setSolo,setMaster,start,stop,getDrift,
+ return {setFile,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,start,stop,getDrift,
   getSyncStatus,loaded,levels,dispose,isPlaying:()=>playing};
 }

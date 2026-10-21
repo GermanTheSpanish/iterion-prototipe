@@ -73,12 +73,14 @@ function init(){
   if(context.state === 'suspended'){AUDIO_TRACE.record('audio-context-resume-request',{contextTime:context.currentTime});context.resume().then(()=>AUDIO_TRACE.record('audio-context-resumed',{state:context.state})).catch(error=>AUDIO_TRACE.record('audio-context-resume-failed',{errorName:error?.name||'Error'}));}
 }
 function play(pip,at,reverse=false,options={},meta={}) {
+ const preset=window.__monoidAudioLabPreset?.();
  const config={wave:$('wave').value,volume:Number($('volume').value),attack:Number($('attack').value),release:Number($('release').value),reverse,...options},before=scheduled.length;
+ if(preset){config.volume*=preset.operation;config.release=preset.release}
  try{instrument.note(pip,at,config);auditCue('note',at,{...config,pip,oscillatorCount:scheduled.length-before},meta)}
  catch(error){AUDIO_TRACE.record('cue-failed',{kind:'note',pip,errorName:error?.name||'Error',...meta});throw error}
 }
-function effect(type,at,meta={}) {const before=scheduled.length;try{instrument.effect(type,at,Number($('volume').value));auditCue(type,at,{oscillatorCount:scheduled.length-before},meta)}catch(error){AUDIO_TRACE.record('cue-failed',{kind:type,errorName:error?.name||'Error',...meta});throw error}}
-function startWithSlap(){const at=context.currentTime+0.025,before=scheduled.length;instrument.slap(at,Number($('volume').value));auditCue('tabletop-slap',at,{oscillatorCount:scheduled.length-before},{sourceEventId:'playback-start'});return at+0.17;}
+function effect(type,at,meta={}) {const before=scheduled.length;const preset=window.__monoidAudioLabPreset?.();const gain=preset?(type==='rebound'?preset.rebound:type==='coin'?preset.coin:preset.structure):1;try{instrument.effect(type,at,Number($('volume').value)*gain);auditCue(type,at,{oscillatorCount:scheduled.length-before},meta)}catch(error){AUDIO_TRACE.record('cue-failed',{kind:type,errorName:error?.name||'Error',...meta});throw error}}
+function startWithSlap(){const at=context.currentTime+0.025,before=scheduled.length;instrument.slap(at,Number($('volume').value)*(window.__monoidAudioLabPreset?.()?.impact??1));auditCue('tabletop-slap',at,{oscillatorCount:scheduled.length-before},{sourceEventId:'playback-start'});return at+0.17;}
 
 function stop() {
   generation++;
@@ -209,4 +211,5 @@ window.addEventListener('load',()=>{
  if(!window.__audioLabReady)window.__audioLabStartupError('Audio Lab JavaScript module did not start. Check browser support or missing script files.');
 });
 </script>
+<script type="module" src="./preset-controls.js"></script>
 </body></html>
