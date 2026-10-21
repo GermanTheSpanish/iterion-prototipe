@@ -5,7 +5,7 @@ import {STEMS,identifyStem} from './experiments/audio-lab/stem-scenes.js';
 import {analyseMachine,mixForMachine} from './music-morphology.js';
 import {createMachineEffects} from './audio-effects.js';
 import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261021.2';
-import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js';
+import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261021.3';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
