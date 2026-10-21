@@ -4,7 +4,8 @@ import {createStemPlayer} from './experiments/audio-lab/stem-player.js';
 import {STEMS,identifyStem} from './experiments/audio-lab/stem-scenes.js';
 import {analyseMachine,mixForMachine} from './music-morphology.js';
 import {createMachineEffects} from './audio-effects.js';
-import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261021.2';
+import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261021.3';
+import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261021.3';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
@@ -18,14 +19,15 @@ function installMusic(){
   '<legend>Music · Space Drift</legend>'+
   '<p class="musicHelp">Adaptive local stems · F Drum leads the machine. Original WAVs remain on this device.</p>'+
   '<div class="musicActions">'+
-  '<button type="button" id="musicFolderButton">FOLDER</button>'+
+  '<button type="button" id="musicPackButton">PRIVATE PACK</button>'+
   '<button type="button" id="musicFilesButton">WAV FILES</button>'+
   '<button type="button" id="musicPlay">PLAY</button>'+
   '<button type="button" id="musicStop">STOP</button></div>'+
   '<label class="musicMaster">VOLUME <input type="range" id="musicVolume" min="0" max="100" value="55" step="5" aria-label="Music volume"></label>'+
   '<p id="musicStatus" class="musicStatus" role="status" aria-live="polite">Off · choose your local A–F WAV stems.</p>'+ 
   '<div class="musicActions"><a href="./experiments/audio-lab/" target="_blank" rel="noopener" id="musicAudioLab">AUDIO LAB</a><button type="button" id="musicPresetButton">IMPORT PRESET</button></div>'+
-  '<small>Music is optional. Choose files again after reloading the game.</small>';
+  '<div class="musicActions"><button type="button" id="musicFolderButton">WAV FOLDER</button><button type="button" id="musicRemovePack">FORGET PACK</button></div>'+ 
+  '<small>Private packs stay in this browser’s device storage. No music is uploaded. If your browser clears site data, import the pack again.</small>';
  const style=document.createElement('style');style.id='monoid-music-styles';
  style.textContent=
   '#gameMenu>#musicSettings{order:7;display:none!important;margin:2px 0 6px;padding:6px 13px 12px;border:0}'+
@@ -42,7 +44,8 @@ function installMusic(){
  const anchor=document.getElementById('gameSelectionButton');
  // Another presentation layer may reparent actions while modules initialize.
  if(anchor?.parentNode===menu)menu.insertBefore(section,anchor);else menu.appendChild(section);
- const files=document.createElement('input'),folder=document.createElement('input'),presetFile=document.createElement('input');
+ const files=document.createElement('input'),folder=document.createElement('input'),presetFile=document.createElement('input'),packFile=document.createElement('input');
+ packFile.type='file';packFile.accept='.monoidpack,application/octet-stream';packFile.hidden=true;packFile.id='musicPackInput';section.appendChild(packFile);
  presetFile.type='file';presetFile.accept='.json,application/json';presetFile.hidden=true;presetFile.id='musicPresetInput';section.appendChild(presetFile);
  for(const input of [files,folder]){
   input.type='file';input.accept='.wav,audio/wav';input.multiple=true;input.hidden=true;
@@ -55,7 +58,7 @@ function installMusic(){
  const $=id=>section.querySelector('#'+id);
  const volume=$('musicVolume'),status=$('musicStatus');
  const show=text=>{status.textContent=text};
- let enabled=false,armed=false,roundKey='',thinkingSeconds=0,lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0,acousticMode='';
+ let packReady=false,selectedByUser=false,enabled=false,armed=false,roundKey='',thinkingSeconds=0,lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0,acousticMode='';
  const current=()=>window.__monoidGame?.state?.()||null;
  const flow=()=>window.__monoidFlow?.screen||'entry';
  function diagnostic(type,detail={}){
@@ -67,8 +70,30 @@ function installMusic(){
   if(wasPlaying)diagnostic('music-stopped',{reason});
  }
  function available(){return new Set(player.loaded())}
+ async function restorePack(){
+  try{
+   const stored=await loadAudioPack();
+   if(!stored||selectedByUser)return;
+   player.setPack(stored);packReady=true;armed=true;
+   show('PRIVATE PACK READY · '+stored.ids.join(', ')+' · '+stored.manifest.segmentCount+' segments · starts on first tile');
+   diagnostic('music-pack-restored',{loaded:stored.ids,segments:stored.manifest.segmentCount});
+  }catch(error){show('Audio storage unavailable · use WAV files or import pack: '+String(error?.message||error))}
+ }
+ async function importPack(file){
+  if(!file)return;
+  selectedByUser=true;stop();show('Validating private audio pack…');
+  try{
+   const pack=await saveAudioPack(file);
+   player.setPack(pack);packReady=true;armed=true;
+   // Best-effort protection against storage eviction; not guaranteed on iOS.
+   const persisted=await navigator.storage?.persist?.().catch(()=>false);
+   show('PRIVATE PACK STORED · '+pack.ids.join(', ')+' · '+pack.manifest.segmentCount+' segments'+(persisted?' · persistent storage granted':''));
+   diagnostic('music-pack-imported',{loaded:pack.ids,segments:pack.manifest.segmentCount,bytes:file.size,persisted:Boolean(persisted)});
+  }catch(error){packReady=false;show('Private pack rejected: '+String(error?.message||error))}
+ }
+
  function load(list){
-  stop();
+  selectedByUser=true;packReady=false;stop();
   const found=new Map(),ignored=[],duplicates=[];
   for(const file of Array.from(list||[])){
    if(!/\.wav$/i.test(file.name)){ignored.push(file.name);continue}
@@ -90,10 +115,10 @@ function installMusic(){
  async function play(){
   if(!(current()?.pieces||[]).length){show('ARMED · Music and drums begin with the first placed tile.');return}
   if(flow()!=='game'){show('Start a run before playing music.');return}
-  if(!available().has('F')){show('Load F Drum first (the A–F stem folder or individual WAVs).');return}
+  if(!available().has('F')){show('Import the private audio pack or load F Drum WAV first.');return}
   try{
    armed=true;enabled=true;update(true);
-   show('Preparing sample-locked WAV stems…');
+   show('Preparing synchronized '+(packReady?'M4A segments':'WAV stems')+'…');
    const result=await player.start(); // Direct user click unlocks AudioContext on iOS.
    if(!enabled)return;
    if(result.errors?.length)throw new Error(result.errors.join('; '));
@@ -155,6 +180,12 @@ function installMusic(){
   }
  }
  $('musicFolderButton').addEventListener('click',()=>folder.click());
+ $('musicPackButton').addEventListener('click',()=>packFile.click());
+ packFile.addEventListener('change',()=>{const file=packFile.files?.[0];packFile.value='';void importPack(file)});
+ $('musicRemovePack').addEventListener('click',async()=>{
+  try{stop();await deleteAudioPack();player.clearPack();packReady=false;armed=false;selectedByUser=true;show('Private pack forgotten from this device')}
+  catch(error){show('Unable to forget pack: '+String(error?.message||error))}
+ });
  $('musicFilesButton').addEventListener('click',()=>files.click());
  for(const input of [files,folder])input.addEventListener('change',()=>{load(input.files);input.value=''});
  $('musicPlay').addEventListener('click',()=>{void play()});
@@ -190,11 +221,12 @@ function installMusic(){
  window.addEventListener('pagehide',()=>{clearInterval(poll);modalObserver.disconnect();effects.cancel();player.dispose()},{once:true});
  window.__monoidMusic=Object.freeze({
   snapshot:()=>({playing:enabled&&player.isPlaying(),loaded:player.loaded(),
-   thinkingSeconds,acousticMode,armed,preset,effects:effects.snapshot(),topology:lastMix?.topology||null,db:lastMix?.db||null,
+   thinkingSeconds,acousticMode,armed,packReady,preset,effects:effects.snapshot(),topology:lastMix?.topology||null,db:lastMix?.db||null,
    transport:player.getSyncStatus()}),
   stop:()=>stop()
  });
  update();
+ void restorePack();
 }
 if(typeof window!=='undefined'&&typeof document!=='undefined'){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installMusic,{once:true});

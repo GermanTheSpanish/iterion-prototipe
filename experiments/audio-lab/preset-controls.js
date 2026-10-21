@@ -1,5 +1,5 @@
 // Browser-only, portable sound design controls for the existing Audio Lab.
-import {AUDIO_PRESET_SCHEMA,AUDIO_PRESET_STORAGE,AUDIO_DEFAULTS,normalizeAudioPreset} from '../../audio-preset.js?v=20261021.2';
+import {AUDIO_PRESET_SCHEMA,AUDIO_PRESET_STORAGE,AUDIO_DEFAULTS,normalizeAudioPreset} from '../../audio-preset.js?v=20261021.3';
 const doc=document,lab=doc.querySelector('#playtests');
 if(lab){
  const section=doc.createElement('section');section.id='soundPresetLab';

@@ -82,3 +82,68 @@ test('Audio Lab sound preset can be imported in-game without changing the run',a
  expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(runId);
  await expect(page.locator('#musicAudioLab')).toHaveAttribute('href','./experiments/audio-lab/');
 });
+
+function privateAudioFixture(){
+ const fragment=wav(),samples=22050;
+ const manifest={schema:'monoid-audio-pack-v1',private:true,codec:'aac-lc',sampleRateHz:44100,channels:2,
+  segmentSamples:samples,totalSamples:samples*2,segmentCount:2,
+  stems:{F:{segments:[{offset:0,bytes:fragment.length},{offset:fragment.length,bytes:fragment.length}]}}};
+ const header=Buffer.from(JSON.stringify(manifest)),prefix=Buffer.alloc(12);
+ prefix.write('MONOIDP1',0);prefix.writeUInt32LE(header.length,8);
+ return Buffer.concat([prefix,header,fragment,fragment]);
+}
+test('private compressed transport stores one pack and restores F Drum after reload',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.addInitScript(()=>{
+  window.__monoidStemStarts=[];
+  const start=AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start=function(...args){
+   if(this.buffer?.duration>=.45)window.__monoidStemStarts.push(args[0]);
+   return start.apply(this,args);
+  };
+ });
+ await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:4173/');
+ await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
+ await page.locator('#musicPackInput').setInputFiles({
+  name:'private-test.monoidpack',mimeType:'application/octet-stream',buffer:privateAudioFixture()
+ });
+ await expect(page.locator('#musicStatus')).toContainText('PRIVATE PACK STORED');
+ let snapshot=await page.evaluate(()=>window.__monoidMusic.snapshot());
+ expect(snapshot.packReady).toBe(true);
+ expect(snapshot.loaded).toEqual(['F']);
+ expect(snapshot.playing).toBe(false);
+ await page.reload();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().packReady)).toBe(true);
+ snapshot=await page.evaluate(()=>window.__monoidMusic.snapshot());
+ expect(snapshot.armed).toBe(true);
+ expect(snapshot.loaded).toEqual(['F']);
+ // The stored pack really decodes and starts in gameplay: not just a storage assertion.
+ const target=await page.evaluate(()=>{
+  const game=window.__monoidGame,engine=window.IterionEngine,state=game.state();
+  const index=state.hand.findIndex((tile,i)=>tile&&game.candidatesForIndex(i).length);
+  const candidate=game.candidatesForIndex(index)[0];
+  const piece=engine.pieceFrom(state.hand[index],candidate.x,candidate.y,0,candidate.rr,-1);
+  const rect=document.querySelector('#board').getBoundingClientRect();
+  return {index,x:rect.left+(piece.rect.minx+piece.rect.maxx)/2/engine.G*rect.width,
+   y:rect.top+(piece.rect.miny+piece.rect.maxy)/2/engine.H*rect.height+(window.IterionData.DRAG_Y_OFFSET||0)};
+ });
+ const hand=await page.locator('#hand .tile').nth(target.index).boundingBox();
+ await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);
+ await page.mouse.down();await page.mouse.move(hand.x-20,hand.y+hand.height/2,{steps:3});
+ await page.mouse.move(target.x,target.y,{steps:8});await page.mouse.up();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(1);
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().playing)).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>window.__monoidStemStarts.length)).toBeGreaterThan(0);
+ await page.waitForTimeout(150);
+ expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).playing).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
+ await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
+ await page.locator('#musicRemovePack').click();
+ await expect(page.locator('#musicStatus')).toContainText('pack forgotten');
+ await page.reload();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().packReady)).toBe(false);
+ expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).loaded).toEqual([]);
+ expect(errors).toEqual([]);
+});

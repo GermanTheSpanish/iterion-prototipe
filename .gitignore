@@ -1,3 +1,4 @@
 node_modules/
 test-results/
 playwright-report/
+\n# Commercial stems and locally imported private packs must not ship with source.\n*.monoidpack\nSpaceDrift_*.m4a\nPrivateStems/\n
