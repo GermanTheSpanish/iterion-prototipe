@@ -1,8 +1,10 @@
 (function(){
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
   const PROFILE=window.MonoidProfile,scopeKey=key=>PROFILE?.storageKey?.(key)||key;
+  const RUN_BACKUP=window.MonoidRunBackup?.create?.(),runContext=()=>PROFILE?.currentContext?.()||'player';
+  let recoveredSave=null,recoveryDetail=null,lastCheckpointTime=0;
   const ACTIVE_MODE_KEY=scopeKey('iterion.activeRunMode.v1'),ACTIVE_RUN_KEY=scopeKey('iterion.activeRun.v1'),LEGACY_RUN_KEY=scopeKey('iterion.latestRun.v9'),TUTORIAL_KEY=scopeKey('iterion.tutorialChoice.v1');
-  const FIRST_REAL_OPENING_KEY=scopeKey('monoid.firstRealOpening.v1');
+  const FIRST_REAL_OPENING_KEY=scopeKey('monoid.firstRealOpening.v1'),CLOSED_RUN_KEY=scopeKey('monoid.closedRunBackup.v1');
   const ROUTE_PREVIEW_KEY='iterion.routePreview.v1',ROUTE_PREVIEW_MODES=new Set(['full','preview','off']),CASCADE_PREFS_KEY=scopeKey('monoid.cascadePlayback.v1');
   const normalizeMode=mode=>['eyes','frames','river','loom','peaks','islands'].includes(mode)?mode:'classic';
   const gameOptions=(mode,extra={})=>({GAME_MODE:normalizeMode(mode),MOD_ACCESS:PROFILE?.modUnlockState?.()||null,...extra});
@@ -119,7 +121,7 @@
   Object.defineProperty(window,'__monoidFlow',{configurable:true,get:()=>({screen:entryState,tutorialStep:tutorial?.step??null})});
   Object.defineProperty(window,'__monoidPlaytestBatch',{configurable:true,get:()=>PT?.batchInfo?.()||null});
   Object.defineProperty(window,'__monoidPlaytestBatchStore',{configurable:true,get:()=>BATCH_STORE||null});
-  Object.defineProperty(window,'__monoidPersistence',{configurable:true,get:()=>({ok:!persistenceFault,key:ACTIVE_RUN_KEY})});
+  Object.defineProperty(window,'__monoidPersistence',{configurable:true,get:()=>({ok:!persistenceFault,key:ACTIVE_RUN_KEY,backup:RUN_BACKUP?.status?.()||null,recovery:recoveryDetail})});
   Object.defineProperty(window,'__monoidSharePlaytestBatch',{configurable:true,value:()=>sharePlaytestBatch()});
   Object.defineProperty(window,'__monoidInspectMode',{configurable:true,value:modeId=>openModeInspector(modeId)});
 
@@ -129,7 +131,35 @@
   function armDecisionTiming(){if(!PT||tutorial||entryState!=='game'||document.visibilityState==='hidden'||uiBusy)return;const s=GAME.state();if(!s.running&&!s.shopOpen&&!s.pendingCircuit&&!s.pendingModPlacement&&!s.cleared&&!s.blocked&&GAME.canInteract())PT.startDecision()}
   function resumePlaytest(){if(!PT||tutorial||entryState!=='game'||document.visibilityState==='hidden')return;syncPlaytestContext();PT.resume();armDecisionTiming()}
   function pausePlaytest(){PT?.pause()}
-  function storedState(){try{return JSON.parse(localStorage.getItem(ACTIVE_RUN_KEY)||'null')}catch(_){return null}}
+  function validSavedRun(value){return value?.schema==='iterion.state.v1'&&typeof value.state?.runId==='string'&&value.state.runId&&Array.isArray(value.state.set)&&Array.isArray(value.state.pieces)}
+  function storedState(){
+    let primary=null;
+    try{primary=JSON.parse(localStorage.getItem(ACTIVE_RUN_KEY)||'null')}catch(_){}
+    if(!validSavedRun(primary))primary=null;
+    const candidate=recoveredSave&&validSavedRun(recoveredSave)?recoveredSave:null;
+    return candidate&&Number(candidate.checkpoint?.savedAt||0)>Number(primary?.checkpoint?.savedAt||0)?candidate:primary||candidate
+  }
+  async function prepareRunRecovery(){
+    const local=storedState(),closedId=localStorage.getItem(CLOSED_RUN_KEY);
+    const records=await RUN_BACKUP?.candidates?.(runContext())||[];
+    const candidates=[...(local?[{saved:local,source:'primary'}]:[]),...records.map(record=>({saved:RUN_BACKUP.parse(record.payload),source:record.slot}))];
+    candidates.sort((a,b)=>Number(b.saved?.checkpoint?.savedAt||0)-Number(a.saved?.checkpoint?.savedAt||0));
+    for(const candidate of candidates){
+      const saved=candidate.saved;
+      if(!validSavedRun(saved)||saved.state.runId===closedId)continue;
+      try{
+        const probe=window.IterionGame.createGame(E,gameOptions(selectedMode(saved)));
+        if(!probe.restoreState(saved))continue;
+      }catch(_){continue}
+      lastCheckpointTime=Math.max(lastCheckpointTime,Number(saved.checkpoint?.savedAt)||0);
+      if(candidate.source!=='primary'){
+        recoveredSave=saved;
+        recoveryDetail={source:candidate.source,runId:saved.state.runId,mode:saved.state.gameMode,at:saved.checkpoint?.savedAt||null};
+      }
+      return;
+    }
+    if(local)recoveryDetail={source:'invalid',runId:local.state.runId};
+  }
   function selectedMode(saved=null){return normalizeMode(saved?.state?.gameMode||window.__monoidSelectedMode||localStorage.getItem(ACTIVE_MODE_KEY)||'classic')}
   function queueProgressionReward(detail){
     if(!detail?.unlockedModes?.length&&!detail?.completedModes?.length)return;
@@ -142,7 +172,9 @@
     if(tutorial)return GAME.snapshot();
     const needsModFacts={knot:!PROFILE?.isModSlotUnlocked?.('knot'),bridge:!PROFILE?.isModSlotUnlocked?.('bridge'),hinge:!PROFILE?.isModSlotUnlocked?.('hinge'),pair:!PROFILE?.isModSlotUnlocked?.('pair'),'triple-double':!PROFILE?.isModSlotUnlocked?.('triple-double')};
     const snap=GAME.snapshot(),modFacts=Object.values(needsModFacts).some(Boolean)?GAME.modDiscoveryFacts?.(needsModFacts):null,
-      unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[],payload=JSON.stringify(GAME.exportState());
+      unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[];
+    lastCheckpointTime=Math.max(Date.now(),lastCheckpointTime+1);
+    const payload=JSON.stringify({...GAME.exportState(),checkpoint:{savedAt:lastCheckpointTime,context:runContext()}});
     PT?.observeGameplay?.(GAME.state().events,diagnosticContext());
     for(const id of modDiscoveries){const requirement=PROFILE?.MOD_UNLOCK_STEPS?.find(step=>step.id===id)?.requirement||null;recordDiagnostic('mod-unlocked',{modId:id,requirement,discoveryFacts:modFacts||null});window.dispatchEvent(new CustomEvent('monoid:mod-unlocked',{detail:{id}}))}
     for(const mode of unlockedModes)recordDiagnostic('mode-unlocked',{mode});
@@ -151,7 +183,7 @@
     try{
       localStorage.removeItem(LEGACY_RUN_KEY);
       localStorage.setItem(ACTIVE_RUN_KEY,payload);
-      persistenceFault=false
+      recoveredSave=null;persistenceFault=false
     }catch(error){
       if(!persistenceFault){
         persistenceFault=true;
@@ -160,8 +192,20 @@
         toast('SAVE FAILED · DOWNLOAD RUN DATA')
       }
     }
+    // Independent IndexedDB snapshots survive a failed localStorage write and preserve the prior checkpoint.
+    if(RUN_BACKUP)void RUN_BACKUP.save(runContext(),payload);
     return snap
   }
+  async function checkpointBeforeAudioLab(){
+    persistGame();
+    const backupOk=await RUN_BACKUP?.flush?.();
+    if(persistenceFault&&backupOk!==true){
+      toast('SAVE NOT SECURE · AUDIO LAB CANCELLED');
+      return false
+    }
+    return true
+  }
+  window.__monoidCheckpointBeforeAudioLab=checkpointBeforeAudioLab;
   function lifecycleStatus(game=GAME){
     const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.blocked&&!recovery.recoverable)return s.ouroborosMode?'failed':s.standardComplete?'completed':'failed';if(s.standardComplete&&!s.endlessMode&&s.cleared)return'completed';return'abandoned'
   }
@@ -169,7 +213,17 @@
     const s=game.state(),recovery=game.recoveryOptions?.()||{};if(s.blocked&&!recovery.recoverable)return s.ouroborosMode?'failed':s.standardComplete?'completed':'failed';if(s.cleared&&s.standardComplete&&!s.endlessMode)return'completed';return'active'
   }
   function singleRunDebugText(game=GAME,includePerformance=game===GAME){
-    H.bindRun(game.state().runId);return`${game.debugText()}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${includePerformance?performanceText(game.state().runId):'PERFORMANCE TELEMETRY\nUnavailable after reload.'}`
+    H.bindRun(game.state().runId);
+    const info=PROFILE?.recoveryStatus?.()||null,backup=RUN_BACKUP?.status?.()||null,profileText=info?[
+      'PROFILE STATE',
+      `Context: ${info.context} · Player ID: ${info.profileId}`,
+      `Modes unlocked: ${info.unlockedModes.join(', ')||'-'}`,
+      `Modes completed: ${info.completedModes.join(', ')||'-'}`,
+      `Mods unlocked: ${info.unlockedMods.join(', ')||'-'}`,
+      `Primary: ${info.primaryValid} · Backup: ${info.backupValid} · Ledger: ${info.ledgerValid}`,
+      `Run recovery: ${JSON.stringify(recoveryDetail||{source:'primary'})} · Backup OK: ${backup?.ok??'unavailable'}`
+    ].join('\n'):'PROFILE STATE\nUnavailable';
+    return`${game.debugText()}\n\n${profileText}\n\n${PT?.text()||'PLAYTEST TELEMETRY\nUnavailable'}\n\n${H.debugTelemetryText()}\n\n${includePerformance?performanceText(game.state().runId):'PERFORMANCE TELEMETRY\nUnavailable after reload.'}`
   }
   async function archiveSavedRun(reason='new-run',includeUnsaved=false){
     const saved=storedState();if((!saved?.state?.runId&&!includeUnsaved)||!PT||!BATCH_STORE)return false;let game=GAME;
@@ -200,8 +254,13 @@
   async function startNormal(continueSaved=false){
     cascadeOfferPending=false;clearModFaceReveals();tutorial=null;tutorialPanel.hidden=true;
     const prior=storedState(),mode=selectedMode(continueSaved?prior:null),firstRealOpening=!continueSaved&&mode==='classic'&&PROFILE?.currentContext?.()!=='dev'&&!prior&&!localStorage.getItem(FIRST_REAL_OPENING_KEY);
-    if(!continueSaved)await archiveSavedRun('new-run');
-    const saved=continueSaved?prior:null,next=window.IterionGame.createGame(E,gameOptions(mode,{AVOID_ZERO_DOUBLE_FIRST_HAND:firstRealOpening}));if(continueSaved&&!next.restoreState(saved))return;
+    if(!continueSaved&&prior&&!await archiveSavedRun('new-run')){toast('RUN ARCHIVE FAILED · SAVE PRESERVED');return}
+    if(continueSaved&&!prior){toast('NO RECOVERABLE RUN');return}
+    const saved=continueSaved?prior:null,next=window.IterionGame.createGame(E,gameOptions(mode,{AVOID_ZERO_DOUBLE_FIRST_HAND:firstRealOpening}));
+    if(continueSaved){
+      try{if(!next.restoreState(saved)){toast('RUN RESTORE FAILED · SAVE PRESERVED');return}}
+      catch(error){console.error('MONOID restore failed',error);toast('RUN RESTORE FAILED · SAVE PRESERVED');return}
+    }
     if(firstRealOpening)localStorage.setItem(FIRST_REAL_OPENING_KEY,'done');
     localStorage.setItem(ACTIVE_MODE_KEY,mode);window.__monoidActiveMode=mode;window.__monoidSelectedMode=mode;
     if(continueSaved&&next.state().needsReroll)next.assessContinuation();
@@ -448,7 +507,7 @@
   function resetOverlay(){overlay.className='overlay show';delete overlay.dataset.action;modalEl.classList.remove('auxModal','commerceModal','compactCommerceModal','outcomeModal','roundAdvanceModal','roundRewardComplete','voidInspectorModal','ouroborosIntroModal');overlay.onclick=null;overlayBody.onclick=null;overlayPrimary.onclick=overlaySecondary.onclick=overlayTertiary.onclick=null;overlayPrimary.disabled=overlaySecondary.disabled=overlayTertiary.disabled=false;overlayPrimary.style.display='inline-block';overlaySecondary.style.display=overlayTertiary.style.display='none'}
   function clearOutcomeDelay(){outcomeOverlayNotBefore=0;if(outcomeTimer){clearTimeout(outcomeTimer);outcomeTimer=0}}
   function armOutcomeDelay(ms=D.OUTCOME_SCREEN_DELAY_MS){ms=Math.max(0,Number(ms)||0);clearOutcomeDelay();outcomeOverlayNotBefore=performance.now()+ms;outcomeTimer=setTimeout(()=>{outcomeTimer=0;render()},ms+25)}
-  async function newRun(){cascadeOfferPending=false;ouroborosPreviewSuspended=false;pausePlaytest();await archiveSavedRun('new-run');clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;if(GAME.config)GAME.config.MOD_ACCESS=PROFILE?.modUnlockState?.()||null;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
+  async function newRun(){cascadeOfferPending=false;ouroborosPreviewSuspended=false;pausePlaytest();if(!await archiveSavedRun('new-run')){toast('RUN ARCHIVE FAILED · SAVE PRESERVED');return}clearOutcomeDelay();auxOverlay=null;shopRevealTile=null;press.cancel();clearModFaceReveals();performanceSamples.length=0;if(GAME.config?.AVOID_ZERO_DOUBLE_FIRST_HAND)GAME.config.AVOID_ZERO_DOUBLE_FIRST_HAND=false;if(GAME.config)GAME.config.MOD_ACCESS=PROFILE?.modUnlockState?.()||null;GAME.fresh();H.bindRun(GAME.state().runId);bindPlaytestRun();persistGame({suppressProgressionReward:true});handFx.fill('normal');hideOverlay();render();resumePlaytest()}
   function setNewRunButton(b){b.style.display='inline-block';b.textContent='NEW RUN';b.onclick=()=>{if(confirm('Start a new run?'))newRun()}}
   function useUndo(){const r=GAME.useUndo();if(!r.ok){toast('Undo unavailable');return}clearOutcomeDelay();persistGame();handFx.fill('normal');hideOverlay();toast(r.preservedPurchases?`Last move undone · ${r.preservedPurchases} purchase${r.preservedPurchases===1?'':'s'} kept`:'Last move undone');render();armDecisionTiming()}
   function useMove(){const r=GAME.useMove();if(!r.ok){toast('Move unavailable');return}clearOutcomeDelay();persistGame();hideOverlay();toast(`+1 Move · ${r.maxPlacements} max`);render();armDecisionTiming()}
@@ -1124,12 +1183,23 @@
     recordDiagnostic('run-ended-by-player',{runId:GAME.state().runId});
     try{
       if(!await archiveSavedRun('end-run',true)){toast('RUN ARCHIVE FAILED · RUN PRESERVED');return}
+      localStorage.setItem(CLOSED_RUN_KEY,GAME.state().runId);
+      await RUN_BACKUP?.clear?.(runContext());
+      recoveredSave=null;
       localStorage.removeItem(ACTIVE_RUN_KEY);localStorage.removeItem(LEGACY_RUN_KEY);
     }catch(error){console.error('MONOID end run failed',error);toast('COULD NOT END RUN · RUN PRESERVED');return}
     cascadeOfferPending=false;clearOutcomeDelay();showSelection()
   }
   $('learnMonoid').onclick=startTutorial;$('replayTutorial').onclick=startTutorial;$('startRun').onclick=()=>{if(storedState()&&!confirm('Replace the saved run with a new run?'))return;startNormal(false)};continueRun.onclick=()=>startNormal(true);$('modeClassic').onclick=()=>storedState()?startNormal(true):startNormal(false);$('leaveTutorial').onclick=requestTutorialExit;$('gameSelectionButton').onclick=endActiveRun;
-  if(new URL(location.href).searchParams.has('audioLabReturn')&&storedState())void startNormal(true);
-   else if(localStorage.getItem('iterion.entryBypass.v1')==='true')startNormal(false);
-   else{app.inert=true;initialiseEntry();render()}
+  async function startEntry(){
+    await prepareRunRecovery();
+    if(new URL(location.href).searchParams.has('audioLabReturn')&&storedState()){
+      await startNormal(true);
+      if(recoveryDetail?.source&&recoveryDetail.source!=='primary')toast('RUN RECOVERED FROM BACKUP');
+    }else if(localStorage.getItem('iterion.entryBypass.v1')==='true'){
+      // QA bypass must never replace an existing player save during an audio return.
+      if(storedState())await startNormal(true);else await startNormal(false)
+    }else{app.inert=true;initialiseEntry();render()}
+  }
+  app.inert=true;void startEntry().catch(error=>{console.error('MONOID recovery boot failed',error);initialiseEntry();render()})
 })();
