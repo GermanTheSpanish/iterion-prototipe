@@ -707,7 +707,10 @@
     if(!coreEvent)toast(afterSnapshot.endless?.ouroboros?`OUROBOROS · ROUND ${GAME.state().round+1}`:!beforeInfinite&&afterSnapshot.endless?.infinitePhase?`INFINITE · 3 TILE HAND · BOARD ${E.G}×${E.H}`:after>before?`STAGE ${after} · FREE REROLL · BOARD ${E.G}×${E.H}`:`ROUND ${GAME.state().round+1} · FREE REROLL`)
   }
   function startEndless(){clearOutcomeDelay();const eventCursor=GAME.state().events.length;if(!GAME.startEndless()){toast('Endless unavailable');return}window.dispatchEvent(new CustomEvent('monoid:endless-transition-started'));const state=GAME.state(),marketClosed=state.events.slice(eventCursor).some(e=>e.type==='shop-close'&&e.shop==='market'&&e.reason==='insufficient-coins');syncPlaytestContext();if(state.shopOpen&&state.shopType==='market')PT?.openMarket({offers:[...state.shopOffers]});persistGame();hideOverlay();handFx.fill('normal');render();armDecisionTiming();toast(marketClosed?`MARKET CLOSED · INSUFFICIENT FUNDS · ENDLESS ROUND ${state.round+1}`:state.shopOpen?'ENDLESS · STAGE MARKET':`ENDLESS · ROUND ${state.round+1}`)}
+  let lastRoundAudioKey='';
   function showClear(){
+    const audioState=GAME.state(),audioWin=audioState.wins?.at(-1),audioKey=audioState.runId+':'+audioState.round;
+    if(audioWin&&audioKey!==lastRoundAudioKey){lastRoundAudioKey=audioKey;emitMachineAudio('cue',{kind:'coin'})}
     resetOverlay();const s=GAME.state(),x=GAME.snapshot(),complete=x.status==='COMPLETE',endless=!!x.endless?.active,last=[...s.wins].reverse().find(win=>!win.overflowSkipped),target=GAME.target(),display=V.scoreDisplay(s.score,target),hero=compact(s.score),exact=fmt(s.score),exactLine=hero===exact?'':`<em>${escapeHtml(exact)}</em>`,trace=scoreTraceHtml(),scoreHero=`<div class="roundClearScore${display.overdrive?' overdrive':''}"><small>SCORE</small><strong>${escapeHtml(hero)}</strong>${exactLine}<span class="roundClearTarget">TARGET ${escapeHtml(compact(target))} · ×${escapeHtml(display.multiplier)}</span>${trace}</div>`;
     const overflow=s.ouroborosOverflow,overflowCopy=overflow?`<p class="roundAdvanceHint" data-ouroboros-overflow>OVERFLOW +${overflow.throughRound-overflow.fromRound+1} · R${overflow.fromRound+1} → R${overflow.nextRound+1} · ${overflow.markets.length} MARKET${overflow.markets.length===1?'':'S'}</p>`:'';
     modalEl.classList.add('outcomeModal');overlayTitle.textContent=complete?'CLASSIC COMPLETE':'ROUND COMPLETE';
@@ -1004,6 +1007,7 @@
         const kind=e.type==='op'?'op':e.type==='signal-fork'?'split':e.type==='zero-port'?'teleport':e.type.startsWith('core-')||e.type==='island-link'?'core':e.type;
         const piece=pc(e.piece),pip=e.type==='op'?(piece?.cubes?.find(c=>c.half===e.exitHalf)?.v??piece?.cubes?.[0]?.v??0):0;
         emitMachineAudio('cue',{kind,pip,reverse:!!e.reverse,pan:lane.family==='echo'?.35:lane.path.endsWith('B')?.45:-.15});
+        if(e.type==='op'&&Number(e.modMultiplier)>1)emitMachineAudio('cue',{kind:'mod'});
       }
       if(e.type==='op'||['signal-fork','rebound','zero-port','core-activate','core-relay','peak-ridge','island-dormant','island-link','signal-depleted','diode-block','return','hinge-move','hinge-blocked','toll-spend'].includes(e.type))cascadeControl.renderedSteps++;
       if(e.type==='signal-fork'){
