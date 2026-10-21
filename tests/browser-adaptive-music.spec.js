@@ -94,6 +94,14 @@ function privateAudioFixture(){
 }
 test('private compressed transport stores one pack and restores F Drum after reload',async({page})=>{
  await page.setViewportSize({width:390,height:844});
+ await page.addInitScript(()=>{
+  window.__monoidStemStarts=[];
+  const start=AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start=function(...args){
+   if(this.buffer?.duration>=.45)window.__monoidStemStarts.push(args[0]);
+   return start.apply(this,args);
+  };
+ });
  await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('http://127.0.0.1:4173/');
@@ -127,6 +135,9 @@ test('private compressed transport stores one pack and restores F Drum after rel
  await page.mouse.move(target.x,target.y,{steps:8});await page.mouse.up();
  await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().playing)).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>window.__monoidStemStarts.length)).toBeGreaterThan(0);
+ await page.waitForTimeout(150);
+ expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).playing).toBe(true);
  await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
  await page.locator('#musicRemovePack').click();
