@@ -31,11 +31,12 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
   const c=game.candidatesForIndex(i)[0],p=engine.pieceFrom(s.hand[i],c.x,c.y,0,c.rr,-1);
   const r=document.querySelector('#board').getBoundingClientRect();
   return {index:i,x:r.left+(p.rect.minx+p.rect.maxx)/2/engine.G*r.width,
-   y:r.top+(p.rect.miny+p.rect.maxy)/2/engine.H*r.height};
+   y:r.top+(p.rect.miny+p.rect.maxy)/2/engine.H*r.height+(window.IterionData.DRAG_Y_OFFSET||0)};
  });
- const hand=await page.locator('#hand .handSlot').nth(target.index).boundingBox();
+ const hand=await page.locator('#hand .tile').nth(target.index).boundingBox();
  await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);
- await page.mouse.down();await page.mouse.move(target.x,target.y,{steps:8});await page.mouse.up();
+ await page.mouse.down();await page.mouse.move(hand.x-20,hand.y+hand.height/2,{steps:3});
+ await page.mouse.move(target.x,target.y,{steps:8});await page.waitForTimeout(150);await page.mouse.up();
  await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(1);
  await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().playing)).toBe(true);
  const now=await page.evaluate(()=>window.__monoidMusic.snapshot());
