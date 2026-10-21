@@ -1,6 +1,7 @@
 // UI-only machine sonification. Cues are triggered at visual playback time.
 // Synthesizer and preset controls are shared with Audio Lab; no gameplay RNG/state.
 import {createInstrument} from './experiments/audio-lab/instrument.js';
+import {cascadeFrequency} from './audio-harmony.js';
 export function createMachineEffects(player,{maxOscillators=24}={}){
  let instrument=null,context=null,active=new Set(),preset=null,played=0,dropped=0;
  function activate(){
@@ -25,7 +26,9 @@ export function createMachineEffects(player,{maxOscillators=24}={}){
   if(kind==='placement')instrument.slap(at,v*.30);
   else if(kind==='op'){
    const pip=Math.min(6,Math.max(0,Math.floor(Number(detail.pip)||0)));
-   instrument.note(pip,at,{wave:'soft',volume:v*.15,release:preset.release,
+   instrument.note(pip,at,{wave:preset.instrumentWave,volume:v*preset.instrumentLevel*.75,
+    attack:preset.instrumentAttack,release:preset.release,
+    frequency:cascadeFrequency(pip,preset.tonalMode,player.playbackSeconds()),
     reverse:!!detail.reverse,pan:Math.max(-.7,Math.min(.7,Number(detail.pan)||0))});
   }else {
    const fx=kind==='rebound'?'rebound':kind==='split'?'split':kind==='teleport'?'teleport':

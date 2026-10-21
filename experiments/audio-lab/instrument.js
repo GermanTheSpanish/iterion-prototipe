@@ -13,8 +13,9 @@ export function createInstrument(context, destination, track) {
     osc.onended=()=>{osc.disconnect();gain.disconnect();if(stereo)stereo.disconnect()};
   }
   return {
-    note(pip,at,{wave='triangle',volume=0.2,attack=0.012,release=0.5,reverse=false,octave=0,releaseScale=1,volumeScale=1,pan=0}={}) {
-      const freq=PIP_NOTES[pip]*2**Math.max(-2,Math.min(3,octave)), v=volume*volumeScale*(reverse?0.62:1); release*=releaseScale;
+    note(pip,at,{wave='triangle',volume=0.2,attack=0.012,release=0.5,reverse=false,octave=0,releaseScale=1,volumeScale=1,pan=0,frequency=null}={}) {
+      const baseFreq=Number.isFinite(frequency)&&frequency>0?frequency:PIP_NOTES[pip];
+      const freq=baseFreq*2**Math.max(-2,Math.min(3,octave)), v=volume*volumeScale*(reverse?0.62:1); release*=releaseScale;
       if(wave==='bell') {
         voice(freq,at,{wave:'sine',volume:v*.72,attack:.009,release:Math.max(.25,release*1.6),pan});
         voice(freq*2.01,at,{wave:'sine',volume:v*.26,attack:.004,release:Math.max(.12,release*.65),pan});

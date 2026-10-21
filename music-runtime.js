@@ -25,7 +25,7 @@ function installMusic(){
   '<button type="button" id="musicStop">STOP</button></div>'+
   '<label class="musicMaster">VOLUME <input type="range" id="musicVolume" min="0" max="100" value="55" step="5" aria-label="Music volume"></label>'+
   '<p id="musicStatus" class="musicStatus" role="status" aria-live="polite">Off · choose your local A–F WAV stems.</p>'+ 
-  '<div class="musicActions"><a href="./experiments/audio-lab/" target="_blank" rel="noopener" id="musicAudioLab">AUDIO LAB</a><button type="button" id="musicPresetButton">IMPORT PRESET</button></div>'+
+  '<div class="musicActions"><a href="./experiments/audio-lab/" id="musicAudioLab">AUDIO LAB</a><button type="button" id="musicPresetButton">IMPORT PRESET</button></div>'+
   '<div class="musicActions"><button type="button" id="musicFolderButton">WAV FOLDER</button><button type="button" id="musicRemovePack">FORGET PACK</button></div>'+ 
   '<small>Private packs stay in this browser’s device storage. No music is uploaded. If your browser clears site data, import the pack again.</small>';
  const style=document.createElement('style');style.id='monoid-music-styles';
@@ -221,7 +221,7 @@ function installMusic(){
  window.addEventListener('pagehide',()=>{clearInterval(poll);modalObserver.disconnect();effects.cancel();player.dispose()},{once:true});
  window.__monoidMusic=Object.freeze({
   snapshot:()=>({playing:enabled&&player.isPlaying(),loaded:player.loaded(),
-   thinkingSeconds,acousticMode,armed,packReady,preset,effects:effects.snapshot(),topology:lastMix?.topology||null,db:lastMix?.db||null,
+   thinkingSeconds,acousticMode,armed,packReady,preset,playbackSeconds:player.playbackSeconds(),effects:effects.snapshot(),topology:lastMix?.topology||null,db:lastMix?.db||null,
    transport:player.getSyncStatus()}),
   stop:()=>stop()
  });
