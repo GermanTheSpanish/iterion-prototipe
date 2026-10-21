@@ -2,6 +2,7 @@
   const E=window.IterionEngine,D=window.IterionData,M=window.IterionMods,H=window.IterionHelp,GEST=window.IterionGesture,ARROW=E.ARROW;
   const PROFILE=window.MonoidProfile,scopeKey=key=>PROFILE?.storageKey?.(key)||key;
   const RUN_BACKUP=window.MonoidRunBackup?.create?.(),runContext=()=>PROFILE?.currentContext?.()||'player';
+  const qaSaveSandbox=()=>Boolean(window.__monoidQa?.savedRunProtected||new URL(location.href).searchParams.has('qa'));
   let recoveredSave=null,recoveryDetail=null,lastCheckpointTime=0;
   const ACTIVE_MODE_KEY=scopeKey('iterion.activeRunMode.v1'),ACTIVE_RUN_KEY=scopeKey('iterion.activeRun.v1'),LEGACY_RUN_KEY=scopeKey('iterion.latestRun.v9'),TUTORIAL_KEY=scopeKey('iterion.tutorialChoice.v1');
   const FIRST_REAL_OPENING_KEY=scopeKey('monoid.firstRealOpening.v1'),CLOSED_RUN_KEY=scopeKey('monoid.closedRunBackup.v1');
@@ -140,6 +141,8 @@
     return candidate&&Number(candidate.checkpoint?.savedAt||0)>Number(primary?.checkpoint?.savedAt||0)?candidate:primary||candidate
   }
   async function prepareRunRecovery(){
+    // QA presets virtualise localStorage but not IndexedDB; never restore or alter a real-player backup here.
+    if(qaSaveSandbox())return;
     const local=storedState();let closed=null;
     try{closed=JSON.parse(localStorage.getItem(CLOSED_RUN_KEY)||'null')}catch(_){}
     const closedAt=Number(closed?.at)||0;
@@ -174,7 +177,7 @@
     if(tutorial)return GAME.snapshot();
     const needsModFacts={knot:!PROFILE?.isModSlotUnlocked?.('knot'),bridge:!PROFILE?.isModSlotUnlocked?.('bridge'),hinge:!PROFILE?.isModSlotUnlocked?.('hinge'),pair:!PROFILE?.isModSlotUnlocked?.('pair'),'triple-double':!PROFILE?.isModSlotUnlocked?.('triple-double')};
     const snap=GAME.snapshot(),modFacts=Object.values(needsModFacts).some(Boolean)?GAME.modDiscoveryFacts?.(needsModFacts):null,
-      unlockResult=PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[];
+      unlockResult=qaSaveSandbox()?null:PROFILE?.evaluateRun?.(GAME.state(),snap,undefined,modFacts),unlockedModes=unlockResult?.unlocked||[],completedModes=unlockResult?.completed||[],modDiscoveries=unlockResult?.modDiscoveries||[];
     lastCheckpointTime=Math.max(Date.now(),lastCheckpointTime+1);
     const payload=JSON.stringify({...GAME.exportState(),checkpoint:{savedAt:lastCheckpointTime,context:runContext()}});
     PT?.observeGameplay?.(GAME.state().events,diagnosticContext());
@@ -195,7 +198,7 @@
       }
     }
     // Independent IndexedDB snapshots survive a failed localStorage write and preserve the prior checkpoint.
-    if(RUN_BACKUP)void RUN_BACKUP.save(runContext(),payload);
+    if(RUN_BACKUP&&!qaSaveSandbox())void RUN_BACKUP.save(runContext(),payload);
     return snap
   }
   async function checkpointBeforeAudioLab(){
