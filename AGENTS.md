@@ -15,7 +15,7 @@ Do not confuse **implemented**, **verified**, **approved but pending**, **experi
 - The machine persists between rounds unless a specifically approved rule changes that.
 - `game.js` owns authoritative state; gameplay RNG is seeded/reproducible. UI may own only transient interaction and animation state.
 - Unique tile identity and authoritative rules survive purchase, Undo, save/restore, round transitions, Endless and telemetry.
-- Mobile gameplay remains one-screen without page scrolling, with board prominence. The **current portrait UI** has the hand vertically on the right; landscape is a separately scoped responsive-design change.
+- Mobile gameplay remains one-screen without page scrolling, with board prominence. The current portrait gameplay-v2 layout uses a horizontal Hand in the bottom rail. Any future landscape layout is a separately scoped, tested responsive-design change.
 
 Do not silently change placement legality, route selection/comparators, activation order, zero/rebound operations, doubles/parity, Double Double, Double Echo, T-split, POWER, Circuits, resonance, Long Chain, or target progression.
 
