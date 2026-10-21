@@ -10,6 +10,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  const sources=new Set();
  let context=null,master=null,masterLevel=1,timer=null,playing=false,generation=0;
  let acoustic=null,lowpass=null,effects=null,acousticLevel=1,lowpassHz=20000;
+ let pack=null;
  let segmentFrames=0,segmentSeconds=0,totalSegments=0,nextIndex=0,startAt=0,busy=false,underruns=0;
  function init(){
   if(context)return context;
@@ -41,7 +42,15 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   if(smooth)param.setTargetAtTime(value,at,1.25);
   else param.setValueAtTime(value,at);
  }
+ function setPack(parsed){
+  if(!parsed?.blob||!parsed?.manifest?.stems?.F)throw new Error('Invalid compressed audio pack');
+  stop();pack=parsed;
+  for(const track of tracks.values()){track.file=null;track.header=null}
+  lastError='';return loaded();
+ }
+ function clearPack(){stop();pack=null}
  function setFile(id,file){
+  if(pack)clearPack();
   const track=tracks.get(id);
   if(!track)throw new RangeError('Unknown stem '+id);
   stop();
@@ -91,7 +100,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
    lowpass.frequency.cancelScheduledValues(at);lowpass.frequency.setTargetAtTime(lowpassHz,at,tau);
   }
  }
- function loaded(){return [...tracks].filter(([,t])=>Boolean(t.file)).map(([id])=>id)}
+ function loaded(){return pack?pack.ids:[...tracks].filter(([,t])=>Boolean(t.file)).map(([id])=>id)}
  function levels(){return Object.fromEntries([...tracks].map(([id,t])=>[id,t.level]))}
  function stop(){
   generation++;playing=false;busy=false;
@@ -104,6 +113,24 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  }
  async function loadGroup(index,available){
   const segment=index%totalSegments;
+  if(pack){
+   return Promise.all(available.map(async track=>{
+    const part=pack.manifest.stems[track.id].segments[segment];
+    const bytes=await pack.blob.slice(pack.offset+part.offset,pack.offset+part.offset+part.bytes).arrayBuffer();
+    const decoded=await context.decodeAudioData(bytes);
+    if(decoded.numberOfChannels!==2||Math.abs(decoded.duration-segmentSeconds)>.05)
+     throw new Error('Invalid compressed segment '+track.id+'/'+segment);
+    // AAC encoder priming and trailing padding vary between WebKit and Chromium.
+    // All stems are scheduled by the same nominal sample clock, not decoded duration.
+    const frames=Math.round(segmentSeconds*decoded.sampleRate);
+    let buffer=decoded;
+    if(decoded.length<frames){
+     buffer=context.createBuffer(2,frames,decoded.sampleRate);
+     for(let channel=0;channel<2;channel++)buffer.getChannelData(channel).set(decoded.getChannelData(channel));
+    }
+    return {track,buffer};
+   }));
+  }
   const first=segment*segmentFrames;
   return Promise.all(available.map(async track=>({
    track,
@@ -116,37 +143,44 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
    source.buffer=buffer;source.connect(track.gain);
    sources.add(source);
    source.onended=()=>{sources.delete(source);source.disconnect()};
-   source.start(at);
+   if(pack)source.start(at,0,segmentSeconds);else source.start(at);
   }
  }
  async function start(){
-  const available=[...tracks.values()].filter(t=>t.file);
-  if(!available.length)throw new Error('Select at least one local Space Drift stem');
+  const available=[...tracks.entries()].filter(([id,t])=>pack?Boolean(pack.manifest.stems[id]):Boolean(t.file)).map(([id,t])=>({...t,id}));
+  if(!available.length)throw new Error('Select a private audio pack or at least one local Space Drift stem');
   stop();const run=++generation;
   const active=init();
   // Resume is invoked directly from the Play tap, before any await (iOS).
   const resumed=active.resume();
   if(resumed&&typeof resumed.catch==='function')resumed.catch(()=>{});
-  const headers=await Promise.all(available.map(async t=>({track:t,header:await readPcmHeader(t.file)})));
-  if(run!==generation)return {loaded:0,errors:['Start cancelled']};
-  const reference=headers[0].header;
-  for(const item of headers){
-   const h=item.header;
-   if(h.sampleRate!==reference.sampleRate||h.channels!==reference.channels||
-      h.bitsPerSample!==reference.bitsPerSample)
-    throw new Error('Stem format mismatch: all files must share sample rate and channel format');
-   if(Math.abs(h.frames-reference.frames)>h.sampleRate*.02)
-    throw new Error('Stem duration mismatch: choose the six aligned A–F stems, not alternate mixes');
-   item.track.header=h;
+  if(pack){
+   segmentFrames=pack.manifest.segmentSamples;
+   totalSegments=pack.manifest.segmentCount;
+   segmentSeconds=segmentFrames/pack.manifest.sampleRateHz;
+  }else{
+   const headers=await Promise.all(available.map(async t=>({track:t,header:await readPcmHeader(t.file)})));
+   if(run!==generation)return {loaded:0,errors:['Start cancelled']};
+   const reference=headers[0].header;
+   for(const item of headers){
+    const h=item.header;
+    if(h.sampleRate!==reference.sampleRate||h.channels!==reference.channels||
+       h.bitsPerSample!==reference.bitsPerSample)
+     throw new Error('Stem format mismatch: all files must share sample rate and channel format');
+    if(Math.abs(h.frames-reference.frames)>h.sampleRate*.02)
+     throw new Error('Stem duration mismatch: choose the six aligned A–F stems, not alternate mixes');
+    tracks.get(item.track.id).header=h;
+    item.track.header=h;
+   }
+   const frames=Math.min(...headers.map(x=>x.header.frames));
+   segmentFrames=Math.min(reference.sampleRate*6,frames);
+   totalSegments=Math.floor(frames/segmentFrames);
+   segmentSeconds=segmentFrames/reference.sampleRate;
   }
-  const frames=Math.min(...headers.map(x=>x.header.frames));
-  segmentFrames=Math.min(reference.sampleRate*6,frames);
-  totalSegments=Math.floor(frames/segmentFrames);
-  segmentSeconds=segmentFrames/reference.sampleRate;
   if(!totalSegments)throw new Error('No complete audio segments');
   const first=await loadGroup(0,available);
   if(run!==generation)return {loaded:0,errors:['Start cancelled']};
-  playing=true;underruns=0;nextIndex=1;
+  playing=true;underruns=0;nextIndex=1;lastError='';
   startAt=context.currentTime+.25;
   scheduleGroup(first,0,startAt);
   const pump=async()=>{
@@ -182,6 +216,6 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect()}
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,start,stop,getDrift,
+ return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,start,stop,getDrift,
   getSyncStatus,loaded,levels,dispose,isPlaying:()=>playing};
 }
