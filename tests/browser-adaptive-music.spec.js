@@ -111,6 +111,23 @@ test('private compressed transport stores one pack and restores F Drum after rel
  snapshot=await page.evaluate(()=>window.__monoidMusic.snapshot());
  expect(snapshot.armed).toBe(true);
  expect(snapshot.loaded).toEqual(['F']);
+ // The stored pack really decodes and starts in gameplay: not just a storage assertion.
+ const target=await page.evaluate(()=>{
+  const game=window.__monoidGame,engine=window.IterionEngine,state=game.state();
+  const index=state.hand.findIndex((tile,i)=>tile&&game.candidatesForIndex(i).length);
+  const candidate=game.candidatesForIndex(index)[0];
+  const piece=engine.pieceFrom(state.hand[index],candidate.x,candidate.y,0,candidate.rr,-1);
+  const rect=document.querySelector('#board').getBoundingClientRect();
+  return {index,x:rect.left+(piece.rect.minx+piece.rect.maxx)/2/engine.G*rect.width,
+   y:rect.top+(piece.rect.miny+piece.rect.maxy)/2/engine.H*rect.height+(window.IterionData.DRAG_Y_OFFSET||0)};
+ });
+ const hand=await page.locator('#hand .tile').nth(target.index).boundingBox();
+ await page.mouse.move(hand.x+hand.width/2,hand.y+hand.height/2);
+ await page.mouse.down();await page.mouse.move(hand.x-20,hand.y+hand.height/2,{steps:3});
+ await page.mouse.move(target.x,target.y,{steps:8});await page.mouse.up();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidGame.state().pieces.length)).toBe(1);
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().playing)).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
  await page.locator('#musicRemovePack').click();
  await expect(page.locator('#musicStatus')).toContainText('pack forgotten');
