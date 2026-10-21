@@ -179,6 +179,18 @@ function installMusic(){
     (health.underruns?' · '+health.underruns+' buffer underrun(s)':''));
   }
  }
+ $('musicAudioLab').addEventListener('click',async event=>{
+  event.preventDefault();
+  const link=event.currentTarget;
+  if(link.dataset.navigating==='true')return;
+  link.dataset.navigating='true';
+  try{
+   const safe=await window.__monoidCheckpointBeforeAudioLab?.();
+   if(safe===false){show('Unable to open Audio Lab: run was not saved');return}
+   location.assign(link.href);
+  }catch(error){show('Unable to secure run before Audio Lab: '+String(error?.message||error))}
+  finally{delete link.dataset.navigating}
+ });
  $('musicFolderButton').addEventListener('click',()=>folder.click());
  $('musicPackButton').addEventListener('click',()=>packFile.click());
  packFile.addEventListener('change',()=>{const file=packFile.files?.[0];packFile.value='';void importPack(file)});

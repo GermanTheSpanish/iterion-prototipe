@@ -164,4 +164,42 @@ function create(store,hostname='play.monoid.test'){
   assert.deepEqual(profile.ensureProfile().unlockedModes,['classic']);
 }
 
+
+{
+  const store=storage(),profile=create(store),original=profile.ensureProfile('player');
+  const before=JSON.stringify(original);
+  profile.unlockMode('peaks','player');
+  profile.completeMode('peaks','player');
+  profile.unlockMode('islands','player');
+  profile.unlockModStep('bridge','player');
+  const latest=profile.recoveryStatus('player');
+  assert.equal(latest.primaryValid,true);
+  assert.equal(latest.backupValid,true);
+  assert.equal(latest.ledgerValid,true);
+  store.setItem('monoid.profile.player.v1','{CORRUPTED');
+  const restarted=create(store);
+  assert.equal(restarted.ensureProfile('player').profileId,original.profileId);
+  assert.equal(restarted.isModeUnlocked('islands','player'),true,'Islands survives corrupted primary profile');
+  assert.equal(restarted.isModeCompleted('peaks','player'),true,'Peaks completion survives corrupted primary');
+  assert.equal(restarted.isModSlotUnlocked('bridge'),true,'Mods survive corrupted primary');
+
+  // A stale but syntactically valid profile cannot roll permanent progress backwards.
+  store.setItem('monoid.profile.player.v1',before);
+  const stale=create(store);
+  assert.equal(stale.isModeUnlocked('islands'),true,'Islands survives valid stale profile rollback');
+  assert.equal(stale.isModeCompleted('peaks'),true,'Completed modes are monotonic');
+  assert.equal(stale.isModSlotUnlocked('bridge'),true,'Unlocked Mods are monotonic');
+  assert.equal(stale.recoveryStatus().primaryValid,true);
+}
+{
+  const store=storage(),profile=create(store);
+  profile.setContext('fresh');
+  profile.unlockMode('eyes');
+  profile.unlockModStep('bridge');
+  assert.ok(store.getItem('monoid.profile.fresh.v1.progress.v1'));
+  profile.resetContext('fresh');
+  assert.equal(store.getItem('monoid.profile.fresh.v1.progress.v1'),null,'sandbox reset removes ledger');
+  assert.equal(store.getItem('monoid.profile.fresh.v1.recovery.v1'),null,'sandbox reset removes backup');
+  assert.equal(profile.isModeUnlocked('eyes'),false,'fresh reset is explicit and complete');
+}
 console.log('profile context and progression tests passed');

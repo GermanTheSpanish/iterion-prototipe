@@ -380,3 +380,52 @@ test('Audio Lab return resumes the same run',async({page})=>{
  await expect.poll(()=>page.evaluate(()=>window.__monoidGame?.state().runId)).toBe(original);
  await expect.poll(()=>page.evaluate(()=>window.__monoidMusic?.snapshot().preset.instrumentWave)).toBe('bell');
 });
+
+
+test('Audio Lab round trip and corrupt local save recover the same run and permanent unlocks',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.addInitScript(()=>{
+  localStorage.setItem('monoid.profileContext.v1','player');
+  localStorage.setItem('iterion.entryBypass.v1','true');
+ });
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:4173/');
+ await expect(page.locator('.app')).toBeVisible();
+ const before=await page.evaluate(()=>{
+  window.MonoidProfile.unlockMode('peaks','player');
+  window.MonoidProfile.completeMode('peaks','player');
+  window.MonoidProfile.unlockMode('islands','player');
+  return{runId:window.__monoidGame.state().runId,playerId:window.MonoidProfile.ensureProfile().profileId};
+ });
+ await expect.poll(()=>page.evaluate(async()=>{
+  const records=await window.MonoidRunBackup.create().candidates('player');
+  return records.length;
+ })).toBeGreaterThan(0);
+
+ await page.locator('#menuButton').click();
+ await page.locator('#menuGroupSystem').click();
+ await page.locator('#musicAudioLab').click();
+ await expect(page).toHaveURL(/experiments\/audio-lab\//);
+ await page.locator('#presetWave').selectOption('bell');
+ await page.locator('#presetTestGame').click();
+ await expect(page.locator('.app')).toBeVisible();
+ expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(before.runId);
+ expect(await page.evaluate(()=>window.MonoidProfile.isModeUnlocked('islands'))).toBe(true);
+
+ // A crash/quota rollback of the primary run must restore the independent verified checkpoint.
+ await page.evaluate(()=>localStorage.setItem('iterion.activeRun.v1','{corrupted'));
+ await page.reload();
+ await expect(page.locator('.app')).toBeVisible();
+ expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(before.runId);
+ const restored=await page.evaluate(()=>({
+  playerId:window.MonoidProfile.ensureProfile().profileId,
+  islands:window.MonoidProfile.isModeUnlocked('islands'),
+  completed:window.MonoidProfile.isModeCompleted('peaks'),
+  source:window.__monoidPersistence.recovery?.source
+ }));
+ expect(restored.playerId).toBe(before.playerId);
+ expect(restored.islands).toBe(true);
+ expect(restored.completed).toBe(true);
+ expect(['latest','previous']).toContain(restored.source);
+ expect(errors).toEqual([]);
+});
