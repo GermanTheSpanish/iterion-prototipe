@@ -3,11 +3,15 @@
 import {createStemPlayer} from './experiments/audio-lab/stem-player.js';
 import {STEMS,identifyStem} from './experiments/audio-lab/stem-scenes.js';
 import {analyseMachine,mixForMachine} from './music-morphology.js';
+import {createMachineEffects} from './audio-effects.js';
+import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
  if(!menu||document.getElementById('musicSettings'))return;
- const player=createStemPlayer();
+ const player=createStemPlayer(),effects=createMachineEffects(player);
+ function readPreset(){try{return normalizeAudioPreset(JSON.parse(localStorage.getItem(AUDIO_PRESET_STORAGE)||'{}'))}catch{return normalizeAudioPreset()}}
+ let preset=readPreset();effects.setPreset(preset);
  const section=document.createElement('fieldset');
  section.id='musicSettings';section.className='routePreviewSetting';
  section.innerHTML=
@@ -19,7 +23,8 @@ function installMusic(){
   '<button type="button" id="musicPlay">PLAY</button>'+
   '<button type="button" id="musicStop">STOP</button></div>'+
   '<label class="musicMaster">VOLUME <input type="range" id="musicVolume" min="0" max="100" value="55" step="5" aria-label="Music volume"></label>'+
-  '<p id="musicStatus" class="musicStatus" role="status" aria-live="polite">Off · choose your local A–F WAV stems.</p>'+
+  '<p id="musicStatus" class="musicStatus" role="status" aria-live="polite">Off · choose your local A–F WAV stems.</p>'+ 
+  '<div class="musicActions"><a href="./experiments/audio-lab/" target="_blank" rel="noopener" id="musicAudioLab">AUDIO LAB</a><button type="button" id="musicPresetButton">IMPORT PRESET</button></div>'+
   '<small>Music is optional. Choose files again after reloading the game.</small>';
  const style=document.createElement('style');style.id='monoid-music-styles';
  style.textContent=
@@ -28,7 +33,8 @@ function installMusic(){
   '#musicSettings{text-align:left}'+
   '#musicSettings .musicHelp{font-size:10px;line-height:1.4;margin:5px 0 9px;opacity:.8}'+
   '#musicSettings .musicActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}'+
-  '#musicSettings .musicActions button{font:inherit;font-size:10px;font-weight:800;min-height:39px;min-width:0;padding:4px 2px;border:1px solid currentColor;border-radius:6px;background:transparent;color:inherit}'+
+  '#musicSettings .musicActions a{display:flex;align-items:center;justify-content:center;text-decoration:none}'+
+  '#musicSettings .musicActions button,#musicSettings .musicActions a{font:inherit;font-size:10px;font-weight:800;min-height:39px;min-width:0;padding:4px 2px;border:1px solid currentColor;border-radius:6px;background:transparent;color:inherit}'+
   '#musicSettings .musicMaster{font-size:10px;display:flex;align-items:center;gap:12px;margin:10px 0}'+
   '#musicSettings .musicMaster input{min-width:0;flex:1}'+
   '#musicSettings .musicStatus{font-size:10px;line-height:1.4;min-height:28px;margin:6px 0}';
@@ -36,7 +42,8 @@ function installMusic(){
  const anchor=document.getElementById('gameSelectionButton');
  // Another presentation layer may reparent actions while modules initialize.
  if(anchor?.parentNode===menu)menu.insertBefore(section,anchor);else menu.appendChild(section);
- const files=document.createElement('input'),folder=document.createElement('input');
+ const files=document.createElement('input'),folder=document.createElement('input'),presetFile=document.createElement('input');
+ presetFile.type='file';presetFile.accept='.json,application/json';presetFile.hidden=true;presetFile.id='musicPresetInput';section.appendChild(presetFile);
  for(const input of [files,folder]){
   input.type='file';input.accept='.wav,audio/wav';input.multiple=true;input.hidden=true;
   input.setAttribute('aria-label',input===folder?'Select stem folder':'Select WAV stems');
@@ -48,7 +55,7 @@ function installMusic(){
  const $=id=>section.querySelector('#'+id);
  const volume=$('musicVolume'),status=$('musicStatus');
  const show=text=>{status.textContent=text};
- let enabled=false,roundKey='',thinkingSeconds=0,lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0;
+ let enabled=false,armed=false,roundKey='',thinkingSeconds=0,lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0,acousticMode='';
  const current=()=>window.__monoidGame?.state?.()||null;
  const flow=()=>window.__monoidFlow?.screen||'entry';
  function diagnostic(type,detail={}){
@@ -56,7 +63,7 @@ function installMusic(){
  }
  function stop(reason='Stopped · stems remain loaded'){
   const wasPlaying=enabled||player.isPlaying();
-  enabled=false;player.stop();show(reason);
+  enabled=false;armed=false;player.stop();effects.cancel();show(reason);
   if(wasPlaying)diagnostic('music-stopped',{reason});
  }
  function available(){return new Set(player.loaded())}
@@ -71,6 +78,7 @@ function installMusic(){
    found.set(id,file);
   }
   for(const {id} of STEMS)player.setFile(id,found.get(id)||null);
+  armed=available().has('F');
   const present=player.loaded(),missing=STEMS.filter(s=>!present.includes(s.id)).map(s=>s.id);
   show(present.length+'/6 stems · '+(present.join(', ')||'none')+
    (missing.length?' · missing '+missing.join(', '):'')+
@@ -80,10 +88,11 @@ function installMusic(){
   diagnostic('music-stems-selected',{loaded:present,missing,ignoredCount:ignored.length,duplicateCount:duplicates.length});
  }
  async function play(){
+  if(!(current()?.pieces||[]).length){show('ARMED · Music and drums begin with the first placed tile.');return}
   if(flow()!=='game'){show('Start a run before playing music.');return}
   if(!available().has('F')){show('Load F Drum first (the A–F stem folder or individual WAVs).');return}
   try{
-   enabled=true;update(true);
+   armed=true;enabled=true;update(true);
    show('Preparing sample-locked WAV stems…');
    const result=await player.start(); // Direct user click unlocks AudioContext on iOS.
    if(!enabled)return;
@@ -92,6 +101,20 @@ function installMusic(){
    diagnostic('music-started',{loaded:player.loaded(),volume:Number(volume.value)/100});
    update(true);
   }catch(error){stop('Music unavailable: '+String(error?.message||error))}
+ }
+ function applyAcoustics(state){
+  const modal=document.querySelector('#overlay.show .modal');
+  const shopping=Boolean(state?.shopOpen||modal?.classList.contains('commerceModal')||modal?.querySelector('.toolPurchase'));
+  const cascade=Boolean(document.getElementById('board')?.dataset.cascadePhase||state?.running||state?.cleared);
+  const mode=menu.open?'menu':shopping?'shop':cascade?'cascade':'game';
+  if(mode===acousticMode)return;
+  acousticMode=mode;
+  const options=mode==='menu'?{level:0,lowpass:20000,fadeMs:preset.menuFadeMs}:
+   mode==='shop'?{level:audioDbGain(preset.shopDuckDb),lowpass:preset.shopLowpassHz,fadeMs:preset.shopFadeMs}:
+   mode==='cascade'?{level:audioDbGain(preset.cascadeDuckDb),lowpass:20000,fadeMs:preset.cascadeFadeMs}:
+   {level:1,lowpass:20000,fadeMs:preset.recoveryMs};
+  player.setAcoustics(options);
+  diagnostic('music-acoustics',{mode});
  }
  function canCountTime(state){
   return flow()==='game'&&!document.hidden&&!menu.open&&
@@ -106,6 +129,7 @@ function installMusic(){
    if(enabled)stop('Paused outside a run · press Play to resume.');
    return;
   }
+  applyAcoustics(state);
   const key=String(state.runId||'')+':'+String(state.round??0);
   if(key!==roundKey){roundKey=key;thinkingSeconds=0;lastValues=null;force=true}
   if(canCountTime(state))thinkingSeconds+=delta;
@@ -134,18 +158,39 @@ function installMusic(){
  $('musicFilesButton').addEventListener('click',()=>files.click());
  for(const input of [files,folder])input.addEventListener('change',()=>{load(input.files);input.value=''});
  $('musicPlay').addEventListener('click',()=>{void play()});
+ $('musicPresetButton').addEventListener('click',()=>presetFile.click());
+ presetFile.addEventListener('change',async()=>{
+  const selected=presetFile.files?.[0];if(!selected)return;
+  try{const next=normalizeAudioPreset(JSON.parse(await selected.text()));localStorage.setItem(AUDIO_PRESET_STORAGE,JSON.stringify(next));preset=next;effects.setPreset(next);acousticMode='';applyAcoustics(current());show('Preset imported · '+selected.name)}
+  catch(e){show('Preset rejected: '+String(e.message||e))}
+  finally{presetFile.value=''}
+ });
+ window.addEventListener('monoid:audio',event=>{
+  const {type,kind,...detail}=event.detail||{};
+  if(type==='placement'){
+   effects.cue('placement',detail);
+   if(detail.first&&armed&&!enabled&&available().has('F'))void play();
+  }else if(type==='cue'){effects.cue(kind,detail)}
+  else if(type==='fire'){effects.cue('core',detail)}
+  else if(type==='cascade-skip'||type==='cascade-end'){effects.cancel()}
+  update();
+ });
+ menu.addEventListener('close',()=>update());
+ menu.addEventListener('cancel',()=>update());
+ const modalObserver=new MutationObserver(()=>update());
+ modalObserver.observe(document.getElementById('overlay'),{attributes:true,attributeFilter:['class'],subtree:false});
  $('musicStop').addEventListener('click',()=>stop());
  volume.addEventListener('input',()=>{player.setMaster(Number(volume.value)/100)});
  player.setMaster(Number(volume.value)/100);
- const poll=setInterval(()=>update(),1500);
+ const poll=setInterval(()=>update(),250);
  document.addEventListener('visibilitychange',()=>{
   lastSample=performance.now();
-  if(document.hidden&&enabled)stop('Stopped while the game was in background · press Play to resume.');
+  if(document.hidden){effects.cancel();if(enabled)stop('Stopped in background · press Play to resume.')}else{preset=readPreset();effects.setPreset(preset);acousticMode='';update()};
  });
- window.addEventListener('pagehide',()=>{clearInterval(poll);player.dispose()},{once:true});
+ window.addEventListener('pagehide',()=>{clearInterval(poll);modalObserver.disconnect();effects.cancel();player.dispose()},{once:true});
  window.__monoidMusic=Object.freeze({
   snapshot:()=>({playing:enabled&&player.isPlaying(),loaded:player.loaded(),
-   thinkingSeconds,topology:lastMix?.topology||null,db:lastMix?.db||null,
+   thinkingSeconds,acousticMode,armed,preset,effects:effects.snapshot(),topology:lastMix?.topology||null,db:lastMix?.db||null,
    transport:player.getSyncStatus()}),
   stop:()=>stop()
  });
