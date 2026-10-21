@@ -92,8 +92,9 @@
     clearCascadeSkipHint();if(tutorial)return;
     cascadeSkipHintTimer=setTimeout(()=>{cascadeSkipHintTimer=0;if(!cascadeControl.active||cascadeControl.phase==='final')return;const d=document.createElement('div');d.className='cascadeSkipHint';d.setAttribute('role','status');d.setAttribute('aria-live','polite');d.textContent='TAP SCREEN TO SKIP';board.appendChild(d)},V.CASCADE.skipHintAfterMs||6000)
   }
-  function beginCascadeControl(){cascadeControl.active=true;cascadeControl.phase='cascade';cascadeControl.skipCascade=false;cascadeControl.skipSummary=false;cascadeControl.lastTap=0;cascadeControl.renderedSteps=0;cascadeControl.waiters.clear();board.dataset.cascadePhase='cascade';armCascadeSkipHint()}
-  function endCascadeControl(){for(const waiter of [...cascadeControl.waiters])waiter.done();cascadeControl.waiters.clear();clearCascadeSkipHint();cascadeControl.active=false;cascadeControl.phase='idle';cascadeControl.lastTap=0;signalHudState.active=false;delete board.dataset.cascadePhase}
+  function emitMachineAudio(type,detail={}){window.dispatchEvent(new CustomEvent('monoid:audio',{detail:{type,...detail}}))}
+   function beginCascadeControl(){emitMachineAudio('cascade-start');cascadeControl.active=true;cascadeControl.phase='cascade';cascadeControl.skipCascade=false;cascadeControl.skipSummary=false;cascadeControl.lastTap=0;cascadeControl.renderedSteps=0;cascadeControl.waiters.clear();board.dataset.cascadePhase='cascade';armCascadeSkipHint()}
+  function endCascadeControl(){emitMachineAudio('cascade-end');for(const waiter of [...cascadeControl.waiters])waiter.done();cascadeControl.waiters.clear();clearCascadeSkipHint();cascadeControl.active=false;cascadeControl.phase='idle';cascadeControl.lastTap=0;signalHudState.active=false;delete board.dataset.cascadePhase}
   function cascadePhaseSkipped(phase){return phase==='cascade'?cascadeControl.skipCascade:phase==='summary'?cascadeControl.skipSummary:false}
   function releaseCascadeWaiters(phase){for(const waiter of [...cascadeControl.waiters])if(waiter.phase===phase)waiter.done()}
   function cascadeWait(ms,phase=cascadeControl.phase){
@@ -105,8 +106,8 @@
     e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
     const now=performance.now();if(now-cascadeControl.lastTap<(V.CASCADE.skipDebounceMs||120))return;
     cascadeControl.lastTap=now;
-    if(cascadeControl.phase==='cascade'&&!cascadeControl.skipCascade){cascadeControl.skipCascade=true;releaseCascadeWaiters('cascade');return}
-    if(cascadeControl.phase==='summary'&&!cascadeControl.skipSummary){cascadeControl.skipSummary=true;clearCascadeSkipHint();releaseCascadeWaiters('summary')}
+    if(cascadeControl.phase==='cascade'&&!cascadeControl.skipCascade){cascadeControl.skipCascade=true;emitMachineAudio('cascade-skip');releaseCascadeWaiters('cascade');return}
+    if(cascadeControl.phase==='summary'&&!cascadeControl.skipSummary){cascadeControl.skipSummary=true;emitMachineAudio('cascade-skip');clearCascadeSkipHint();releaseCascadeWaiters('summary')}
   }
   window.addEventListener('pointerdown',handleCascadeSkip,{capture:true,passive:false});
   const px=n=>n/E.G*100+'%',py=n=>n/E.H*100+'%';
@@ -826,6 +827,7 @@
     if(!drag.active||drag.pointerId!=null&&e.pointerId!=null&&drag.pointerId!==e.pointerId)return;moveDrag(e);const kind=drag.kind,i=drag.index,tileId=drag.tileId,c=drag.candidate,invalidReason=drag.invalidReason,pointerId=drag.pointerId;if(drag.float)drag.float.remove();try{if(pointerId!=null&&board.hasPointerCapture?.(pointerId))board.releasePointerCapture(pointerId)}catch{}drag={active:false,kind:null,index:-1,tileId:null,tile:null,candidates:[],candidate:null,candidateSince:null,candidatePointerX:null,candidatePointerY:null,candidateLocked:false,topologyBreaks:[],preview:null,float:null};if(kind!=='ouroboros')renderBoard();if(!c){renderBoard();if(kind==='ouroboros')toast(invalidReason==='overlap'?'SPACE OCCUPIED':invalidReason==='bounds'?'OUTSIDE BOARD':invalidReason==='core-overlap'?'CORE OCCUPIED':'INVALID REBUILD');renderHand();return}
     if(kind==='ouroboros'){const r=GAME.moveOuroborosTile(tileId,c);if(!r.ok){toast('Invalid rebuild');render();return}ouroborosSelection=tileId;ouroborosPreviewSuspended=true;if(!r.unchanged){PT?.recordOuroborosRebuild?.({tileId,from:r.from,to:r.to,rotated:r.from?.rr!==r.to?.rr,relocated:r.from?.x!==r.to?.x||r.from?.y!==r.to?.y});persistGame()}render();if(r.topologyLosses?.length)toast(`REBUILD · LOST ${r.topologyLosses.map(x=>x.label).join(', ')}`);return}
     const game=GAME,generationBefore=game.state().setGeneration||1,ouroborosBefore=!!game.state().ouroborosMode;if(!tutorial)PT?.recordDecision();const decision=!tutorial?game.decisionTelemetry(i,c,{maxEvaluations:48,timeBudgetMs:32}):null,searchStarted=performance.now(),ctx=GAME.beginPlacement(i,c),searchMs=performance.now()-searchStarted;if(!ctx.ok){toast(ctx.reason==='tile-already-in-machine'?'Tile already in machine':'Invalid placement');render();armDecisionTiming();return}
+    emitMachineAudio('placement',{first:game.state().pieces.length===1,tileId:ctx.tile.id});
     uiBusy=true;beginCascadeControl();const drawAnim=animateDrawSlot(i);renderBoard();const camera=rootCamera(),animationStarted=performance.now();let result=null,animationMeta={skippedCascade:false,skippedSummary:false},exitPending=false;
     try{
       camera?.beginCascade(ctx.sim.events||[]);try{animationMeta=await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output)}finally{camera?.endCascade()}
@@ -852,6 +854,7 @@
   function ouroborosLayoutTelemetry(){return GAME.state().pieces.map(piece=>({tileId:piece.tile?.id||piece.id,x:piece.cubes?.[0]?.x??0,y:piece.cubes?.[0]?.y??0,rr:piece.rr??0}))}
   async function fireOuroborosSelection(){
     if(!ouroborosSelection||uiBusy||auxOverlay)return;const game=GAME,ctx=game.beginOuroborosFire?.(ouroborosSelection);if(!ctx?.ok){toast('FIRE unavailable');return}const decisionMs=PT?.recordDecision?.('ouroboros')||0;
+    emitMachineAudio('fire',{tileId:ctx.tile?.id||ouroborosSelection});
     uiBusy=true;beginCascadeControl();renderBoard();const camera=rootCamera(),animationStarted=performance.now();let result=null,animationMeta={skippedCascade:false,skippedSummary:false};
     try{camera?.beginCascade(ctx.sim.events||[]);try{animationMeta=await animate(ctx.p,ctx.trigger,ctx.sim,game.moveResonance(ctx.sim,ctx.trigger).output)}finally{camera?.endCascade()}result=game.finishPlacement(ctx);window.NomonUiPolish?.snapScore?.(game.state().score);recordPerformance(ctx.sim,0,performance.now()-animationStarted,animationMeta);offerCascadeFastForward(performance.now()-animationStarted,(ctx.sim.events||[]).length);const signal=game.signalTelemetry(ctx.sim,game.state().pieces),route=routeTelemetryForSim(ctx.sim,game.state().pieces);PT?.recordOuroborosFire?.({decisionMs,turn:game.state().turn,tileId:ctx.tile.id,output:result?.resonance?.output??game.state().score,outputExact:result?.resonance?.outputExact??game.state().scoreExact,selectionOutput:ctx.sim.output??ctx.trigger,selectionOutputExact:ctx.sim.outputExact??window.MonoidScore.exact(ctx.sim.output??ctx.trigger),routeLength:route.routeLength,routeTileIds:route.routeTileIds,operationCount:signal.operationCount,uniqueVisitedPieceCount:signal.uniqueVisitedPieceCount,reentryOperationCount:signal.reentryOperationCount,retraceMoveCount:signal.retraceMoveCount,layout:ouroborosLayoutTelemetry()});persistGame()}
     finally{endCascadeControl();uiBusy=false}
@@ -961,7 +964,7 @@
     clearTransientFx();board.querySelectorAll('.cascadeSubtotal').forEach(el=>el.remove());board.querySelectorAll('.signalActive,.signalLane0,.signalLane1,.signalEcho').forEach(el=>el.classList.remove('signalActive','signalLane0','signalLane1','signalEcho'));activePulses.clear();
     const accelerated=!tutorial&&fastForwardEnabled()&&events.length>V.CASCADE.playbackEventThreshold,items=V.cascadeSettlementPlan(events,baseOutput,fallbackPiece,tutorial?8:accelerated?V.CASCADE.acceleratedContributions:V.CASCADE.contributionLimit),cards=[],allPieceIds=[...new Set(items.flatMap(item=>item.pieceIds||[]))];
     let firstCard=null;if(items[0]){firstCard=showCascadeSubtotal(items[0]);cards.push(firstCard);setCascadeHighlight(items[0].pieceIds||[],[])}
-    cascadeControl.phase='summary';board.dataset.cascadePhase='summary';
+    cascadeControl.phase='summary';emitMachineAudio('cascade-summary');board.dataset.cascadePhase='summary';
     const subtotalHoldMs=tutorial?240:accelerated?220:V.CASCADE.subtotalHoldMs,settleItemMs=tutorial?220:accelerated?260:V.CASCADE.settleItemMs,resonanceSettleMs=tutorial?300:accelerated?280:V.CASCADE.resonanceSettleMs,targetSettleMs=tutorial?260:accelerated?300:V.CASCADE.targetSettleMs,pathMs=tutorial?0:accelerated?40:V.CASCADE.summaryPathMs,segmentMs=tutorial?0:accelerated?45:V.CASCADE.summarySegmentMs,resolveMs=tutorial?0:accelerated?40:V.CASCADE.summaryResolveMs;
     await cascadeWait(subtotalHoldMs,'summary');
     const polish=window.NomonUiPolish,note=$('scoreNote'),detail=$('scoreDetail');detail?.setAttribute('aria-busy','true');polish?.snapScore?.(0);if(!polish?.snapScore)scoreEl.textContent='0';
@@ -989,7 +992,7 @@
       else{setCascadeHighlight(allPieceIds,allPieceIds);if(polish?.tweenScore)polish.tweenScore(resolved,resonanceSettleMs);else scoreEl.textContent=V.scoreDisplay(resolved,target).score;await cascadeWait(resonanceSettleMs,'summary')}
     }
     detail?.removeAttribute('aria-busy');const settled=Number.isFinite(resolved)?resolved:base;note.textContent=V.scoreDisplay(settled,target).note;setCascadeHighlight(allPieceIds,allPieceIds);
-    cascadeControl.phase='final';board.dataset.cascadePhase='final';clearCascadeSkipHint();if(!tutorial)await cascadeWait(V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
+    cascadeControl.phase='final';emitMachineAudio('cascade-final');board.dataset.cascadePhase='final';clearCascadeSkipHint();if(!tutorial)await cascadeWait(V.CASCADE.finalHoldMs,'final');clearCascadeHighlight();return settled
   }
   function reboundFx(x,y,angle=180,index=0,lane=''){const d=fx(x,y,'',0,'signal cascadeStructural reboundFx',index,lane,false,V.CASCADE.structuralFxMs);d.innerHTML=`<span class="reboundArrow" aria-hidden="true">→</span><small>${V.scoreStructuralLabel({type:'rebound'})}</small>`;d.firstChild.style.transform=`rotate(${angle}deg)`;fitBoardLabel(d);return d}
   async function animateSequence(events,lane,startIndex=0,startEcho=()=>{}){
@@ -997,6 +1000,11 @@
     while(i<events.length){
       if(cascadeControl.skipCascade||(!tutorial&&fastForwardEnabled()&&cascadeControl.renderedSteps>=V.CASCADE.playbackStepLimit))return index;
       const e=events[i];
+      if(['op','rebound','signal-fork','zero-port','core-activate','core-relay','island-link'].includes(e.type)){
+        const kind=e.type==='op'?'op':e.type==='signal-fork'?'split':e.type==='zero-port'?'teleport':e.type.startsWith('core-')||e.type==='island-link'?'core':e.type;
+        const piece=pc(e.piece),pip=e.type==='op'?(piece?.cubes?.find(c=>c.half===e.exitHalf)?.v??piece?.cubes?.[0]?.v??0):0;
+        emitMachineAudio('cue',{kind,pip,reverse:!!e.reverse,pan:lane.family==='echo'?.35:lane.path.endsWith('B')?.45:-.15});
+      }
       if(e.type==='op'||['signal-fork','rebound','zero-port','core-activate','core-relay','peak-ridge','island-dormant','island-link','signal-depleted','diode-block','return','hinge-move','hinge-blocked','toll-spend'].includes(e.type))cascadeControl.renderedSteps++;
       if(e.type==='signal-fork'){
         const block=V.forkBlock(events,i),pp=pc(e.piece);if(!block){i++;continue}
