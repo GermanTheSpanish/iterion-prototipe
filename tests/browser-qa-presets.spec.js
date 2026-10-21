@@ -36,10 +36,29 @@ async function assertLateGameSurface(page,id,{expectZp=2,minPieces=19,minPower=5
   });
   expect(centering.box).toBeLessThan(1.25);expect(centering.glyphs).toBeLessThan(1.25);
   await page.locator('#menuButton').click();
-  await expect(page.locator('.menuBuildStamp')).toContainText('build 20261019.1');
+  await expect(page.locator('.menuBuildStamp')).toContainText('build 20261020.1');
   await expect(page.locator('.qaPresetStamp')).toContainText('SAVED RUN SAFE');
   await page.locator('#closeMenu').click()
 }
+
+test('QA menu insertion ignores nested paragraph anchors',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto(BASE);
+  const result=await page.evaluate(()=>{
+    const menu=document.getElementById('gameMenu');
+    menu.querySelector('#qaTestRunsButton')?.remove();
+    document.getElementById('qaTestRunsDialog')?.remove();
+    const hint=menu.querySelector(':scope > p');
+    if(!hint)return{error:'missing direct menu hint'};
+    const nested=document.createElement('section');nested.innerHTML='<p>Nested help paragraph</p>';
+    menu.insertBefore(nested,hint);
+    const installed=window.MonoidQaPresets.installMenuAccess(window);
+    const button=menu.querySelector('#qaTestRunsButton');
+    return{installed,buttonBeforeHint:button?.nextElementSibling===hint,nestedIntact:nested.querySelector('p')?.textContent==='Nested help paragraph'};
+  });
+  expect(result).toEqual({installed:true,buttonBeforeHint:true,nestedIntact:true});
+  expect(errors).toEqual([]);
+});
 
 test('Classic R14 QA link exposes Phase A late-game states without touching the saved run',async({page},testInfo)=>{
   await page.setViewportSize({width:390,height:844});await seedRealSave(page);

@@ -5,7 +5,7 @@
   if(root?.document){api.installMenuAccess(root);api.autoStart(root);api.autoResumeReturn(root);}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const BUILD_ID='20261019.1';
+  const BUILD_ID='20261020.1';
   const ACTIVE_RUN_KEY='iterion.activeRun.v1';
   const ACTIVE_MODE_KEY='iterion.activeRunMode.v1';
   const LATEST_RUN_KEY='iterion.latestRun.v9';
@@ -355,7 +355,7 @@
     root.requestAnimationFrame(resume);return true
   }
   function installMenuAccess(root){
-    const doc=root.document,menu=doc?.getElementById('gameMenu'),anchor=doc?.querySelector('#gameMenu p');if(!doc||!menu||menu.querySelector('#qaTestRunsButton'))return false;
+    const doc=root.document,menu=doc?.getElementById('gameMenu'),anchor=menu?.querySelector(':scope > p');if(!doc||!menu||menu.querySelector('#qaTestRunsButton'))return false;
     const style=doc.createElement('style');style.id='monoid-qa-menu-style';style.textContent=`
       #qaTestRunsButton{margin-top:10px!important;border-top:1px solid var(--line)!important}
       #qaTestRunsDialog{width:min(420px,94vw);padding:18px}
