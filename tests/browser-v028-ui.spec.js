@@ -9,7 +9,7 @@ test('v028 resolved SCORE progress, abbreviations and debug file sharing',async(
   });
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.locator('.wordmark')).toHaveText('MONOID');
-  await expect(page).toHaveTitle('MONOID v0.81.0');
+  await expect(page).toHaveTitle('MONOID v0.81.1');
   expect(await page.evaluate(()=>[window.IterionPresentation.cascadeDelay(0),window.IterionPresentation.cascadeDelay(1),window.IterionPresentation.cascadeDelay(2),window.IterionPresentation.cascadeDelay(1000)])).toEqual([600,600,560,60]);
   expect(await page.evaluate(()=>window.IterionPresentation.CASCADE.scoreTweenMs)).toBe(520);
   await expect(page.locator('#scoreDetail .scoreProgress')).toBeVisible();
