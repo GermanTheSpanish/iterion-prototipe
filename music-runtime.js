@@ -61,9 +61,9 @@ function installMusic(){
  function diagnostic(type,detail={}){
   try{window.MonoidTelemetryEvents?.record?.(type,detail)}catch(_){}
  }
- function stop(reason='Stopped · stems remain loaded'){
+ function stop(reason='Stopped · stems remain loaded',{preserveArmed=false}={}){
   const wasPlaying=enabled||player.isPlaying();
-  enabled=false;armed=false;player.stop();effects.cancel();show(reason);
+  enabled=false;if(!preserveArmed)armed=false;player.stop();effects.cancel();show(reason);
   if(wasPlaying)diagnostic('music-stopped',{reason});
  }
  function available(){return new Set(player.loaded())}
