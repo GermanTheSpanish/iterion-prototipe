@@ -82,3 +82,40 @@ test('Audio Lab sound preset can be imported in-game without changing the run',a
  expect(await page.evaluate(()=>window.__monoidGame.state().runId)).toBe(runId);
  await expect(page.locator('#musicAudioLab')).toHaveAttribute('href','./experiments/audio-lab/');
 });
+
+function privateAudioFixture(){
+ const fragment=wav(),samples=22050;
+ const manifest={schema:'monoid-audio-pack-v1',private:true,codec:'aac-lc',sampleRateHz:44100,channels:2,
+  segmentSamples:samples,totalSamples:samples*2,segmentCount:2,
+  stems:{F:{segments:[{offset:0,bytes:fragment.length},{offset:fragment.length,bytes:fragment.length}]}}};
+ const header=Buffer.from(JSON.stringify(manifest)),prefix=Buffer.alloc(12);
+ prefix.write('MONOIDP1',0);prefix.writeUInt32LE(header.length,8);
+ return Buffer.concat([prefix,header,fragment,fragment]);
+}
+test('private compressed transport stores one pack and restores F Drum after reload',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.addInitScript(()=>localStorage.setItem('iterion.entryBypass.v1','true'));
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:4173/');
+ await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
+ await page.locator('#musicPackInput').setInputFiles({
+  name:'private-test.monoidpack',mimeType:'application/octet-stream',buffer:privateAudioFixture()
+ });
+ await expect(page.locator('#musicStatus')).toContainText('PRIVATE PACK STORED');
+ let snapshot=await page.evaluate(()=>window.__monoidMusic.snapshot());
+ expect(snapshot.packReady).toBe(true);
+ expect(snapshot.loaded).toEqual(['F']);
+ expect(snapshot.playing).toBe(false);
+ await page.reload();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().packReady)).toBe(true);
+ snapshot=await page.evaluate(()=>window.__monoidMusic.snapshot());
+ expect(snapshot.armed).toBe(true);
+ expect(snapshot.loaded).toEqual(['F']);
+ await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
+ await page.locator('#musicRemovePack').click();
+ await expect(page.locator('#musicStatus')).toContainText('pack forgotten');
+ await page.reload();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().packReady)).toBe(false);
+ expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).loaded).toEqual([]);
+ expect(errors).toEqual([]);
+});
