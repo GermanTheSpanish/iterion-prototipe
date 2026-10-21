@@ -62,6 +62,8 @@
   ]);
 
   const clone=function(value){return value==null?value:JSON.parse(JSON.stringify(value))};
+  // A compact independent entitlement ledger protects permanent unlocks from a stale or malformed profile.
+  const BACKUP_SUFFIX='.recovery.v1',PROGRESS_SUFFIX='.progress.v1';
 
   function create(options){
     options=options||{};
@@ -177,19 +179,52 @@
       return base
     }
 
+    function validProfile(value){return value&&typeof value==='object'&&typeof value.profileId==='string'&&value.profileId.length>0}
+    function progressLedger(profile){
+      return{profileId:profile.profileId,unlockedModes:[...profile.unlockedModes],completedModes:[...profile.completedModes],unlockedMods:[...profile.unlockedMods],stats:clone(profile.stats)}
+    }
+    function combineProgress(base,record){
+      if(!record||record.profileId!==base.profileId)return base;
+      for(const field of ['unlockedModes','completedModes','unlockedMods']){
+        const allowed=field==='unlockedMods'?MOD_UNLOCK_IDS:ALL_MODES,prior=Array.isArray(record[field])?record[field]:[];
+        base[field]=[...new Set([...base[field],...prior.filter(id=>allowed.includes(id))])]
+      }
+      for(const field of ['runsStarted','runsFinished','endlessRuns','ouroborosRuns'])base.stats[field]=Math.max(base.stats[field]||0,Number(record.stats?.[field])||0);
+      return base
+    }
+    function recoveredProfile(id){
+      const key=profileKey(id),primary=readJson(key),backup=readJson(key+BACKUP_SUFFIX),ledger=readJson(key+PROGRESS_SUFFIX);
+      const raw=validProfile(primary)?primary:validProfile(backup)?backup:validProfile(ledger)?ledger:null;
+      const profile=normalizeProfile(raw,id);
+      combineProgress(profile,backup);
+      combineProgress(profile,ledger);
+      return{profile,needsRepair:!validProfile(primary)||JSON.stringify(profile)!==JSON.stringify(normalizeProfile(primary,id))}
+    }
+    function storeProfile(profile,id){
+      const key=profileKey(id),current=readJson(key),backup=readJson(key+BACKUP_SUFFIX),ledger=readJson(key+PROGRESS_SUFFIX);
+      const merged=combineProgress(combineProgress(combineProgress(normalizeProfile(clone(profile),id),current),backup),ledger);
+      // Write independent recovery copies BEFORE touching the primary profile.
+      const ledgerOk=writeJson(key+PROGRESS_SUFFIX,progressLedger(merged));
+      const backupOk=writeJson(key+BACKUP_SUFFIX,merged);
+      if(!ledgerOk&&!backupOk)return{profile:validProfile(current)?normalizeProfile(current,id):merged,ok:false};
+      const primaryOk=writeJson(key,merged);
+      return{profile:merged,ok:primaryOk}
+    }
     function ensureProfile(context){
-      const id=validContext(context)||currentContext();
-      const key=profileKey(id);
-      const profile=normalizeProfile(readJson(key),id);
-      writeJson(key,profile);
-      return clone(profile)
+      const id=validContext(context)||currentContext(),recovered=recoveredProfile(id);
+      if(recovered.needsRepair||!readJson(profileKey(id)))storeProfile(recovered.profile,id);
+      // On a first upgrade, create protection for an existing healthy profile as well.
+      else if(!readJson(profileKey(id)+PROGRESS_SUFFIX)||!readJson(profileKey(id)+BACKUP_SUFFIX))storeProfile(recovered.profile,id);
+      return clone(recovered.profile)
     }
 
     function saveProfile(profile,context){
       const id=validContext(context)||currentContext();
-      const normalized=normalizeProfile(clone(profile),id);
-      writeJson(profileKey(id),normalized);
-      return clone(normalized)
+      return clone(storeProfile(profile,id).profile)
+    }
+    function recoveryStatus(context){
+      const id=validContext(context)||currentContext(),key=profileKey(id),profile=recoveredProfile(id).profile;
+      return{context:id,profileId:profile.profileId,primaryValid:!!validProfile(readJson(key)),backupValid:!!validProfile(readJson(key+BACKUP_SUFFIX)),ledgerValid:!!validProfile(readJson(key+PROGRESS_SUFFIX)),unlockedModes:[...profile.unlockedModes],completedModes:[...profile.completedModes],unlockedMods:[...profile.unlockedMods]}
     }
 
     function isDevAccess(){
@@ -314,7 +349,7 @@
           if(key&&key.startsWith(prefix))remove.push(key)
         }
         remove.forEach(function(key){storage.removeItem(key)});
-        if(storage)storage.removeItem(profileKey(id));
+        if(storage){storage.removeItem(profileKey(id));storage.removeItem(profileKey(id)+BACKUP_SUFFIX);storage.removeItem(profileKey(id)+PROGRESS_SUFFIX)}
         return true
       }catch(_){return false}
     }
@@ -412,7 +447,8 @@
       setContext:setContext,
       telemetryOptions:telemetryOptions,
       evaluateRun:evaluateRun,
-      contextInfo:contextInfo
+      contextInfo:contextInfo,
+      recoveryStatus:recoveryStatus
     })
   }
 
