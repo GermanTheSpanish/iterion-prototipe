@@ -44,7 +44,11 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  expect(['cascade','game']).toContain(now.acousticMode);
  expect(now.playing).toBe(true);expect(now.loaded).toEqual(['F']);
  expect(now.db.F).toBeGreaterThan(-20);
- await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
+ await expect(page.locator('#menuButton')).toBeEnabled();
+ await page.locator('#menuButton').click();
+ await expect(page.locator('#gameMenu')).toBeVisible();
+ await page.locator('#menuGroupSystem').click();
  await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().acousticMode)).toBe('menu');
  await page.locator('#musicStop').click();
  expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).playing).toBe(false);
