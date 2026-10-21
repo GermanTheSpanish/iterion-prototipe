@@ -1,5 +1,5 @@
 const MONOID_SW='monoid-dev-network-v3';
-const MONOID_VERSION='0.81.2';
+const MONOID_VERSION='0.81.1';
 const MONOID_BUILD='20261021.5';
 
 function compareBuilds(a,b){
