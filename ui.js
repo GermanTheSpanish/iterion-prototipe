@@ -140,13 +140,15 @@
     return candidate&&Number(candidate.checkpoint?.savedAt||0)>Number(primary?.checkpoint?.savedAt||0)?candidate:primary||candidate
   }
   async function prepareRunRecovery(){
-    const local=storedState(),closedId=localStorage.getItem(CLOSED_RUN_KEY);
+    const local=storedState();let closed=null;
+    try{closed=JSON.parse(localStorage.getItem(CLOSED_RUN_KEY)||'null')}catch(_){}
+    const closedAt=Number(closed?.at)||0;
     const records=await RUN_BACKUP?.candidates?.(runContext())||[];
     const candidates=[...(local?[{saved:local,source:'primary'}]:[]),...records.map(record=>({saved:RUN_BACKUP.parse(record.payload),source:record.slot}))];
     candidates.sort((a,b)=>Number(b.saved?.checkpoint?.savedAt||0)-Number(a.saved?.checkpoint?.savedAt||0));
     for(const candidate of candidates){
       const saved=candidate.saved;
-      if(!validSavedRun(saved)||saved.state.runId===closedId)continue;
+      if(!validSavedRun(saved)||(closedAt&&Number(saved.checkpoint?.savedAt||0)<=closedAt))continue;
       try{
         const probe=window.IterionGame.createGame(E,gameOptions(selectedMode(saved)));
         if(!probe.restoreState(saved))continue;
@@ -1183,7 +1185,8 @@
     recordDiagnostic('run-ended-by-player',{runId:GAME.state().runId});
     try{
       if(!await archiveSavedRun('end-run',true)){toast('RUN ARCHIVE FAILED · RUN PRESERVED');return}
-      localStorage.setItem(CLOSED_RUN_KEY,GAME.state().runId);
+      lastCheckpointTime=Math.max(Date.now(),lastCheckpointTime+1);
+      localStorage.setItem(CLOSED_RUN_KEY,JSON.stringify({runId:GAME.state().runId,at:lastCheckpointTime}));
       await RUN_BACKUP?.clear?.(runContext());
       recoveredSave=null;
       localStorage.removeItem(ACTIVE_RUN_KEY);localStorage.removeItem(LEGACY_RUN_KEY);
