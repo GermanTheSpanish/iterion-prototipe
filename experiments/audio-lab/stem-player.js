@@ -205,7 +205,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   prepared=null;
   if(run!==generation)return {loaded:0,errors:['Start cancelled']};
   playing=true;underruns=0;lastLateSeconds=0;nextIndex=1;lastError='';
-  startAt=context.currentTime+(pack?.08:.25);
+  startAt=context.currentTime+(pack ? .08 : .25);
   scheduleGroup(first,0,startAt);
   const pump=async()=>{
    if(!playing||run!==generation||busy)return;
