@@ -29,6 +29,23 @@ const {pathToFileURL}=require('node:url');
  assert.deepEqual(network,analyseMachine([center,west,east,north,
   tile('d',[[4,0,2],[5,0,2]]),tile('a',[[6,0,2],[7,0,2]]),
   tile('b',[[8,0,2],[9,0,2]]),tile('f',[[10,0,2],[11,0,2]])]));
+ // Equal-sized machines must sound structurally different, not merely louder.
+ const line=mixForMachine(analyseMachine([center,west,east]),0);
+ const winding=mixForMachine(analyseMachine([center,west,north]),0);
+ assert.equal(line.scene,'line');
+ assert.equal(line.leadingStem,'A');
+ assert.equal(winding.scene,'winding');
+ assert.equal(winding.leadingStem,'E');
+ assert(line.levels.A>0&&line.levels.E===0);
+ assert(winding.levels.E>0&&winding.levels.A===0);
+ const branch=mixForMachine(analyseMachine([center,west,east,north]),0);
+ assert.equal(branch.scene,'branch');
+ assert.equal(branch.leadingStem,'B');
+ const circuit=mixForMachine({tiles:4,edges:4,junctions:0,turns:0,cycles:1,components:1},0);
+ assert.equal(circuit.scene,'circuit');
+ assert.equal(circuit.leadingStem,'C');
+ assert(circuit.levels.C>0&&circuit.levels.B===0);
+ assert(late.levels.D>early.levels.D,'slow decisions shift towards atmospheric pads');
  assert.equal(dbToGain(-Infinity),0);
  assert.equal(dbToGain(0),1);
  assert.match(fs.readFileSync('index.html','utf8'),/music-runtime\.js/,'real game imports the runtime');

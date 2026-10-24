@@ -4,8 +4,8 @@ import {createStemPlayer} from './experiments/audio-lab/stem-player.js';
 import {STEMS,identifyStem} from './experiments/audio-lab/stem-scenes.js';
 import {analyseMachine,mixForMachine} from './music-morphology.js';
 import {createMachineEffects} from './audio-effects.js';
-import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261021.4';
-import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261021.4';
+import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261024.1';
+import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261024.1';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
@@ -58,7 +58,7 @@ function installMusic(){
  const $=id=>section.querySelector('#'+id);
  const volume=$('musicVolume'),status=$('musicStatus');
  const show=text=>{status.textContent=text};
- let packReady=false,selectedByUser=false,enabled=false,armed=false,roundKey='',thinkingSeconds=0,lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0,acousticMode='';
+ let packReady=false,selectedByUser=false,enabled=false,armed=false,startPending=false,roundKey='',lastRunId='',thinkingSeconds=0,decisionPace=0,hasDecision=false,missedFirstRun='',lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0,acousticMode='';
  const current=()=>window.__monoidGame?.state?.()||null;
  const flow=()=>window.__monoidFlow?.screen||'entry';
  function diagnostic(type,detail={}){
@@ -75,8 +75,12 @@ function installMusic(){
    const stored=await loadAudioPack();
    if(!stored||selectedByUser)return;
    player.setPack(stored);packReady=true;armed=true;
+   void player.prepare().then(ok=>diagnostic('music-pack-prepared',{ready:ok}));
    show('PRIVATE PACK READY · '+stored.ids.join(', ')+' · '+stored.manifest.segmentCount+' segments · starts on first tile');
    diagnostic('music-pack-restored',{loaded:stored.ids,segments:stored.manifest.segmentCount});
+   if(missedFirstRun&&missedFirstRun===String(current()?.runId||'')&&flow()==='game'&&current()?.pieces?.length){
+    missedFirstRun='';void play();
+   }
   }catch(error){show('Audio storage unavailable · use WAV files or import pack: '+String(error?.message||error))}
  }
  async function importPack(file){
@@ -85,6 +89,7 @@ function installMusic(){
   try{
    const pack=await saveAudioPack(file);
    player.setPack(pack);packReady=true;armed=true;
+   void player.prepare().then(ok=>diagnostic('music-pack-prepared',{ready:ok}));
    // Best-effort protection against storage eviction; not guaranteed on iOS.
    const persisted=await navigator.storage?.persist?.().catch(()=>false);
    show('PRIVATE PACK STORED · '+pack.ids.join(', ')+' · '+pack.manifest.segmentCount+' segments'+(persisted?' · persistent storage granted':''));
@@ -113,11 +118,12 @@ function installMusic(){
   diagnostic('music-stems-selected',{loaded:present,missing,ignoredCount:ignored.length,duplicateCount:duplicates.length});
  }
  async function play(){
+  if(startPending||enabled&&player.isPlaying())return;
   if(!(current()?.pieces||[]).length){show('ARMED · Music and drums begin with the first placed tile.');return}
   if(flow()!=='game'){show('Start a run before playing music.');return}
   if(!available().has('F')){show('Import the private audio pack or load F Drum WAV first.');return}
   try{
-   armed=true;enabled=true;update(true);
+   startPending=true;armed=true;enabled=true;update(true);
    show('Preparing synchronized '+(packReady?'M4A segments':'WAV stems')+'…');
    const result=await player.start(); // Direct user click unlocks AudioContext on iOS.
    if(!enabled)return;
@@ -126,6 +132,7 @@ function installMusic(){
    diagnostic('music-started',{loaded:player.loaded(),volume:Number(volume.value)/100});
    update(true);
   }catch(error){stop('Music unavailable: '+String(error?.message||error))}
+  finally{startPending=false}
  }
  function applyAcoustics(state){
   const modal=document.querySelector('#overlay.show .modal');
@@ -155,12 +162,18 @@ function installMusic(){
    return;
   }
   applyAcoustics(state);
-  const key=String(state.runId||'')+':'+String(state.round??0);
+  const runId=String(state.runId||'');
+  if(lastRunId&&runId!==lastRunId){
+   if(enabled)stop('New run · music armed for first placement.',{preserveArmed:true});
+   thinkingSeconds=0;decisionPace=0;hasDecision=false;lastValues=null;
+  }
+  lastRunId=runId;
+  const key=runId+':'+String(state.round??0);
   if(key!==roundKey){roundKey=key;thinkingSeconds=0;lastValues=null;force=true}
   if(canCountTime(state))thinkingSeconds+=delta;
   if(!enabled||!player.isPlaying()&& !force)return;
-  const topology=analyseMachine(state.pieces||[]),mix=mixForMachine(topology,thinkingSeconds);
-  if(force||!lastValues||Object.keys(mix.db).some(id=>{
+  const topology=analyseMachine(state.pieces||[]),mix=mixForMachine(topology,Math.max(thinkingSeconds,decisionPace*.7));
+  if(force||!lastValues||mix.scene!==lastMix?.scene||Object.keys(mix.db).some(id=>{
    const a=mix.db[id],b=lastValues[id];
    return a!==b&&(!Number.isFinite(a)||!Number.isFinite(b)||Math.abs(a-b)>.35);
   })){
@@ -168,6 +181,7 @@ function installMusic(){
    lastValues={...mix.db};lastMix=mix;
    if(enabled&&now-lastTelemetryAt>15000){
     diagnostic('music-mix',{round:(Number(state.round)||0)+1,thinkingSeconds:Math.round(thinkingSeconds),
+     decisionPace:Math.round(decisionPace),scene:mix.scene,leadingStem:mix.leadingStem,
      topology,db:Object.fromEntries(Object.entries(mix.db).map(([id,db])=>[id,Number.isFinite(db)?Math.round(db*10)/10:null]))});
     lastTelemetryAt=now;
    }
@@ -175,7 +189,8 @@ function installMusic(){
   if(enabled){
    const health=player.getSyncStatus();
    if(health.error){stop('Audio interrupted: '+health.error);return}
-   show('PLAYING · F Drum · '+topology.tiles+' tiles · '+Math.floor(thinkingSeconds)+'s decision time'+
+   show(health.paused?'PAUSED · tap the board to resume on the same audio clock':
+    'PLAYING · '+mix.scene.toUpperCase()+' / '+mix.leadingStem+' · F Drum · '+topology.tiles+' tiles · '+Math.floor(thinkingSeconds)+'s decision time'+
     (health.underruns?' · '+health.underruns+' buffer underrun(s)':''));
   }
  }
@@ -199,8 +214,14 @@ function installMusic(){
  window.addEventListener('monoid:audio',event=>{
   const {type,kind,...detail}=event.detail||{};
   if(type==='placement'){
+   update(); // Detect a replacement run before considering its first tile.
+   const sample=Math.min(180,thinkingSeconds);
+   decisionPace=hasDecision?decisionPace*.65+sample*.35:sample;
+   hasDecision=true;thinkingSeconds=0;
    effects.cue('placement',detail);
-   if(detail.first&&armed&&!enabled&&available().has('F'))void play();
+   if(detail.first&&!armed)missedFirstRun=String(current()?.runId||'');
+   // Continuing an existing run must also start on the next physical action.
+   if(armed&&!enabled&&available().has('F'))void play();
   }else if(type==='cue'){effects.cue(kind,detail)}
   else if(type==='fire'){effects.cue('core',detail)}
   else if(type==='cascade-skip'||type==='cascade-end'){effects.cancel()}
@@ -216,12 +237,23 @@ function installMusic(){
  const poll=setInterval(()=>update(),250);
  document.addEventListener('visibilitychange',()=>{
   lastSample=performance.now();
-  if(document.hidden){effects.cancel();if(enabled)stop('Stopped in background · press Play to resume.')}else{preset=readPreset();effects.setPreset(preset);acousticMode='';update()};
+  if(document.hidden){effects.cancel();if(enabled){player.suspend();show('PAUSED · tap the board to resume')}}else{preset=readPreset();effects.setPreset(preset);acousticMode='';update()};
  });
+ // On iOS, a resumed run with pieces needs a user gesture to unlock Web Audio.
+ // Do not start at boot, in menus, during a tutorial, or on an empty board.
+ window.addEventListener('pointerdown',()=>{
+  const state=current();
+  if(flow()!=='game'||document.hidden||menu.open||!state?.pieces?.length||
+     document.getElementById('overlay')?.classList.contains('show'))return;
+  if(enabled&&player.getSyncStatus().paused){player.resume();return}
+  if(!armed||enabled||startPending||!available().has('F'))return;
+  player.activateAudio();
+  void play();
+ },{capture:true});
  window.addEventListener('pagehide',()=>{clearInterval(poll);modalObserver.disconnect();effects.cancel();player.dispose()},{once:true});
  window.__monoidMusic=Object.freeze({
   snapshot:()=>({playing:enabled&&player.isPlaying(),loaded:player.loaded(),
-   thinkingSeconds,acousticMode,armed,packReady,preset,playbackSeconds:player.playbackSeconds(),effects:effects.snapshot(),topology:lastMix?.topology||null,db:lastMix?.db||null,
+   thinkingSeconds,decisionPace,acousticMode,armed,packReady,preset,playbackSeconds:player.playbackSeconds(),effects:effects.snapshot(),topology:lastMix?.topology||null,scene:lastMix?.scene||null,leadingStem:lastMix?.leadingStem||null,db:lastMix?.db||null,
    transport:player.getSyncStatus()}),
   stop:()=>stop()
  });
