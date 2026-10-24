@@ -173,7 +173,7 @@ function installMusic(){
   if(canCountTime(state))thinkingSeconds+=delta;
   if(!enabled||!player.isPlaying()&& !force)return;
   const topology=analyseMachine(state.pieces||[]),mix=mixForMachine(topology,Math.max(thinkingSeconds,decisionPace*.7));
-  if(force||!lastValues||Object.keys(mix.db).some(id=>{
+  if(force||!lastValues||mix.scene!==lastMix?.scene||Object.keys(mix.db).some(id=>{
    const a=mix.db[id],b=lastValues[id];
    return a!==b&&(!Number.isFinite(a)||!Number.isFinite(b)||Math.abs(a-b)>.35);
   })){
