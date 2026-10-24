@@ -189,7 +189,8 @@ function installMusic(){
   if(enabled){
    const health=player.getSyncStatus();
    if(health.error){stop('Audio interrupted: '+health.error);return}
-   show('PLAYING · '+mix.scene.toUpperCase()+' / '+mix.leadingStem+' · F Drum · '+topology.tiles+' tiles · '+Math.floor(thinkingSeconds)+'s decision time'+
+   show(health.paused?'PAUSED · tap the board to resume on the same audio clock':
+    'PLAYING · '+mix.scene.toUpperCase()+' / '+mix.leadingStem+' · F Drum · '+topology.tiles+' tiles · '+Math.floor(thinkingSeconds)+'s decision time'+
     (health.underruns?' · '+health.underruns+' buffer underrun(s)':''));
   }
  }
@@ -236,15 +237,16 @@ function installMusic(){
  const poll=setInterval(()=>update(),250);
  document.addEventListener('visibilitychange',()=>{
   lastSample=performance.now();
-  if(document.hidden){effects.cancel();if(enabled)stop('Paused in background · resumes on next interaction.',{preserveArmed:true})}else{preset=readPreset();effects.setPreset(preset);acousticMode='';update()};
+  if(document.hidden){effects.cancel();if(enabled){player.suspend();show('PAUSED · tap the board to resume')}}else{preset=readPreset();effects.setPreset(preset);acousticMode='';update()};
  });
  // On iOS, a resumed run with pieces needs a user gesture to unlock Web Audio.
  // Do not start at boot, in menus, during a tutorial, or on an empty board.
  window.addEventListener('pointerdown',()=>{
   const state=current();
   if(flow()!=='game'||document.hidden||menu.open||!state?.pieces?.length||
-     document.getElementById('overlay')?.classList.contains('show')||
-     !armed||enabled||startPending||!available().has('F'))return;
+     document.getElementById('overlay')?.classList.contains('show'))return;
+  if(enabled&&player.getSyncStatus().paused){player.resume();return}
+  if(!armed||enabled||startPending||!available().has('F'))return;
   player.activateAudio();
   void play();
  },{capture:true});
