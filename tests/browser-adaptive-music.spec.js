@@ -44,6 +44,8 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  expect(['cascade','game']).toContain(now.acousticMode);
  expect(now.playing).toBe(true);expect(now.loaded).toEqual(['F']);
  expect(now.db.F).toBeGreaterThan(-20);
+ expect(now.scene).toBe('line');
+ expect(now.leadingStem).toBe('A');
  await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
  await expect(page.locator('#menuButton')).toBeEnabled();
  await page.locator('#menuButton').click();
@@ -122,6 +124,7 @@ test('private compressed transport stores one pack and restores F Drum after rel
  snapshot=await page.evaluate(()=>window.__monoidMusic.snapshot());
  expect(snapshot.armed).toBe(true);
  expect(snapshot.loaded).toEqual(['F']);
+ expect(snapshot.transport.mode).toBe('shared-audio-clock');
  // The stored pack really decodes and starts in gameplay: not just a storage assertion.
  const target=await page.evaluate(()=>{
   const game=window.__monoidGame,engine=window.IterionEngine,state=game.state();
@@ -141,6 +144,7 @@ test('private compressed transport stores one pack and restores F Drum after rel
  await expect.poll(()=>page.evaluate(()=>window.__monoidStemStarts.length)).toBeGreaterThan(0);
  await page.waitForTimeout(150);
  expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).playing).toBe(true);
+ expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).transport.underruns).toBeGreaterThanOrEqual(0);
  await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
  await page.locator('#musicRemovePack').click();
