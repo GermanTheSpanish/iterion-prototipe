@@ -10,7 +10,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  const sources=new Set();
  let context=null,master=null,masterLevel=1,timer=null,playing=false,generation=0;
  let acoustic=null,lowpass=null,effects=null,acousticLevel=1,lowpassHz=20000;
- let pack=null;
+ let pack=null,prepared=null,preparing=null,packRevision=0,lastLateSeconds=0;
  let segmentFrames=0,segmentSeconds=0,totalSegments=0,nextIndex=0,startAt=0,busy=false,underruns=0;
  function init(){
   if(context)return context;
@@ -44,16 +44,16 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  }
  function setPack(parsed){
   if(!parsed?.blob||!parsed?.manifest?.stems?.F)throw new Error('Invalid compressed audio pack');
-  stop();pack=parsed;
+  stop();pack=parsed;prepared=null;preparing=null;packRevision++;
   for(const track of tracks.values()){track.file=null;track.header=null}
   lastError='';return loaded();
  }
- function clearPack(){stop();pack=null}
+ function clearPack(){stop();pack=null;prepared=null;preparing=null;packRevision++}
  function setFile(id,file){
   if(pack)clearPack();
   const track=tracks.get(id);
   if(!track)throw new RangeError('Unknown stem '+id);
-  stop();
+  stop();prepared=null;preparing=null;packRevision++;
   track.file=file||null;track.header=null;
   return Boolean(track.file);
  }
@@ -137,14 +137,36 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
    buffer:await decodePcmSegment(context,track.file,track.header,first,segmentFrames)
   })));
  }
- function scheduleGroup(group,index,at){
+ function scheduleGroup(group,index,at,offset=0){
   for(const {track,buffer} of group){
    const source=context.createBufferSource();
    source.buffer=buffer;source.connect(track.gain);
    sources.add(source);
    source.onended=()=>{sources.delete(source);source.disconnect()};
-   if(pack)source.start(at,0,segmentSeconds);else source.start(at);
+   if(offset>0)source.start(at,offset,Math.max(.001,segmentSeconds-offset));
+   else if(pack)source.start(at,0,segmentSeconds);else source.start(at);
   }
+ }
+ // Predecode only the first pack segment, while on the run entry screen.
+ // No playback or browser autoplay is attempted by this preparation.
+ function prepare(){
+  if(!pack)return Promise.resolve(false);
+  if(prepared)return Promise.resolve(true);
+  if(preparing)return preparing;
+  init();
+  segmentFrames=pack.manifest.segmentSamples;
+  totalSegments=pack.manifest.segmentCount;
+  segmentSeconds=segmentFrames/pack.manifest.sampleRateHz;
+  const revision=packRevision;
+  const available=[...tracks.values()].filter(t=>Boolean(pack.manifest.stems[t.id]));
+  preparing=loadGroup(0,available).then(group=>{
+   if(packRevision!==revision)return false;
+   prepared=group;return true;
+  }).catch(error=>{
+   if(packRevision===revision)lastError=String(error?.message||error);
+   return false;
+  }).finally(()=>{if(packRevision===revision)preparing=null});
+  return preparing;
  }
  async function start(){
   const available=[...tracks.values()].filter(t=>pack?Boolean(pack.manifest.stems[t.id]):Boolean(t.file));
@@ -178,10 +200,12 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
    segmentSeconds=segmentFrames/reference.sampleRate;
   }
   if(!totalSegments)throw new Error('No complete audio segments');
-  const first=await loadGroup(0,available);
+  if(pack&&preparing)await preparing;
+  const first=pack&&prepared?prepared:await loadGroup(0,available);
+  prepared=null;
   if(run!==generation)return {loaded:0,errors:['Start cancelled']};
-  playing=true;underruns=0;nextIndex=1;lastError='';
-  startAt=context.currentTime+.25;
+  playing=true;underruns=0;lastLateSeconds=0;nextIndex=1;lastError='';
+  startAt=context.currentTime+(pack?.08:.25);
   scheduleGroup(first,0,startAt);
   const pump=async()=>{
    if(!playing||run!==generation||busy)return;
@@ -193,12 +217,18 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
     const group=await loadGroup(index,available);
     if(!playing||run!==generation)return;
     let when=startAt+index*segmentSeconds;
-    if(when<context.currentTime+.04){
+    const earliest=context.currentTime+.04;
+    if(when<earliest){
      underruns++;
-     when=context.currentTime+.12;
-     startAt=when-index*segmentSeconds;
-    }
-    scheduleGroup(group,index,when);
+     lastLateSeconds=earliest-when;
+     // Never shift the shared musical origin: late fragments resume at the
+     // corresponding point within the segment, keeping all stems in phase.
+     if(lastLateSeconds>=segmentSeconds){
+      nextIndex=Math.max(index+1,Math.ceil((earliest-startAt)/segmentSeconds));
+      return;
+     }
+     scheduleGroup(group,index,earliest,lastLateSeconds);
+    }else scheduleGroup(group,index,when);
     nextIndex=index+1;
    }catch(error){
     if(run===generation){stop();lastError=String(error.message||error)}
@@ -214,12 +244,12 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   return Math.max(0,(context.currentTime-startAt)%(totalSegments*segmentSeconds));
  }
  function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
- function getSyncStatus(){return {mode:'shared-audio-clock',underruns,error:lastError}}
+ function getSyncStatus(){return {mode:'shared-audio-clock',underruns,lastLateSeconds,playbackSeconds:playbackSeconds(),error:lastError}}
  function dispose(){
-  stop();
+  stop();prepared=null;preparing=null;packRevision++;
   for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect()}
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,start,stop,getDrift,
+ return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,getDrift,
   getSyncStatus,playbackSeconds,loaded,levels,dispose,isPlaying:()=>playing};
 }
