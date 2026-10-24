@@ -1,5 +1,5 @@
-// Read-only, deterministic interpretation of the physical MONOID machine.
-// Music does not change placement, routing, score, RNG, or saved game state.
+// Read-only, deterministic interpretation of MONOID's physical board.
+// Audio never mutates placement, routing, gameplay RNG, or saved state.
 const clamp=(value,low=0,high=1)=>Math.max(low,Math.min(high,value));
 export function dbToGain(db){
  return Number.isFinite(db)?Math.pow(10,db/20):0;
@@ -37,21 +37,27 @@ export function analyseMachine(pieces=[]){
  return Object.freeze({tiles:tiles.length,edges,junctions,turns,cycles:Math.max(0,edges-tiles.length+components),components});
 }
 export function mixForMachine(topology={},thinkingSeconds=0){
- const n=Math.max(0,Number(topology.tiles)||0);
- const size=clamp((n-1)/22);
- const branching=clamp((Number(topology.junctions)||0)/3);
- const loops=clamp((Number(topology.cycles)||0)/2);
- const bends=clamp((Number(topology.turns)||0)/6);
- // Decision time is secondary to physical morphology, resets every round.
- const pressure=clamp((Math.max(0,Number(thinkingSeconds)||0)-25)/100);
+ const n=Math.max(0,Number(topology.tiles)||0),edges=Math.max(0,Number(topology.edges)||0);
+ const junctions=Math.max(0,Number(topology.junctions)||0);
+ const turns=Math.max(0,Number(topology.turns)||0),cycles=Math.max(0,Number(topology.cycles)||0);
+ const size=clamp((n-1)/18),connectivity=clamp((edges-n/2)/12);
+ // A distinct *leading* stem, not all stems gradually accumulating with tile count.
+ // Physical structure wins over the pace influence.
+ const scene=cycles?'circuit':junctions?'branch':turns?'winding':'line';
+ const leadingStem={line:'A',winding:'E',branch:'B',circuit:'C'}[scene];
+ // Decision pace affects colour rather than pressuring the player to act faster.
+ const pressure=clamp((Math.max(0,Number(thinkingSeconds)||0)-16)/54);
  const db={
-  F: -9+2*size+1.2*pressure,
-  D: n<3?-Infinity:-25+9*size+2*pressure,
-  A: n<5?-Infinity:-24+10*size-4*branching-3*loops,
-  E: n<5?-Infinity:-28+8*bends+7*size+2*pressure,
-  B: n<6||branching+loops<.25?-Infinity:-29+10*branching+8*loops+3*pressure,
-  C: n<8||loops<.3?-Infinity:-32+14*loops+4*pressure
+  F:-10+1.2*size+0.9*pressure,
+  D:n<2?-Infinity:-21+3*size+4*pressure,
+  A:-Infinity,B:-Infinity,C:-Infinity,E:-Infinity
  };
+ if(n>=3)db[leadingStem]=-15+1.5*size+2*connectivity-2.5*pressure;
+ // Quiet secondary colour only when a different physical characteristic exists.
+ if(n>=6&&scene!=='winding'&&turns>0)db.E=-25+3*clamp(turns/4);
+ if(n>=6&&scene!=='branch'&&junctions>0)db.B=-26+3*clamp(junctions/3);
+ if(n>=6&&scene!=='circuit'&&cycles>0)db.C=-26+3*clamp(cycles/2);
  const levels=Object.fromEntries(Object.entries(db).map(([id,value])=>[id,dbToGain(value)]));
- return Object.freeze({levels:Object.freeze(levels),db:Object.freeze(db),pressure,topology:Object.freeze({...topology})});
+ return Object.freeze({levels:Object.freeze(levels),db:Object.freeze(db),pressure,scene,leadingStem,
+  topology:Object.freeze({...topology})});
 }
