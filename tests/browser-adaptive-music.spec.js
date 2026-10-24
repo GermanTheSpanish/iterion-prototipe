@@ -146,6 +146,22 @@ test('private compressed transport stores one pack and restores F Drum after rel
  expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).playing).toBe(true);
  expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).transport.underruns).toBeGreaterThanOrEqual(0);
  await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
+ // Visibility suspension preserves the shared stem phase instead of restarting the track.
+ await page.evaluate(()=>{
+  Object.defineProperty(document,'hidden',{configurable:true,value:true});
+  document.dispatchEvent(new Event('visibilitychange'));
+ });
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().transport.paused)).toBe(true);
+ const pausedAt=await page.evaluate(()=>window.__monoidMusic.snapshot().transport.playbackSeconds);
+ await page.waitForTimeout(120);
+ const stillPausedAt=await page.evaluate(()=>window.__monoidMusic.snapshot().transport.playbackSeconds);
+ expect(Math.abs(stillPausedAt-pausedAt)).toBeLessThan(.15);
+ await page.evaluate(()=>{
+  Object.defineProperty(document,'hidden',{configurable:true,value:false});
+  document.dispatchEvent(new Event('visibilitychange'));
+ });
+ await page.locator('#board').click({position:{x:6,y:6}});
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().transport.paused)).toBe(false);
  await page.locator('#menuButton').click();await page.locator('#menuGroupSystem').click();
  await page.locator('#musicRemovePack').click();
  await expect(page.locator('#musicStatus')).toContainText('pack forgotten');
