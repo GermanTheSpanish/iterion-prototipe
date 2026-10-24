@@ -10,7 +10,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  const sources=new Set();
  let context=null,master=null,masterLevel=1,timer=null,playing=false,generation=0;
  let acoustic=null,lowpass=null,effects=null,acousticLevel=1,lowpassHz=20000;
- let pack=null,prepared=null,preparing=null,packRevision=0,lastLateSeconds=0;
+ let pack=null,prepared=null,preparing=null,packRevision=0,lastLateSeconds=0,suspended=false;
  let segmentFrames=0,segmentSeconds=0,totalSegments=0,nextIndex=0,startAt=0,busy=false,underruns=0;
  function init(){
   if(context)return context;
@@ -87,6 +87,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   const active=init();
   // Called synchronously from the first valid board pointer interaction (iOS).
   if(active.state!=='running'){
+   suspended=false;
    const resumed=active.resume();
    if(resumed?.catch)resumed.catch(()=>{});
   }
@@ -103,13 +104,25 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  function loaded(){return pack?pack.ids:[...tracks].filter(([,t])=>Boolean(t.file)).map(([id])=>id)}
  function levels(){return Object.fromEntries([...tracks].map(([id,t])=>[id,t.level]))}
  function stop(){
-  generation++;playing=false;busy=false;
+  generation++;playing=false;busy=false;suspended=false;
   if(timer!==null){clearInterval(timer);timer=null}
   for(const source of sources){
    try{source.stop()}catch{}
    try{source.disconnect()}catch{}
   }
   sources.clear();
+ }
+ function suspend(){
+  if(!playing||!context||suspended)return;
+  suspended=true;
+  const pending=context.suspend();
+  pending?.catch?.(error=>{lastError=String(error?.message||error)});
+ }
+ function resume(){
+  if(!playing||!context||!(suspended||context.state!=='running'))return;
+  suspended=false;
+  const pending=context.resume();
+  pending?.catch?.(error=>{lastError=String(error?.message||error)});
  }
  async function loadGroup(index,available){
   const segment=index%totalSegments;
@@ -244,12 +257,12 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   return Math.max(0,(context.currentTime-startAt)%(totalSegments*segmentSeconds));
  }
  function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
- function getSyncStatus(){return {mode:'shared-audio-clock',underruns,lastLateSeconds,playbackSeconds:playbackSeconds(),error:lastError}}
+ function getSyncStatus(){return {mode:'shared-audio-clock',underruns,lastLateSeconds,paused:playing&&(suspended||context?.state!=='running'),playbackSeconds:playbackSeconds(),error:lastError}}
  function dispose(){
   stop();prepared=null;preparing=null;packRevision++;
   for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect()}
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,getDrift,
+ return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,suspend,resume,getDrift,
   getSyncStatus,playbackSeconds,loaded,levels,dispose,isPlaying:()=>playing};
 }
