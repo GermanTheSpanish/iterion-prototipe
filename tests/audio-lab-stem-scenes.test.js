@@ -23,6 +23,8 @@ assert.match(engine,/createBufferSource/);
 assert.match(engine,/source\.start\(at\)/);
 assert.match(engine,/function prepare\(\)/);
 assert.match(engine,/lastLateSeconds/);
+assert.match(engine,/function suspend\(\)/);
+assert.match(engine,/function resume\(\)/);
 assert.match(engine,/source\.start\(at,offset/);
 assert.match(engine,/readPcmHeader/);
 assert.match(pcm,/decodePcmSegment/);
