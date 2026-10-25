@@ -11,6 +11,17 @@ const path=require('node:path');
  const tempo=estimateTempo(energies,.02,{minBpm:110,maxBpm:130});
  assert(Math.abs(tempo.bpm-120)<=1,JSON.stringify(tempo));
  assert(tempo.confidence>.5);
+ // Original Space Drift F Drum has a distinctive repeated 24-second/8-bar cycle.
+ // Beat-only onset correlation can prefer wrong double/contrasting subdivisions.
+ const originalInspired=Float32Array.from({length:2400},(_,i)=>{
+   const phase=i%1200;
+   const withinBar=i%150;
+   return .02+(withinBar<4?.65:0)+(phase%300<5?.3:0)+
+     (i%37<2?.03:0);
+ });
+ const measured=estimateTempo(originalInspired,.02);
+ assert.equal(measured.bpm,80,'bar-scale 24-second recurrence should resolve to 80 BPM');
+ assert(measured.confidence>.4,JSON.stringify(measured));
  const catalog=createCatalogue({durationSeconds:432,bpm:120});
  assert.equal(catalog.length,27);
  assert.equal(catalog[0].group,'SECTION_01');
