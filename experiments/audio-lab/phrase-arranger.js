@@ -13,8 +13,9 @@ export function estimateTempo(energies,hopSeconds,{minBpm=72,maxBpm=155}={}){
  for(let i=1;i<flux.length;i++){const d=Math.max(0,Number(energies[i])-(Number(energies[i-1])||0));flux[i]=d;mean+=d}
  mean/=flux.length;
  const candidates=[];
- for(let bpm=minBpm;bpm<=maxBpm;bpm++){
-  const lag=Math.round(60/bpm/hopSeconds);if(lag<2||lag>=flux.length/2)continue;
+ for(let lag=Math.max(2,Math.ceil(60/maxBpm/hopSeconds));lag<=Math.floor(60/minBpm/hopSeconds);lag++){
+  if(lag>=flux.length/2)continue;
+  const bpm=60/(lag*hopSeconds);
   let cross=0,xx=0,yy=0;
   for(let j=lag;j<flux.length;j++){
    const a=Math.max(0,flux[j]-mean*.35),b=Math.max(0,flux[j-lag]-mean*.35);
