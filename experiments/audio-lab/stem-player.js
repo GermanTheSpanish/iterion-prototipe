@@ -258,7 +258,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  }
  // A read-only clock for auxiliary percussion. The source timeline never shifts.
  function clock(){return {context,currentTime:context?.currentTime??0,origin:startAt,
-  playing,paused:Boolean(suspended||context?.state!=='running')}}
+  playing,paused:Boolean(suspended||context?.state!=='running'),masterLevel}}
   function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
  function getSyncStatus(){return {mode:'shared-audio-clock',underruns,lastLateSeconds,paused:playing&&(suspended||context?.state!=='running'),playbackSeconds:playbackSeconds(),error:lastError}}
  function dispose(){
