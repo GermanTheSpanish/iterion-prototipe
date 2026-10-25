@@ -35,7 +35,7 @@ export function pulsePattern({intensity=0,mood='steady',barIndex=0}={}){
   if(intensity>=4&&[1,5,9,13].includes(step))play=true;
   if(mood==='uncertainty'&&(step===4||step===12||step===14))play=false;
   // A short exceptional break before resolution; NEVER a global silence.
-  if(mood==='release'&&barIndex===0&&step<4)play=false;
+  if(mood==='release'&&step<4)play=false;
   if(!play)continue;
   const strong=quarter&&step%8===0;
   const velocity=strong?1:quarter?.76:half?.42:.25;
