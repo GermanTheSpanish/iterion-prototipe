@@ -4,7 +4,7 @@
 import {SOURCE_BPM,pulsePattern} from './music-director.js';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export function createPressurePercussion(player){
- let timer=null,origin=null,nextStep=0,group=null,ctx=null,noise=null,drumState={intensity:0,mood:'steady'},duck=1;
+ let timer=null,origin=null,nextStep=0,group=null,ctx=null,noise=null,drumState={intensity:0,mood:'steady'},duck=1,volume=1;
  const sources=new Set();
  function buffer(context){
   if(noise)return noise;
@@ -22,7 +22,7 @@ export function createPressurePercussion(player){
   if(!ctx||!group)return;
   const strength=clamp(drumState.intensity/4,0,1);
   if(strength<=0)return;
-  const env=ctx.createGain(),amp=.12*strength*voice.velocity*duck;
+  const env=ctx.createGain(),amp=.12*strength*voice.velocity*duck*volume;
   const tone=ctx.createOscillator();
   tone.type='sine';tone.frequency.setValueAtTime(voice.kind==='thump'?104:voice.kind==='tick'?420:900,at);
   if(voice.kind==='thump')tone.frequency.exponentialRampToValueAtTime(55,at+.085);
@@ -45,6 +45,7 @@ export function createPressurePercussion(player){
  }
  function tick(){
   const clock=player.clock();
+  volume=clamp(Number(clock.masterLevel)||0,0,1.5);
   if(!clock.playing||clock.paused||!clock.context||!Number.isFinite(clock.origin))return;
   if(origin!==clock.origin){
    origin=clock.origin;nextStep=Math.max(0,Math.floor((clock.currentTime-origin)/(.25*60/SOURCE_BPM)));
