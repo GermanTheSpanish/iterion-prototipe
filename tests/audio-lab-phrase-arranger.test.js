@@ -64,6 +64,12 @@ const path=require('node:path');
  const transport=fs.readFileSync(path.join(__dirname,'../experiments/audio-lab/phrase-arranger-ui.js'),'utf8');
  assert.match(page,/phrase-arranger-ui\.js/);assert.match(lab,/phrase-arranger\.html/);
  assert.match(transport,/decodePcmSegment/);
+ assert.match(transport,/async function decodePhrase\(phrase\)/);
+ assert.match(transport,/Math\.min\(fade,phrase\.sourceSeconds,phrase\.destinationSeconds\)/,
+  'overlap source audio before nominal phrase boundary');
+ assert.match(transport,/const tail=Math\.min\(fade/,'extend source audio beyond phrase boundary');
+ assert.match(transport,/nominalEnd-fade/,'schedule fade out with overlapping buffers');
+
  assert.doesNotMatch(source,/Math\.random/);
  console.log('Phrase Arranger variable-bar, harmony-group, deterministic arrangement and exports passed');
 })().catch(e=>{console.error(e);process.exitCode=1});
