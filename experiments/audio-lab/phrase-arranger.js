@@ -6,27 +6,42 @@ const IDS=Object.freeze(['A','B','C','D','E','F']);
 const assert=(v,message)=>{if(!v)throw new Error(message)};
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export function secondsPerBar(bpm){assert(Number.isFinite(bpm)&&bpm>=50&&bpm<=200,'BPM out of range (50–200)');return 240/bpm}
-export function estimateTempo(energies,hopSeconds,{minBpm=72,maxBpm=155}={}){
+// Estimate BPM from recurring drum energy on several musical scales.
+// Very syncopated drums can produce misleading one-beat onset autocorrelation
+// (Space Drift's original F Drum was misread as ~115 BPM). Bar, 4-bar and
+// 8-bar recurrence provide a much stronger estimate for this particular track.
+// Time signature and first downbeat still require editorial listening review.
+export function estimateTempo(energies,hopSeconds,{minBpm=65,maxBpm=155}={}){
  assert(energies&&energies.length>40&&hopSeconds>0&&hopSeconds<=.15,'Not enough drum-envelope data');
- const flux=new Float32Array(energies.length);
- let mean=0;
- for(let i=1;i<flux.length;i++){const d=Math.max(0,Number(energies[i])-(Number(energies[i-1])||0));flux[i]=d;mean+=d}
- mean/=flux.length;
- const candidates=[];
- for(let lag=Math.max(2,Math.ceil(60/maxBpm/hopSeconds));lag<=Math.floor(60/minBpm/hopSeconds);lag++){
-  if(lag>=flux.length/2)continue;
-  const bpm=60/(lag*hopSeconds);
-  let cross=0,xx=0,yy=0;
-  for(let j=lag;j<flux.length;j++){
-   const a=Math.max(0,flux[j]-mean*.35),b=Math.max(0,flux[j-lag]-mean*.35);
-   cross+=a*b;xx+=a*a;yy+=b*b;
+ assert(Number.isFinite(minBpm)&&Number.isFinite(maxBpm)&&minBpm>=50&&maxBpm<=220&&maxBpm>minBpm,
+  'Invalid tempo search range');
+ const mean=Array.from(energies).reduce((sum,value)=>sum+(Number(value)||0),0)/energies.length;
+ const data=Float32Array.from(energies,x=>(Number(x)||0)-mean);
+ function recurrence(seconds){
+  const lag=Math.round(seconds/hopSeconds);
+  if(lag<2||lag>data.length*.70)return 0;
+  let aa=0,bb=0,cross=0;
+  for(let i=lag;i<data.length;i++){
+   const a=data[i],b=data[i-lag];aa+=a*a;bb+=b*b;cross+=a*b;
   }
-  const confidence=cross/Math.sqrt(xx*yy+1e-12);
-  candidates.push({bpm,confidence});
+  return aa>0&&bb>0?cross/Math.sqrt(aa*bb):0;
+ }
+ const candidates=[];
+ for(let bpm=Math.ceil(minBpm);bpm<=Math.floor(maxBpm);bpm++){
+  const beat=60/bpm;
+  const weights=[[1,.10],[4,.25],[16,.30],[32,.35]];
+  let sum=0,active=0;
+  for(const [beats,weight] of weights){
+   if(Math.round(beats*beat/hopSeconds)>data.length*.70)continue;
+   sum+=Math.max(-1,recurrence(beats*beat))*weight;active+=weight;
+  }
+  if(!active)continue;
+  candidates.push({bpm,confidence:sum/active});
  }
  candidates.sort((a,b)=>b.confidence-a.confidence||a.bpm-b.bpm);
- return {bpm:candidates[0]?.bpm??null,confidence:candidates[0]?.confidence??0,
-  candidates:candidates.filter((v,i)=>i===0||Math.abs(v.bpm-candidates[0].bpm)>=3).slice(0,5)};
+ const best=candidates[0];
+ return {bpm:best?.bpm??null,confidence:best?.confidence??0,
+  candidates:candidates.filter(x=>x===best||Math.abs(x.bpm-best.bpm)>=3).slice(0,5)};
 }
 export function createCatalogue({durationSeconds,bpm,offsetSeconds=0,groups=[]}){
  const bar=secondsPerBar(bpm);
