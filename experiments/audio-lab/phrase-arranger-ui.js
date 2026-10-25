@@ -95,38 +95,49 @@ function printPlan(current){
   'Scene '+(s.index+1)+' → source '+(s.sourceScene+1)+' · '+s.group+
   ' · lead '+s.lead+' · '+s.event+' · compatible '+s.alternativeCount).join('\n');
 }
+// Overlap actual audio on both sides of phrase boundaries. The transport
+// grid stays sample locked; a gain fade without overlapping audio is not a crossfade.
+async function decodePhrase(phrase){
+ const h=headers.get(phrase.stem),file=filesByStem.get(phrase.stem),rate=h.sampleRate;
+ const fade=Math.min(phrase.durationSeconds/8,phrase.stem==='F'?.035:phrase.stem==='D'?.32:.16);
+ const head=Math.min(fade,phrase.sourceSeconds,phrase.destinationSeconds);
+ const tail=Math.min(fade,Math.max(0,h.frames/rate-phrase.sourceSeconds-phrase.durationSeconds));
+ const first=Math.round((phrase.sourceSeconds-head)*rate);
+ const last=Math.round((phrase.sourceSeconds+phrase.durationSeconds+tail)*rate);
+ if(first<0||last>h.frames)throw new Error('Crossfade clip out of bounds: '+phrase.stem);
+ return {phrase,buffer:await decodePcmSegment(ctx,file,h,first,last-first),head,tail,fade};
+}
+function schedulePhrase({phrase,buffer,head,tail,fade}){
+ const originalAt=startedAt+phrase.destinationSeconds-head,now=ctx.currentTime+.035;
+ const offset=Math.max(0,now-originalAt),duration=buffer.duration-offset;
+ if(duration<=0){underruns++;return}
+ if(offset>.05)underruns++;
+ const at=Math.max(originalAt,now);
+ const source=ctx.createBufferSource(),gain=ctx.createGain();
+ const target=phrase.stem==='F'?.46:phrase.stem==='D'?.23:.38;
+ const nominalStart=startedAt+phrase.destinationSeconds;
+ const nominalEnd=nominalStart+phrase.durationSeconds;
+ const rampIn=Math.max(at+.006,nominalStart+fade);
+ const rampOut=Math.max(rampIn+.006,nominalEnd-fade);
+ const endAt=originalAt+buffer.duration;
+ gain.gain.setValueAtTime(.0001,at);
+ if(rampIn<endAt)gain.gain.linearRampToValueAtTime(target,rampIn);
+ if(rampOut<endAt)gain.gain.setValueAtTime(target,rampOut);
+ gain.gain.linearRampToValueAtTime(.0001,endAt);
+ source.buffer=buffer;source.connect(gain);gain.connect(master);
+ sources.add(source);
+ source.onended=()=>{sources.delete(source);source.disconnect();gain.disconnect()};
+ source.start(at,offset,duration);
+}
 async function scheduleScene(scene,run){
  if(!ctx||run!==generation||scheduled.has(scene))return;
  scheduled.add(scene);
  const phrases=plan.phrases.filter(x=>x.scene===scene);
  const rate=headers.get('F').sampleRate;
  try{
-  const prepared=await Promise.all(phrases.map(async phrase=>{
-   const h=headers.get(phrase.stem),file=filesByStem.get(phrase.stem);
-   const first=Math.round(phrase.sourceSeconds*rate),last=Math.round((phrase.sourceSeconds+phrase.durationSeconds)*rate);
-   if(first<0||last>h.frames)throw new Error('Clip out of bounds: '+phrase.stem);
-   const buffer=await decodePcmSegment(ctx,file,h,first,last-first);
-   return {phrase,buffer};
-  }));
+  const prepared=await Promise.all(phrases.map(decodePhrase));
   if(run!==generation||!ctx)return;
-  for(const {phrase,buffer} of prepared){
-   const originalAt=startedAt+phrase.destinationSeconds,now=ctx.currentTime+.035;
-   const offset=Math.max(0,now-originalAt);
-   if(offset>=buffer.duration){underruns++;continue}
-   if(offset>.05)underruns++;
-   const at=Math.max(originalAt,now),duration=buffer.duration-offset;
-   const source=ctx.createBufferSource(),gain=ctx.createGain();
-   const target=phrase.stem==='F'?.46:phrase.stem==='D'?.23:.38;
-   const fade=Math.min(phrase.stem==='F'?.018:phrase.stem==='D'?.20:.085,duration/4);
-   gain.gain.setValueAtTime(.0001,at);
-   gain.gain.linearRampToValueAtTime(target,at+fade);
-   gain.gain.setValueAtTime(target,Math.max(at+fade,at+duration-fade));
-   gain.gain.linearRampToValueAtTime(.0001,at+duration);
-   source.buffer=buffer;source.connect(gain);gain.connect(master);
-   sources.add(source);
-   source.onended=()=>{sources.delete(source);source.disconnect();gain.disconnect()};
-   source.start(at,offset,duration);
-  }
+  for(const preparedPhrase of prepared)schedulePhrase(preparedPhrase);
   const elapsed=Math.max(0,ctx.currentTime-startedAt);
   show('PLAYING '+plan.mode.toUpperCase()+' · '+plan.scenes.length+' scenes · '+fmt(elapsed)+' / '+fmt(plan.durationSeconds)+
    ' · underruns '+underruns);
@@ -149,26 +160,12 @@ async function play(mode){
   // Decode the first scene before setting the musical clock; no first-note underrun.
   const first=plan.phrases.filter(x=>x.scene===0);
   const rate=headers.get('F').sampleRate;
-  const prepared=await Promise.all(first.map(async phrase=>{
-   const h=headers.get(phrase.stem),frame=Math.round(phrase.sourceSeconds*rate);
-   const last=Math.round((phrase.sourceSeconds+phrase.durationSeconds)*rate);
-   return {phrase,buffer:await decodePcmSegment(ctx,filesByStem.get(phrase.stem),h,frame,last-frame)};
-  }));
+  const prepared=await Promise.all(first.map(decodePhrase));
   if(run!==generation)return;
   startedAt=ctx.currentTime+.20;
   pending=false;byId('stop-preview').disabled=false;
   // First scene's clips are already decoded; subsequent scenes are streamed.
-  for(const {phrase,buffer} of prepared){
-   const at=startedAt+phrase.destinationSeconds,source=ctx.createBufferSource(),gain=ctx.createGain();
-   const value=phrase.stem==='F'?.46:phrase.stem==='D'?.23:.38;
-   const fade=phrase.stem==='F'?.018:phrase.stem==='D'?.20:.085;
-   gain.gain.setValueAtTime(.0001,at);gain.gain.linearRampToValueAtTime(value,at+fade);
-   gain.gain.setValueAtTime(value,at+buffer.duration-fade);
-   gain.gain.linearRampToValueAtTime(.0001,at+buffer.duration);
-   source.buffer=buffer;source.connect(gain);gain.connect(master);
-   sources.add(source);source.onended=()=>{sources.delete(source);source.disconnect();gain.disconnect()};
-   source.start(at);
-  }
+  for(const preparedPhrase of prepared)schedulePhrase(preparedPhrase);
   scheduled.add(0);
   const pump=()=>{
    if(run!==generation||!ctx)return;
