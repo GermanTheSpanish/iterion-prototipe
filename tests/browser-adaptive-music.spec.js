@@ -47,6 +47,26 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  expect(now.scene).toBe('line');
  expect(now.leadingStem).toBe('A');
  await expect.poll(()=>page.evaluate(()=>window.__monoidCascade.active),{timeout:20000}).toBe(false);
+ const pressureAtStart=await page.evaluate(()=>window.__monoidMusic.snapshot());
+ expect(pressureAtStart.pressure.sourceBpm).toBe(80);
+ expect(pressureAtStart.pressure.targetBpm).toBe(80);
+ expect(pressureAtStart.percussion.active).toBe(true);
+ // Synthetic QA state mutation stays inside this isolated page, not engine code.
+ const beforeQA=await page.evaluate(()=>{
+  const g=window.__monoidGame,s=g.state();
+  const result={roundTurn:s.roundTurn,marketCount:s.marketCount};
+  s.roundTurn=g.maxPlacements()-2;s.marketCount=2;return result;
+ });
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().pressure.mood)).toBe('critical');
+ const stressed=await page.evaluate(()=>window.__monoidMusic.snapshot());
+ expect(stressed.pressure.movesLeft).toBe(2);
+ expect(stressed.pressure.marketCount).toBe(2);
+ expect(stressed.pressure.targetBpm).toBe(88);
+ expect(stressed.pressure.intensity).toBeGreaterThan(0);
+ expect(stressed.percussion.active).toBe(true);
+ await page.evaluate(({roundTurn,marketCount})=>{
+  const s=window.__monoidGame.state();s.roundTurn=roundTurn;s.marketCount=marketCount;
+ },beforeQA);
  await expect(page.locator('#menuButton')).toBeEnabled();
  await page.locator('#menuButton').click();
  await expect(page.locator('#gameMenu')).toBeVisible();
