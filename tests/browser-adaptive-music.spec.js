@@ -54,8 +54,8 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  // Synthetic QA state mutation stays inside this isolated page, not engine code.
  const beforeQA=await page.evaluate(()=>{
   const g=window.__monoidGame,s=g.state();
-  const result={roundTurn:s.roundTurn,marketCount:s.marketCount};
-  s.roundTurn=g.maxPlacements()-2;s.marketCount=2;return result;
+  const result={roundTurn:s.roundTurn,marketCount:s.marketCount,score:s.score,scoreExact:s.scoreExact,cleared:s.cleared,blocked:s.blocked,needsReroll:s.needsReroll,running:s.running};
+  s.roundTurn=g.maxPlacements()-2;s.marketCount=2;s.score=0;s.scoreExact='0';s.cleared=false;s.blocked=false;s.needsReroll=false;s.running=false;return result;
  });
  await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().pressure.mood)).toBe('critical');
  const stressed=await page.evaluate(()=>window.__monoidMusic.snapshot());
@@ -64,8 +64,8 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  expect(stressed.pressure.targetBpm).toBe(88);
  expect(stressed.pressure.intensity).toBeGreaterThan(0);
  expect(stressed.percussion.active).toBe(true);
- await page.evaluate(({roundTurn,marketCount})=>{
-  const s=window.__monoidGame.state();s.roundTurn=roundTurn;s.marketCount=marketCount;
+ await page.evaluate(saved=>{
+  const s=window.__monoidGame.state();Object.assign(s,saved);
  },beforeQA);
  await expect(page.locator('#menuButton')).toBeEnabled();
  await page.locator('#menuButton').click();
