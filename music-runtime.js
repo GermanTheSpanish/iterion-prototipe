@@ -6,8 +6,8 @@ import {analyseMachine,mixForMachine} from './music-morphology.js';
 import {createMachineEffects} from './audio-effects.js';
 import {createPressurePercussion} from './music-percussion.js';
 import {describePressure,isTargetReached} from './music-director.js';
-import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261025.2';
-import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261025.2';
+import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261025.3';
+import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261025.3';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
