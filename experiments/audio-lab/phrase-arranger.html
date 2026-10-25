@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONOID — Phrase Arranger</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;background:#121212;color:#eee;color-scheme:dark}
+*{box-sizing:border-box}body{max-width:900px;margin:auto;padding:18px}h1{letter-spacing:.08em;font-size:1.6rem}
+p,small{color:#b4b4b4;line-height:1.5}section{border:1px solid #3b3b3b;border-radius:9px;padding:16px;margin:15px 0}
+button,input,select{font:inherit;color:inherit}button{padding:12px;border:1px solid #777;border-radius:6px;background:#282828;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid #ddd}button:disabled{opacity:.45;cursor:default}
+label{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:10px 0}
+input:not([type=file]),select{background:#262626;border:1px solid #777;border-radius:4px;padding:7px;max-width:180px}
+input[type=file]{width:100%;max-width:350px;font-size:.85rem}input[type=number]{width:110px}
+.controls{display:flex;flex-wrap:wrap;gap:8px}table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{border-bottom:1px solid #393939;padding:7px;text-align:left}td input{min-width:0;width:100%;max-width:none!important}
+.scrolling{max-height:310px;overflow:auto;border:1px solid #323232;border-radius:6px}
+output,pre{white-space:pre-wrap;display:block;overflow-wrap:anywhere;background:#202020;padding:10px;border-radius:6px;font-size:.85rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+@media(max-width:430px){body{padding:11px}button{min-height:46px}input:not([type=file]),select{max-width:120px}}
+</style>
+</head>
+<body>
+<nav><a href="./index.html">← AUDIO LAB</a> · <a href="../../?audioLabReturn=1">RETURN TO MONOID</a></nav>
+<h1>MONOID / PHRASE ARRANGER</h1>
+<p>Experimental, private, local-only composition tool. Compare the same six WAV stems as an original sequence, an edited rhythmic arrangement, or an event-directed arrangement. Does not change the running game.</p>
+<section>
+<h2>1. Select Space Drift stems</h2>
+<p>Choose all six <strong>original PCM16 WAV</strong> stems A–F or select their folder. A–F must be sample-aligned. No files are uploaded or saved in this page.</p>
+<label>Six files <input id="files" aria-label="Select six WAV stems" type="file" multiple accept=".wav,audio/wav"></label>
+<label>Stem folder <input id="folder" aria-label="Select WAV stem folder" type="file" multiple webkitdirectory directory></label>
+<output id="analysis">Awaiting original WAV stems. F Drum is analyzed locally for an estimated tempo.</output>
+</section>
+<section>
+<h2>2. Musical grid — editorial review required</h2>
+<p>The suggested BPM uses drum-onset periodicity. <strong>It is not a verified BPM or downbeat.</strong> Adjust the BPM and start-of-bar offset by ear before approving edits. Scenes are eight bars. Individual stems use <strong>F: 2 bars, D: 8 bars, A/B/C/E: 4 bars</strong>, all on one beat grid.</p>
+<div class="grid"><div>
+<label>BPM <input id="bpm" type="number" min="50" max="200" step=".1" value="106"></label>
+<label>Downbeat offset (s) <input id="offset" type="number" min="0" max="3" step=".01" value="0"></label>
+</div><div>
+<label>First scene <input id="start-scene" type="number" min="0" value="0"></label>
+<label>Scenes to audition <input id="scene-count" type="number" min="1" max="12" value="4"></label>
+</div></div>
+<p>Harmonic groups are deliberately unique until you review them. Assign the same group name only to sections you have listened to and judged harmonically compatible. The arranger never claims automatic chord/key detection.</p>
+<div class="scrolling"><table><thead><tr><th>Source phrase · 8 bars</th><th>Approved harmonic group</th></tr></thead><tbody id="catalogue"></tbody></table></div>
+</section>
+<section>
+<h2>3. Compare musical interpretations</h2>
+<div class="grid"><div>
+<label>Lead stem <select id="lead"><option value="A">A · Calm</option><option value="B">B · Creepy</option><option value="C">C · Corrupted</option><option value="E">E · Melodic</option></select></label>
+<label>Audition seed <input id="seed" type="number" min="0" max="4294967295" step="1" value="15"></label>
+<label>Volume % <input id="master-volume" type="number" min="0" max="100" value="70"></label>
+</div><div>
+<label>Machine events <select id="events" aria-label="Event sequence">
+<option value="steady,build,branch,circuit">Steady → Build → Branch → Circuit</option>
+<option value="rest,steady,build,rest">Rest → Steady → Build → Rest</option>
+<option value="branch,circuit,build,steady">Branch → Circuit → Build → Steady</option>
+</select></label>
+<small>Adaptive mode uses simulated editorial events here. It does not yet receive live machine telemetry.</small>
+</div></div>
+<div class="controls">
+<button id="play-original" type="button">PLAY ORIGINAL</button>
+<button id="play-rearranged" type="button">PLAY REARRANGED</button>
+<button id="play-adaptive" type="button">PLAY ADAPTIVE</button>
+<button id="stop-preview" type="button" disabled>STOP</button>
+</div>
+<output id="phrase-status">Load six WAV stems to enable an audition.</output>
+<pre id="phrase-plan">The planned source phrases, lead stem and harmonic groups will appear here.</pre>
+</section>
+<section>
+<h2>4. Save or reuse editorial decisions</h2>
+<p>Export/import a small JSON phrase map, including BPM, downbeat and harmonic group approvals. It contains no audio. Uploading a map is local-only and does not affect game saves.</p>
+<div class="controls"><button id="export-phrases" type="button">EXPORT PHRASE MAP</button><label>Import JSON <input id="import-phrases" type="file" accept=".json,application/json"></label></div>
+</section>
+<footer><small>This study does not ship copyrighted music, alter game rules, or automatically import private audio files into MONOID. Browser testing does not replace listening on iPhone.</small></footer>
+<script type="module" src="./phrase-arranger-ui.js"></script>
+</body>
+</html>
