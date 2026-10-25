@@ -256,7 +256,10 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   if(!playing||!context||!totalSegments||!segmentSeconds)return 0;
   return Math.max(0,(context.currentTime-startAt)%(totalSegments*segmentSeconds));
  }
- function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
+ // A read-only clock for auxiliary percussion. The source timeline never shifts.
+ function clock(){return {context,currentTime:context?.currentTime??0,origin:startAt,
+  playing,paused:Boolean(suspended||context?.state!=='running'),masterLevel}}
+  function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
  function getSyncStatus(){return {mode:'shared-audio-clock',underruns,lastLateSeconds,paused:playing&&(suspended||context?.state!=='running'),playbackSeconds:playbackSeconds(),error:lastError}}
  function dispose(){
   stop();prepared=null;preparing=null;packRevision++;
@@ -264,5 +267,5 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
  return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,suspend,resume,getDrift,
-  getSyncStatus,playbackSeconds,loaded,levels,dispose,isPlaying:()=>playing};
+  getSyncStatus,playbackSeconds,clock,loaded,levels,dispose,isPlaying:()=>playing};
 }

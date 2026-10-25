@@ -4,13 +4,15 @@ import {createStemPlayer} from './experiments/audio-lab/stem-player.js';
 import {STEMS,identifyStem} from './experiments/audio-lab/stem-scenes.js';
 import {analyseMachine,mixForMachine} from './music-morphology.js';
 import {createMachineEffects} from './audio-effects.js';
-import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261025.2';
-import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261025.2';
+import {createPressurePercussion} from './music-percussion.js';
+import {describePressure,isTargetReached} from './music-director.js';
+import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261025.3';
+import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261025.3';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
  if(!menu||document.getElementById('musicSettings'))return;
- const player=createStemPlayer(),effects=createMachineEffects(player);
+ const player=createStemPlayer(),effects=createMachineEffects(player),percussion=createPressurePercussion(player);
  function readPreset(){try{return normalizeAudioPreset(JSON.parse(localStorage.getItem(AUDIO_PRESET_STORAGE)||'{}'))}catch{return normalizeAudioPreset()}}
  let preset=readPreset();effects.setPreset(preset);
  const section=document.createElement('fieldset');
@@ -59,6 +61,7 @@ function installMusic(){
  const volume=$('musicVolume'),status=$('musicStatus');
  const show=text=>{status.textContent=text};
  let packReady=false,selectedByUser=false,enabled=false,armed=false,startPending=false,roundKey='',lastRunId='',thinkingSeconds=0,decisionPace=0,hasDecision=false,missedFirstRun='',lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0,acousticMode='';
+ let pressure=null,lastPressureKey='',lastPressure=null,releaseUntil=0,stressedRoundKey='',releasedRoundKey='',lastLegalKey='',lastLegalMask=null;
  const current=()=>window.__monoidGame?.state?.()||null;
  const flow=()=>window.__monoidFlow?.screen||'entry';
  function diagnostic(type,detail={}){
@@ -66,7 +69,7 @@ function installMusic(){
  }
  function stop(reason='Stopped · stems remain loaded',{preserveArmed=false}={}){
   const wasPlaying=enabled||player.isPlaying();
-  enabled=false;if(!preserveArmed)armed=false;player.stop();effects.cancel();show(reason);
+  enabled=false;if(!preserveArmed)armed=false;percussion.stop();player.stop();effects.cancel();show(reason);
   if(wasPlaying)diagnostic('music-stopped',{reason});
  }
  function available(){return new Set(player.loaded())}
@@ -130,6 +133,7 @@ function installMusic(){
    if(result.errors?.length)throw new Error(result.errors.join('; '));
    if(!player.isPlaying())throw new Error('Audio did not start');
    diagnostic('music-started',{loaded:player.loaded(),volume:Number(volume.value)/100});
+   percussion.start();
    update(true);
   }catch(error){stop('Music unavailable: '+String(error?.message||error))}
   finally{startPending=false}
@@ -140,7 +144,7 @@ function installMusic(){
   const cascade=Boolean(document.getElementById('board')?.dataset.cascadePhase||state?.running||state?.cleared);
   const mode=menu.open?'menu':shopping?'shop':cascade?'cascade':'game';
   if(mode===acousticMode)return;
-  acousticMode=mode;
+  acousticMode=mode;percussion.update(pressure,mode);
   const options=mode==='menu'?{level:0,lowpass:20000,fadeMs:preset.menuFadeMs}:
    mode==='shop'?{level:audioDbGain(preset.shopDuckDb),lowpass:preset.shopLowpassHz,fadeMs:preset.shopFadeMs}:
    mode==='cascade'?{level:audioDbGain(preset.cascadeDuckDb),lowpass:20000,fadeMs:preset.cascadeFadeMs}:
@@ -169,15 +173,47 @@ function installMusic(){
   }
   lastRunId=runId;
   const key=runId+':'+String(state.round??0);
-  if(key!==roundKey){roundKey=key;thinkingSeconds=0;lastValues=null;force=true}
+  if(key!==roundKey){roundKey=key;thinkingSeconds=0;lastValues=null;force=true;
+   lastLegalKey='';lastLegalMask=null;releaseUntil=0;stressedRoundKey='';releasedRoundKey='';}
   if(canCountTime(state))thinkingSeconds+=delta;
-  if(!enabled||!player.isPlaying()&& !force)return;
+  // Legal placement queries are expensive: only inspect a zero-dominated
+  // hand when its identity changes, and never during an animation.
+  const game=window.__monoidGame,hand=Array.isArray(state.hand)?state.hand.filter(Boolean):[];
+  const allZero=hand.length>0&&hand.every(t=>t.a===0||t.b===0);
+  if(allZero&&canCountTime(state)){
+   const handKey=key+':'+state.roundTurn+':'+(state.hand||[]).map(t=>t?.id||'-').join(',');
+   if(handKey!==lastLegalKey){
+    lastLegalKey=handKey;
+    try{lastLegalMask=game?.legalHandMask?.()||null}catch{lastLegalMask=null}
+   }
+  }else{lastLegalMask=null;lastLegalKey=''}
+  const nextPressure=describePressure(state,{
+   maxPlacements:game?.maxPlacements?.()??6,targetReached:isTargetReached(state,game?.targetExact?.()),
+   legalMask:lastLegalMask,thinkingSeconds});
+  const nowMs=performance.now();
+  if(nextPressure.mood==='critical')stressedRoundKey=key;
+  if(state.cleared&&stressedRoundKey===key&&releasedRoundKey!==key){
+   releasedRoundKey=key;releaseUntil=nowMs+3000;
+  }
+  pressure=nowMs<releaseUntil?{...nextPressure,mood:'release',intensity:Math.max(1,nextPressure.intensity)}:nextPressure;
+  percussion.update(pressure,acousticMode);
+  const pressureKey=pressure.mood+':'+pressure.intensity+':'+pressure.marketCount;
+  if(lastPressureKey!==pressureKey){
+   lastPressureKey=pressureKey;force=true;
+   if(enabled)diagnostic('music-pressure',{mood:pressure.mood,intensity:pressure.intensity,
+    movesLeft:pressure.movesLeft,marketCount:pressure.marketCount,zeroConstrained:pressure.zeroConstrained,
+    targetTempoBpm:pressure.targetBpm,actualStemTempoBpm:pressure.sourceBpm});
+  }
+  if(!enabled||!player.isPlaying()&&!force)return;
   const topology=analyseMachine(state.pieces||[]),mix=mixForMachine(topology,Math.max(thinkingSeconds,decisionPace*.7));
   if(force||!lastValues||mix.scene!==lastMix?.scene||Object.keys(mix.db).some(id=>{
    const a=mix.db[id],b=lastValues[id];
    return a!==b&&(!Number.isFinite(a)||!Number.isFinite(b)||Math.abs(a-b)>.35);
   })){
-   player.setLevels(mix.levels,{smooth:!force});
+   // Preserve the original 80 BPM soundtrack; urgency reinforces the real F
+   // drum via layered percussion, not pitch-shifting or a drifting tempo clock.
+   player.setLevels({...mix.levels,F:Math.min(1.2,mix.levels.F*Math.pow(10,(pressure.intensity*.65)/20))},
+    {smooth:true});
    lastValues={...mix.db};lastMix=mix;
    if(enabled&&now-lastTelemetryAt>15000){
     diagnostic('music-mix',{round:(Number(state.round)||0)+1,thinkingSeconds:Math.round(thinkingSeconds),
@@ -250,10 +286,11 @@ function installMusic(){
   player.activateAudio();
   void play();
  },{capture:true});
- window.addEventListener('pagehide',()=>{clearInterval(poll);modalObserver.disconnect();effects.cancel();player.dispose()},{once:true});
+ window.addEventListener('pagehide',()=>{clearInterval(poll);modalObserver.disconnect();effects.cancel();percussion.stop();player.dispose()},{once:true});
  window.__monoidMusic=Object.freeze({
   snapshot:()=>({playing:enabled&&player.isPlaying(),loaded:player.loaded(),
    thinkingSeconds,decisionPace,acousticMode,armed,packReady,preset,playbackSeconds:player.playbackSeconds(),effects:effects.snapshot(),topology:lastMix?.topology||null,scene:lastMix?.scene||null,leadingStem:lastMix?.leadingStem||null,db:lastMix?.db||null,
+   pressure,percussion:percussion.snapshot(),
    transport:player.getSyncStatus()}),
   stop:()=>stop()
  });
