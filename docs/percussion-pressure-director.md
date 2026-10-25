@@ -31,4 +31,8 @@ The readonly `window.__monoidMusic.snapshot()` now includes `pressure` and `perc
 6. Background/resume on physical iOS and Android. Verify the pulse stays aligned with F Drum across pauses, long cascades and >12-second segment boundaries.
 7. Build a separate and explicitly approved *private tempo pack v2* before claiming real 84/88/92/96 BPM playback.
 
+## Phrase Arranger crossfade study
+
+The standalone Audio Lab Phrase Arranger now overlaps local PCM phrase windows at the transition boundary (rather than serial fades-to-zero): roughly 35 ms for F Drum, 160 ms for A/B/C/E and 320 ms for D Pads. It operates on a single original 80 BPM time grid, and the audio preview uses constant master gain. This is **not** yet the production compressed private pack runtime; it requires a listening test to confirm boundary clicks and rhythmic cleanliness across actual sections.
+
 No copyright-protected WAVs or private `.monoidpack` files are committed in the repository.
