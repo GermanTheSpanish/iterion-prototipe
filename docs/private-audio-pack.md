@@ -51,3 +51,46 @@ the service worker or the GitHub Pages build.
 - Prior to any public game-asset bundling, confirm explicit authorization to
   redistribute the stems over HTTP. Private repo visibility alone is not
   sufficient to hide audio served to browsers.
+
+
+## Music Pack v2 — actual 80/84/88/92/96 BPM (optional, private)
+
+The v1 pack still works exactly as before. To test **real, pitch-preserving**
+tempo increases after Markets, create v2 from the **six original, aligned WAVs**.
+The output is user-owned and must never enter source control, public builds or
+a public download endpoint.
+
+Requirements: Python 3.11+, FFmpeg with the \`rubberband\` filter and ffprobe.
+Accepts either \`SpaceDrift_A.wav\` … \`SpaceDrift_F.wav\` or the original
+\`Space Drift - A - Calm Poly.wav\` style names (one file per stem).
+
+\`\`\`bash
+python scripts/build-private-tempo-pack-v2.py \
+  --input-dir "PATH_TO_ORIGINAL_SIX_WAVS" \
+  --output "PATH_TO_PRIVATE_OUTPUT/SpaceDrift_Tempo_PRIVATE.monoidpack"
+\`\`\`
+
+The pack is indexed by **musical position** (36 four-bar positions x five tempos
+x six stems). All six stems receive the same offline Rubber Band pitch-preserving
+stretch. Segments use nominal 44.1 kHz sample durations with an additional
+160 ms encoded overlap for click-reducing transitions (30 ms for drums, 90 ms for
+poly/melody and 150 ms for pads in the player). The current implementation
+does not automatically rearrange phrases or claim verified cross-scene harmonic
+compatibility.
+
+The game requests 80, 84, 88, 92 or 96 BPM according to the number of completed
+Markets. It changes **all** active stems together on the next four-bar boundary,
+without restarting the musical position, while auxiliary percussion follows that
+same tempo. A pack loaded mid-run starts at the tempo appropriate for that run.
+
+**Expected caveats:** this is a relatively large pack (~120–150 MB depending
+on bitrate) and mobile browsers may refuse storage, evict IndexedDB data,
+or show glitches on slower phones. Keep your original v1 pack available to
+re-import if needed. Avoid repeatedly writing large packs unnecessarily.
+AAC encoder delay/packet rounding may introduce slight boundary phase jitter;
+crossfades reduce clicks but physical Safari/iPhone audition is mandatory
+before production approval. No music is hosted or remotely fetched.
+
+Read diagnostics in \`window.__monoidMusic.snapshot().transport\`:
+\`mode\`, \`bpm\` (currently audible), \`requestedBpm\` (next boundary),
+\`tempoAvailable\`, and \`underruns\`.
