@@ -223,8 +223,12 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
    const gate=context.createGain();
    const nowGain=late<fade?Math.max(.0001,late/Math.max(.001,fade)):
     late>nominal?Math.max(.0001,1-(late-nominal)/Math.max(.001,fade)):1;
-   gate.gain.setValueAtTime(nowGain,when);
-   if(entry>when)gate.gain.linearRampToValueAtTime(1,entry);
+   // Even if decoding finished late, start the buffer at silence. AAC packet
+   // boundaries need not be zero crossings; a nonzero first sample clicks.
+   gate.gain.setValueAtTime(0,when);
+   const attackEnd=Math.min(when+.005,Math.max(when+.002,entry));
+   gate.gain.linearRampToValueAtTime(nowGain,attackEnd);
+   if(entry>attackEnd)gate.gain.linearRampToValueAtTime(1,entry);
    if(exit>Math.max(when,entry))gate.gain.setValueAtTime(1,exit);
    if(finish>when)gate.gain.linearRampToValueAtTime(.0001,finish);
    const source=context.createBufferSource();
