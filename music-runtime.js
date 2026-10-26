@@ -3,11 +3,12 @@
 import {createStemPlayer} from './experiments/audio-lab/stem-player.js';
 import {STEMS,identifyStem} from './experiments/audio-lab/stem-scenes.js';
 import {analyseMachine,mixForMachine} from './music-morphology.js';
+import {spatialMixForMachine} from './music-spatial.js';
 import {createMachineEffects} from './audio-effects.js';
 import {createPressurePercussion} from './music-percussion.js';
 import {describePressure,isTargetReached} from './music-director.js';
-import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261026.1';
-import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261026.1';
+import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261026.2';
+import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261026.2';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
@@ -26,6 +27,7 @@ function installMusic(){
   '<button type="button" id="musicPlay">PLAY</button>'+
   '<button type="button" id="musicStop">STOP</button></div>'+
   '<label class="musicMaster">VOLUME <input type="range" id="musicVolume" min="0" max="100" value="55" step="5" aria-label="Music volume"></label>'+
+  '<div class="musicActions musicAudioFlags"><label><input type="checkbox" id="musicSpatial" checked> SPATIAL</label><label><input type="checkbox" id="musicExtraDrums" checked> EXTRA DRUMS</label></div>'+
   '<p id="musicStatus" class="musicStatus" role="status" aria-live="polite">Off · choose your local A–F WAV stems.</p>'+ 
   '<div class="musicActions"><a href="./experiments/audio-lab/" id="musicAudioLab">AUDIO LAB</a><button type="button" id="musicPresetButton">IMPORT PRESET</button></div>'+
   '<div class="musicActions"><button type="button" id="musicFolderButton">WAV FOLDER</button><button type="button" id="musicRemovePack">FORGET PACK</button></div>'+ 
@@ -41,6 +43,8 @@ function installMusic(){
   '#musicSettings .musicActions button,#musicSettings .musicActions a{font:inherit;font-size:10px;font-weight:800;min-height:39px;min-width:0;padding:4px 2px;border:1px solid currentColor;border-radius:6px;background:transparent;color:inherit}'+
   '#musicSettings .musicMaster{font-size:10px;display:flex;align-items:center;gap:12px;margin:10px 0}'+
   '#musicSettings .musicMaster input{min-width:0;flex:1}'+
+  '#musicSettings .musicAudioFlags{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}'+
+  '#musicSettings .musicAudioFlags label{display:flex;align-items:center;gap:6px;font-size:10px;min-height:28px}'+
   '#musicSettings .musicStatus{font-size:10px;line-height:1.4;min-height:28px;margin:6px 0}';
  document.head.appendChild(style);
  const anchor=document.getElementById('gameSelectionButton');
@@ -58,10 +62,11 @@ function installMusic(){
  folder.setAttribute('webkitdirectory','');folder.setAttribute('directory','');
  folder.webkitdirectory=true;
  const $=id=>section.querySelector('#'+id);
- const volume=$('musicVolume'),status=$('musicStatus');
+ const volume=$('musicVolume'),status=$('musicStatus'),spatialToggle=$('musicSpatial'),extraDrumsToggle=$('musicExtraDrums');
  const show=text=>{status.textContent=text};
  let packReady=false,selectedByUser=false,enabled=false,armed=false,startPending=false,roundKey='',lastRunId='',thinkingSeconds=0,decisionPace=0,hasDecision=false,missedFirstRun='',lastSample=performance.now(),lastMix=null,lastValues=null,lastTelemetryAt=0,acousticMode='';
  let pressure=null,lastPressureKey='',lastPressure=null,releaseUntil=0,stressedRoundKey='',releasedRoundKey='',lastLegalKey='',lastLegalMask=null;
+ let spatialKey='',lastSpatial=null;
  const current=()=>window.__monoidGame?.state?.()||null;
  const flow=()=>window.__monoidFlow?.screen||'entry';
  function diagnostic(type,detail={}){
@@ -144,7 +149,7 @@ function installMusic(){
   const cascade=Boolean(document.getElementById('board')?.dataset.cascadePhase||state?.running||state?.cleared);
   const mode=menu.open?'menu':shopping?'shop':cascade?'cascade':'game';
   if(mode===acousticMode)return;
-  acousticMode=mode;percussion.update(pressure,mode);
+  acousticMode=mode;percussion.update(pressure,mode,extraDrumsToggle.checked);
   const options=mode==='menu'?{level:0,lowpass:20000,fadeMs:preset.menuFadeMs}:
    mode==='shop'?{level:audioDbGain(preset.shopDuckDb),lowpass:preset.shopLowpassHz,fadeMs:preset.shopFadeMs}:
    mode==='cascade'?{level:audioDbGain(preset.cascadeDuckDb),lowpass:20000,fadeMs:preset.cascadeFadeMs}:
@@ -196,7 +201,19 @@ function installMusic(){
    releasedRoundKey=key;releaseUntil=nowMs+3000;
   }
   pressure=nowMs<releaseUntil?{...nextPressure,mood:'release',intensity:Math.max(1,nextPressure.intensity)}:nextPressure;
-  percussion.update(pressure,acousticMode);
+  percussion.update(pressure,acousticMode,extraDrumsToggle.checked);
+  // Recompute physical audio regions only if placement positions / board size
+  // changed. Works for Ouroboros moves, Undo and restore without changing game.
+  const pieces=state.pieces||[],board=window.IterionEngine?.getBoardSize?.()||
+   {G:window.IterionEngine?.G||18,H:window.IterionEngine?.H||24};
+  const positions=pieces.map(p=>p.id+':'+(p.cubes?.[0]?.x??'')+','+(p.cubes?.[0]?.y??'')+','+(p.rr??0)).join('|');
+  const nextSpatialKey=String(board.G)+':'+positions;
+  if(nextSpatialKey!==spatialKey){
+   spatialKey=nextSpatialKey;
+   lastSpatial=spatialMixForMachine(pieces,board);
+   player.setSpatialPans(spatialToggle.checked?lastSpatial.pans:{A:0,B:0,C:0,D:0,E:0,F:0});
+   if(enabled)diagnostic('music-spatial',{pans:player.spatialPans(),features:lastSpatial.features});
+  }
   // v1 packs keep their original clock; v2 uses a pitch-preserved encoded
   // variant of ALL stems on the next four-bar boundary.
   const tempoReady=!state.shopOpen&&!state.pendingModPlacement?player.setTempo(pressure.targetBpm):player.getSyncStatus().tempoAvailable;
@@ -272,6 +289,11 @@ function installMusic(){
  const modalObserver=new MutationObserver(()=>update());
  modalObserver.observe(document.getElementById('overlay'),{attributes:true,attributeFilter:['class'],subtree:false});
  $('musicStop').addEventListener('click',()=>stop());
+ spatialToggle.addEventListener('change',()=>{spatialKey='';update(true)});
+ extraDrumsToggle.addEventListener('change',()=>{
+  percussion.update(pressure,acousticMode,extraDrumsToggle.checked);
+  diagnostic('music-extra-drums',{enabled:extraDrumsToggle.checked});
+ });
  volume.addEventListener('input',()=>{player.setMaster(Number(volume.value)/100)});
  player.setMaster(Number(volume.value)/100);
  const poll=setInterval(()=>update(),250);
@@ -295,6 +317,8 @@ function installMusic(){
   snapshot:()=>({playing:enabled&&player.isPlaying(),loaded:player.loaded(),
    thinkingSeconds,decisionPace,acousticMode,armed,packReady,preset,playbackSeconds:player.playbackSeconds(),effects:effects.snapshot(),topology:lastMix?.topology||null,scene:lastMix?.scene||null,leadingStem:lastMix?.leadingStem||null,db:lastMix?.db||null,
    pressure,percussion:percussion.snapshot(),
+   spatial:{enabled:spatialToggle.checked,pans:player.spatialPans(),
+    features:lastSpatial?.features||null,mode:lastSpatial?.mode||'topology-stereo-v1'},
    transport:player.getSyncStatus()}),
   stop:()=>stop()
  });
