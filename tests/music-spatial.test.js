@@ -38,7 +38,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
  const percussion=fs.readFileSync('music-percussion.js','utf8');
  assert.match(percussion,/hissEnv\.gain\.setValueAtTime\(0,at\)/,'noise has zero-gain attack');
  assert.match(percussion,/hissEnv\.gain\.linearRampToValueAtTime\(0,at\+\.032\)/,'noise has zero-gain release');
- assert.match(percussion,/group\.gain\.linearRampToValueAtTime\(0,now\+\.02\)/,'stop uses output fade');
+ assert.match(percussion,/oldGroup\.gain\.linearRampToValueAtTime\(0,now\+\.02\)/,'stop uses output fade');
  const stem=fs.readFileSync('experiments/audio-lab/stem-player.js','utf8');
  assert.match(stem,/createStereoPanner/,'music stems have native per-stem panners');
  assert.match(stem,/gate\.gain\.setValueAtTime\(0,when\)/,'late AAC fragments start at silence');
