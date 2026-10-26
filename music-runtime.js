@@ -199,7 +199,7 @@ function installMusic(){
   percussion.update(pressure,acousticMode);
   // v1 packs keep their original clock; v2 uses a pitch-preserved encoded
   // variant of ALL stems on the next four-bar boundary.
-  const tempoReady=player.setTempo(pressure.targetBpm);
+  const tempoReady=!state.shopOpen&&!state.pendingModPlacement?player.setTempo(pressure.targetBpm):player.getSyncStatus().tempoAvailable;
   const pressureKey=pressure.mood+':'+pressure.intensity+':'+pressure.marketCount;
   if(lastPressureKey!==pressureKey){
    lastPressureKey=pressureKey;force=true;
