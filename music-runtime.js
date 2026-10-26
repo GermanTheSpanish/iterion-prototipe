@@ -7,8 +7,8 @@ import {spatialMixForMachine} from './music-spatial.js';
 import {createMachineEffects} from './audio-effects.js';
 import {createPressurePercussion} from './music-percussion.js';
 import {describePressure,isTargetReached} from './music-director.js';
-import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261026.1';
-import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261026.1';
+import {AUDIO_PRESET_STORAGE,normalizeAudioPreset,audioDbGain} from './audio-preset.js?v=20261026.2';
+import {loadAudioPack,saveAudioPack,deleteAudioPack} from './audio-pack.js?v=20261026.2';
 
 function installMusic(){
  const menu=document.getElementById('gameMenu');
