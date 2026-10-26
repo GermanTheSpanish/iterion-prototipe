@@ -51,6 +51,10 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  expect(pressureAtStart.pressure.sourceBpm).toBe(80);
  expect(pressureAtStart.pressure.targetBpm).toBe(80);
  expect(pressureAtStart.percussion.active).toBe(true);
+ expect(pressureAtStart.spatial.enabled).toBe(true);
+ expect(pressureAtStart.spatial.mode).toBe('topology-stereo-v1');
+ expect(pressureAtStart.spatial.pans.F).toBe(0);
+ expect(Object.keys(pressureAtStart.spatial.pans).sort()).toEqual(['A','B','C','D','E','F']);
  // Synthetic QA state mutation stays inside this isolated page, not engine code.
  const beforeQA=await page.evaluate(()=>{
   const g=window.__monoidGame,s=g.state();
@@ -72,6 +76,17 @@ test('in-game music is opt-in and starts with locally selected F Drum',async({pa
  await expect(page.locator('#gameMenu')).toBeVisible();
  await page.locator('#menuGroupSystem').click();
  await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().acousticMode)).toBe('menu');
+ await expect(page.locator('#musicSpatial')).toBeChecked();
+ await expect(page.locator('#musicExtraDrums')).toBeChecked();
+ await page.locator('#musicSpatial').uncheck();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().spatial.enabled)).toBe(false);
+ const centered=await page.evaluate(()=>window.__monoidMusic.snapshot().spatial.pans);
+ expect(Object.values(centered).every(value=>value===0)).toBe(true);
+ await page.locator('#musicSpatial').check();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().spatial.enabled)).toBe(true);
+ await page.locator('#musicExtraDrums').uncheck();
+ await expect.poll(()=>page.evaluate(()=>window.__monoidMusic.snapshot().percussion.muted)).toBe(true);
+ expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).playing).toBe(true);
  await page.locator('#musicStop').click();
  expect((await page.evaluate(()=>window.__monoidMusic.snapshot())).playing).toBe(false);
  expect(errors).toEqual([]);
