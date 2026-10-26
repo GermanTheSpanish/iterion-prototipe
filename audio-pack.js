@@ -1,6 +1,7 @@
 // Private audio packs stay in IndexedDB. No commercial stems are fetched or uploaded.
 export const PACK_MAGIC='MONOIDP1';
 export const PACK_SCHEMA='monoid-audio-pack-v1';
+export const TEMPO_PACK_SCHEMA='monoid-audio-pack-v2';
 export const AUDIO_PACK_DB='monoid-private-audio-v1';
 const HEADER_BYTES=12,MAX_MANIFEST=1024*1024;
 const IDS='ABCDEF';
@@ -15,6 +16,7 @@ export async function parseAudioPack(blob){
  let manifest;
  try{manifest=JSON.parse(new TextDecoder().decode(await blob.slice(HEADER_BYTES,HEADER_BYTES+size).arrayBuffer()))}
  catch{throw new Error('Audio pack: invalid manifest JSON')}
+ if(manifest?.schema===TEMPO_PACK_SCHEMA)return parseTempoPack(blob,manifest,HEADER_BYTES+size);
  ensure(manifest?.schema===PACK_SCHEMA,'unsupported schema');
  ensure(manifest.codec==='aac-lc'&&manifest.private===true,'private AAC-LC pack required');
  ensure(integer(manifest.sampleRateHz)&&manifest.sampleRateHz>=22050&&manifest.sampleRateHz<=96000,'invalid sample rate');
@@ -41,6 +43,46 @@ export async function parseAudioPack(blob){
  }
  ensure(offset+ranges.at(-1)[1]===blob.size,'unexpected trailing data');
  return Object.freeze({blob,manifest,offset,ids:Object.keys(manifest.stems)});
+}
+// Version 2 stores independently encoded, pitch-preserving tempo variants.
+// Each variant contains identical 4-bar source positions across all six stems.
+// The original v1 format above remains fully supported for old private packs.
+function parseTempoPack(blob,manifest,offset){
+ ensure(manifest.private===true&&manifest.codec==='aac-lc','v2 requires private AAC-LC');
+ ensure(manifest.sampleRateHz===44100&&manifest.channels===2,'unsupported v2 PCM format');
+ ensure(manifest.sourceBpm===80&&manifest.barsPerSegment===4,'unsupported musical grid');
+ ensure(integer(manifest.segmentCount)&&manifest.segmentCount>=1&&manifest.segmentCount<=72,'v2 segment count');
+ const tempos=[80,84,88,92,96],variants=manifest.variants;
+ ensure(variants&&typeof variants==='object'&&Object.keys(variants).length===tempos.length,'v2 requires all five tempo variants');
+ const ranges=[],ids=[];
+ for(const bpm of tempos){
+  const variant=variants[String(bpm)];
+  ensure(variant&&variant.bpm===bpm,'missing tempo '+bpm);
+  ensure(integer(variant.segmentSamples)&&Math.abs(variant.segmentSamples-Math.round(4*240*44100/bpm))<=1,
+   'invalid four-bar clock for '+bpm);
+  ensure(integer(variant.overlapSamples)&&variant.overlapSamples>=0&&variant.overlapSamples<=22050,
+   'invalid overlap for '+bpm);
+  ensure(variant.stems&&typeof variant.stems==='object'&&variant.stems.F,'F Drum missing at '+bpm);
+  const variantIds=Object.keys(variant.stems).sort();
+  ensure(variantIds.every(id=>IDS.includes(id)),'unknown v2 stem');
+  if(!ids.length)ids.push(...variantIds);
+  else ensure(ids.join(',')===variantIds.join(','),'tempo variants must share stems');
+  for(const id of variantIds){
+   const segments=variant.stems[id]?.segments;
+   ensure(Array.isArray(segments)&&segments.length===manifest.segmentCount,
+    'v2 missing '+id+' segments at '+bpm);
+   for(const seg of segments){
+    ensure(integer(seg.offset)&&integer(seg.bytes)&&seg.bytes>128&&offset+seg.offset+seg.bytes<=blob.size,
+     'invalid v2 segment byte range');
+    ranges.push([seg.offset,seg.offset+seg.bytes]);
+   }
+  }
+ }
+ ranges.sort((a,b)=>a[0]-b[0]);
+ for(let i=0;i<ranges.length;i++)
+  ensure(i===0?ranges[0][0]===0:ranges[i][0]===ranges[i-1][1],'v2 missing or overlapping audio');
+ ensure(offset+ranges.at(-1)[1]===blob.size,'v2 unexpected trailing bytes');
+ return Object.freeze({blob,manifest,offset,ids,tempoVariant:true});
 }
 function requestResult(request){
  return new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('Audio storage request failed'))});
