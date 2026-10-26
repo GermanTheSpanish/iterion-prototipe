@@ -16,6 +16,36 @@ assert.equal(syntax.status,0,syntax.stderr);
   return new Blob([length,header,chunk,chunk]);
  }
  const parsed=await parseAudioPack(pack());
+ const tempos=[80,84,88,92,96];
+ const variants={};let v2Offset=0;
+ for(const bpm of tempos){
+  variants[String(bpm)]={bpm,segmentSamples:Math.round(4*240*44100/bpm),
+   overlapSamples:7056,stems:{F:{segments:[{offset:v2Offset,bytes:256}]}}};
+  v2Offset+=256;
+ }
+ const tempoManifest={schema:'monoid-audio-pack-v2',name:'Test Private',
+  codec:'aac-lc',private:true,sampleRateHz:44100,channels:2,
+  sourceBpm:80,barsPerSegment:4,segmentCount:1,variants};
+ const packV2=data=>{
+  const header=new TextEncoder().encode(JSON.stringify(data)),length=new Uint8Array(12);
+  length.set([...PACK_MAGIC].map(x=>x.charCodeAt(0)));
+  new DataView(length.buffer).setUint32(8,header.length,true);
+  return new Blob([length,header,...tempos.map(()=>chunk)]);
+ };
+ const tempo=await parseAudioPack(packV2(tempoManifest));
+ assert.equal(tempo.tempoVariant,true);
+ assert.deepEqual(tempo.ids,['F']);
+ assert.equal(tempo.manifest.variants['96'].segmentSamples,441000);
+ assert.equal(tempo.manifest.variants['80'].segmentSamples,529200);
+ const invalid=(key,edit)=>{
+  const clone=JSON.parse(JSON.stringify(tempoManifest));edit(clone);return parseAudioPack(packV2(clone));
+ };
+ await assert.rejects(invalid('variant',m=>delete m.variants['92']),/all five/);
+ await assert.rejects(invalid('sample',m=>m.variants['84'].segmentSamples--),/four-bar clock/);
+ await assert.rejects(invalid('tail',m=>m.variants['96'].overlapSamples=44000),/overlap/);
+ await assert.rejects(invalid('order',m=>m.variants['88'].stems.F.segments[0].offset=42),/overlapping/);
+ await assert.rejects(invalid('missingF',m=>m.variants['80'].stems={A:m.variants['80'].stems.F}),/F Drum/);
+
  assert.deepEqual(parsed.ids,['F']);
  assert.equal(parsed.offset>12,true);
  assert.equal(parsed.manifest.segmentCount,2);
