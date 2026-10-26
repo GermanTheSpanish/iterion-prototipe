@@ -383,7 +383,8 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  function clock(){
   const tempo=isTempoPack()?activeTempoSegment():null;
   return {context,currentTime:context?.currentTime??0,origin:tempo?.at??startAt,
-   bpm:tempo?.bpm??80,playing,paused:Boolean(suspended||context?.state!=='running'),masterLevel};
+   bpm:tempo?.bpm??80,nextBoundary:isTempoPack()?tempoSegments.find(s=>s.at>(context?.currentTime??0))?.at??null:null,
+   playing,paused:Boolean(suspended||context?.state!=='running'),masterLevel};
  }
   function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
  function getSyncStatus(){
