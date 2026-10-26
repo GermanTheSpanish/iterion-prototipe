@@ -6,7 +6,7 @@ import {STEMS} from './stem-scenes.js';
 import {readPcmHeader,decodePcmSegment} from './pcm-wav-stream.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (window.AudioContext||window.webkitAudioContext)()}={}) {
- const tracks=new Map(STEMS.map(({id})=>[id,{id,file:null,header:null,gain:null,level:0,muted:false,solo:false}]));
+ const tracks=new Map(STEMS.map(({id})=>[id,{id,file:null,header:null,gain:null,panNode:null,spatialPan:0,level:0,muted:false,solo:false}]));
  const sources=new Set();
  let context=null,master=null,masterLevel=1,timer=null,playing=false,generation=0;
  let acoustic=null,lowpass=null,effects=null,acousticLevel=1,lowpassHz=20000;
@@ -28,7 +28,11 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   for(const track of tracks.values()){
    track.gain=context.createGain();
    track.gain.gain.value=audibleLevel(track);
-   track.gain.connect(master);
+   // Native lightweight stereo placement. On older WebKit, keep the dry path.
+   track.panNode=typeof context.createStereoPanner==='function'
+    ?context.createStereoPanner():context.createGain();
+   if(track.panNode.pan)track.panNode.pan.value=track.spatialPan;
+   track.gain.connect(track.panNode);track.panNode.connect(master);
   }
   return context;
  }
@@ -75,6 +79,21 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   const track=tracks.get(id);if(!track)throw new RangeError('Unknown stem');
   track.solo=Boolean(value);for(const t of tracks.values())applyLevel(t);
  }
+ function setSpatialPans(pans={}, {smooth=true}={}){
+  for(const {id} of STEMS){
+   if(!Object.hasOwn(pans,id))continue;
+   const track=tracks.get(id),pan=Number(pans[id]);
+   if(!Number.isFinite(pan))continue;
+   track.spatialPan=id==='F'?0:clamp(pan,-.65,.65);
+   if(track.panNode?.pan){
+    const param=track.panNode.pan,now=context.currentTime;
+    param.cancelScheduledValues(now);
+    if(smooth)param.setTargetAtTime(track.spatialPan,now,.65);
+    else param.setValueAtTime(track.spatialPan,now);
+   }
+  }
+ }
+ function spatialPans(){return Object.fromEntries([...tracks].map(([id,t])=>[id,t.spatialPan]))}
  function setMaster(value){
   const parsed=Number(value);if(!Number.isFinite(parsed))throw new RangeError('Invalid WORLD master');
   masterLevel=clamp(parsed,0,2);
@@ -396,9 +415,9 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  }
  function dispose(){
   stop();prepared=null;preparing=null;packRevision++;
-  for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect()}
+  for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect();t.panNode?.disconnect()}
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setPack,clearPack,setTempo,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,suspend,resume,getDrift,
+ return {setFile,setPack,clearPack,setTempo,setLevel,setLevels,setSpatialPans,spatialPans,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,suspend,resume,getDrift,
   getSyncStatus,playbackSeconds,clock,loaded,levels,dispose,isPlaying:()=>playing};
 }
