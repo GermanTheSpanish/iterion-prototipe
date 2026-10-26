@@ -12,6 +12,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  let acoustic=null,lowpass=null,effects=null,acousticLevel=1,lowpassHz=20000;
  let pack=null,prepared=null,preparing=null,packRevision=0,lastLateSeconds=0,suspended=false;
  let segmentFrames=0,segmentSeconds=0,totalSegments=0,nextIndex=0,startAt=0,busy=false,underruns=0;
+ let requestedBpm=80,tempoSegments=[],tempoNextAt=0;
  function init(){
   if(context)return context;
   context=makeContext();
@@ -43,7 +44,7 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   else param.setValueAtTime(value,at);
  }
  function setPack(parsed){
-  if(!parsed?.blob||!parsed?.manifest?.stems?.F)throw new Error('Invalid compressed audio pack');
+  if(!parsed?.blob||!(parsed.manifest?.stems?.F||parsed.manifest?.variants?.['80']?.stems?.F))throw new Error('Invalid compressed audio pack');
   stop();pack=parsed;prepared=null;preparing=null;packRevision++;
   for(const track of tracks.values()){track.file=null;track.header=null}
   lastError='';return loaded();
@@ -102,9 +103,15 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   }
  }
  function loaded(){return pack?pack.ids:[...tracks].filter(([,t])=>Boolean(t.file)).map(([id])=>id)}
+ function isTempoPack(){return pack?.manifest?.schema==='monoid-audio-pack-v2'}
+ function setTempo(bpm){
+  const requested=Math.floor(Number(bpm));
+  if(!isTempoPack()||!pack.manifest.variants[String(requested)])return false;
+  requestedBpm=requested;return true;
+ }
  function levels(){return Object.fromEntries([...tracks].map(([id,t])=>[id,t.level]))}
  function stop(){
-  generation++;playing=false;busy=false;suspended=false;
+  generation++;playing=false;busy=false;suspended=false;tempoSegments=[];tempoNextAt=0;
   if(timer!==null){clearInterval(timer);timer=null}
   for(const source of sources){
    try{source.stop()}catch{}
@@ -160,10 +167,119 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
    else if(pack)source.start(at,0,segmentSeconds);else source.start(at);
   }
  }
+ // Tempo v2 uses 4 musical bars per fragment, with a short encoded
+ // outgoing tail so adjacent stems can overlap at a real tempo switch.
+ async function loadTempoGroup(index,bpm,available){
+  const variant=pack.manifest.variants[String(bpm)],segment=index%pack.manifest.segmentCount;
+  const expectedFrames=variant.segmentSamples+variant.overlapSamples;
+  return Promise.all(available.map(async track=>{
+   const part=variant.stems[track.id].segments[segment];
+   const bytes=await pack.blob.slice(pack.offset+part.offset,pack.offset+part.offset+part.bytes).arrayBuffer();
+   const decoded=await context.decodeAudioData(bytes);
+   const expected=expectedFrames/pack.manifest.sampleRateHz;
+   if(decoded.numberOfChannels!==2||Math.abs(decoded.duration-expected)>.10)
+    throw new Error('Tempo segment mismatch '+bpm+'/'+track.id+'/'+segment);
+   const targetFrames=Math.round(expected*decoded.sampleRate);
+   let buffer=decoded;
+   if(decoded.length!==targetFrames){
+    buffer=context.createBuffer(2,targetFrames,decoded.sampleRate);
+    for(let ch=0;ch<2;ch++)
+     buffer.getChannelData(ch).set(decoded.getChannelData(ch).subarray(0,targetFrames));
+   }
+   return {track,buffer};
+  }));
+ }
+ function scheduleTempoGroup(group,index,bpm,at){
+  const variant=pack.manifest.variants[String(bpm)];
+  const nominal=variant.segmentSamples/pack.manifest.sampleRateHz;
+  const overlap=variant.overlapSamples/pack.manifest.sampleRateHz;
+  const when=Math.max(at,context.currentTime+.03),late=when-at;
+  if(late>.05){underruns++;lastLateSeconds=late}
+  for(const {track,buffer} of group){
+   const maxDuration=Math.min(buffer.duration,nominal+overlap);
+   if(late>=maxDuration)continue;
+   const duration=maxDuration-late;
+   const fade=Math.min(overlap,track.id==='F'?.03:track.id==='D'?.15:.09);
+   const entry=at+fade,exit=at+nominal,finish=exit+fade;
+   const gate=context.createGain();
+   const nowGain=late<fade?Math.max(.0001,late/Math.max(.001,fade)):
+    late>nominal?Math.max(.0001,1-(late-nominal)/Math.max(.001,fade)):1;
+   gate.gain.setValueAtTime(nowGain,when);
+   if(entry>when)gate.gain.linearRampToValueAtTime(1,entry);
+   if(exit>Math.max(when,entry))gate.gain.setValueAtTime(1,exit);
+   if(finish>when)gate.gain.linearRampToValueAtTime(.0001,finish);
+   const source=context.createBufferSource();
+   source.buffer=buffer;source.connect(gate);gate.connect(track.gain);
+   sources.add(source);
+   source.onended=()=>{sources.delete(source);source.disconnect();gate.disconnect()};
+   source.start(when,late,duration);
+  }
+ }
+ function activeTempoSegment(){
+  const now=context?.currentTime??0;
+  let active=tempoSegments[0]||null;
+  for(const item of tempoSegments)if(item.at<=now)active=item;else break;
+  return active;
+ }
+ function prepareTempo(){
+  if(!pack)return Promise.resolve(false);
+  if(prepared?.bpm===requestedBpm)return Promise.resolve(true);
+  if(preparing)return preparing;
+  init();
+  const revision=packRevision,bpm=requestedBpm;
+  const available=[...tracks.values()].filter(t=>Boolean(pack.manifest.variants[String(bpm)]?.stems?.[t.id]));
+  preparing=loadTempoGroup(0,bpm,available).then(group=>{
+   if(revision!==packRevision)return false;
+   prepared={bpm,group};return true;
+  }).catch(error=>{
+   if(revision===packRevision)lastError=String(error?.message||error);
+   return false;
+  }).finally(()=>{if(revision===packRevision)preparing=null});
+  return preparing;
+ }
+ async function startTempoPack(available,run){
+  const bpm=requestedBpm;
+  if(preparing)await preparing;
+  const first=prepared?.bpm===bpm?prepared.group:await loadTempoGroup(0,bpm,available);
+  prepared=null;
+  if(run!==generation)return {loaded:0,errors:['Start cancelled']};
+  playing=true;underruns=0;lastLateSeconds=0;lastError='';
+  totalSegments=pack.manifest.segmentCount;
+  startAt=context.currentTime+.12;
+  nextIndex=1;
+  tempoSegments=[{index:0,at:startAt,bpm}];
+  segmentSeconds=pack.manifest.variants[String(bpm)].segmentSamples/pack.manifest.sampleRateHz;
+  tempoNextAt=startAt+segmentSeconds;
+  scheduleTempoGroup(first,0,bpm,startAt);
+  const pump=async()=>{
+   if(!playing||run!==generation||busy)return;
+   if(tempoNextAt-context.currentTime>3.5)return;
+   busy=true;
+   const index=nextIndex,desired=requestedBpm;
+   try{
+    const group=await loadTempoGroup(index,desired,available);
+    if(run!==generation||!playing)return;
+    // The timestamp is inherited from the previous (possibly different)
+    // tempo. Never restart song phase or advance gameplay RNG.
+    const at=tempoNextAt;
+    scheduleTempoGroup(group,index,desired,at);
+    tempoSegments.push({index,at,bpm:desired});
+    if(tempoSegments.length>3)tempoSegments.shift();
+    tempoNextAt=at+pack.manifest.variants[String(desired)].segmentSamples/pack.manifest.sampleRateHz;
+    nextIndex=index+1;
+   }catch(error){
+    if(run===generation){stop();lastError=String(error?.message||error)}
+   }finally{if(run===generation)busy=false}
+  };
+  timer=setInterval(()=>{void pump()},100);
+  void pump();
+  return {loaded:available.length,errors:[],state:context.state,bpm};
+ }
  // Predecode only the first pack segment, while on the run entry screen.
  // No playback or browser autoplay is attempted by this preparation.
  function prepare(){
   if(!pack)return Promise.resolve(false);
+  if(isTempoPack())return prepareTempo();
   if(prepared)return Promise.resolve(true);
   if(preparing)return preparing;
   init();
@@ -182,13 +298,14 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
   return preparing;
  }
  async function start(){
-  const available=[...tracks.values()].filter(t=>pack?Boolean(pack.manifest.stems[t.id]):Boolean(t.file));
+  const available=[...tracks.values()].filter(t=>pack?Boolean(isTempoPack()?pack.manifest.variants['80'].stems[t.id]:pack.manifest.stems[t.id]):Boolean(t.file));
   if(!available.length)throw new Error('Select a private audio pack or at least one local Space Drift stem');
   stop();const run=++generation;
   const active=init();
   // Resume is invoked directly from the Play tap, before any await (iOS).
   const resumed=active.resume();
   if(resumed&&typeof resumed.catch==='function')resumed.catch(()=>{});
+  if(isTempoPack())return startTempoPack(available,run);
   if(pack){
    segmentFrames=pack.manifest.segmentSamples;
    totalSegments=pack.manifest.segmentCount;
@@ -254,18 +371,34 @@ export function createStemPlayer(_legacyElements={}, {makeContext=()=>new (windo
  let lastError='';
  function playbackSeconds(){
   if(!playing||!context||!totalSegments||!segmentSeconds)return 0;
+  if(isTempoPack()){
+   const active=activeTempoSegment();
+   if(!active)return 0;
+   const sourceSeconds=active.index*12+(context.currentTime-active.at)*active.bpm/80;
+   return Math.max(0,sourceSeconds%(totalSegments*12));
+  }
   return Math.max(0,(context.currentTime-startAt)%(totalSegments*segmentSeconds));
  }
  // A read-only clock for auxiliary percussion. The source timeline never shifts.
- function clock(){return {context,currentTime:context?.currentTime??0,origin:startAt,
-  playing,paused:Boolean(suspended||context?.state!=='running'),masterLevel}}
+ function clock(){
+  const tempo=isTempoPack()?activeTempoSegment():null;
+  return {context,currentTime:context?.currentTime??0,origin:tempo?.at??startAt,
+   bpm:tempo?.bpm??80,nextBoundary:isTempoPack()?tempoSegments.find(s=>s.at>(context?.currentTime??0))?.at??null:null,
+   playing,paused:Boolean(suspended||context?.state!=='running'),masterLevel};
+ }
   function getDrift(){return 0} // All stem starts use the same AudioContext timestamp.
- function getSyncStatus(){return {mode:'shared-audio-clock',underruns,lastLateSeconds,paused:playing&&(suspended||context?.state!=='running'),playbackSeconds:playbackSeconds(),error:lastError}}
+ function getSyncStatus(){
+  const actual=isTempoPack()?activeTempoSegment()?.bpm??requestedBpm:80;
+  return {mode:isTempoPack()?'tempo-variant-audio-clock':'shared-audio-clock',
+   bpm:actual,requestedBpm:isTempoPack()?requestedBpm:80,tempoAvailable:isTempoPack(),
+   underruns,lastLateSeconds,paused:playing&&(suspended||context?.state!=='running'),
+   playbackSeconds:playbackSeconds(),error:lastError};
+ }
  function dispose(){
   stop();prepared=null;preparing=null;packRevision++;
   for(const t of tracks.values()){t.file=null;t.header=null;t.gain?.disconnect()}
   if(context){const old=context;context=null;old.close().catch(()=>{})}
  }
- return {setFile,setPack,clearPack,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,suspend,resume,getDrift,
+ return {setFile,setPack,clearPack,setTempo,setLevel,setLevels,setMuted,setSolo,setMaster,setAcoustics,activateAudio,prepare,start,stop,suspend,resume,getDrift,
   getSyncStatus,playbackSeconds,clock,loaded,levels,dispose,isPlaying:()=>playing};
 }
