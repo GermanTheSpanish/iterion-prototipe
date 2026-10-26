@@ -47,10 +47,11 @@ export function createPressurePercussion(player){
   const clock=player.clock();
   volume=clamp(Number(clock.masterLevel)||0,0,1.5);
   if(!clock.playing||clock.paused||!clock.context||!Number.isFinite(clock.origin))return;
+  const bpm=Number.isFinite(clock.bpm)?clock.bpm:SOURCE_BPM;
   if(origin!==clock.origin){
-   origin=clock.origin;nextStep=Math.max(0,Math.floor((clock.currentTime-origin)/(.25*60/SOURCE_BPM)));
+   origin=clock.origin;nextStep=Math.max(0,Math.floor((clock.currentTime-origin)/(60/bpm/4)));
   }
-  const stepLength=60/SOURCE_BPM/4,now=clock.currentTime,limit=now+.26;
+  const stepLength=60/bpm/4,now=clock.currentTime,limit=now+.26;
   // Bounded scheduling with one shared audio origin, never gameplay timers.
   let safety=0;
   while(origin+nextStep*stepLength<limit&&safety++<24){
