@@ -197,12 +197,16 @@ function installMusic(){
   }
   pressure=nowMs<releaseUntil?{...nextPressure,mood:'release',intensity:Math.max(1,nextPressure.intensity)}:nextPressure;
   percussion.update(pressure,acousticMode);
+  // v1 packs keep their original clock; v2 uses a pitch-preserved encoded
+  // variant of ALL stems on the next four-bar boundary.
+  const tempoReady=player.setTempo(pressure.targetBpm);
   const pressureKey=pressure.mood+':'+pressure.intensity+':'+pressure.marketCount;
   if(lastPressureKey!==pressureKey){
    lastPressureKey=pressureKey;force=true;
    if(enabled)diagnostic('music-pressure',{mood:pressure.mood,intensity:pressure.intensity,
     movesLeft:pressure.movesLeft,marketCount:pressure.marketCount,zeroConstrained:pressure.zeroConstrained,
-    targetTempoBpm:pressure.targetBpm,actualStemTempoBpm:pressure.sourceBpm});
+    targetTempoBpm:pressure.targetBpm,actualStemTempoBpm:player.getSyncStatus().bpm,
+    tempoAvailable:tempoReady});
   }
   if(!enabled||!player.isPlaying()&&!force)return;
   const topology=analyseMachine(state.pieces||[]),mix=mixForMachine(topology,Math.max(thinkingSeconds,decisionPace*.7));
@@ -226,7 +230,7 @@ function installMusic(){
    const health=player.getSyncStatus();
    if(health.error){stop('Audio interrupted: '+health.error);return}
    show(health.paused?'PAUSED · tap the board to resume on the same audio clock':
-    'PLAYING · '+mix.scene.toUpperCase()+' / '+mix.leadingStem+' · F Drum · '+topology.tiles+' tiles · '+Math.floor(thinkingSeconds)+'s decision time'+
+    'PLAYING · '+health.bpm+' BPM · '+mix.scene.toUpperCase()+' / '+mix.leadingStem+' · F Drum · '+topology.tiles+' tiles · '+Math.floor(thinkingSeconds)+'s decision time'+
     (health.underruns?' · '+health.underruns+' buffer underrun(s)':''));
   }
  }
