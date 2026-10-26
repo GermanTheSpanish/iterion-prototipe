@@ -41,7 +41,7 @@ assert.equal(syntax.status,0,syntax.stderr);
   const clone=JSON.parse(JSON.stringify(tempoManifest));edit(clone);return parseAudioPack(packV2(clone));
  };
  await assert.rejects(invalid('variant',m=>delete m.variants['92']),/all five/);
- await assert.rejects(invalid('sample',m=>m.variants['84'].segmentSamples--),/four-bar clock/);
+ await assert.rejects(invalid('sample',m=>m.variants['84'].segmentSamples-=3),/four-bar clock/);
  await assert.rejects(invalid('tail',m=>m.variants['96'].overlapSamples=44000),/overlap/);
  await assert.rejects(invalid('order',m=>m.variants['88'].stems.F.segments[0].offset=42),/overlapping/);
  await assert.rejects(invalid('missingF',m=>m.variants['80'].stems={A:m.variants['80'].stems.F}),/F Drum/);
